@@ -64,6 +64,9 @@ export class NightLights {
   private bulbBase = new Map<StdMat, { e: Color; i: number }>();
   private lampMeshes = new Set<InstancedMesh>();
   private scanT = 0;
+  // hero GLB signs (material names signglow / neon* / bulb*): ramp emissive with night
+  private heroGlow = new Map<StdMat, number>();
+  private heroN = -1;
   private poolT = 0;
 
   constructor(g: AGame) {
@@ -146,6 +149,24 @@ export class NightLights {
       }
     });
     for (const im of this.lampMeshes) if (!im.parent) this.lampMeshes.delete(im);
+    this.scanHero();
+  }
+
+  private scanHero() {
+    const hg = (this.g.real as unknown as { hero?: { group?: Object3D } }).hero?.group;
+    if (!hg) return;
+    let n = 0;
+    hg.traverse(() => n++);
+    if (n === this.heroN) return;
+    this.heroN = n;
+    hg.traverse((o) => {
+      const mm = (o as InstancedMesh).material as StdMat | StdMat[];
+      if (!(o as InstancedMesh).isMesh || !mm) return;
+      for (const m of Array.isArray(mm) ? mm : [mm]) {
+        if (!m || !m.emissive || this.heroGlow.has(m)) continue;
+        if (/^l?(signglow|neon|bulb)/i.test(m.name || "")) this.heroGlow.set(m, m.emissiveIntensity || 1);
+      }
+    });
   }
 
   /** A's car physics: x -= sin(h) * s, z -= cos(h) * s (same convention as B: nose is -Z). */
@@ -170,6 +191,8 @@ export class NightLights {
       m.emissive.copy(b.e).lerp(new Color(0xffc985), k);
       m.emissiveIntensity = b.i + k * 7.5;
     }
+    // hero signs: dim by day (reads as paint), bright at night
+    for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 * (0.45 + k * 3.2);
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
