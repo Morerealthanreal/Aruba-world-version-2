@@ -1,0 +1,22 @@
+{
+  "name": "aw-addons",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --minify --target=es2020 --outfile=../game/addons/aw-addons.js --legal-comments=none",
+    "typecheck": "tsc -p .",
+    "dev": "npm run build -- --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "esbuild": "^0.28.2",
+    "three": "^0.186.1",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module"
+}
