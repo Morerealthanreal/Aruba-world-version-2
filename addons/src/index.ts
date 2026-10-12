@@ -18,6 +18,7 @@ import { JobPump } from "./jobPump";
 import { FarCity } from "./farCity";
 import { ContextGuard } from "./contextGuard";
 import { FrameGraph } from "./frameGraph";
+import { Kids } from "./kids";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -32,6 +33,7 @@ async function main() {
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
+  const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
@@ -42,7 +44,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, version: "0.8.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, version: "0.9.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -59,6 +61,7 @@ async function main() {
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
     if (far) far.update(dt);
+    if (kids) kids.update(Math.min(dt, 0.1));
     if (graph) graph.frame(dt * 1000);
     guard.frame(dt);
     tickUI();
