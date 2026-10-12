@@ -20901,7 +20901,7 @@
    "switch_m": 260
   },
   "tris": {
-   "hyattpool_lod0": 3647,
+   "hyattpool_lod0": 2915,
    "hyattpool_lod1": 241
   },
   "textures": 0,
@@ -20944,7 +20944,7 @@
    "switch_m": 260
   },
   "tris": {
-   "marriottpool_lod0": 3796,
+   "marriottpool_lod0": 3028,
    "marriottpool_lod1": 7
   },
   "textures": 0,
@@ -20987,7 +20987,7 @@
    "switch_m": 260
   },
   "tris": {
-   "riupool_lod0": 2377,
+   "riupool_lod0": 2221,
    "riupool_lod1": 7
   },
   "textures": 0,
@@ -21030,7 +21030,7 @@
    "switch_m": 260
   },
   "tris": {
-   "hiltonpool_lod0": 3251,
+   "hiltonpool_lod0": 2663,
    "hiltonpool_lod1": 7
   },
   "textures": 0,
@@ -21073,7 +21073,7 @@
    "switch_m": 260
   },
   "tris": {
-   "barcelopool_lod0": 3056,
+   "barcelopool_lod0": 2756,
    "barcelopool_lod1": 295
   },
   "textures": 0,
