@@ -38,3 +38,9 @@ Streaming (pure A HIGH, teleport 2.6 km): 12 region loads (3 concurrent, 0.1-13.
 2. Perf round 2 committed: tileInst.ts folds ~39k InstancedMesh (kit/parked/parkedHi/props) into ~447 per-tile buckets; car 110->12 meshes; phone peds HIGH 10->5 (MED 6->4) no shadows; fixed add-on dt going negative at boot (delayed perf.update by ~12 s on HIGH).
 Round-2 HIGH (phone profile): 680 draws (was 1144 after round 1, 5410 pure A), 1.23M tris, 9,073 scene objects (was 72.5k / 87.7k), shadow pass 125 draws (was 385), SwiftShader 2.25 fps idle / 1.83 driving (was 0.75/0.83; pure A 0.38/0.33), JS 11.9 / 7.3 ms/frame.
 Round-2 LOW: 382 draws (608 r1, 1628 A), 510k tris, 5,647 objects (44k), SwiftShader 4.75 fps idle / 2.83 drive (r1 2.25/3.83 noisy, A 0.88/0.67), JS 4.5 / 6.2 ms.
+
+## Round 3 (art + off-frame tile jobs)
+- sun.ts: sun disc/halo sprite + golden-hour key light and haze (?sun=0)
+- flora.ts: bougainvillea, aloe, sea grape, desert scrub, wall AC units, shop awnings. All instanced and distance culled, no shadows (?flora=0)
+- jobPump.ts + bundle patch (`window.__awJobB`): A's tile-build queue drains from a post-frame MessageChannel task (?jobs=0)
+- Phone HIGH: 689 -> 709 draws, 1.229M -> 1.232M tris. Phone LOW: 382 -> 388 draws, 500.6k -> 500.7k tris. No page errors.
