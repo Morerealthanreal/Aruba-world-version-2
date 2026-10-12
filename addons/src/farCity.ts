@@ -41,12 +41,12 @@ export class FarCity {
       const o = 8 + i * 14, hx = dv.getInt16(o + 4, true) / 20, hz = dv.getInt16(o + 6, true) / 20, w1 = dv.getUint8(o + 8) / 4, h = dv.getUint8(o + 9) / 4;
       nv += 4; ni += 6; if (big(h, w1, Math.hypot(hx, hz))) { nv += 16; ni += 24; }
     }
-    const P = new Float32Array(nv * 3), N = new Float32Array(nv * 3), C = new Uint8Array(nv * 3), R = new Float32Array(nv), I = new Uint32Array(ni);
+    const P = new Float32Array(nv * 3), N = new Float32Array(nv * 3), C = new Uint8Array(nv * 4), R = new Float32Array(nv), I = new Uint32Array(ni);
     let v = 0, k = 0;
-    const col = new Color();
+    const col = new Color(), sand = new Color(0xc9b79c).convertSRGBToLinear();
     const put = (x: number, y: number, z: number, nx: number, ny: number, nz: number, reg: number) => {
       P[v * 3] = x; P[v * 3 + 1] = y; P[v * 3 + 2] = z; N[v * 3] = nx; N[v * 3 + 1] = ny; N[v * 3 + 2] = nz;
-      C[v * 3] = col.r * 255; C[v * 3 + 1] = col.g * 255; C[v * 3 + 2] = col.b * 255; R[v] = reg; return v++;
+      C[v * 4] = col.r * 255; C[v * 4 + 1] = col.g * 255; C[v * 4 + 2] = col.b * 255; C[v * 4 + 3] = 255; R[v] = reg; return v++;
     };
     for (let i = 0; i < n; i++) {
       const o = 8 + i * 14;
@@ -56,14 +56,14 @@ export class FarCity {
       const y0 = A.heightAt(cx, cz) - 0.5, y1 = y0 + 0.5 + h;
       const cs = [[cx - hx - px, cz - hz - pz], [cx + hx - px, cz + hz - pz], [cx + hx + px, cz + hz + pz], [cx - hx + px, cz - hz + pz]];
       const roof = kr >> 4;
-      col.setHex(roof ? ROOF_TILE[seed & 3] : ROOF_FLAT[seed & 3]).convertSRGBToLinear();
+      col.setHex(roof ? ROOF_TILE[seed & 3] : ROOF_FLAT[seed & 3]).convertSRGBToLinear().lerp(sand, 0.35);
       const a = cs.map(([x, z]) => put(x, y1, z, 0, 1, 0, reg));
       // winding: make the roof face up regardless of corner order
       const cross = (cs[1][0] - cs[0][0]) * (cs[2][1] - cs[0][1]) - (cs[1][1] - cs[0][1]) * (cs[2][0] - cs[0][0]);
       if (cross < 0) { I[k++] = a[0]; I[k++] = a[1]; I[k++] = a[2]; I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[3]; }
       else { I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[1]; I[k++] = a[0]; I[k++] = a[3]; I[k++] = a[2]; }
       if (big(h, w1, L)) {
-        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear();
+        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear().lerp(sand, 0.4).multiplyScalar(0.85);
         for (let e = 0; e < 4; e++) {
           const [ax, az] = cs[e], [bx, bz] = cs[(e + 1) & 3];
           let nx = bz - az, nz = -(bx - ax); const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
@@ -77,7 +77,7 @@ export class FarCity {
     const geo = new BufferGeometry();
     geo.setAttribute("position", new BufferAttribute(P, 3));
     geo.setAttribute("normal", new BufferAttribute(N, 3));
-    geo.setAttribute("color", new BufferAttribute(C, 3, true));
+    geo.setAttribute("color", new BufferAttribute(C, 4, true));
     geo.setAttribute("aReg", new BufferAttribute(R, 1));
     geo.setIndex(new BufferAttribute(I, 1));
     const mat = new MeshLambertMaterial({ vertexColors: true, side: 2 });

@@ -65,7 +65,7 @@ export class PerfFixes {
     this.mobile = pm === "1" ? true : pm === "0" ? false : touch;
     this.stats = { instFolded: 0, instBuckets: 0, carMeshes: "", peds: "", glassFixed: 0, frozen: 0, merged: 0, mergedFrom: 0, kitNoShadow: 0, heroHidden: 0, mobile: this.mobile, changes: [] };
     const tier = this.real.q.name;
-    this.heroCap = tier === "low" ? 700 : tier === "med" ? 1000 : this.mobile ? 1400 : 2000;
+    this.heroCap = tier === "low" ? 700 : tier === "med" ? 1000 : this.mobile ? 1400 : (this.real.q as unknown as { id?: string }).id === "desktop" ? 5000 : 2000;
     window.__awMMDiv = 3;
     this.tierProfile();
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q);
@@ -101,10 +101,14 @@ export class PerfFixes {
     if (!p) return;
     this.postDone = true;
     if (this.mobile && p.ao) { p.ao.enabled = false; this.stats.changes.push("GTAO off"); }
+    // phones on HIGH: 4x MSAA on a half-float target -> 2x (edges still smooth at 1.5 DPR, half the resolve bandwidth)
+    const comp = (p as unknown as { composer?: { renderTarget1?: { samples: number; dispose(): void }; renderTarget2?: { samples: number; dispose(): void } } }).composer;
+    if (this.mobile && comp) for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt && rt.samples > 2) { rt.samples = 2; rt.dispose(); this.stats.changes.push("MSAA 4->2"); }
   }
 
   // ---------- 1. car glass ----------
   private fixGlass() {
+    if ((this.real.q as unknown as { id?: string }).id === "desktop" && !this.mobile) return; // desktop keeps A's transmissive glass
     const roots: Object3D[] = [];
     const car = this.g.car;
     if (car) roots.push(car);

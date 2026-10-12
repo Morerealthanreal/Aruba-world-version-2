@@ -118,7 +118,7 @@ export class Flora {
 
   constructor(private g: AGame, mobile: boolean) {
     const tier = (g.real as unknown as { q: { name: string } }).q.name;
-    this.mul = (tier === "low" ? 0.6 : tier === "med" ? 0.85 : 1) * (mobile ? 0.8 : 1);
+    this.mul = (tier === "low" ? 0.6 : tier === "med" ? 0.85 : (g.real as unknown as { q: { id?: string } }).q.id === "desktop" ? 1.4 : 1) * (mobile ? 0.8 : 1);
     const mk = (map: CanvasTexture) => new MeshStandardMaterial({ map, alphaTest: 0.45, side: DoubleSide, roughness: 0.85, metalness: 0 });
     this.mBoug = mk(leafTexture("boug"));
     this.mGrape = mk(leafTexture("grape"));

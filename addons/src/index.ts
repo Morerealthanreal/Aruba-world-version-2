@@ -16,6 +16,7 @@ import { Flora } from "./flora";
 import { Sun } from "./sun";
 import { JobPump } from "./jobPump";
 import { FarCity } from "./farCity";
+import { ContextGuard } from "./contextGuard";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -28,6 +29,7 @@ async function main() {
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
   const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
+  const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
@@ -38,7 +40,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, version: "0.7.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, version: "0.8.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
