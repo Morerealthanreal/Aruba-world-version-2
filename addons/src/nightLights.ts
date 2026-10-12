@@ -55,7 +55,7 @@ function patchWindows(wall: Material) {
 
 /** Hero GLB facades have windows painted into the texture (dark blue-grey glass). Light them at night. */
 function patchHeroWindows(mat: Material) {
-  chainPatch(mat, "herowin-v1", (s) => {
+  chainPatch(mat, "herowin-v2", (s) => {
     if (!s.fragmentShader.includes("#include <emissivemap_fragment>")) return;
     s.uniforms.uAwNight = uNight;
     s.fragmentShader = s.fragmentShader
@@ -67,6 +67,10 @@ function patchHeroWindows(mat: Material) {
     vec3 awC = diffuseColor.rgb;
     float awL = dot(awC, vec3(0.299, 0.587, 0.114));
     float awW = step(awC.r + 0.03, awC.b) * (1.0 - smoothstep(0.12, 0.3, awL));
+    #ifdef USE_MAP
+    vec2 awCell = floor(vMapUv + 0.001); // u per bay, v per storey -> one cell per window
+    awW *= step(0.25, fract(sin(dot(awCell, vec2(12.9898, 78.233))) * 43758.5453));
+    #endif
     totalEmissiveRadiance += vec3(1.0, 0.78, 0.5) * awW * smoothstep(0.25, 0.7, uAwNight) * 1.2;
   }`,
       );
@@ -188,7 +192,7 @@ export class NightLights {
         const nm = m.name || "";
         if (/^l?(signglow|neon|bulb)/i.test(nm)) this.heroGlow.set(m, m.emissiveIntensity || 1);
         else if (nm === "sign") this.heroGlow.set(m, -(m.emissiveIntensity || 1)); // plain signs: gentler ramp
-        else if (nm === "facade" || nm === "ground") { patchHeroWindows(m); this.bump.push(m); }
+        else if (/^(facade|ground)(_\d+)?$/.test(nm)) { patchHeroWindows(m); this.bump.push(m); }
         else if (nm === "glass") { m.emissive.setHex(0xffc985); m.emissiveIntensity = 0; this.heroGlow.set(m, 0); } // hero windows: warm glow at night
       }
     });
