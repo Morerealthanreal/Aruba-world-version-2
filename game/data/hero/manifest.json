@@ -59,7 +59,7 @@
    "dom_palmbeach_lod0": 150,
    "dom_palmbeach_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7861.7,
@@ -382,7 +382,7 @@
    "ritz_lod0": 767,
    "ritz_lod1": 187
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8119.3,
@@ -884,7 +884,7 @@
    "mcd1_lod0": 112,
    "mcd1_lod1": 58
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7969.2,
@@ -930,7 +930,7 @@
    "mcd2_lod0": 130,
    "mcd2_lod1": 58
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6180.6,
@@ -992,7 +992,7 @@
    "mcd3_lod0": 151,
    "mcd3_lod1": 67
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1224.6,
@@ -1050,7 +1050,7 @@
    "kfc1_lod0": 294,
    "kfc1_lod1": 88
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6775.5,
@@ -1152,7 +1152,7 @@
    "kfc2_lod0": 138,
    "kfc2_lod1": 52
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7860.5,
@@ -1206,7 +1206,7 @@
    "kfc3_lod0": 112,
    "kfc3_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1158.6,
@@ -1252,7 +1252,7 @@
    "kfc4_lod0": 138,
    "kfc4_lod1": 52
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6407.8,
@@ -1306,7 +1306,7 @@
    "kfc5_lod0": 125,
    "kfc5_lod1": 49
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8979.3,
@@ -1356,7 +1356,7 @@
    "kfc6_lod0": 190,
    "kfc6_lod1": 64
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -5587.3,
@@ -1426,7 +1426,7 @@
    "m_burgerking_lod0": 98,
    "m_burgerking_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6737.1,
@@ -1472,7 +1472,7 @@
    "bk_santacruz_lod0": 150,
    "bk_santacruz_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1197.9,
@@ -1534,7 +1534,7 @@
    "bk_sannicolas_lod0": 111,
    "bk_sannicolas_lod1": 37
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6356.6,
@@ -1584,7 +1584,7 @@
    "wendys_pb_lod0": 124,
    "wendys_pb_lod1": 40
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7850.3,
@@ -1638,7 +1638,7 @@
    "wendys_sc_lod0": 98,
    "wendys_sc_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1068.3,
@@ -1684,7 +1684,7 @@
    "m_tacobell_lod0": 64,
    "m_tacobell_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8961.2,
@@ -1730,7 +1730,7 @@
    "tb_santacruz_lod0": 137,
    "tb_santacruz_lod1": 43
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1151.7,
@@ -1788,7 +1788,7 @@
    "subway_sc_lod0": 64,
    "subway_sc_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1178.6,
@@ -1834,7 +1834,7 @@
    "subway_sn_lod0": 90,
    "subway_sn_lod1": 28
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     5203.8,
@@ -1888,7 +1888,7 @@
    "subway_pb_lod0": 64,
    "subway_pb_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7435.8,
@@ -1934,7 +1934,7 @@
    "subway_bloemond_lod0": 64,
    "subway_bloemond_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -4471.5,
@@ -1980,7 +1980,7 @@
    "dom_santacruz_lod0": 98,
    "dom_santacruz_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1123.7,
@@ -2026,7 +2026,7 @@
    "ph_oranjestad_lod0": 84,
    "ph_oranjestad_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7689.5,
@@ -2072,7 +2072,7 @@
    "starbucks1_lod0": 116,
    "starbucks1_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7248.5,
@@ -2134,7 +2134,7 @@
    "starbucks2_lod0": 64,
    "starbucks2_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8085.1,
@@ -2180,7 +2180,7 @@
    "superfood_lod0": 488,
    "superfood_lod1": 48
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8815.4,
@@ -2226,7 +2226,7 @@
    "m_eaglebowling_lod0": 116,
    "m_eaglebowling_lod1": 34
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8936,
@@ -2288,7 +2288,7 @@
    "m_arubaaloeplantationandfa_lod0": 138,
    "m_arubaaloeplantationandfa_lod1": 50
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7427.6,
@@ -2339,7 +2339,7 @@
    "riupalace_lod0": 652,
    "riupalace_lod1": 198
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8554,
@@ -2506,7 +2506,7 @@
    "riuantillas_lod0": 493,
    "riuantillas_lod1": 149
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8581.5,
@@ -2705,7 +2705,7 @@
    "hilton_lod0": 650,
    "hilton_lod1": 160
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8333,
@@ -2947,7 +2947,7 @@
    "marriott_lod0": 1353,
    "marriott_lod1": 331
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8059.3,
@@ -3414,7 +3414,7 @@
    "hyatt_lod0": 307,
    "hyatt_lod1": 136
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8279.3,
@@ -3593,7 +3593,7 @@
  {
   "id": "barcelo",
   "k": "barcelo",
-  "name": "Barcel\u00f3 Aruba",
+  "name": "Barceló Aruba",
   "status": "v3-procedural (OSM footprint, photo/brand refs)",
   "x": -8295.92,
   "z": -5570.39,
@@ -3609,7 +3609,7 @@
    "barcelo_lod0": 254,
    "barcelo_lod1": 106
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8372,
@@ -3750,7 +3750,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "barcelo.com Barcel\u00f3 Aruba photos (warm peach facades, white balconies, terracotta tiles)",
+  "ref_sources": "barcelo.com Barceló Aruba photos (warm peach facades, white balconies, terracotta tiles)",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs"
  },
  {
@@ -3772,7 +3772,7 @@
    "holidayinn_lod0": 258,
    "holidayinn_lod1": 68
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8187.8,
@@ -3867,7 +3867,7 @@
    "radisson_lod0": 52,
    "radisson_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7847.6,
@@ -3913,7 +3913,7 @@
    "m_playalindabeachresort_lod0": 1308,
    "m_playalindabeachresort_lod1": 358
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8249.5,
@@ -4496,7 +4496,7 @@
    "quinta_del_carmen_lod0": 102,
    "quinta_del_carmen_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8310.5,
@@ -4542,7 +4542,7 @@
    "pbplaza_lod0": 416,
    "pbplaza_lod1": 106
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7971.5,
@@ -4708,7 +4708,7 @@
    "m_renaissancearubaresortca_lod0": 78,
    "m_renaissancearubaresortca_lod1": 40
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7378.1,
@@ -4778,7 +4778,7 @@
    "renmall_lod0": 186,
    "renmall_lod1": 82
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7455.2,
@@ -5019,7 +5019,7 @@
    "m_lacabana_lod0": 233,
    "m_lacabana_lod1": 100
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9183.5,
@@ -5169,7 +5169,7 @@
    "m_alhambracasinoandshoppin_lod0": 804,
    "m_alhambracasinoandshoppin_lod1": 142
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9913.9,
@@ -5287,7 +5287,7 @@
    "m_marriottoceanclub_lod0": 162,
    "m_marriottoceanclub_lod1": 67
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8033.5,
@@ -5402,7 +5402,7 @@
    "marriott_surfclub_lod0": 328,
    "marriott_surfclub_lod1": 130
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8046.6,
@@ -5600,7 +5600,7 @@
    "m_manchebobeachresortspa_lod0": 74,
    "m_manchebobeachresortspa_lod1": 34
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -10056.8,
@@ -5662,7 +5662,7 @@
    "m_bucutiandtararesort_lod0": 248,
    "m_bucutiandtararesort_lod1": 101
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -10000,
@@ -5805,7 +5805,7 @@
    "hospital_lod0": 793,
    "hospital_lod1": 193
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9736.7,
@@ -6104,7 +6104,7 @@
    "pricesmart_lod0": 188,
    "pricesmart_lod1": 58
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -4958.8,
@@ -6198,7 +6198,7 @@
    "amsterdam_lod0": 42,
    "amsterdam_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9186,
@@ -6244,7 +6244,7 @@
    "fuel_a734823194_lod0": 200,
    "fuel_a734823194_lod1": 48
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7014.2,
@@ -6290,7 +6290,7 @@
    "fuel_a735832024_lod0": 246,
    "fuel_a735832024_lod1": 60
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6567.4,
@@ -6344,7 +6344,7 @@
    "fuel_a736441882_lod0": 216,
    "fuel_a736441882_lod1": 52
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7932.4,
@@ -6390,7 +6390,7 @@
    "fuel_a739231404_lod0": 214,
    "fuel_a739231404_lod1": 60
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     5164.9,
@@ -6436,7 +6436,7 @@
    "fuel_a739241112_lod0": 208,
    "fuel_a739241112_lod1": 50
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6473.9,
@@ -6482,7 +6482,7 @@
    "fuel_a740730358_lod0": 236,
    "fuel_a740730358_lod1": 57
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7403.1,
@@ -6528,7 +6528,7 @@
    "fuel_a743514734_lod0": 208,
    "fuel_a743514734_lod1": 50
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     2211.3,
@@ -6574,7 +6574,7 @@
    "fuel_a754137930_lod0": 244,
    "fuel_a754137930_lod1": 60
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -1239.6,
@@ -6640,7 +6640,7 @@
    "fuel_sasaki_lod0": 288,
    "fuel_sasaki_lod1": 72
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8779,
@@ -6718,7 +6718,7 @@
    "fuel_a734823192_lod0": 266,
    "fuel_a734823192_lod1": 66
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6725.2,
@@ -6788,7 +6788,7 @@
    "fuel_n4797405894_lod0": 200,
    "fuel_n4797405894_lod1": 48
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -3180.3,
@@ -6834,7 +6834,7 @@
    "fuel_tanki_lod0": 222,
    "fuel_tanki_lod1": 54
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -5381.2,
@@ -6888,7 +6888,7 @@
    "fuel_blanco_lod0": 200,
    "fuel_blanco_lod1": 48
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6689.1,
@@ -7174,7 +7174,7 @@
    "lingsons_lod0": 180,
    "lingsons_lod1": 64
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8790.7,
@@ -7260,7 +7260,7 @@
    "gova77053638_lod0": 94,
    "gova77053638_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7238.5,
@@ -7338,7 +7338,7 @@
    "biblioteca_nacional_lod0": 121,
    "biblioteca_nacional_lod1": 43
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6487.4,
@@ -7412,7 +7412,7 @@
    "central_bank_aruba_lod0": 143,
    "central_bank_aruba_lod1": 43
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9239,
@@ -7486,7 +7486,7 @@
    "eagleres_lod0": 490,
    "eagleres_lod1": 196
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9078.3,
@@ -7625,7 +7625,7 @@
    "divi_lod0": 166,
    "divi_lod1": 70
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9372.8,
@@ -7781,7 +7781,7 @@
    "tropclub_lod0": 154,
    "tropclub_lod1": 52
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9062.7,
@@ -7867,7 +7867,7 @@
    "konghing_sc_lod0": 67,
    "konghing_sc_lod1": 25
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8930.8,
@@ -7917,7 +7917,7 @@
    "megamall_lod0": 133,
    "megamall_lod1": 43
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8830.4,
@@ -7991,7 +7991,7 @@
    "cmart_lod0": 56,
    "cmart_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -4704,
@@ -8037,7 +8037,7 @@
    "arubabank_lod0": 110,
    "arubabank_lod1": 40
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -5312,
@@ -8107,7 +8107,7 @@
    "rbcbank_lod0": 132,
    "rbcbank_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9014.8,
@@ -8185,7 +8185,7 @@
    "cmb_lod0": 100,
    "cmb_lod1": 34
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8132.7,
@@ -8247,7 +8247,7 @@
    "setar_main_lod0": 132,
    "setar_main_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6149.2,
@@ -8419,7 +8419,7 @@
    "courthouse_lod0": 176,
    "courthouse_lod1": 58
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7177.5,
@@ -8521,7 +8521,7 @@
    "cruise_lod0": 132,
    "cruise_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7912.9,
@@ -8645,7 +8645,7 @@
    "hardrock_lod0": 48,
    "hardrock_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7688,
@@ -8691,7 +8691,7 @@
    "cinemas_pb_lod0": 77,
    "cinemas_pb_lod1": 31
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8082.9,
@@ -8754,7 +8754,7 @@
    "ua_lod0": 404,
    "ua_lod1": 148
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6998.2,
@@ -8833,7 +8833,7 @@
  {
   "id": "epi",
   "k": "epi",
-  "name": "EPI \u2013 Educacion Profesional Intermedio",
+  "name": "EPI – Educacion Profesional Intermedio",
   "status": "v3-procedural (OSM campus, generic-by-type + brand sign)",
   "x": -6028.41,
   "z": -169.86,
@@ -8849,7 +8849,7 @@
    "epi_lod0": 610,
    "epi_lod1": 160
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6041.9,
@@ -8948,7 +8948,7 @@
    "lasalle_lod0": 164,
    "lasalle_lod1": 50
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6958.4,
@@ -8991,7 +8991,7 @@
  {
   "id": "frerebonifacius",
   "k": "frerebonifacius",
-  "name": "Colegio Fr\u00e8re Bonifacius",
+  "name": "Colegio Frère Bonifacius",
   "status": "v3-procedural (OSM campus, generic-by-type + brand sign)",
   "x": -6895.48,
   "z": -337.3,
@@ -9007,7 +9007,7 @@
    "frerebonifacius_lod0": 38,
    "frerebonifacius_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6904.8,
@@ -9053,7 +9053,7 @@
    "julianaschool_lod0": 78,
    "julianaschool_lod1": 34
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6830.9,
@@ -9120,7 +9120,7 @@
    "reinabeatrix_lod0": 98,
    "reinabeatrix_lod1": 40
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6774.6,
@@ -9190,7 +9190,7 @@
    "monplaisir_lod0": 156,
    "monplaisir_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6076.5,
@@ -9268,7 +9268,7 @@
    "colegioarubano_lod0": 634,
    "colegioarubano_lod1": 160
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6155.7,
@@ -9399,7 +9399,7 @@
    "colegioarubano_cb_lod0": 170,
    "colegioarubano_cb_lod1": 52
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6036.9,
@@ -9458,7 +9458,7 @@
    "sagradocurazon_lod0": 138,
    "sagradocurazon_lod1": 58
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     2888.6,
@@ -9525,7 +9525,7 @@
    "santateresita_lod0": 94,
    "santateresita_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6480.7,
@@ -9603,7 +9603,7 @@
    "iberoamerican_lod0": 156,
    "iberoamerican_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     7759.3,
@@ -9681,7 +9681,7 @@
    "pieterboer_lod0": 242,
    "pieterboer_lod1": 76
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6071.7,
@@ -9812,7 +9812,7 @@
    "scolwashington_lod0": 340,
    "scolwashington_lod1": 104
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7160.5,
@@ -9963,7 +9963,7 @@
    "imeldakleuter_lod0": 98,
    "imeldakleuter_lod1": 40
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6556.1,
@@ -10033,7 +10033,7 @@
    "scoldiarte_lod0": 52,
    "scoldiarte_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     7364.6,
@@ -10079,7 +10079,7 @@
    "xavier_lod0": 156,
    "xavier_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7548.1,
@@ -10157,7 +10157,7 @@
    "aureus_lod0": 104,
    "aureus_lod1": 34
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -4009.9,
@@ -10219,7 +10219,7 @@
    "casdicultura_lod0": 442,
    "casdicultura_lod1": 112
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6229.7,
@@ -10409,7 +10409,7 @@
    "casdipapiamento_lod0": 58,
    "casdipapiamento_lod1": 28
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -1740.2,
@@ -10463,7 +10463,7 @@
    "postaruba_lod0": 44,
    "postaruba_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7704.8,
@@ -10509,7 +10509,7 @@
    "brandweer_tf_lod0": 208,
    "brandweer_tf_lod1": 58
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6790.5,
@@ -10603,7 +10603,7 @@
    "archmuseum_lod0": 313,
    "archmuseum_lod1": 120
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7438.8,
@@ -10843,7 +10843,7 @@
    "paseoherencia_lod0": 316,
    "paseoherencia_lod1": 104
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8070.4,
@@ -10906,7 +10906,7 @@
    "butterflyfarm_lod0": 62,
    "butterflyfarm_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8715.8,
@@ -10968,7 +10968,7 @@
    "arikokvc_lod0": 99,
    "arikokvc_lod1": 37
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     2543.3,
@@ -11018,7 +11018,7 @@
  {
   "id": "naturalbridge",
   "k": "naturalbridge",
-  "name": "Natural Bridge site \u2013 Thirst-Aid snack & gift shop",
+  "name": "Natural Bridge site – Thirst-Aid snack & gift shop",
   "status": "v3-procedural (OSM footprint, photo/brand refs)",
   "x": 1256.09,
   "z": -2383.66,
@@ -11034,7 +11034,7 @@
    "naturalbridge_lod0": 234,
    "naturalbridge_lod1": 98
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     1235.5,
@@ -11157,7 +11157,7 @@
    "zeerovers_lod0": 154,
    "zeerovers_lod1": 52
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     2528.6,
@@ -11243,7 +11243,7 @@
    "charliesbar_lod0": 88,
    "charliesbar_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     6866.9,
@@ -11283,7 +11283,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "charliesbararuba.com (historic San Nicolas bar, painted fa\u00e7ade, red lettering)",
+  "ref_sources": "charliesbararuba.com (historic San Nicolas bar, painted façade, red lettering)",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs"
  },
  {
@@ -11415,7 +11415,7 @@
    "moomba_lod0": 126,
    "moomba_lod1": 58
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8137.2,
@@ -11517,7 +11517,7 @@
    "rumreef_lod0": 52,
    "rumreef_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     9463.9,
@@ -11563,7 +11563,7 @@
    "babybeach_fac_lod0": 30,
    "babybeach_fac_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     9883.6,
@@ -11609,7 +11609,7 @@
    "surfside_lod0": 30,
    "surfside_lod1": 22
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -6468.1,
@@ -11824,7 +11824,7 @@
    "screamingeagle_lod0": 132,
    "screamingeagle_lod1": 46
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -9699.7,
@@ -11902,7 +11902,7 @@
    "gasparito_lod0": 46,
    "gasparito_lod1": 28
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7779.3,
@@ -11956,7 +11956,7 @@
    "madamejanette_lod0": 46,
    "madamejanette_lod1": 28
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -7972,
@@ -11994,7 +11994,7 @@
  {
   "id": "olddutchcafe",
   "k": "olddutchcafe",
-  "name": "The Old Dutch Caf\u00e9 Bar",
+  "name": "The Old Dutch Café Bar",
   "status": "v3-procedural (OSM footprint, photo/brand refs)",
   "x": -8761.27,
   "z": -2799.15,
@@ -12283,7 +12283,7 @@
    "seaportcasino_lod0": 38,
    "seaportcasino_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7338.9,
@@ -12329,7 +12329,7 @@
    "coconutinn_lod0": 225,
    "coconutinn_lod1": 76
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7081.7,
@@ -12388,7 +12388,7 @@
    "arubianainn_lod0": 62,
    "arubianainn_lod1": 34
   },
-  "textures": 2,
+  "textures": 1,
   "hide_footprint": [
    [
     -8335,
@@ -12455,7 +12455,7 @@
    "hotelcalifornia_lod0": 52,
    "hotelcalifornia_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6396.9,
@@ -12501,7 +12501,7 @@
    "victoriacity_lod0": 78,
    "victoriacity_lod1": 28
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -6589.8,
@@ -12555,7 +12555,7 @@
    "wonders_lod0": 156,
    "wonders_lod1": 46
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -7276,
@@ -12759,7 +12759,7 @@
    "laquinta_lod0": 38,
    "laquinta_lod1": 22
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9729.5,
@@ -12805,7 +12805,7 @@
    "costalinda_lod0": 1768,
    "costalinda_lod1": 418
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9987.9,
@@ -13543,7 +13543,7 @@
    "divephoenix_lod0": 117,
    "divephoenix_lod1": 37
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -8896.4,
@@ -13609,7 +13609,7 @@
    "dutchvillage_lod0": 1759,
    "dutchvillage_lod1": 542
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -9391.3,
@@ -13748,7 +13748,7 @@
    "casadelmar_lod0": 901,
    "casadelmar_lod1": 257
   },
-  "textures": 3,
+  "textures": 2,
   "hide_footprint": [
    [
     -10114,
@@ -13999,7 +13999,7 @@
  {
   "id": "lacabana_ring",
   "k": "lacabana_ring",
-  "name": "La Cabana Beach Resort \u2013 courtyard wing",
+  "name": "La Cabana Beach Resort – courtyard wing",
   "status": "v3-procedural (OSM footprint, imagery checked)",
   "x": -9163.55,
   "z": -3537.5,
