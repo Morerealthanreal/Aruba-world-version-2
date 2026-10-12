@@ -244,11 +244,28 @@ export class Flora {
   private hidden(b: Bld): boolean {
     const w = this.g.real as unknown as { mon?: { excluded?(x: number, z: number, b: Bld): boolean }; hero?: { pts: unknown[]; polys: unknown[]; hides(p: [number, number][]): boolean } };
     let cx = 0, cz = 0; for (const [x, z] of b.p) { cx += x; cz += z; } cx /= b.p.length; cz /= b.p.length;
+    // any landmark model nearby (models can overhang the OSM footprint, or not hide it at all):
+    // skip if the centroid is within 6 m of a hero footprint bbox, or 30 m of a footprint-less hero
+    for (const bb of this.heroBoxes()) if (cx > bb[0] && cx < bb[2] && cz > bb[1] && cz < bb[3]) { this.stats.skipped++; return true; }
     try {
       if (w.mon && w.mon.excluded && w.mon.excluded(cx, cz, b)) { this.stats.skipped++; return true; }
       if (w.hero && (w.hero.pts.length || w.hero.polys.length) && w.hero.hides(b.p)) { this.stats.skipped++; return true; }
     } catch { /* keep props if the check fails */ }
     return false;
+  }
+
+  private hb: number[][] | null = null; private hbN = -1;
+  private heroBoxes(): number[][] {
+    const h = (this.g.real as unknown as { hero?: { list?: Array<{ x: number; z: number; foot?: [number, number][] | null; hero?: { hide_footprint?: unknown } }> } }).hero;
+    const L = (h && h.list) || [];
+    if (this.hb && this.hbN === L.length) return this.hb;
+    this.hb = []; this.hbN = L.length;
+    for (const n of L) {
+      const f = (n.foot || (Array.isArray(n.hero?.hide_footprint) ? n.hero!.hide_footprint : null)) as [number, number][] | null;
+      if (f && f.length > 2) { let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9; for (const [x, z] of f) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); } this.hb.push([x0 - 6, z0 - 6, x1 + 6, z1 + 6]); }
+      else if (Number.isFinite(n.x)) this.hb.push([n.x - 30, n.z - 30, n.x + 30, n.z + 30]);
+    }
+    return this.hb;
   }
 
   private M() { return (this.g.real as unknown as { M: { X0: number; Z0: number; RS: number } }).M; }

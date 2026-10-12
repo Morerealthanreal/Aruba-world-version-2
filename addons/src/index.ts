@@ -15,6 +15,7 @@ import { Look } from "./look";
 import { Flora } from "./flora";
 import { Sun } from "./sun";
 import { JobPump } from "./jobPump";
+import { FarCity } from "./farCity";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -27,6 +28,7 @@ async function main() {
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
   const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
+  const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
@@ -36,7 +38,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, version: "0.6.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, version: "0.7.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -52,6 +54,7 @@ async function main() {
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
+    if (far) far.update(dt);
     guard.frame(dt);
     tickUI();
     requestAnimationFrame(loop);
