@@ -22,10 +22,12 @@ export class ContextGuard {
   private cap() {
     const t = this.tier();
     if (t !== "high" && t !== "desktop") return;
-    const R = this.g.renderer, budget = t === "desktop" ? 8e6 : 4.5e6;
+    const R = this.g.renderer, budget = t === "desktop" ? 8e6 : 2.4e6;
     const css = innerWidth * innerHeight, want = Math.min(devicePixelRatio || 1, t === "desktop" ? 3 : 2);
     const pr = Math.max(1, Math.min(want, Math.sqrt(budget / Math.max(1, css))));
-    if (Math.abs(R.getPixelRatio() - pr) > 0.01) { R.setPixelRatio(pr); this.stats.prCap = +pr.toFixed(2); dispatchEvent(new Event("resize")); }
+    (window as unknown as { __awPRCap?: number }).__awPRCap = pr;
+    // only ever lower: the fps guard scales below the cap and dispatches resize too (no tug of war)
+    if (R.getPixelRatio() > pr + 0.01) { R.setPixelRatio(pr); this.stats.prCap = +pr.toFixed(2); dispatchEvent(new Event("resize")); }
   }
   private lost(e: Event) {
     e.preventDefault();

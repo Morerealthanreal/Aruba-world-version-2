@@ -28,6 +28,7 @@ export class FpsGuard {
   private warm = 4; // ignore the first seconds (shader compile, tile streaming)
   private shadowTick = 0;
   private stalls = 0;
+  private upAt = -1e9; private bounces = 0; private floorUntil = 0; private t = 0;
   private listeners: Array<() => void> = [];
 
   constructor(g: AGame) {
@@ -59,7 +60,8 @@ export class FpsGuard {
     if (l === this.level) return;
     const g = this.g;
     const scale = SCALES[Math.min(l, SCALES.length - 1)];
-    const pr = Math.max(0.5, this.basePR * scale);
+    const cap = (window as unknown as { __awPRCap?: number }).__awPRCap || Infinity;
+    const pr = Math.max(0.5, Math.min(this.basePR, cap) * scale);
     if (Math.abs(g.renderer.getPixelRatio() - pr) > 1e-3) {
       g.renderer.setPixelRatio(pr);
       window.dispatchEvent(new Event("resize")); // A's resize handler resizes the renderer + composer
@@ -76,6 +78,7 @@ export class FpsGuard {
     const r = this.g.renderer;
     if (this.level >= 5 && ++this.shadowTick % 7 === 0) r.shadowMap.needsUpdate = true;
     if (!this.enabled || document.hidden) return;
+    this.t += Math.min(dt, 1);
     // one long frame = tab switch / load stall (ignore); several in a row = the device is just that slow
     if (dt > 1.5 && ++this.stalls < 3) { this.warm = Math.max(this.warm, 1); return; }
     if (dt <= 1.5) this.stalls = 0;
@@ -92,12 +95,16 @@ export class FpsGuard {
     else if (this.fps > Math.min(this.target + 8, 58)) { this.highFor += span; this.lowFor = 0; }
     else { this.lowFor = 0; this.highFor = 0; }
     if (this.lowFor >= 1.5 && this.level < this.maxLevel) {
+      // anti-flap: dropping again soon after stepping up means the higher level does not hold;
+      // every resize reallocates the composer targets (a hitch), so stop probing for 10 min
+      if (this.t - this.upAt < 25 && ++this.bounces >= 2) this.floorUntil = this.t + 600;
       this.setLevel(this.level + 1);
       this.lowFor = 0;
       this.warm = 1; // let the new setting settle
       this.holdUp = 15;
-    } else if (this.highFor >= 6 && this.level > 0 && this.holdUp <= 0) {
+    } else if (this.highFor >= 6 && this.level > 0 && this.holdUp <= 0 && this.t > this.floorUntil) {
       this.setLevel(this.level - 1);
+      this.upAt = this.t;
       this.highFor = 0;
       this.warm = 1;
       this.holdUp = 8;

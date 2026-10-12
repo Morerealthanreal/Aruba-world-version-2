@@ -19,6 +19,8 @@ import { FarCity } from "./farCity";
 import { ContextGuard } from "./contextGuard";
 import { FrameGraph } from "./frameGraph";
 import { Kids } from "./kids";
+import { SplitJobs } from "./splitJobs";
+import { HiPerf } from "./hiPerf";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -33,6 +35,8 @@ async function main() {
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
+  const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
+  const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
@@ -44,7 +48,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, version: "0.9.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, version: "0.9.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -60,6 +64,7 @@ async function main() {
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
+    if (hip) hip.frame();
     if (far) far.update(dt);
     if (kids) kids.update(Math.min(dt, 0.1));
     if (graph) graph.frame(dt * 1000);
