@@ -29,7 +29,9 @@ type Region = { group?: Obj; state: string };
 type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
 type Real = {
   q: Record<string, unknown> & { name: string; shadow: number };
-  regions: Map<string, Region>;
+  regions: Map<string, Region & { rx: number; rz: number }>;
+  M: { X0: number; Z0: number; RS: number };
+  disposeRegion(r: unknown): void;
   update: (...a: unknown[]) => void;
   mon?: { group: Obj };
   brands?: { group: Obj };
@@ -81,6 +83,7 @@ export class PerfFixes {
       // live-read stream/detail ranges (A reads these every update)
       Object.assign(q, { radius: 1400, bldR: 1400, roadR: 900, kitR: 100, parkR: 250, contactR: 300, detailR: 500 });
       ch.push("radius 2000->1400, bldR 1400, roadR 900, kitR 100, parkR 250, detailR 500");
+      this.trimPending = true;
     } else if (q.name === "med") {
       const pr = Math.min(window.devicePixelRatio || 1, 1.35);
       if (R.getPixelRatio() > pr + 1e-3) { R.setPixelRatio(pr); window.dispatchEvent(new Event("resize")); ch.push("pixelRatio 1.5->" + pr); }
@@ -111,7 +114,9 @@ export class PerfFixes {
         if (!m || Array.isArray(m) || !(m.transmission && m.transmission > 0)) return;
         m.transmission = 0;
         m.transparent = true;
-        m.opacity = 0.32;
+        // tinted like A's transmissive glass looked (dark, glossy), not milky
+        (m as unknown as { color?: { set(c: number): void } }).color?.set(0x0c1117);
+        m.opacity = 0.72;
         m.depthWrite = false;
         if (m.roughness !== undefined) m.roughness = Math.min(m.roughness, 0.08);
         m.needsUpdate = true;
@@ -251,12 +256,29 @@ export class PerfFixes {
     };
   }
 
+  /** A streamed HIGH's 2 km radius during boot (before the add-ons ran); drop the
+   *  regions the phone profile no longer wants, with A's own disposeRegion. A keeps a
+   *  700 m hysteresis, so without this they would stay resident for the whole session. */
+  private trimPending = false;
+  private trim(x: number, z: number) {
+    this.trimPending = false;
+    const A = this.real, M = A.M, R = (A.q.radius as number) + 300;
+    let n = 0;
+    for (const r of [...A.regions.values()]) {
+      if (r.state === "loading") continue;
+      const cx = M.X0 + (r.rx + 0.5) * M.RS, cz = M.Z0 + (r.rz + 0.5) * M.RS;
+      if (Math.hypot(cx - x, cz - z) - M.RS * 0.71 > R) { A.disposeRegion(r); n++; }
+    }
+    if (n) this.stats.changes.push("dropped " + n + " far regions");
+  }
+
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
     const orig = A.update.bind(A);
     A.update = (...a: unknown[]) => {
       orig(...a);
+      if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       this.fixPost();
     };
