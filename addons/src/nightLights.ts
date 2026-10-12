@@ -53,6 +53,26 @@ function patchWindows(wall: Material) {
   });
 }
 
+/** Hero GLB facades have windows painted into the texture (dark blue-grey glass). Light them at night. */
+function patchHeroWindows(mat: Material) {
+  chainPatch(mat, "herowin-v1", (s) => {
+    if (!s.fragmentShader.includes("#include <emissivemap_fragment>")) return;
+    s.uniforms.uAwNight = uNight;
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform float uAwNight;")
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+  if (uAwNight > 0.01) {
+    vec3 awC = diffuseColor.rgb;
+    float awL = dot(awC, vec3(0.299, 0.587, 0.114));
+    float awW = step(awC.r + 0.03, awC.b) * (1.0 - smoothstep(0.12, 0.3, awL));
+    totalEmissiveRadiance += vec3(1.0, 0.78, 0.5) * awW * smoothstep(0.25, 0.7, uAwNight) * 1.2;
+  }`,
+      );
+  });
+}
+
 type StdMat = Material & { emissive: Color; emissiveIntensity: number; color: Color };
 
 export class NightLights {
@@ -67,6 +87,7 @@ export class NightLights {
   // hero GLB signs (material names signglow / neon* / bulb*): ramp emissive with night
   private heroGlow = new Map<StdMat, number>();
   private heroN = -1;
+  private bump: Material[] = []; // three sometimes skips the first version bump on already-compiled hero mats; bump again next frame
   private poolT = 0;
 
   constructor(g: AGame) {
@@ -167,6 +188,7 @@ export class NightLights {
         const nm = m.name || "";
         if (/^l?(signglow|neon|bulb)/i.test(nm)) this.heroGlow.set(m, m.emissiveIntensity || 1);
         else if (nm === "sign") this.heroGlow.set(m, -(m.emissiveIntensity || 1)); // plain signs: gentler ramp
+        else if (nm === "facade" || nm === "ground") { patchHeroWindows(m); this.bump.push(m); }
         else if (nm === "glass") { m.emissive.setHex(0xffc985); m.emissiveIntensity = 0; this.heroGlow.set(m, 0); } // hero windows: warm glow at night
       }
     });
@@ -194,6 +216,7 @@ export class NightLights {
       m.emissive.copy(b.e).lerp(new Color(0xffc985), k);
       m.emissiveIntensity = b.i + k * 7.5;
     }
+    if (this.bump.length) { for (const m of this.bump) m.needsUpdate = true; this.bump.length = 0; }
     // hero signs: dim by day (reads as paint), bright at night
     for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 3.2) : i0 < 0 ? -i0 * (1 + k * 2.2) : k * 0.55;
 
