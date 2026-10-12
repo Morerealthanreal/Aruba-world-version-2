@@ -1,0 +1,92 @@
+{
+ "street_lamp_01": {
+  "name": "Street Lamp 01",
+  "authors": [
+   "Josh Dean"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/street_lamp_01"
+ },
+ "street_lamp_02": {
+  "name": "Street Lamp 02",
+  "authors": [
+   "Josh Dean"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/street_lamp_02"
+ },
+ "fire_hydrant": {
+  "name": "Fire Hydrant",
+  "authors": [
+   "Gon\u00e7alo Fel\u00edcio"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/fire_hydrant"
+ },
+ "metal_trash_can": {
+  "name": "Metal Trash Can",
+  "authors": [
+   "GurJas Studios"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/metal_trash_can"
+ },
+ "painted_wooden_bench": {
+  "name": "Painted Wooden Bench",
+  "authors": [
+   "Kirill Sannikov"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/painted_wooden_bench"
+ },
+ "modular_street_seating": {
+  "name": "Modular Street Seating",
+  "authors": [
+   "Stuart Attenborrow"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/modular_street_seating"
+ },
+ "concrete_road_barrier": {
+  "name": "Concrete Road Barrier",
+  "authors": [
+   "Amal Kumar"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/concrete_road_barrier"
+ },
+ "coast_rocks_01": {
+  "name": "Coast Rocks 01",
+  "authors": [
+   "Rob Tuytel",
+   "Rico Cilliers"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/coast_rocks_01"
+ },
+ "namaqualand_boulder_02": {
+  "name": "Namaqualand Boulder 02",
+  "authors": [
+   "Greg Zaal",
+   "Rico Cilliers"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/namaqualand_boulder_02"
+ },
+ "planter_box_01": {
+  "name": "Planter Box 01",
+  "authors": [
+   "James Ray Cock"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/planter_box_01"
+ },
+ "plastic_monobloc_chair_01": {
+  "name": "Plastic Monobloc Chair 01",
+  "authors": [
+   "Kuutti Siitonen"
+  ],
+  "license": "CC0 1.0",
+  "source": "https://polyhaven.com/a/plastic_monobloc_chair_01"
+ }
+}

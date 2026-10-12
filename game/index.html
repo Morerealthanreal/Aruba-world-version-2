@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#7ec8ff" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E" />
+<title>Aruba World (prototype)</title>
+  <script type="module" crossorigin src="./assets/index-D_YJh5Nn.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BRnqbt4K.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading"><div class="title">ARUBA WORLD</div><div class="sub">open-world prototype</div><div class="bar"><div id="loadbar"></div></div><div id="loadtxt">Loading map data…</div></div>
+<div id="hud">
+  <div id="hudmode">CAR</div>
+  <div id="hudstats"><span id="hudspeed">0</span> km/h · <span id="hudalt">0</span> m</div>
+  <div id="svinfo"></div>
+  <div id="hudplace"></div>
+  <div id="hudfps"></div>
+  <div id="hudfsd" style="display:none;color:#7fb8ff;font-weight:700"></div>
+</div>
+<div id="modes">
+  <button data-mode="walk">🚶<span>1</span></button>
+  <button data-mode="car">🚗<span>2</span></button>
+  <button data-mode="moto">🏍️<span>4</span></button>
+  <button data-mode="plane">✈️<span>3</span></button>
+</div>
+<button id="osmtoggle" title="Show/hide OpenStreetMap buildings &amp; roads (O)">OSM</button>
+<div id="minimapwrap"><canvas id="minimap" width="300" height="300"></canvas><div id="mmN">N</div></div>
+<div id="bigmap" class="hidden"><canvas id="bigmapc"></canvas><div id="bmtop"><input id="bmsearch" type="search" placeholder="Search places (e.g. C-Mart, Hilton, Citgo)" autocomplete="off"><button id="bmclose">✕</button></div><div id="bmres"></div><div id="bmbar"><div id="bminfo"></div><button id="bmclear">Clear</button><button id="bmtp">Teleport</button><button id="bmgo">FSD ▶ Go</button></div></div>
+<div id="joyzone"><div id="joybase"><div id="joyknob"></div></div></div>
+<div id="steerbtns"><button data-act="left" aria-label="Steer left">◀</button><button data-act="right" aria-label="Steer right">▶</button></div>
+<div id="actions">
+  <div class="grp" data-for="walk"><button data-act="run">RUN</button><button data-act="jump">JUMP</button></div>
+  <div class="grp" data-for="car"><button data-act="brake">BRAKE</button><button data-act="gas" class="big">GAS</button></div><div class="grp" data-for="moto"><button data-act="brake">BRAKE</button><button data-act="gas" class="big">GAS</button></div>
+  <div class="grp" data-for="plane"><button data-act="thrdown">THR −</button><button data-act="thrup">THR +</button><button data-act="down">▼ DIVE</button><button data-act="up">▲ CLIMB</button></div>
+</div>
+<div id="svdash"></div>
+  <div id="toast"></div>
+<div id="keyhelpsv">W/↑ move forward · S/↓ back · A/D or drag to look around · scroll to zoom · click an arrow to move · 1 walk · 2 car (hold W to drive) · 3 plane · M map</div>
+<div id="keyhelp" class="kh3d">WASD/arrows move · drag mouse to look · 1/2/3 walk/car/plane · Space brake/jump · Shift run/throttle+ · Ctrl/Z throttle− · R/F climb/dive · Q/E rudder · M map · O OSM layer</div>
+<div id="attrib"><img id="glogo" src="./google/google-maps-logo.svg" alt="Google Maps" /><span id="gattrib"></span><span id="osmattrib">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL)</span><a id="svreport" href="#" target="_blank" rel="noopener" style="display:none">Report a problem with this image</a></div>
+</body>
+</html>
