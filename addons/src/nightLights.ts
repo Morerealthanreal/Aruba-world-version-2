@@ -91,28 +91,48 @@ export class NightLights {
   }
 
   private waterDone = new WeakSet<Material>();
-  /** A's sea shader colours the water itself (turquoise) and barely responds to the moon, so it glowed at night. */
-  private patchWater() {
-    this.g.scene.traverse((o) => {
-      const m = (o as InstancedMesh).material as PatchableMat;
-      if (!(o as InstancedMesh).isMesh || !m || Array.isArray(m) || this.waterDone.has(m)) return;
-      this.waterDone.add(m);
-      const key = m.customProgramCacheKey ? m.customProgramCacheKey() : "";
-      if (!/\|water/.test(key)) return;
-      chainPatch(m, "waternight-v1", (sh) => {
-        if (!sh.fragmentShader.includes("diffuseColor = vec4(wc, a);")) return;
-        sh.uniforms.uAwNight = uNight;
-        sh.fragmentShader = sh.fragmentShader
-          .replace("#include <common>", "#include <common>\nuniform float uAwNight;")
-          .replace("diffuseColor = vec4(wc, a);", "wc *= mix(1.0, 0.22, uAwNight); wc = mix(wc, wc * vec3(0.55, 0.75, 1.1), uAwNight * 0.5);\n  diffuseColor = vec4(wc, a);");
-      });
+  private waterSeen = new WeakSet<object>();
+  private waterTopN = -1;
+  private patchWaterMat(m: PatchableMat) {
+    if (!m || Array.isArray(m) || this.waterDone.has(m)) return;
+    this.waterDone.add(m);
+    const key = m.customProgramCacheKey ? m.customProgramCacheKey() : "";
+    if (!/\|water/.test(key)) return;
+    chainPatch(m, "waternight-v1", (sh) => {
+      if (!sh.fragmentShader.includes("diffuseColor = vec4(wc, a);")) return;
+      sh.uniforms.uAwNight = uNight;
+      sh.fragmentShader = sh.fragmentShader
+        .replace("#include <common>", "#include <common>\nuniform float uAwNight;")
+        .replace("diffuseColor = vec4(wc, a);", "wc *= mix(1.0, 0.22, uAwNight); wc = mix(wc, wc * vec3(0.55, 0.75, 1.1), uAwNight * 0.5);\n  diffuseColor = vec4(wc, a);");
     });
+  }
+  /** A's sea shader colours the water itself (turquoise) and barely responds to the moon, so it glowed at night.
+   *  Perf: no whole-scene walk. A's water lives on region.wmat (+ region pools) and on the island-wide sea plane
+   *  directly under A's "realistic" group, so only walk each region once when it finishes building. */
+  private patchWater() {
+    const real = this.g.real as unknown as { group: Object3D; regions: Map<string, { state: string; group?: Object3D; wmat?: Material }> };
+    if (real.group.children.length !== this.waterTopN) {
+      this.waterTopN = real.group.children.length;
+      for (const o of real.group.children) {
+        const m = (o as InstancedMesh).material as PatchableMat;
+        if ((o as InstancedMesh).isMesh) this.patchWaterMat(m);
+      }
+    }
+    for (const r of real.regions.values()) {
+      if (r.wmat) this.patchWaterMat(r.wmat as PatchableMat);
+      if (r.state !== "built" || !r.group || this.waterSeen.has(r.group)) continue;
+      this.waterSeen.add(r.group);
+      r.group.traverse((o) => {
+        if ((o as InstancedMesh).isMesh) this.patchWaterMat((o as InstancedMesh).material as PatchableMat);
+      });
+    }
   }
 
   private waterT = 0;
   private scan() {
-    // full-scene walk is ~50k objects: only every 3rd scan (6 s), new regions bring new water materials
-    if (this.waterT++ % 3 === 0) this.patchWater();
+    // cheap now (new regions only), so every scan
+    this.waterT++;
+    this.patchWater();
     // A's street-lamp bulbs: props.glb "slamp" light part, emissive 0x55534c.
     this.g.real!.veg.group.traverse((o) => {
       const m = (o as InstancedMesh).material as StdMat;
@@ -165,6 +185,9 @@ export class NightLights {
     } else {
       this.head.intensity = 0;
     }
+    // perf: an intensity-0 light still costs every lit fragment (three counts visible lights, not bright ones).
+    // Toggle on night only (rare -> one shader recompile at dusk/dawn), not on mode switches.
+    this.head.visible = night > 0.35;
 
     // HIGH: snap warm pools to the nearest real lamps
     if (this.pools.length) {
@@ -191,7 +214,7 @@ export class NightLights {
           l.userData.has = !!b;
         });
       }
-      for (const l of this.pools) l.intensity = l.userData.has ? night * 6.5 * 3 : 0;
+      for (const l of this.pools) { l.intensity = l.userData.has ? night * 6.5 * 3 : 0; l.visible = night > 0.3; }
     }
   }
 }

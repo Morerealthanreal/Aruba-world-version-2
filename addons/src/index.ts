@@ -10,11 +10,14 @@ import { FpsGuard } from "./fpsGuard";
 import { LampGlow } from "./lampGlow";
 import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
+import { PerfFixes } from "./perfFixes";
 import { uTime } from "./uniforms";
 
 async function main() {
   if (params.get("addons") === "0") return;
   const g = await whenGameReady();
+  // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
+  const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
@@ -23,7 +26,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, version: "0.2.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, version: "0.3.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -35,6 +38,7 @@ async function main() {
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
+    if (perf) perf.update(dt);
     guard.frame(dt);
     tickUI();
     requestAnimationFrame(loop);
