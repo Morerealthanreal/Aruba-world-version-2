@@ -20901,7 +20901,7 @@
    "switch_m": 260
   },
   "tris": {
-   "hyattpool_lod0": 2556,
+   "hyattpool_lod0": 3647,
    "hyattpool_lod1": 241
   },
   "textures": 0,
@@ -20944,8 +20944,8 @@
    "switch_m": 260
   },
   "tris": {
-   "marriottpool_lod0": 2283,
-   "marriottpool_lod1": 241
+   "marriottpool_lod0": 3796,
+   "marriottpool_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
@@ -20987,8 +20987,8 @@
    "switch_m": 260
   },
   "tris": {
-   "riupool_lod0": 2738,
-   "riupool_lod1": 313
+   "riupool_lod0": 2377,
+   "riupool_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
@@ -21030,8 +21030,8 @@
    "switch_m": 260
   },
   "tris": {
-   "hiltonpool_lod0": 2702,
-   "hiltonpool_lod1": 277
+   "hiltonpool_lod0": 3251,
+   "hiltonpool_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
@@ -21073,8 +21073,8 @@
    "switch_m": 260
   },
   "tris": {
-   "barcelopool_lod0": 2044,
-   "barcelopool_lod1": 187
+   "barcelopool_lod0": 3056,
+   "barcelopool_lod1": 295
   },
   "textures": 0,
   "hide_footprint": [
