@@ -19,7 +19,7 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
-import { Matrix4, Mesh, type BufferGeometry, type Material, type Object3D } from "three";
+import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
 import { TileInstances } from "./tileInst";
@@ -227,7 +227,12 @@ export class PerfFixes {
       this.stats.merged++;
       this.stats.mergedFrom += ok.length;
     }
-    for (const m of used) if (canMerge.get(m)) { m.parent?.remove(m); m.geometry!.dispose(); }
+    for (const m of used) if (canMerge.get(m)) {
+      // a merged mesh can still parent unmerged nodes (car: BodyUnderside holds the 4 wheel pivots).
+      // Keep such a node in the tree as an empty transform, otherwise its children vanish with it.
+      if (m.children.length) { const old = m.geometry!; m.geometry = new BufferGeometry(); old.dispose(); m.castShadow = false; }
+      else { m.parent?.remove(m); m.geometry!.dispose(); }
+    }
     n = 0;
     root.traverse(() => n++);
     ud.awMergedN = n;
@@ -307,6 +312,9 @@ export class PerfFixes {
     car.matrixWorld.identity();
     car.children.forEach((c) => c.updateMatrixWorld(true));
     this.merge(car, (o) => /^Wheel(Front|Rear)(L|R)$/.test(o.name));
+    // each wheel pivot is merged on its own (in its local frame), so it still spins and steers as one piece
+    const wheels = (car as unknown as { wheels?: Array<{ o: Obj }> }).wheels || [];
+    for (const w of wheels) this.merge(w.o);
     car.matrixWorld.copy(save);
     car.updateMatrixWorld(true);
     car.traverse((o) => { if ((o as Obj).isMesh) after++; });
