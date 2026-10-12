@@ -4,13 +4,13 @@
 // Cost: one InstancedMesh per species per tile (crossed alpha-tested cards / a 40-tri
 // rosette), distance-culled per instance on the CPU when the player moves, textures
 // drawn once on a 256 px canvas (mipmapped). No shadows cast. Off with ?flora=0.
-import { BufferGeometry, CanvasTexture, Color, DoubleSide, Float32BufferAttribute, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, type Object3D } from "three";
+import { BoxGeometry, InstancedBufferAttribute, BufferGeometry, CanvasTexture, Color, DoubleSide, Float32BufferAttribute, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, type Object3D } from "three";
 import type { AGame } from "./env";
 
 type Row = [number, number, number, number, number];
 type Bld = { p: [number, number][]; k?: string; h?: number };
 type Reg = { state: string; group?: Object3D; json?: { b?: Bld[] }; rx: number; rz: number; __awFlora?: Bucket[] };
-type Bucket = { im: InstancedMesh; mats: Float32Array; cx: Float32Array; cz: Float32Array; n: number; range: number; box: [number, number, number, number] };
+type Bucket = { im: InstancedMesh; cols?: Float32Array; mats: Float32Array; cx: Float32Array; cz: Float32Array; n: number; range: number; box: [number, number, number, number] };
 
 function rng(seed: number) { let s = (seed * 2654435761) >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
@@ -49,18 +49,36 @@ function aloeGeo(): BufferGeometry {
   return g;
 }
 
-function leafTexture(kind: "boug" | "grape"): CanvasTexture {
+function leafTexture(kind: "boug" | "grape" | "scrub"): CanvasTexture {
   const S = 256, c = document.createElement("canvas");
   c.width = c.height = S;
   const x = c.getContext("2d")!;
   const r = rng(kind === "boug" ? 7 : 11);
   // bush silhouette: dense at the bottom-centre, ragged top
+  if (kind === "scrub") {
+    // dry desert scrub (wayaka/watapana-like): twiggy, olive-grey, sparse leaves
+    x.lineCap = "round";
+    for (let i = 0; i < 60; i++) {
+      const bx = S * (0.35 + r() * 0.3), a = -Math.PI / 2 + (r() - 0.5) * 2.2, l = S * (0.25 + r() * 0.6);
+      x.strokeStyle = `rgb(${80 + r() * 30},${70 + r() * 25},${55 + r() * 20})`; x.lineWidth = 1.5 + r() * 2;
+      x.beginPath(); x.moveTo(bx, S); x.lineTo(bx + Math.cos(a) * l, S + Math.sin(a) * l); x.stroke();
+    }
+    for (let i = 0; i < 700; i++) {
+      const u = r(), v = 0.15 + Math.pow(r(), 0.8) * 0.8;
+      const px = S * (0.5 + (u - 0.5) * (0.5 + 0.5 * v)), py = S * (1 - v * 0.95);
+      const g = 85 + r() * 50;
+      x.fillStyle = `rgb(${g * 0.78 + r() * 20},${g},${g * 0.55})`;
+      x.beginPath(); x.ellipse(px, py, 2.5 + r() * 3, 1.6 + r() * 2, r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+    const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.anisotropy = 2; return t;
+  }
   const n = kind === "boug" ? 520 : 260;
   for (let i = 0; i < n; i++) {
     const u = r(), v = Math.pow(r(), 0.7);
-    const px = S * (0.5 + (u - 0.5) * (0.35 + 0.65 * (1 - v * 0.6))), py = S * (1 - v * 0.95);
+    const sp = kind === "grape" ? 0.62 * Math.sqrt(Math.max(0, 1 - Math.pow(v * 1.05 - 0.45, 2) * 3.2)) : 0.35 + 0.65 * (1 - v * 0.6);
+    const px = S * (0.5 + (u - 0.5) * sp), py = S * (1 - v * 0.95);
     const g = 70 + r() * 70;
-    x.fillStyle = kind === "boug" ? `rgb(${30 + r() * 30},${g},${25 + r() * 25})` : `rgb(${40 + r() * 30},${g + 20},${30 + r() * 20})`;
+    x.fillStyle = kind === "boug" ? `rgb(${30 + r() * 30},${g},${25 + r() * 25})` : (r() < 0.12 ? `rgb(${150 + r() * 40},${90 + r() * 30},${40})` : `rgb(${90 + r() * 40},${g + 60},${45 + r() * 25})`);
     x.beginPath();
     const w = kind === "boug" ? 5 + r() * 6 : 9 + r() * 9; // sea grape: big round leaves
     x.ellipse(px, py, w, w * (kind === "boug" ? 0.6 : 0.85), r() * Math.PI, 0, Math.PI * 2);
@@ -83,12 +101,17 @@ function leafTexture(kind: "boug" | "grape"): CanvasTexture {
 }
 
 export class Flora {
-  stats = { regions: 0, boug: 0, aloe: 0, grape: 0, drawn: 0 };
+  stats = { regions: 0, boug: 0, aloe: 0, grape: 0, scrub: 0, ac: 0, awn: 0, drawn: 0 };
   private card = cardGeo();
   private aloe = aloeGeo();
   private mBoug: MeshStandardMaterial;
   private mGrape: MeshStandardMaterial;
   private mAloe: MeshStandardMaterial;
+  private mScrub: MeshStandardMaterial;
+  private mAC = new MeshStandardMaterial({ color: 0xe9e7e1, roughness: 0.55, metalness: 0.15 });
+  private mAwn = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0 });
+  private acGeo = (() => { const b = new BoxGeometry(0.85, 0.55, 0.42); b.clearGroups(); b.translate(0, 0, 0.21); return b; })();
+  private awnGeo = (() => { const b = new BoxGeometry(1, 0.06, 1); b.clearGroups(); b.translate(0, 0, 0.5); return b; })();
   private live = new Set<Reg>();
   private lastX = 1e9; private lastZ = 1e9;
   private mul: number;
@@ -99,6 +122,7 @@ export class Flora {
     const mk = (map: CanvasTexture) => new MeshStandardMaterial({ map, alphaTest: 0.45, side: DoubleSide, roughness: 0.85, metalness: 0 });
     this.mBoug = mk(leafTexture("boug"));
     this.mGrape = mk(leafTexture("grape"));
+    this.mScrub = mk(leafTexture("scrub"));
     this.mAloe = new MeshStandardMaterial({ color: new Color(0x6f8f5a), roughness: 0.6, metalness: 0, side: DoubleSide });
     const A = g.real as unknown as { update: (...a: unknown[]) => void; regions: Map<string, Reg> };
     const orig = A.update.bind(A);
@@ -110,7 +134,7 @@ export class Flora {
     return A.heightAt(x, z);
   }
 
-  private bucket(r: Reg, geo: BufferGeometry, mat: MeshStandardMaterial, mats: number[], range: number, name: string): Bucket | null {
+  private bucket(r: Reg, geo: BufferGeometry, mat: MeshStandardMaterial, mats: number[], range: number, name: string, cols?: number[]): Bucket | null {
     const n = mats.length / 16;
     if (!n) return null;
     const im = new InstancedMesh(geo, mat, n);
@@ -120,8 +144,10 @@ export class Flora {
     const M = new Float32Array(mats), cx = new Float32Array(n), cz = new Float32Array(n);
     let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
     for (let i = 0; i < n; i++) { cx[i] = M[i * 16 + 12]; cz[i] = M[i * 16 + 14]; x0 = Math.min(x0, cx[i]); x1 = Math.max(x1, cx[i]); z0 = Math.min(z0, cz[i]); z1 = Math.max(z1, cz[i]); }
+    let C: Float32Array | undefined;
+    if (cols) { C = new Float32Array(cols); im.instanceColor = new InstancedBufferAttribute(new Float32Array(n * 3), 3); }
     r.group!.add(im as unknown as Object3D);
-    return { im, mats: M, cx, cz, n, range: range * Math.sqrt(this.mul), box: [x0, z0, x1, z1] };
+    return { im, cols: C, mats: M, cx, cz, n, range: range * Math.sqrt(this.mul), box: [x0, z0, x1, z1] };
   }
 
   private build(r: Reg) {
@@ -164,8 +190,51 @@ export class Flora {
       const a = rnd() * 6.28, d = 3 + rnd() * 5;
       push(grape, x + Math.cos(a) * d, z + Math.sin(a) * d, 2.4 + rnd() * 1.8, 1.6 + rnd() * 1.4, rnd() * 6.28);
     }
+    // facade props: wall AC units (houses + shops), striped-colour awnings over shop fronts
+    const ac: number[] = [], awn: number[] = [], awnC: number[] = [];
+    const pal = [0x1f7a8c, 0xd94f30, 0xf2b134, 0x2e8b57, 0x7a3e9d, 0xe86a92, 0x2b59c3, 0xf4f1e8];
+    const col = new Color(), qp = new Quaternion(), X = new Vector3(1, 0, 0);
+    const wallPush = (arr: number[], x: number, z: number, y: number, yaw: number, sx: number, sy: number, sz: number, pitch = 0) => {
+      q.setFromAxisAngle(Y, yaw); if (pitch) q.multiply(qp.setFromAxisAngle(X, pitch));
+      p.set(x, y, z); s.set(sx, sy, sz); m.compose(p, q, s); for (const v of m.elements) arr.push(v);
+    };
+    for (const b of r.json?.b || []) {
+      if (!b.p || b.p.length < 3) continue;
+      const com = b.k === "com" || b.k === "shop" || b.k === "retail";
+      const res = b.k === "house" || b.k === "res" || b.k === "apt";
+      if (!com && !res) continue;
+      let cx = 0, cz = 0; for (const [x, z] of b.p) { cx += x; cz += z; } cx /= b.p.length; cz /= b.p.length;
+      const h = b.h || 4;
+      const nE = Math.min(b.p.length, 6);
+      for (let e = 0; e < nE; e++) {
+        const [ax, az] = b.p[e], [bx, bz] = b.p[(e + 1) % b.p.length];
+        const ex = bx - ax, ez = bz - az, L = Math.hypot(ex, ez); if (L < 3) continue;
+        let nx = -ez / L, nz = ex / L; const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+        if ((mx - cx) * nx + (mz - cz) * nz < 0) { nx = -nx; nz = -nz; }
+        const yaw = Math.atan2(nx, nz);
+        if (rnd() < (com ? 0.45 : 0.28) * this.mul) {
+          const t = 0.15 + rnd() * 0.7, x = ax + ex * t + nx * 0.03, z = az + ez * t + nz * 0.03;
+          const gy = this.heightAt(x, z), fl = h > 6 && rnd() < 0.5 ? 3 + Math.floor(rnd() * Math.max(1, (h - 4) / 3)) * 3 : 0;
+          wallPush(ac, x, z, gy + Math.min(h - 0.8, 2.3 + fl), yaw, 1, 1, 1);
+        }
+        if (com && L > 4 && rnd() < 0.5 * this.mul) {
+          const w = Math.min(L * 0.8, 3 + rnd() * 6), t = 0.5, x = ax + ex * t + nx * 0.02, z = az + ez * t + nz * 0.02;
+          wallPush(awn, x, z, this.heightAt(x, z) + Math.min(h - 0.4, 2.9), yaw, w, 1, 1.1 + rnd() * 0.5, 0.32);
+          col.setHex(pal[Math.floor(rnd() * pal.length)]).convertSRGBToLinear(); awnC.push(col.r, col.g, col.b);
+        }
+      }
+    }
+    // dry scrub thickets around the kadushi scatter: fills the open cunucu/desert
+    const scrub: number[] = [];
+    for (const arr of veg.lists.k || []) for (const [x, , z] of arr) {
+      if (Math.floor((x - this.M().X0) / this.M().RS) !== r.rx || Math.floor((z - this.M().Z0) / this.M().RS) !== r.rz) continue;
+      if (rnd() > 0.7 * this.mul) continue;
+      const k = 1 + Math.floor(rnd() * 3);
+      for (let j = 0; j < k; j++) { const a = rnd() * 6.28, d = 2 + rnd() * 7; push(scrub, x + Math.cos(a) * d, z + Math.sin(a) * d, 1.8 + rnd() * 2.2, 1.1 + rnd() * 1.4, rnd() * 6.28); }
+    }
+    this.stats.scrub += scrub.length / 16; this.stats.ac += ac.length / 16; this.stats.awn += awn.length / 16;
     const out: Bucket[] = [];
-    for (const b of [this.bucket(r, this.card, this.mBoug, boug, 180, "boug"), this.bucket(r, this.aloe, this.mAloe, aloe, 110, "aloe"), this.bucket(r, this.card, this.mGrape, grape, 220, "grape")]) if (b) out.push(b);
+    for (const b of [this.bucket(r, this.card, this.mBoug, boug, 180, "boug"), this.bucket(r, this.aloe, this.mAloe, aloe, 110, "aloe"), this.bucket(r, this.card, this.mGrape, grape, 220, "grape"), this.bucket(r, this.card, this.mScrub, scrub, 320, "scrub"), this.bucket(r, this.acGeo, this.mAC, ac, 140, "ac"), this.bucket(r, this.awnGeo, this.mAwn, awn, 260, "awn", awnC)]) if (b) out.push(b);
     this.stats.boug += boug.length / 16; this.stats.aloe += aloe.length / 16; this.stats.grape += grape.length / 16; this.stats.regions++;
     r.__awFlora = out;
     this.live.add(r);
@@ -179,9 +248,9 @@ export class Flora {
       const bx = Math.max(b.box[0] - x, 0, x - b.box[2]), bz = Math.max(b.box[1] - z, 0, z - b.box[3]);
       if (bx * bx + bz * bz >= hi2) { b.im.count = 0; b.im.visible = false; continue; }
       const dst = b.im.instanceMatrix.array as Float32Array; let c = 0;
-      for (let i = 0; i < b.n; i++) { const dx = b.cx[i] - x, dz = b.cz[i] - z; if (dx * dx + dz * dz < hi2) { dst.set(b.mats.subarray(i * 16, i * 16 + 16), c * 16); c++; } }
+      for (let i = 0; i < b.n; i++) { const dx = b.cx[i] - x, dz = b.cz[i] - z; if (dx * dx + dz * dz < hi2) { dst.set(b.mats.subarray(i * 16, i * 16 + 16), c * 16); if (b.cols) (b.im.instanceColor!.array as Float32Array).set(b.cols.subarray(i * 3, i * 3 + 3), c * 3); c++; } }
       b.im.count = c; b.im.visible = c > 0;
-      if (c) { b.im.instanceMatrix.clearUpdateRanges(); b.im.instanceMatrix.addUpdateRange(0, c * 16); b.im.instanceMatrix.needsUpdate = true; }
+      if (c) { b.im.instanceMatrix.clearUpdateRanges(); b.im.instanceMatrix.addUpdateRange(0, c * 16); b.im.instanceMatrix.needsUpdate = true; if (b.cols) b.im.instanceColor!.needsUpdate = true; }
     }
   }
 
