@@ -12,6 +12,7 @@ import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
+import { Flora } from "./flora";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -21,6 +22,8 @@ async function main() {
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
+  const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+  const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
@@ -29,7 +32,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, version: "0.3.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, version: "0.4.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
