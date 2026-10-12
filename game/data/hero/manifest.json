@@ -21461,7 +21461,7 @@
    "switch_m": 220
   },
   "tris": {
-   "sopranos_lod0": 406,
+   "sopranos_lod0": 430,
    "sopranos_lod1": 31
   },
   "textures": 1,
@@ -21504,7 +21504,7 @@
    "switch_m": 220
   },
   "tris": {
-   "hostaria_lod0": 1325,
+   "hostaria_lod0": 1529,
    "hostaria_lod1": 73
   },
   "textures": 1,
