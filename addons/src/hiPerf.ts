@@ -12,7 +12,7 @@ import type { AGame } from "./env";
 type Pass = { setSize(w: number, h: number): void; updateGtaoMaterial(p: object): void; updatePdMaterial(p: object): void };
 export class HiPerf {
   on = false; private n = 0;
-  stats = { aoHalf: false, shadowEvery: 1 };
+  stats = { aoHalf: false, shadowEvery: 1, a2c: 0 };
   constructor(private g: AGame) {
     const q = (g.real as unknown as { q?: { name: string } } | null)?.q;
     if (!q || q.name !== "high") return;
@@ -29,8 +29,23 @@ export class HiPerf {
     }
     this.stats.shadowEvery = 2;
   }
+  private a2c = new WeakSet<object>(); private scanT = 0;
+  // foliage/props use alpha-tested cutouts: at ~1.3x DPR their edges stair-step and shimmer.
+  // HIGH already renders into a 4x MSAA target, so alpha-to-coverage turns those edges into
+  // 4-level coverage for free (one recompile per material, new materials picked up every 3 s).
+  private coverage() {
+    type M = { alphaTest: number; transparent: boolean; alphaToCoverage: boolean; needsUpdate: boolean };
+    (this.g.scene as unknown as { traverse(f: (o: { material?: M | M[] }) => void): void }).traverse((o) => {
+      const ms = o.material; if (!ms) return;
+      for (const m of Array.isArray(ms) ? ms : [ms]) {
+        if (this.a2c.has(m)) continue; this.a2c.add(m);
+        if (m.alphaTest > 0 && !m.transparent && !m.alphaToCoverage) { m.alphaToCoverage = true; m.needsUpdate = true; this.stats.a2c++; }
+      }
+    });
+  }
   frame() {
     if (!this.on) return;
+    if (this.stats.aoHalf && (this.scanT -= 1 / 60) <= 0) { this.scanT = 3; this.coverage(); }
     const sm = this.g.renderer.shadowMap as unknown as { autoUpdate: boolean; needsUpdate: boolean };
     sm.autoUpdate = false;
     if ((this.n++ & 1) === 0) sm.needsUpdate = true;
