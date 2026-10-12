@@ -101,7 +101,7 @@ function leafTexture(kind: "boug" | "grape" | "scrub"): CanvasTexture {
 }
 
 export class Flora {
-  stats = { regions: 0, boug: 0, aloe: 0, grape: 0, scrub: 0, ac: 0, awn: 0, drawn: 0 };
+  stats = { skipped: 0, regions: 0, boug: 0, aloe: 0, grape: 0, scrub: 0, ac: 0, awn: 0, drawn: 0 };
   private card = cardGeo();
   private aloe = aloeGeo();
   private mBoug: MeshStandardMaterial;
@@ -161,7 +161,7 @@ export class Flora {
     const boug: number[] = [], aloe: number[] = [], grape: number[] = [];
     // bougainvillea: ~1 in 3 houses, against one wall, 1-3 bushes
     for (const b of r.json?.b || []) {
-      if (!b.p || b.p.length < 3) continue;
+      if (!b.p || b.p.length < 3 || this.hidden(b)) continue;
       const res = b.k === "house" || b.k === "res" || b.k === "apt";
       if (rnd() > (res ? 0.38 : 0.08) * this.mul) continue;
       // centroid + a random edge, pushed 0.8 m outwards
@@ -199,7 +199,7 @@ export class Flora {
       p.set(x, y, z); s.set(sx, sy, sz); m.compose(p, q, s); for (const v of m.elements) arr.push(v);
     };
     for (const b of r.json?.b || []) {
-      if (!b.p || b.p.length < 3) continue;
+      if (!b.p || b.p.length < 3 || this.hidden(b)) continue;
       const com = b.k === "com" || b.k === "shop" || b.k === "retail";
       const res = b.k === "house" || b.k === "res" || b.k === "apt";
       if (!com && !res) continue;
@@ -238,6 +238,17 @@ export class Flora {
     this.stats.boug += boug.length / 16; this.stats.aloe += aloe.length / 16; this.stats.grape += grape.length / 16; this.stats.regions++;
     r.__awFlora = out;
     this.live.add(r);
+  }
+
+  /** same skip rule A's building builder uses: monument exclusions + hero (landmark) footprints */
+  private hidden(b: Bld): boolean {
+    const w = this.g.real as unknown as { mon?: { excluded?(x: number, z: number, b: Bld): boolean }; hero?: { pts: unknown[]; polys: unknown[]; hides(p: [number, number][]): boolean } };
+    let cx = 0, cz = 0; for (const [x, z] of b.p) { cx += x; cz += z; } cx /= b.p.length; cz /= b.p.length;
+    try {
+      if (w.mon && w.mon.excluded && w.mon.excluded(cx, cz, b)) { this.stats.skipped++; return true; }
+      if (w.hero && (w.hero.pts.length || w.hero.polys.length) && w.hero.hides(b.p)) { this.stats.skipped++; return true; }
+    } catch { /* keep props if the check fails */ }
+    return false;
   }
 
   private M() { return (this.g.real as unknown as { M: { X0: number; Z0: number; RS: number } }).M; }
