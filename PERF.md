@@ -31,3 +31,10 @@ SOLO runs (one browser at a time):
 - A LOW: 1628 / 978k; 0.88 / 0.67 fps; JS 25.2 / 30.8 ms
 - P LOW: 608 / 581k; 2.25 / 3.83 fps; JS 8.9 / 12.2 ms
 Streaming (pure A HIGH, teleport 2.6 km): 12 region loads (3 concurrent, 0.1-13.6 s each incl. fetch+PNG decode), queue grew to 266 build jobs; A runs jobs only inside its per-frame budget (5 ms phone / 8 ms desktop, at least 1 job per frame), so at low fps tiles barely build (only 4 jobs ran in 60 s at 0.3 fps); one update frame took 47 ms. Building is synchronous main-thread (roads.build, roadGrid, buildings.build per 125 m cell, terrain chunkGeometry), no worker.
+
+# Round 2 (2026-10-12)
+1. Controls done: bundle patch rv.brake&&$.revHold&&a.s<.6 -> rv.brake&&a.s<.6. Headless test: hold brake from stop -> s=-0.88 'CAR · R', release -> 0; moving 12 m/s + hold -> slows; moto same; key S hold -> -1.32.
+
+2. Perf round 2 committed: tileInst.ts folds ~39k InstancedMesh (kit/parked/parkedHi/props) into ~447 per-tile buckets; car 110->12 meshes; phone peds HIGH 10->5 (MED 6->4) no shadows; fixed add-on dt going negative at boot (delayed perf.update by ~12 s on HIGH).
+Round-2 HIGH (phone profile): 680 draws (was 1144 after round 1, 5410 pure A), 1.23M tris, 9,073 scene objects (was 72.5k / 87.7k), shadow pass 125 draws (was 385), SwiftShader 2.25 fps idle / 1.83 driving (was 0.75/0.83; pure A 0.38/0.33), JS 11.9 / 7.3 ms/frame.
+Round-2 LOW: 382 draws (608 r1, 1628 A), 510k tris, 5,647 objects (44k), SwiftShader 4.75 fps idle / 2.83 drive (r1 2.25/3.83 noisy, A 0.88/0.67), JS 4.5 / 6.2 ms.

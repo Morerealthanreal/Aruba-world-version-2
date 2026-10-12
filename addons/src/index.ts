@@ -11,6 +11,8 @@ import { LampGlow } from "./lampGlow";
 import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
+import { Look } from "./look";
+import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
 async function main() {
@@ -18,6 +20,7 @@ async function main() {
   const g = await whenGameReady();
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
+  const look = params.get("look") !== "0" ? new Look(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
@@ -39,6 +42,7 @@ async function main() {
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
     if (perf) perf.update(dt);
+    if (look) look.update(uNight.value);
     guard.frame(dt);
     tickUI();
     requestAnimationFrame(loop);
