@@ -1,9 +1,7 @@
 // Minimal UI that lives inside A's existing HUD (no new layout):
-//  - a clock chip in A's top bar (#realbar), tap = next preset time
 //  - a "Time of day" + "Auto FPS" block inside A's Settings sheet (#settings)
 import type { Clock } from "./clock";
 import type { FpsGuard } from "./fpsGuard";
-import { clockText } from "./day";
 
 const PRESETS: Array<[string, number]> = [["Sunrise", 6.75], ["Noon", 12.5], ["Sunset", 18.25], ["Night", 21.5]];
 
@@ -23,7 +21,6 @@ export function mountUI(clock: Clock, guard: FpsGuard) {
   #settings .tabs button.on{background:#ffd27a;color:#222;border-color:#ffd27a}
   #settings .hint{opacity:.7;font-size:12px;margin:6px 0}
   #settings #streset,#settings #stclose{margin:10px 6px 0 0}
-  #awclock{font-variant-numeric:tabular-nums}
   #awtime{margin-top:10px}
   #awtime .tabs button.on{outline:2px solid #ffd27a}
   #awtime .row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
@@ -31,22 +28,10 @@ export function mountUI(clock: Clock, guard: FpsGuard) {
   #awfps{font-size:12px;opacity:.8;margin-top:4px}`;
   document.head.appendChild(css);
 
-  let chip: HTMLButtonElement | null = null;
   let tries = 0;
   const attach = () => {
-    const bar = document.getElementById("realbar");
     const settings = document.getElementById("settings");
-    if (!bar || !settings) { if (tries++ < 40) setTimeout(attach, 250); return; }
-    chip = document.createElement("button");
-    chip.id = "awclock";
-    chip.title = "Time of day (tap: next preset)";
-    chip.addEventListener("click", () => {
-      const h = clock.t * 24;
-      const next = PRESETS.find(([, ph]) => ph > h + 0.05) ?? PRESETS[0];
-      clock.setHour(next[1]);
-    });
-    bar.insertBefore(chip, bar.children[1] ?? null);
-
+    if (!settings) { if (tries++ < 40) setTimeout(attach, 250); return; }
     const box = document.createElement("div");
     box.id = "awtime";
     box.innerHTML = `<div class="lbl">Time of day</div>
@@ -71,11 +56,7 @@ export function mountUI(clock: Clock, guard: FpsGuard) {
   };
   attach();
 
-  let last = "";
   return () => {
-    if (!chip) return;
-    const txt = (clock.t > 0.27 && clock.t < 0.775 ? "☀ " : "🌙 ") + clockText(clock.t);
-    if (txt !== last) { chip.textContent = txt; last = txt; }
     const f = document.getElementById("awfps");
     if (f) f.textContent = guard.describe();
   };
