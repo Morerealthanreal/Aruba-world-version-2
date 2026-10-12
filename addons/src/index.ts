@@ -13,6 +13,7 @@ import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
 import { Flora } from "./flora";
+import { Sun } from "./sun";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -27,12 +28,13 @@ async function main() {
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
+  const sun = useDN && params.get("sun") !== "0" ? new Sun(g) : null;
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, version: "0.4.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, version: "0.5.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -41,6 +43,7 @@ async function main() {
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);
+    if (sun && dn) sun.update(dn.sample.elev, dn.sample.day);
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
