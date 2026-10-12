@@ -22,6 +22,7 @@
 import { Matrix4, Mesh, type BufferGeometry, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
+import { TileInstances } from "./tileInst";
 import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
@@ -44,7 +45,7 @@ declare global {
   interface Window { __awPost?: Post; __awMMDiv?: number }
 }
 
-export type PerfStats = { glassFixed: number; frozen: number; merged: number; mergedFrom: number; kitNoShadow: number; heroHidden: number; mobile: boolean; changes: string[] };
+export type PerfStats = { instFolded: number; instBuckets: number; carMeshes: string; peds: string; glassFixed: number; frozen: number; merged: number; mergedFrom: number; kitNoShadow: number; heroHidden: number; mobile: boolean; changes: string[] };
 
 export class PerfFixes {
   g: AGame;
@@ -54,6 +55,7 @@ export class PerfFixes {
   private carSeen = new WeakSet<Object3D>();
   private t = 0;
   private heroCap: number;
+  inst: TileInstances | null = null;
 
   constructor(g: AGame) {
     this.g = g;
@@ -61,11 +63,12 @@ export class PerfFixes {
     const pm = params.get("perfmobile");
     const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
     this.mobile = pm === "1" ? true : pm === "0" ? false : touch;
-    this.stats = { glassFixed: 0, frozen: 0, merged: 0, mergedFrom: 0, kitNoShadow: 0, heroHidden: 0, mobile: this.mobile, changes: [] };
+    this.stats = { instFolded: 0, instBuckets: 0, carMeshes: "", peds: "", glassFixed: 0, frozen: 0, merged: 0, mergedFrom: 0, kitNoShadow: 0, heroHidden: 0, mobile: this.mobile, changes: [] };
     const tier = this.real.q.name;
     this.heroCap = tier === "low" ? 700 : tier === "med" ? 1000 : this.mobile ? 1400 : 2000;
     window.__awMMDiv = 3;
     this.tierProfile();
+    if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q);
     this.hookUpdate();
     this.hookHero();
     this.fixGlass();
@@ -153,7 +156,7 @@ export class PerfFixes {
   };
 
   // ---------- 3. merge static landmark meshes ----------
-  private merge(root: Obj) {
+  private merge(root: Obj, skip?: (o: Object3D) => boolean) {
     const ud = root.userData as { awMergedN?: number };
     let n = 0;
     root.traverse(() => n++);
@@ -171,8 +174,8 @@ export class PerfFixes {
       if (!m.visible || m.name.startsWith("aw:") || (m as unknown as { morphTargetInfluences?: unknown }).morphTargetInfluences) return;
       if (m.matrixWorld.determinant() < 0) return;
       let p = m.parent, vis = true;
-      while (p && p !== root) { vis = vis && p.visible; p = p.parent; }
-      if (!vis) return;
+      while (p && p !== root) { vis = vis && p.visible && !(skip && skip(p)); p = p.parent; }
+      if (!vis || (skip && skip(m))) return;
       const g = m.geometry;
       const attrs = Object.keys(g.attributes).sort().join(",");
       const parts: Part[] = [];
@@ -280,17 +283,57 @@ export class PerfFixes {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
+      if (this.inst) {
+        this.inst.update(A.regions as never, a[0] as number, a[2] as number);
+        this.stats.instFolded = this.inst.folded; this.stats.instBuckets = this.inst.buckets;
+      }
       this.fixPost();
     };
     for (const grp of [A.mon?.group, A.brands?.group, A.hero?.group]) if (grp) this.freeze(grp);
   }
 
   /** Called from the add-on loop (after A's frame). */
+  /** Player car: ~110 meshes / 218 draws. Merge everything but the 4 wheel subtrees (A spins/steers those). */
+  private carDone = new WeakSet<Object3D>();
+  private fixCar() {
+    const car = this.g.car as Obj | null;
+    if (!car || this.carDone.has(car)) return;
+    this.carDone.add(car);
+    let before = 0, after = 0;
+    car.traverse((o) => { if ((o as Obj).isMesh) before++; });
+    car.updateMatrixWorld(true);
+    // merge in the car's local frame: its root moves every frame
+    const save = car.matrixWorld.clone();
+    car.matrixWorld.identity();
+    car.children.forEach((c) => c.updateMatrixWorld(true));
+    this.merge(car, (o) => /^Wheel(Front|Rear)(L|R)$/.test(o.name));
+    car.matrixWorld.copy(save);
+    car.updateMatrixWorld(true);
+    car.traverse((o) => { if ((o as Obj).isMesh) after++; });
+    this.stats.carMeshes = before + " -> " + after;
+  }
+
+  /** Phones: fewer skinned pedestrians (13 parts each, + their shadow pass). */
+  private pedsDone = false;
+  private fixPeds() {
+    if (this.pedsDone || !this.mobile) return;
+    const amb = (this.real as unknown as { amb?: { peds: Array<{ g: Obj }> } }).amb;
+    if (!amb) return;
+    this.pedsDone = true;
+    const tier = this.real.q.name, cap = tier === "high" ? 5 : tier === "med" ? 4 : 2;
+    const n0 = amb.peds.length;
+    for (const p of amb.peds.splice(cap)) { p.g.visible = false; p.g.parent?.remove(p.g); }
+    for (const p of amb.peds) p.g.traverse((o) => { o.castShadow = false; });
+    this.stats.peds = n0 + " -> " + amb.peds.length + " (no shadows)";
+  }
+
   update(dt: number) {
     this.t -= dt;
     if (this.t > 0) return;
     this.t = 1;
     this.fixGlass();
+    this.fixCar();
+    this.fixPeds();
     this.mergeAll();
   }
 }

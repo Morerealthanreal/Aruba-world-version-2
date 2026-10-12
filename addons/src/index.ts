@@ -30,7 +30,7 @@ async function main() {
 
   let last = performance.now();
   const loop = (now: number) => {
-    const dt = Math.min(2, (now - last) / 1000);
+    const dt = Math.max(0, Math.min(2, (now - last) / 1000)); // rAF timestamps can predate performance.now() at setup
     last = now;
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
