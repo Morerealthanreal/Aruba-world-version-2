@@ -17,6 +17,7 @@ export class FpsGuard {
   enabled: boolean;
   target: number;
   level = 0;
+  maxLevel = MAX_LEVEL;
   fps = 60;
   private basePR: number;
   private acc = 0;
@@ -35,7 +36,12 @@ export class FpsGuard {
     this.enabled = params.get("fpsguard") !== "0" && localStorage.getItem("aw_fpsguard") !== "0";
     const tier = g.real?.q?.name;
     const qf = +(params.get("fps") || 0);
-    this.target = qf > 10 ? qf : tier === "low" ? 30 : 50;
+    const desk = !(matchMedia("(pointer: coarse)").matches || "ontouchstart" in window);
+    const big = tier === "high"; // HIGH and Desktop Quality (desktop shares name "high")
+    // laptops/desktops on HIGH/Desktop: dynamic resolution only (levels 1-4 = 90..60% render scale),
+    // aimed at a steady 60 Hz; never lazy shadows / post off there (those read as popping, not smoothness)
+    this.target = qf > 10 ? qf : tier === "low" ? 30 : desk && big ? 57 : 50;
+    this.maxLevel = desk && big ? 4 : MAX_LEVEL;
     document.addEventListener("visibilitychange", () => { this.warm = 2; this.acc = 0; this.frames = 0; });
   }
 
@@ -49,7 +55,7 @@ export class FpsGuard {
   }
 
   private setLevel(l: number) {
-    l = Math.max(0, Math.min(MAX_LEVEL, l));
+    l = Math.max(0, Math.min(this.maxLevel, l));
     if (l === this.level) return;
     const g = this.g;
     const scale = SCALES[Math.min(l, SCALES.length - 1)];
@@ -85,7 +91,7 @@ export class FpsGuard {
     if (this.fps < this.target - 2) { this.lowFor += span; this.highFor = 0; }
     else if (this.fps > Math.min(this.target + 8, 58)) { this.highFor += span; this.lowFor = 0; }
     else { this.lowFor = 0; this.highFor = 0; }
-    if (this.lowFor >= 1.5 && this.level < MAX_LEVEL) {
+    if (this.lowFor >= 1.5 && this.level < this.maxLevel) {
       this.setLevel(this.level + 1);
       this.lowFor = 0;
       this.warm = 1; // let the new setting settle

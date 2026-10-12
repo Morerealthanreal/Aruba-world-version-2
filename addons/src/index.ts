@@ -17,6 +17,7 @@ import { Sun } from "./sun";
 import { JobPump } from "./jobPump";
 import { FarCity } from "./farCity";
 import { ContextGuard } from "./contextGuard";
+import { FrameGraph } from "./frameGraph";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -31,6 +32,7 @@ async function main() {
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
+  const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
@@ -57,6 +59,7 @@ async function main() {
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
     if (far) far.update(dt);
+    if (graph) graph.frame(dt * 1000);
     guard.frame(dt);
     tickUI();
     requestAnimationFrame(loop);

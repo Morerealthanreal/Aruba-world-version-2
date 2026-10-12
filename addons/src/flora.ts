@@ -113,6 +113,7 @@ export class Flora {
   private acGeo = (() => { const b = new BoxGeometry(0.85, 0.55, 0.42); b.clearGroups(); b.translate(0, 0, 0.21); return b; })();
   private awnGeo = (() => { const b = new BoxGeometry(1, 0.06, 1); b.clearGroups(); b.translate(0, 0, 0.5); return b; })();
   private live = new Set<Reg>();
+  private gen: Generator<void, void, void> | null = null; private genR: Reg | null = null; private budget = 2;
   private lastX = 1e9; private lastZ = 1e9;
   private mul: number;
 
@@ -150,7 +151,8 @@ export class Flora {
     return { im, cols: C, mats: M, cx, cz, n, range: range * Math.sqrt(this.mul), box: [x0, z0, x1, z1] };
   }
 
-  private build(r: Reg) {
+  private *build(r: Reg): Generator<void, void, void> {
+    let step = 0;
     const veg = (this.g.real as unknown as { veg: { lists: Record<string, Row[][]> } }).veg;
     const rnd = rng(r.rx * 7919 + r.rz * 104729 + 13);
     const m = new Matrix4(), q = new Quaternion(), s = new Vector3(), p = new Vector3(), Y = new Vector3(0, 1, 0);
@@ -161,6 +163,7 @@ export class Flora {
     const boug: number[] = [], aloe: number[] = [], grape: number[] = [];
     // bougainvillea: ~1 in 3 houses, against one wall, 1-3 bushes
     for (const b of r.json?.b || []) {
+      if ((++step & 31) === 0) yield;
       if (!b.p || b.p.length < 3 || this.hidden(b)) continue;
       const res = b.k === "house" || b.k === "res" || b.k === "apt";
       if (rnd() > (res ? 0.38 : 0.08) * this.mul) continue;
@@ -177,14 +180,16 @@ export class Flora {
       }
     }
     // aloe clumps around kadushi / cacti
-    for (const arr of veg.lists.k || []) for (const [x, , z] of arr) {
+    for (const [x, , z] of this.vegFor(r, "k")) {
+      if ((++step & 255) === 0) yield;
       if (Math.floor((x - (this.M().X0)) / this.M().RS) !== r.rx || Math.floor((z - this.M().Z0) / this.M().RS) !== r.rz) continue;
       if (rnd() > 0.5 * this.mul) continue;
       const k = 1 + Math.floor(rnd() * 4);
       for (let j = 0; j < k; j++) { const a = rnd() * 6.28, d = 1.5 + rnd() * 4; const sc = 0.7 + rnd() * 0.8; push(aloe, x + Math.cos(a) * d, z + Math.sin(a) * d, sc, sc * (0.8 + rnd() * 0.5), rnd() * 6.28, 0.02); }
     }
     // sea grape near the shore: low palms (y < 3.5 m)
-    for (const arr of veg.lists.p || []) for (const [x, y, z] of arr) {
+    for (const [x, y, z] of this.vegFor(r, "p")) {
+      if ((++step & 255) === 0) yield;
       if (y > 3.5 || Math.floor((x - this.M().X0) / this.M().RS) !== r.rx || Math.floor((z - this.M().Z0) / this.M().RS) !== r.rz) continue;
       if (rnd() > 0.45 * this.mul) continue;
       const a = rnd() * 6.28, d = 3 + rnd() * 5;
@@ -199,6 +204,7 @@ export class Flora {
       p.set(x, y, z); s.set(sx, sy, sz); m.compose(p, q, s); for (const v of m.elements) arr.push(v);
     };
     for (const b of r.json?.b || []) {
+      if ((++step & 31) === 0) yield;
       if (!b.p || b.p.length < 3 || this.hidden(b)) continue;
       const com = b.k === "com" || b.k === "shop" || b.k === "retail";
       const res = b.k === "house" || b.k === "res" || b.k === "apt";
@@ -226,7 +232,8 @@ export class Flora {
     }
     // dry scrub thickets around the kadushi scatter: fills the open cunucu/desert
     const scrub: number[] = [];
-    for (const arr of veg.lists.k || []) for (const [x, , z] of arr) {
+    for (const [x, , z] of this.vegFor(r, "k")) {
+      if ((++step & 255) === 0) yield;
       if (Math.floor((x - this.M().X0) / this.M().RS) !== r.rx || Math.floor((z - this.M().Z0) / this.M().RS) !== r.rz) continue;
       if (rnd() > 0.7 * this.mul) continue;
       const k = 1 + Math.floor(rnd() * 3);
@@ -249,11 +256,25 @@ export class Flora {
     for (const bb of this.heroBoxes()) if (cx > bb[0] && cx < bb[2] && cz > bb[1] && cz < bb[3]) { this.stats.skipped++; return true; }
     try {
       if (w.mon && w.mon.excluded && w.mon.excluded(cx, cz, b)) { this.stats.skipped++; return true; }
-      if (w.hero && (w.hero.pts.length || w.hero.polys.length) && w.hero.hides(b.p)) { this.stats.skipped++; return true; }
+      if (w.hero && (w.hero.pts.length || w.hero.polys.length) && this.nearHero(cx, cz) && w.hero.hides(b.p)) { this.stats.skipped++; return true; }
     } catch { /* keep props if the check fails */ }
     return false;
   }
 
+  private vegIdx: Map<string, Record<string, Row[]>> | null = null; private vegSig = "";
+  private vegFor(r: Reg, kind: "k" | "p"): Row[] {
+    const lists = (this.g.real as unknown as { veg: { lists: Record<string, Row[][]> } }).veg.lists;
+    const sig = (lists.k || []).length + ":" + (lists.p || []).length + ":" + (lists.k || []).reduce((a, x) => a + x.length, 0) + ":" + (lists.p || []).reduce((a, x) => a + x.length, 0);
+    if (!this.vegIdx || sig !== this.vegSig) {
+      this.vegSig = sig; this.vegIdx = new Map();
+      const M = this.M();
+      for (const kk of ["k", "p"]) for (const arr of lists[kk] || []) for (const row of arr) {
+        const key = Math.floor((row[0] - M.X0) / M.RS) + "," + Math.floor((row[2] - M.Z0) / M.RS);
+        let e = this.vegIdx.get(key); if (!e) this.vegIdx.set(key, (e = { k: [], p: [] })); e[kk].push(row);
+      }
+    }
+    const e = this.vegIdx.get(r.rx + "," + r.rz); return e ? e[kind] : [];
+  }
   private hb: number[][] | null = null; private hbN = -1;
   private heroBoxes(): number[][] {
     const h = (this.g.real as unknown as { hero?: { list?: Array<{ x: number; z: number; foot?: [number, number][] | null; hero?: { hide_footprint?: unknown } }> } }).hero;
@@ -266,6 +287,11 @@ export class Flora {
       else if (Number.isFinite(n.x)) this.hb.push([n.x - 30, n.z - 30, n.x + 30, n.z + 30]);
     }
     return this.hb;
+  }
+
+  private nearHero(x: number, z: number): boolean {
+    for (const bb of this.heroBoxes()) if (x > bb[0] - 60 && x < bb[2] + 60 && z > bb[1] - 60 && z < bb[3] + 60) return true;
+    return false;
   }
 
   private M() { return (this.g.real as unknown as { M: { X0: number; Z0: number; RS: number } }).M; }
@@ -283,7 +309,9 @@ export class Flora {
   }
 
   update(regions: Map<string, Reg>, x: number, z: number) {
-    for (const r of regions.values()) if (!r.__awFlora && r.state === "built" && r.group && r.json) { this.build(r); this.lastX = 1e9; break; }
+    const t0 = performance.now();
+    if (!this.gen) for (const r of regions.values()) if (!r.__awFlora && r.state === "built" && r.group && r.json) { this.gen = this.build(r); this.genR = r; break; }
+    while (this.gen && performance.now() - t0 < this.budget) { if (this.genR && this.genR.state !== "built") { this.gen = null; break; } if (this.gen.next().done) { this.gen = null; this.lastX = 1e9; } }
     if (this.live.size > regions.size) { const cur = new Set(regions.values()); for (const r of this.live) if (!cur.has(r)) { for (const b of r.__awFlora || []) b.im.dispose(); this.live.delete(r); } }
     if ((x - this.lastX) ** 2 + (z - this.lastZ) ** 2 < 36) return;
     this.lastX = x; this.lastZ = z;
