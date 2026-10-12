@@ -2223,7 +2223,7 @@
    "switch_m": 140
   },
   "tris": {
-   "m_eaglebowling_lod0": 116,
+   "m_eaglebowling_lod0": 104,
    "m_eaglebowling_lod1": 34
   },
   "textures": 2,
@@ -8675,7 +8675,7 @@
  {
   "id": "cinemas_pb",
   "k": "m_caribbeancinemas",
-  "name": "Caribbean Cinemas (Palm Beach Plaza)",
+  "name": "Caribbean Cinemas (Paseo Herencia)",
   "status": "v3-procedural (generic-by-type on OSM footprint)",
   "x": -8034.57,
   "z": -5964.57,
