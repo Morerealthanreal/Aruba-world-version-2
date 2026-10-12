@@ -34,10 +34,10 @@ export function sampleDay(t: number): DaySample {
   const sunset = (1 - Math.min(1, Math.abs(elev) / 0.18)) * (1 - day * 0.15);
 
   const zD: [number, number, number] = [0.16, 0.45, 0.92];
-  const zN: [number, number, number] = [0.05, 0.09, 0.2];
+  const zN: [number, number, number] = [0.025, 0.05, 0.13];
   const hD: [number, number, number] = [0.72, 0.88, 0.95];
   const hS: [number, number, number] = [0.98, 0.46, 0.22];
-  const hN: [number, number, number] = [0.2, 0.27, 0.44];
+  const hN: [number, number, number] = [0.11, 0.16, 0.3];
   const zenith: [number, number, number] = [mix(zN[0], zD[0], day), mix(zN[1], zD[1], day), mix(zN[2], zD[2], day)];
   const horizon: [number, number, number] = [
     mix(mix(hN[0], hD[0], day), hS[0], sunset * 0.85),

@@ -90,7 +90,29 @@ export class NightLights {
     }
   }
 
+  private waterDone = new WeakSet<Material>();
+  /** A's sea shader colours the water itself (turquoise) and barely responds to the moon, so it glowed at night. */
+  private patchWater() {
+    this.g.scene.traverse((o) => {
+      const m = (o as InstancedMesh).material as PatchableMat;
+      if (!(o as InstancedMesh).isMesh || !m || Array.isArray(m) || this.waterDone.has(m)) return;
+      this.waterDone.add(m);
+      const key = m.customProgramCacheKey ? m.customProgramCacheKey() : "";
+      if (!/\|water/.test(key)) return;
+      chainPatch(m, "waternight-v1", (sh) => {
+        if (!sh.fragmentShader.includes("diffuseColor = vec4(wc, a);")) return;
+        sh.uniforms.uAwNight = uNight;
+        sh.fragmentShader = sh.fragmentShader
+          .replace("#include <common>", "#include <common>\nuniform float uAwNight;")
+          .replace("diffuseColor = vec4(wc, a);", "wc *= mix(1.0, 0.22, uAwNight); wc = mix(wc, wc * vec3(0.55, 0.75, 1.1), uAwNight * 0.5);\n  diffuseColor = vec4(wc, a);");
+      });
+    });
+  }
+
+  private waterT = 0;
   private scan() {
+    // full-scene walk is ~50k objects: only every 3rd scan (6 s), new regions bring new water materials
+    if (this.waterT++ % 3 === 0) this.patchWater();
     // A's street-lamp bulbs: props.glb "slamp" light part, emissive 0x55534c.
     this.g.real!.veg.group.traverse((o) => {
       const m = (o as InstancedMesh).material as StdMat;

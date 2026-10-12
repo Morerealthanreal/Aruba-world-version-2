@@ -2,7 +2,7 @@
 // In the merge it is an overlay dome that fades in over A's HDR sky at dusk and
 // night (A's HDR stays untouched by day, so daytime looks exactly like A).
 import { BackSide, Mesh, ShaderMaterial, SphereGeometry, Vector3 } from "three";
-import { uNight } from "./uniforms";
+import { uNight, uStars } from "./uniforms";
 
 export type Sky = { mesh: Mesh; sun: Vector3; zenith: Vector3; horizon: Vector3; opacity: { value: number } };
 
@@ -12,7 +12,7 @@ export function makeSky(): Sky {
   const horizon = new Vector3(0.55, 0.88, 0.9);
   const opacity = { value: 0 };
   const material = new ShaderMaterial({
-    uniforms: { uSun: { value: sun }, uZenith: { value: zenith }, uHorizon: { value: horizon }, uNight, uOpacity: opacity },
+    uniforms: { uSun: { value: sun }, uZenith: { value: zenith }, uHorizon: { value: horizon }, uNight, uStars, uOpacity: opacity },
     side: BackSide,
     depthWrite: false,
     transparent: true,
@@ -27,7 +27,7 @@ export function makeSky(): Sky {
     fragmentShader: /* glsl */ `
       varying vec3 vDir;
       uniform vec3 uSun, uZenith, uHorizon;
-      uniform float uNight, uOpacity;
+      uniform float uNight, uOpacity, uStars;
       void main() {
         vec3 dir = normalize(vDir);
         float h = clamp(dir.y, 0.0, 1.0);
@@ -45,7 +45,7 @@ export function makeSky(): Sky {
         vec3 cell = floor(dir * 260.0);
         float hsh = fract(sin(dot(cell, vec3(12.9, 78.2, 45.1))) * 43758.5);
         float star = step(0.992, hsh) * pow(fract(hsh * 17.0), 6.0);
-        col += star * uNight * smoothstep(0.08, 0.35, h) * 1.6;
+        col += star * uStars * smoothstep(0.08, 0.35, h) * 1.6;
         // below the horizon: keep the horizon colour (sea haze), never black
         col = mix(uHorizon, col, smoothstep(-0.05, 0.02, dir.y));
         gl_FragColor = vec4(col, uOpacity);

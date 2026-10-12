@@ -7,6 +7,8 @@ import { Clock } from "./clock";
 import { DayNight } from "./daynight";
 import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
+import { LampGlow } from "./lampGlow";
+import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
 import { uTime } from "./uniforms";
 
@@ -17,9 +19,11 @@ async function main() {
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g) : null;
   const lights = useDN ? new NightLights(g) : null;
+  const lamps = useDN ? new LampGlow(g) : null;
+  const traffic = useDN ? new TrafficLights(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, guard, version: "0.1.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, version: "0.2.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -29,6 +33,8 @@ async function main() {
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);
     if (lights) lights.update(dt);
+    if (lamps) lamps.update(dt);
+    if (traffic) traffic.update(dt);
     guard.frame(dt);
     tickUI();
     requestAnimationFrame(loop);

@@ -12,7 +12,7 @@ import { AmbientLight, Color, Vector3 } from "three";
 import type { AGame } from "./env";
 import { sampleDay, smooth, type DaySample } from "./day";
 import { makeSky, type Sky } from "./sky";
-import { uNight } from "./uniforms";
+import { uNight, uStars } from "./uniforms";
 
 const Y = new Vector3(0, 1, 0);
 const tmpC = new Color();
@@ -27,6 +27,7 @@ export class DayNight {
     sunDir: Vector3; theta: number; sunColor: Color; sunI: number; bounceSky: Color; bounceGround: Color; bounceI: number;
     fog: Color; exposure: number; elev0: number; az0: number; sign: number;
   };
+  private low: boolean;
   private clouds: Array<{ m: { color: Color; opacity: number }; c: Color; o: number }> = [];
 
   constructor(g: AGame) {
@@ -43,6 +44,7 @@ export class DayNight {
       bounceSky: sky.bounce.color.clone(), bounceGround: sky.bounce.groundColor.clone(), bounceI: sky.bounce.intensity,
       fog: sky.fog.color.clone(), exposure: g.renderer.toneMappingExposure, elev0, az0, sign,
     };
+    this.low = g.real!.q?.name === "low";
     this.ambient = new AmbientLight(0x8ea4cc, 0);
     this.ambient.name = "aw:nightAmbient";
     g.scene.add(this.ambient);
@@ -63,6 +65,10 @@ export class DayNight {
     const b = this.base;
     const night = s.night;
     uNight.value = night;
+    uStars.value = 1 - smooth(-0.2, -0.08, s.elev); // full dusk only (night is already 1 at -0.08)
+    // LOW has no bloom/AO/grade pass, so the bright-night fill reads milky there:
+    // pull ambient/bounce/exposure down a notch (moon stays high - B: never go black).
+    const low = this.low;
 
     // --- sun path: sweep the bearing across the sky through the day, keep A's noon elevation as the max
     const p = ((s.t - 0.25 - 0.5 / 24) / 0.5) * 2 - 1; // -1 sunrise .. 0 noon .. +1 sunset (outside = night)
@@ -88,9 +94,10 @@ export class DayNight {
       sky.sun.intensity = b.sunI * (0.32 + 0.16 * k);
       sky.bounce.color.setHex(0x2a4470);
       sky.bounce.groundColor.setHex(0xb08a58);
-      sky.bounce.intensity = 0.55 + 0.35 * k;
+      sky.bounce.intensity = (0.55 + 0.35 * k) * (low ? 0.72 : 1);
       this.ambient.color.setHex(0x8ea4cc);
-      this.ambient.intensity = 0.55 + 0.45 * k;
+      this.ambient.intensity = (0.55 + 0.45 * k) * (low ? 0.5 : 1);
+      if (low) sky.sun.intensity *= 1.1; // keep key light so faces still separate
     } else {
       const warm = s.sunset;
       tmpC.setRGB(1, 0.55, 0.3);
@@ -103,9 +110,9 @@ export class DayNight {
       this.ambient.intensity = 0.25 * night;
     }
     // HDR background + IBL fade out toward night (dome takes over)
-    g.scene.environmentIntensity = 0.22 + 0.78 * s.day;
+    g.scene.environmentIntensity = (low ? 0.12 : 0.22) + (low ? 0.88 : 0.78) * s.day;
     g.scene.backgroundIntensity = Math.max(0.02, s.day);
-    g.renderer.toneMappingExposure = b.exposure * (1 + 0.14 * night);
+    g.renderer.toneMappingExposure = b.exposure * (1 + (low ? 0.02 : 0.14) * night);
 
     // --- overlay sky dome (B's gradient + stars + moon) fades in for dusk/night
     const cam = g.camera;
