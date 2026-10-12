@@ -6267,7 +6267,12 @@
     -891.5
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -6985.4,
+    -882.4
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6321,7 +6326,12 @@
     112
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -6549.9,
+    91.1
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6413,7 +6423,12 @@
     8585.7
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    5151.4,
+    8587.1
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6459,7 +6474,12 @@
     9290.4
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    6468.1,
+    9290.1
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6505,7 +6525,12 @@
     -5013.3
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -7396,
+    -4986.8
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6551,7 +6576,12 @@
     7540.2
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    2216.4,
+    7522.8
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6617,7 +6647,12 @@
     1283.6
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -1193.6,
+    1282
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
@@ -6695,7 +6730,12 @@
     -3144
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -8772.6,
+    -3138.9
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": false,
