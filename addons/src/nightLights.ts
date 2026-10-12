@@ -164,7 +164,10 @@ export class NightLights {
       if (!(o as InstancedMesh).isMesh || !mm) return;
       for (const m of Array.isArray(mm) ? mm : [mm]) {
         if (!m || !m.emissive || this.heroGlow.has(m)) continue;
-        if (/^l?(signglow|neon|bulb)/i.test(m.name || "")) this.heroGlow.set(m, m.emissiveIntensity || 1);
+        const nm = m.name || "";
+        if (/^l?(signglow|neon|bulb)/i.test(nm)) this.heroGlow.set(m, m.emissiveIntensity || 1);
+        else if (nm === "sign") this.heroGlow.set(m, -(m.emissiveIntensity || 1)); // plain signs: gentler ramp
+        else if (nm === "glass") { m.emissive.setHex(0xffc985); m.emissiveIntensity = 0; this.heroGlow.set(m, 0); } // hero windows: warm glow at night
       }
     });
   }
@@ -192,7 +195,7 @@ export class NightLights {
       m.emissiveIntensity = b.i + k * 7.5;
     }
     // hero signs: dim by day (reads as paint), bright at night
-    for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 * (0.45 + k * 3.2);
+    for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 3.2) : i0 < 0 ? -i0 * (1 + k * 2.2) : k * 0.55;
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
