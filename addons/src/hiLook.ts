@@ -1,5 +1,5 @@
 // Round 9: HIGH-only visual upgrades on the confirmed-smooth M1 Pro baseline. LOW/MED untouched.
-// Off with ?hilook=0; single items ?hlwater=0, ?hlveg=0.
+// OPT-IN with ?hilook=1 (default off since 21:30 Oct 12: HIGH lag report); single items ?hlwater=0, ?hlveg=0.
 //  - water normal map anisotropy 4 -> 16 (sharp ripples at grazing angles, ~free)
 //  - 3D tree radius (veg3d) 260 -> 340 m: real palms/kadushi instead of impostors further down the road
 import type { AGame } from "./env";

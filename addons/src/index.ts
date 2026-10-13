@@ -38,7 +38,7 @@ async function main() {
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
-  const hil = params.get("hilook") !== "0" ? new HiLook(g) : null;
+  const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
   const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
