@@ -22,6 +22,7 @@ import { Kids } from "./kids";
 import { SplitJobs } from "./splitJobs";
 import { HiPerf } from "./hiPerf";
 import { HiLook } from "./hiLook";
+import { Emergency } from "./emergency";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -48,9 +49,10 @@ async function main() {
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useDN ? new TrafficLights(g) : null;
+  const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, version: "0.9.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -63,6 +65,7 @@ async function main() {
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
+    if (emerg) emerg.update(Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
