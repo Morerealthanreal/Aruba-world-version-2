@@ -34733,7 +34733,7 @@
    "switch_m": 400
   },
   "tris": {
-   "noord_thermo_lod0": 97,
+   "noord_thermo_lod0": 109,
    "noord_thermo_lod1": 43
   },
   "textures": 1,
@@ -34892,7 +34892,7 @@
  {
   "id": "cmb_noord",
   "k": "cmb_noord",
-  "name": "CMB bank corner at Coconut street (sign + red roof band, approx)",
+  "name": "CMB bank: cream gabled facade with columns + arch (approx)",
   "status": "v4-mall-detail",
   "x": -7215.5,
   "z": -4882.1,
@@ -34905,8 +34905,8 @@
    "switch_m": 400
   },
   "tris": {
-   "cmb_noord_lod0": 41,
-   "cmb_noord_lod1": 19
+   "cmb_noord_lod0": 240,
+   "cmb_noord_lod1": 37
   },
   "textures": 1,
   "hide_footprint": [
@@ -34948,7 +34948,7 @@
    "switch_m": 400
   },
   "tris": {
-   "pb_townhouses_lod0": 151,
+   "pb_townhouses_lod0": 391,
    "pb_townhouses_lod1": 7
   },
   "textures": 0,
@@ -34991,8 +34991,8 @@
    "switch_m": 400
   },
   "tris": {
-   "pb_foodcluster_lod0": 129,
-   "pb_foodcluster_lod1": 19
+   "pb_foodcluster_lod0": 1377,
+   "pb_foodcluster_lod1": 271
   },
   "textures": 1,
   "hide_footprint": [
@@ -35335,7 +35335,7 @@
    "switch_m": 400
   },
   "tris": {
-   "daniels_longhorn_lod0": 153,
+   "daniels_longhorn_lod0": 133,
    "daniels_longhorn_lod1": 19
   },
   "textures": 1,
@@ -35421,7 +35421,7 @@
    "switch_m": 400
   },
   "tris": {
-   "fattuesday_lights_lod0": 987,
+   "fattuesday_lights_lod0": 1011,
    "fattuesday_lights_lod1": 217
   },
   "textures": 1,
@@ -36354,7 +36354,7 @@
  {
   "id": "gemstones_pb",
   "k": "gemstones_pb",
-  "name": "Gemstones red storefront sign (approx)",
+  "name": "Gemstones red storefront portal + sign (approx)",
   "status": "v4-mall-detail",
   "x": -8109,
   "z": -5574,
@@ -36367,7 +36367,7 @@
    "switch_m": 400
   },
   "tris": {
-   "gemstones_pb_lod0": 41,
+   "gemstones_pb_lod0": 57,
    "gemstones_pb_lod1": 19
   },
   "textures": 1,
