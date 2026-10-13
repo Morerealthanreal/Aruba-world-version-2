@@ -18494,8 +18494,8 @@
    "switch_m": 300
   },
   "tris": {
-   "renmarket_lod0": 4586,
-   "renmarket_lod1": 1386
+   "renmarket_lod0": 8862,
+   "renmarket_lod1": 1398
   },
   "textures": 2,
   "hide_footprint": [
@@ -20331,8 +20331,8 @@
    "switch_m": 300
   },
   "tris": {
-   "royalplaza_lod0": 1460,
-   "royalplaza_lod1": 88
+   "royalplaza_lod0": 7390,
+   "royalplaza_lod1": 1126
   },
   "textures": 2,
   "hide_footprint": [
