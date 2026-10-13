@@ -36483,7 +36483,7 @@
  {
   "id": "divivillage_arch",
   "k": "divivillage_arch",
-  "name": "Divi Village Golf & Beach peach entrance arch (approx)",
+  "name": "Divi Village Golf & Beach peach entrance arch + low-rise peach/terracotta blocks (approx)",
   "status": "v4-mall-detail",
   "x": -9114.92,
   "z": -1845.31,
@@ -36496,7 +36496,7 @@
    "switch_m": 400
   },
   "tris": {
-   "divivillage_arch_lod0": 93,
+   "divivillage_arch_lod0": 333,
    "divivillage_arch_lod1": 19
   },
   "textures": 1,
