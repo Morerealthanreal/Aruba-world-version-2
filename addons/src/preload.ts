@@ -13,6 +13,7 @@ export class Preload {
     this.px = c.x; this.pz = c.z;
     let ax = this.vx * 5, az = this.vz * 5; const L = Math.hypot(ax, az);
     if (L > 220) { ax *= 220 / L; az *= 220 / L; }
-    (window as unknown as { __awAhead: number[] }).__awAhead = L < 15 ? [0, 0] : [ax, az];
+    const w = window as unknown as { __awAhead?: number[] }; const a = w.__awAhead || (w.__awAhead = [0, 0]);
+    if (L < 15) { a[0] = 0; a[1] = 0; } else { a[0] = ax; a[1] = az; } // reused, no per-frame alloc
   }
 }

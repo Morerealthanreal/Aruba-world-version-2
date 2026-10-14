@@ -8,6 +8,8 @@ import { DayNight } from "./daynight";
 import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
 import { Preload } from "./preload";
+import { MobilePerf } from "./mobilePerf";
+import { BldMerge } from "./bldMerge";
 import { LampGlow } from "./lampGlow";
 import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
@@ -64,9 +66,11 @@ async function main() {
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const guard = new FpsGuard(g);
+  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch) : null;
+  const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, bmerge, mperf, version: "0.9.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -95,6 +99,8 @@ async function main() {
     if (graph) graph.frame(dt * 1000);
     guard.frame(dt);
     if (pre) pre.frame(dt);
+    if (mperf) mperf.frame(dt);
+    if (bmerge) bmerge.frame();
     tickUI();
     requestAnimationFrame(loop);
   };
