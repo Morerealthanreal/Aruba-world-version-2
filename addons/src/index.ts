@@ -23,6 +23,9 @@ import { SplitJobs } from "./splitJobs";
 import { HiPerf } from "./hiPerf";
 import { HiLook } from "./hiLook";
 import { Emergency } from "./emergency";
+import { Crash } from "./crash";
+import { GvMoto } from "./gvMoto";
+import { Turbo } from "./turbo";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -50,9 +53,12 @@ async function main() {
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useDN ? new TrafficLights(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
+  const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
+  const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
+  const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, version: "0.9.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -66,6 +72,9 @@ async function main() {
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
     if (emerg) emerg.update(Math.min(dt, 0.1));
+    if (crash) crash.update(Math.min(dt, 0.1));
+    if (gv) gv.update(Math.min(dt, 0.1));
+    if (turbo) turbo.update(Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();

@@ -11,12 +11,13 @@
 import { Box3, BoxGeometry, Color, Mesh, MeshBasicMaterial, type Material, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
+import { buildEv, flashBar, type EvModel } from "./evModels";
 
 type Role = "police" | "amb" | "fire";
 type Car = { g: Object3D; v: number; rd: unknown; s?: number };
 type PaintMat = Material & { color: Color; roughness: number; metalness: number; clearcoat?: number; userData: Record<string, unknown> };
 type St = { role: Role | null; rd: unknown; paint?: PaintMat; base?: { c: Color; r: number; m: number; cc?: number };
-  box?: Box3; bar?: Mesh[]; stripe?: Mesh; on: boolean; t: number; ph: number };
+  box?: Box3; bar?: Mesh[]; stripe?: Mesh; on: boolean; t: number; ph: number; model?: EvModel; mkind?: string; orig?: Object3D[] };
 
 const BAR = new BoxGeometry(1, 1, 1);
 const RED = new Color(1, 0.06, 0.04), BLUE = new Color(0.1, 0.25, 1), WHITE = new Color(1, 1, 1), DIM = new Color(0.12, 0.12, 0.14);
@@ -70,10 +71,23 @@ export class Emergency {
     st.name = "aw:estripe"; st.visible = false; c.g.add(st); s.stripe = st;
   }
 
+  private useModel(c: Car, s: St, role: Role | null) {
+    if (!s.orig) s.orig = c.g.children.filter((ch) => !ch.name.startsWith("aw:"));
+    if (s.model) { c.g.remove(s.model.g); s.model = undefined; }
+    const want = role === "police" || role === "amb";
+    for (const o of s.orig) o.visible = !want;
+    if (!want) return;
+    const kind = role === "police" ? (Math.random() < 0.6 ? "everest" : "isuzu") : (Math.random() < 0.5 ? "ambY" : "ambP");
+    const m = buildEv(kind, [45, 50, 67, 38, 71][(Math.random() * 5) | 0]);
+    c.g.add(m.g); s.model = m; s.mkind = kind;
+  }
+
   private apply(c: Car, s: St, role: Role | null) {
     if (s.role) this.stats[s.role]--;
     s.role = role;
     if (role) this.stats[role]++;
+    this.useModel(c, s, role);
+    if (s.model) { if (s.bar) for (const b of s.bar) b.visible = false; if (s.stripe) s.stripe.visible = false; s.on = Math.random() < 0.6; s.t = 5 + Math.random() * 25; s.ph = Math.random() * 10; return; }
     if (role && !s.bar) this.setup(c, s);
     const p = s.paint;
     if (p && s.base) {
@@ -95,6 +109,7 @@ export class Emergency {
       let s = this.st.get(c.g);
       if (!s) { s = { role: null, rd: null, on: false, t: 0, ph: 0 }; this.st.set(c.g, s); }
       if (c.rd && c.rd !== s.rd) { s.rd = c.rd; this.apply(c, s, this.pickRole()); }
+      if (s.role && s.model) { if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; } flashBar(s.model, this.time, s.ph, s.on && c.g.visible); if (s.on && c.g.visible) { active++; const d = c.g.position.distanceTo(cam); if (d < 160 && (!near || d < near.d)) near = { d, s }; } continue; }
       if (!s.role || !s.bar) continue;
       if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; }
       const L = LIVERY[s.role];
@@ -115,7 +130,10 @@ export class Emergency {
     this.sound(near);
   }
 
-  private sound(near: { d: number; s: St } | null) {
+  ext: { d: number; ph: number } | null = null;
+  private sound(near0: { d: number; s: St } | null) {
+    let near = near0;
+    if (this.ext && (!near || this.ext.d < near.d)) near = { d: this.ext.d, s: { role: "police", rd: null, on: true, t: 0, ph: this.ext.ph } };
     if (!this.siren || !this.audio) { if (this.audio) this.audio.gain.gain.value = 0; return; }
     const { ctx, osc, gain } = this.audio, t = ctx.currentTime;
     if (!near || document.hidden) { gain.gain.setTargetAtTime(0, t, 0.1); return; }
