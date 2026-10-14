@@ -14,3 +14,8 @@
 - White cross: aerial shows only scrub beside the Alto Vista road; cross too small to confirm -> unchanged.
 - Peace Labyrinth: was 110 m off in bush. Moved to (-4408,-6202.5) from labyrinthlocator GPS 12.576112,-70.010569 + wiki, rings clearly visible on aerial behind chapel lot; resized to 60 ft (r 9.3).
 - Next by score: Amsterdam Manor lions (0 facing Mapillary photos, spot unknown), retaining-wall roundabout, Palm Court sign, Arashi walls: all lack a location -> blocked.
+
+## r193 (footprint/location checks, score 4-5)
+- Google aerial: hardrock_pb on South Beach Centre plaza OK; rb_divisculpt, rb_tubes, rb_welkom, rb_monolith each centred on a real roundabout (sculpture identity not visible from above) -> kept.
+- digicel_tank: no round tank within ~100 m on aerial (warehouse roof there; game has open lot). Nearest OSM tank (-8038,-299) is a plain white fuel tank per Mapillary 2024 -> not it. Location still unverified, left.
+- BUG FIX gen.mjs cylinder(): side quads + top cap were wound inward, so single-sided materials (tank) looked open/hollow from above. Fixed winding; rebuilt altovista_tank, digicel_tank, jab_tank only. Other GLBs with cyl on non-double-sided mats pick up the fix on their next rebuild (backup gen.mjs.bak5).
