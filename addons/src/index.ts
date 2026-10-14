@@ -28,6 +28,7 @@ import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { WindFarm } from "./windFarm";
 import { Wheelie } from "./wheelie";
+import { CamCycle } from "./camCycle";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -60,6 +61,7 @@ async function main() {
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
+  const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
   window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, version: "0.9.1" };
@@ -80,6 +82,7 @@ async function main() {
     if (gv) gv.update(Math.min(dt, 0.1));
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
+    if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (wheelie) wheelie.frame((g.S as unknown as { mode: string }).mode);
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
