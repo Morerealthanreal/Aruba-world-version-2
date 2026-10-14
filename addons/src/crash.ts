@@ -27,7 +27,7 @@ export class Crash {
     A: Car; B: Car; phase: number; age: number; tCrash: number;
     root: Group; police?: Mover; fs?: Mover; drivers: Npc[]; staff?: Npc; staffPos?: { x: number; z: number }; talk: number;
   } = null;
-  stats = { scenes: 0, active: false, phase: 0, x: 0, z: 0, police: false, fs: false, talk: 0 };
+  stats = { scenes: 0, active: false, phase: 0, x: 0, z: 0, police: false, fs: false, talk: 0, fx: 0, fz: 0 };
 
   constructor(private g: AGame, private emerg: Emergency | null) {
     const show = params.get("evshow");
@@ -95,7 +95,7 @@ export class Crash {
       if ((this.next -= dt) <= 0) { this.next = this.force ? 6 : 60; const mode = (this.g.S && this.g.S.mode) || "walk"; if (mode !== "plane" && (this.force || Math.random() < 0.2)) this.start(); }
       return;
     }
-    sc.age += dt; this.stats.phase = sc.phase; this.stats.police = !!sc.police?.arrived; this.stats.fs = !!sc.fs?.arrived; this.stats.talk = Math.round(sc.talk);
+    sc.age += dt; this.stats.phase = sc.phase; this.stats.police = !!sc.police?.arrived; this.stats.fs = !!sc.fs?.arrived; this.stats.talk = Math.round(sc.talk); if (sc.fs) { this.stats.fx = sc.fs.m.g.position.x; this.stats.fz = sc.fs.m.g.position.z; }
     const cam = this.g.camera.position, mid = this.pt(sc.rd, (sc.sA + sc.sB) / 2, sc.lat, sc.dirA);
     if (sc.age > 260 || Math.hypot(mid.x - cam.x, mid.z - cam.z) > 700) { this.clear(); return; }
     this.stats.x = mid.x; this.stats.z = mid.z;

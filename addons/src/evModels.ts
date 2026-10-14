@@ -1,13 +1,15 @@
 // Emergency vehicle + NPC models for Aruba (refs: landmarks/refs/emergency/*).
 // Built from a handful of boxes per vehicle; liveries are canvas textures (cached, shared).
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
-import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, type Material, type Object3D } from "three";
+import { CircleGeometry, TorusGeometry, BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, type Material, type Object3D } from "three";
 
 export type EvKind = "everest" | "isuzu" | "ambY" | "ambP" | "forensys";
 const texCache = new Map<string, CanvasTexture>();
 const matCache = new Map<string, Material>();
 const BOX = new BoxGeometry(1, 1, 1);
 const WHEEL = new CylinderGeometry(0.38, 0.38, 0.26, 12).rotateZ(Math.PI / 2);
+const ARCH_D = new CircleGeometry(0.5, 10, 0, Math.PI);
+const ARCH_T = new TorusGeometry(0.5, 0.07, 4, 10, Math.PI);
 const RIM = new CylinderGeometry(0.22, 0.22, 0.28, 8).rotateZ(Math.PI / 2);
 
 function std(key: string, color: string, rough = 0.5, metal = 0.1): Material {
@@ -95,6 +97,14 @@ function wheels(g: Group, w: number, zf: number, zr: number) {
   const tm = std("tyre", "#151515", 0.9, 0), rm = std("rim", "#b9bec4", 0.3, 0.7);
   for (const z of [zf, zr]) for (const s of [-1, 1]) { const t = new Mesh(WHEEL, tm); t.position.set(s * (w / 2 - 0.1), 0.38, z); g.add(t); const r = new Mesh(RIM, rm); r.position.copy(t.position); g.add(r); }
 }
+function arches(g: Group, w: number, zs: number[], col = "#2a2b2e") {
+  const hole = std("archHole", "#0b0b0c", 0.95, 0), flare = std("archFl" + col, col, 0.7, 0.05);
+  for (const z of zs) for (const s of [-1, 1]) {
+    const d = new Mesh(ARCH_D, hole); d.rotation.y = s * Math.PI / 2; d.position.set(s * (w / 2 + 0.006), 0.4, z); g.add(d);
+    const t = new Mesh(ARCH_T, flare); t.rotation.y = s * Math.PI / 2; t.position.set(s * (w / 2 + 0.01), 0.4, z); g.add(t);
+  }
+}
+function tilt(m: Mesh, rx: number) { m.rotation.x = rx; return m; }
 export type EvModel = { g: Group; bar: Mesh[]; colors: [number, number] };
 function lightBar(g: Group, y: number, z: number, w: number): Mesh[] {
   return [-1, 1].map((s) => { const m = new Mesh(BOX, new MeshBasicMaterial({ color: 0x202024, toneMapped: false })); m.scale.set(w * 0.42, 0.13, 0.28); m.position.set(s * w * 0.22, y + 0.065, z); m.name = "aw:ebar"; g.add(m); return m; });
@@ -110,8 +120,17 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
     const rear = fs ? white : plateTex(`rear${num}`, "#f4f5f7", `\u260E100   ${num}`, "#1747b8", 34);
     const grille = std(isu ? "grilleC" : "grilleB", isu ? "#9da3aa" : "#202326", 0.4, isu ? 0.6 : 0.2);
     // lower body: [+x,-x,+y,-y,+z,-z]
-    box(g, [sideR, sideL, white, white, grille, rear], W, 0.78, L, 0, 0.4, 0, "body");
-    box(g, [white, white, hood, white, white, white], W * 0.98, 0.14, 1.3, 0, 1.18, 1.75);
+    box(g, [sideR, sideL, white, white, white, rear], W, 0.78, L, 0, 0.4, 0, "body");
+    box(g, grille, W * 0.62, 0.3, 0.04, 0, 0.78, L / 2 + 0.005);
+    tilt(box(g, [white, white, hood, white, white, white], W * 0.96, 0.14, 1.35, 0, 1.12, 1.72), 0.07);
+    // rounded nose: half-cylinder along x across the front edge
+    { const n = new Mesh(new CylinderGeometry(0.2, 0.2, W * 0.96, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), white); n.position.set(0, 1.0, L / 2 - 0.12); g.add(n); }
+    // raked windshield + bumpers, mirrors, roof rails, side skirt
+    tilt(box(g, glass(), W * 0.9, 0.05, 0.9, 0, 1.38, 1.18), 0.95);
+    const plast = std("evPlast", "#2a2b2e", 0.7, 0.05);
+    box(g, plast, W * 1.0, 0.24, 0.18, 0, 0.36, L / 2 + 0.02); box(g, plast, W * 1.0, 0.24, 0.18, 0, 0.36, -L / 2 - 0.02);
+    box(g, plast, W * 1.01, 0.12, L * 0.42, 0, 0.4, -0.02);
+    for (const s of [-1, 1]) { box(g, white, 0.18, 0.13, 0.08, s * (W / 2 + 0.08), 1.32, 0.9); if (!isu || true) box(g, plast, 0.05, 0.06, 2.6, s * W * 0.4, isu ? 1.85 : 1.89, -0.6); }
     const cabH = isu ? 0.62 : 0.66;
     box(g, [glass(), glass(), white, white, glass(), glass()], W * 0.94, cabH, 3.25, 0, 1.18, -0.55);
     box(g, white, W * 0.95, 0.05, 3.3, 0, 1.18 + cabH, -0.55);
@@ -119,7 +138,7 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
     // headlights / tail lights
     const hl = std("hl", "#e9eef2", 0.2, 0.3), tl = std("tl", "#c01818", 0.3, 0.1);
     for (const s of [-1, 1]) { box(g, hl, 0.38, 0.14, 0.04, s * 0.68, 0.98, L / 2 + 0.01); box(g, tl, 0.12, 0.3, 0.06, s * 0.88, 0.86, -L / 2 - 0.01); }
-    wheels(g, W, 1.45, -1.5);
+    wheels(g, W, 1.45, -1.5); arches(g, W, [1.45, -1.5], isu ? "#d9dbde" : "#2a2b2e");
     let bar: Mesh[] = [];
     if (!fs) bar = lightBar(g, 1.18 + cabH + 0.05, 0.4, W * 0.9);
     else bar = lightBar(g, 1.18 + cabH + 0.05, 0.4, W * 0.55);
@@ -134,10 +153,16 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
   box(g, [sR, sL, paint, paint, paint, back], W, 2.35, 4.0, 0, 0.62, -1.15, "box");
   box(g, [cR, cL, paint, paint, paint, paint], W * 0.92, 1.0, 1.6, 0, 0.55, 1.65);
   box(g, [glass(), glass(), paint, paint, glass(), paint], W * 0.9, 0.62, 1.1, 0, 1.55, 1.45);
-  box(g, [paint, paint, paint, paint, std("grilleB", "#202326"), paint], W * 0.86, 0.62, 0.9, 0, 0.55, 2.85);
+  tilt(box(g, [paint, paint, paint, paint, std("grilleB", "#202326"), paint], W * 0.86, 0.66, 0.95, 0, 0.5, 2.85), 0.12);
+  { const n = new Mesh(new CylinderGeometry(0.18, 0.18, W * 0.86, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), paint); n.position.set(0, 0.98, 3.12); g.add(n); }
+  tilt(box(g, glass(), W * 0.86, 0.05, 0.75, 0, 1.25, 2.12), 0.9);
+  const chrome = std("chrome", "#c9ccd0", 0.25, 0.8), dk = std("evPlast", "#2a2b2e", 0.7, 0.05);
+  box(g, chrome, W * 0.95, 0.22, 0.16, 0, 0.36, 3.36); box(g, dk, W * 0.95, 0.2, 0.3, 0, 0.32, -3.2);
+  box(g, paint, W * 1.03, 0.1, 4.08, 0, 2.97, -1.15); // roof lip
+  for (const s of [-1, 1]) box(g, dk, 0.16, 0.24, 0.07, s * (W / 2 + 0.06), 1.45, 1.9);
   const hl = std("hl", "#e9eef2", 0.2, 0.3);
   for (const s of [-1, 1]) box(g, hl, 0.34, 0.16, 0.04, s * 0.72, 0.95, 3.31);
-  wheels(g, W, 2.4, -2.0);
+  wheels(g, W, 2.4, -2.0); arches(g, W, [2.4], "#2a2b2e"); arches(g, W, [-2.0], body);
   // corner marker lights on the box (red/white) + cab bar
   const bar = lightBar(g, 2.97, 0.95, W * 0.8);
   for (const s of [-1, 1]) { const m = new Mesh(BOX, new MeshBasicMaterial({ color: 0x501010, toneMapped: false })); m.scale.set(0.22, 0.14, 0.05); m.position.set(s * 0.8, 2.75, 0.86); m.name = "aw:ebar"; g.add(m); bar.push(m); }
