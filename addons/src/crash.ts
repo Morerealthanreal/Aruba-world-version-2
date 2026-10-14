@@ -54,7 +54,7 @@ export class Crash {
     for (const { c } of cand) {
       const sB = c.s + c.dir * 50; if (sB < 15 || sB > c.L - 15) continue;
       const back = c.dir > 0 ? c.s : c.L - c.s; if (back < 40) continue;
-      const B = A.cars.filter((o) => o !== c && o.v !== 4 && o.v !== 4 && !o.g.children.some((ch) => ch.name.startsWith("aw:ev")))
+      const B = A.cars.filter((o) => o !== c && o.v !== 4 && !o.g.children.some((ch) => ch.name.startsWith("aw:ev")))
         .sort((a, b) => Math.hypot(b.g.position.x - cam.x, b.g.position.z - cam.z) - Math.hypot(a.g.position.x - cam.x, a.g.position.z - cam.z))[0];
       if (!B) return false;
       for (const car of [c, B]) A.cars.splice(A.cars.indexOf(car), 1);
