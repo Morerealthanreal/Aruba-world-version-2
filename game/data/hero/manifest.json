@@ -21923,7 +21923,7 @@
  {
   "id": "spaans_bridge",
   "k": "spaans_bridge",
-  "name": "Gobernador Fredis Refunjol bridge, Spaans Lagoen (white tied arch, yellow railings)",
+  "name": "Gobernador Fredis Refunjol bridge, Spaans Lagoen (white twin inclined tied arches, yellow railings)",
   "status": "v4-mall-detail",
   "x": -681.55,
   "z": 5251.3,
@@ -21936,7 +21936,7 @@
    "switch_m": 900
   },
   "tris": {
-   "spaans_bridge_lod0": 671,
+   "spaans_bridge_lod0": 983,
    "spaans_bridge_lod1": 7
   },
   "textures": 0,
