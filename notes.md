@@ -8,3 +8,9 @@
 ## Batch 4 (downtown rest) + r191 (Noord aerial checks)
 - Downtown: Mapillary has only 13 photos along Caya Betico Croes, all at the Penha end (done r190). Archaeological Museum photos show only the old car-wash lot; Dollar Plus has 0 facing photos. No identity-verified edits possible -> no downtown changes.
 - Noord Google-aerial checks: rb_anchor sits on a real roundabout (OK). rb_peachwall centre is a residential cul-de-sac bend, not a roundabout (wrong spot, true location unknown, left). pineapple_exp roadside, nothing identifiable (left). altovista_tank was in empty bush -> moved to OSM storage_tank way 335599536 (-5260,-5893), r 20 m, h 8 m, hides generic OSM 3322. Note: video hint said SE of chapel; this tank is ~850 m SW.
+
+## r192 (Noord aerial checks 2)
+- Tesco (-3440,-2711), NAPA (-6612,-3498), WEMA (-6660,-2325): each centred on a real commercial roof in Google aerial -> kept.
+- White cross: aerial shows only scrub beside the Alto Vista road; cross too small to confirm -> unchanged.
+- Peace Labyrinth: was 110 m off in bush. Moved to (-4408,-6202.5) from labyrinthlocator GPS 12.576112,-70.010569 + wiki, rings clearly visible on aerial behind chapel lot; resized to 60 ft (r 9.3).
+- Next by score: Amsterdam Manor lions (0 facing Mapillary photos, spot unknown), retaining-wall roundabout, Palm Court sign, Arashi walls: all lack a location -> blocked.
