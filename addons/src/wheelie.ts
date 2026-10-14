@@ -12,9 +12,14 @@ export class Wheelie {
     document.body.appendChild(this.toast);
     this.btn = document.createElement("button");
     this.btn.textContent = "WHEELIE";
+    this.btn.className = "aw-wheelie";
+    this.btn.setAttribute("aria-label", "Hold for wheelie");
     this.btn.style.cssText = "position:fixed;right:12px;bottom:46%;z-index:40;display:none;padding:10px 12px;border-radius:14px;border:0;font:800 13px system-ui;background:#1e2a3ab0;color:#fff";
     const on = (v: boolean) => (e: Event) => { e.preventDefault(); this.held = v; };
-    this.btn.addEventListener("pointerdown", on(true)); this.btn.addEventListener("pointerup", on(false)); this.btn.addEventListener("pointerleave", on(false));
+    this.btn.addEventListener("pointerdown", (e) => { this.btn.setPointerCapture(e.pointerId); on(true)(e); });
+    this.btn.addEventListener("pointerup", on(false));
+    this.btn.addEventListener("pointercancel", on(false));
+    this.btn.addEventListener("lostpointercapture", on(false));
     document.body.appendChild(this.btn);
     (window as unknown as { __awWh: unknown }).__awWh = (ev: { rotation: { x: number }; position: { x: number; y: number; z: number } }, a: { s: number; h: number }, dt: number) => this.apply(ev, a, dt);
   }

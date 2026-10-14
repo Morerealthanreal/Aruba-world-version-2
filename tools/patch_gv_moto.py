@@ -1,38 +1,116 @@
 #!/usr/bin/env python3
-"""Gangstar-Vegas-style bike/car handling patch for A's minified bundle (idempotent).
-Spec: /workspace/landmarks/gv/motorcycle_spec.md"""
-import sys,re
-P='/workspace/aruba-world-merged/game/assets/index-D_YJh5Nn.js'
-s=open(P).read()
-DONE='__awDrift' in s
-R=[
- # punchier bike launch below 72 km/h
- ("o&&s>0&&(a.s+=Math.min(1,s)*6*e)","o&&s>0&&(a.s+=Math.min(1,s)*(a.s<20?10:6)*e)"),
- # brake + steer at speed = drift (slide keeps more speed than straight braking)
- ("c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),30*e))","c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(Math.abs(t)>.35&&Math.abs(a.s)>11?8:30)*e))"),
- # quicker, still smoothed steering on the bike
- ("(o?Math.abs(t)>.05?3.2:6:9)","(o?Math.abs(t)>.05?6.5:8:9)"),
- # drift state + sharper turn rate at speed
- (";let u=a.st*((o?1.35:2)/(1+Math.abs(a.s)*(o?.1:.06)))",
-  ";a.drift=(a.drift||0)+((c&&Math.abs(a.st)>.35&&Math.abs(a.s)>11?1:0)-(a.drift||0))*Math.min(1,e*(c?5:2.5));window.__awDrift=a.drift;let u=a.st*((o?1.8:2)/(1+Math.abs(a.s)*(o?.065:.06)))*(1+a.drift*.75)"),
- # visual slip angle while drifting (car body)
- ("$_.rotation.set(a.pitch,a.h,a.roll,`YXZ`)","$_.rotation.set(a.pitch,a.h-a.drift*a.st*.4*Math.sign(a.s||1),a.roll,`YXZ`)"),
- # deeper, faster bike lean (GV ~40 deg)
- ("Math.max(-.45,Math.min(.45,-Math.atan(Math.abs(a.s)*u/9.8)*.8))","Math.max(-.72,Math.min(.72,-Math.atan(Math.abs(a.s)*u/9.8)*1.05))"),
- ("a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,3.5*e)","a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,6*e)"),
- ("ev.rotation.set(a.pitch,a.h,0,`YXZ`)","ev.rotation.set(a.pitch,a.h-a.drift*a.st*.35*Math.sign(a.s||1),0,`YXZ`)"),
- # tighter, lower chase cam on the bike, follows heading faster
- ("a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?3:6))","a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?4.5:6))"),
- ("((o?6.2:8.5)+Math.abs(a.s)*.06)","((o?5.4:8.5)+Math.abs(a.s)*(o?.05:.06))"),
-]
-for a,b in ([] if DONE else R):
-  n=s.count(a)
-  if n!=1: sys.exit(f'pattern count {n}: {a[:60]}')
-  s=s.replace(a,b)
-if not DONE: open(P,'w').write(s); print('patched',len(R))
-# plane TURBO (applied separately so it is idempotent too)
-s=open(P).read()
-if '__awTurbo' not in s:
-  a="let d=a.thr*120;a.s+=(d-a.s)*.9*e"
-  assert s.count(a)==1
-  open(P,'w').write(s.replace(a,"let d=a.thr*120*(window.__awTurbo?1.2963:1);a.s+=(d-a.s)*(window.__awTurbo?.6:.9)*e"))
+"""Apply the idempotent arcade-motorcycle hooks to the shipped minified bundle.
+
+The add-on sets window.__awMotoEnabled. With ?gvmoto=0 (or ?addons=0), every
+conditional below takes the original handling path. This script accepts either
+the original bundle or the previous r191 motorcycle patch as input.
+"""
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+P = ROOT / "game/assets/index-D_YJh5Nn.js"
+s = P.read_text()
+changed = 0
+
+
+def swap(label: str, new: str, *old: str) -> None:
+    global s, changed
+    if new in s:
+        return
+    hits = [(candidate, s.count(candidate)) for candidate in old]
+    matches = [(candidate, count) for candidate, count in hits if count]
+    if len(matches) != 1 or matches[0][1] != 1:
+        detail = ", ".join(str(count) for _, count in hits)
+        sys.exit(f"{label}: expected one source pattern, got [{detail}]")
+    s = s.replace(matches[0][0], new)
+    changed += 1
+
+
+enabled = "window.__awMotoEnabled"
+
+swap(
+    "bike throttle",
+    f"o&&s>0&&(a.s+=Math.min(1,s)*({enabled}?(a.s<18?13:a.s<38?7:3.5):6)*e)",
+    "o&&s>0&&(a.s+=Math.min(1,s)*6*e)",
+    "o&&s>0&&(a.s+=Math.min(1,s)*(a.s<20?10:6)*e)",
+)
+swap(
+    "brake drift",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}&&Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:30)*e))",
+    "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),30*e))",
+    "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(Math.abs(t)>.35&&Math.abs(a.s)>11?8:30)*e))",
+)
+swap(
+    "bike top speed",
+    f"a.s=Math.max(-7,Math.min(o&&{enabled}?52:o?55:48,a.s))",
+    "a.s=Math.max(-7,Math.min(o?55:48,a.s))",
+)
+swap(
+    "steering response",
+    f"(o?({enabled}?Math.abs(t)>.05?8:10:Math.abs(t)>.05?3.2:6):9)",
+    "(o?Math.abs(t)>.05?3.2:6:9)",
+    "(o?Math.abs(t)>.05?6.5:8:9)",
+)
+swap(
+    "drift and turn",
+    f";a.drift=(a.drift||0)+((o&&{enabled}&&c&&Math.abs(a.st)>.3&&Math.abs(a.s)>9?1:0)-(a.drift||0))*Math.min(1,e*(c?7.5:3.5));window.__awDrift=o&&{enabled}?a.drift:0;let u=a.st*((o?({enabled}?1.95:1.35):2)/(1+Math.abs(a.s)*(o?({enabled}?.055:.1):.06)))*(1+(o&&{enabled}?a.drift*.55:0))",
+    ";let u=a.st*((o?1.35:2)/(1+Math.abs(a.s)*(o?.1:.06)))",
+    ";a.drift=(a.drift||0)+((c&&Math.abs(a.st)>.35&&Math.abs(a.s)>11?1:0)-(a.drift||0))*Math.min(1,e*(c?5:2.5));window.__awDrift=a.drift;let u=a.st*((o?1.8:2)/(1+Math.abs(a.s)*(o?.065:.06)))*(1+a.drift*.75)",
+)
+swap(
+    "body slip",
+    f"$_.rotation.set(a.pitch,a.h-(o&&{enabled}?a.drift*a.st*.32*Math.sign(a.s||1):0),a.roll,`YXZ`)",
+    "$_.rotation.set(a.pitch,a.h,a.roll,`YXZ`)",
+    "$_.rotation.set(a.pitch,a.h-a.drift*a.st*.4*Math.sign(a.s||1),a.roll,`YXZ`)",
+)
+swap(
+    "lean angle",
+    f"{enabled}?Math.max(-.78,Math.min(.78,-Math.atan(Math.abs(a.s)*u/9.8)*1.12)):Math.max(-.45,Math.min(.45,-Math.atan(Math.abs(a.s)*u/9.8)*.8))",
+    "Math.max(-.45,Math.min(.45,-Math.atan(Math.abs(a.s)*u/9.8)*.8))",
+    "Math.max(-.72,Math.min(.72,-Math.atan(Math.abs(a.s)*u/9.8)*1.05))",
+)
+swap(
+    "lean response",
+    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?8:3.5)*e)",
+    "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,3.5*e)",
+    "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,6*e)",
+)
+swap(
+    "bike slip",
+    f"ev.rotation.set(a.pitch,a.h-({enabled}?a.drift*a.st*.3*Math.sign(a.s||1):0),0,`YXZ`)",
+    "ev.rotation.set(a.pitch,a.h,0,`YXZ`)",
+    "ev.rotation.set(a.pitch,a.h-a.drift*a.st*.35*Math.sign(a.s||1),0,`YXZ`)",
+)
+swap(
+    "camera follow",
+    f"a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?({enabled}?6.2:3):6))",
+    "a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?3:6))",
+    "a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?4.5:6))",
+)
+swap(
+    "camera distance",
+    f"((o?({enabled}?5.1:6.2):8.5)+Math.abs(a.s)*(o?({enabled}?.055:.06):.06))*(o_.aspect<.8?(o&&{enabled}?1.22:1.4):1)*(window.__awCamD||1)",
+    "((o?6.2:8.5)+Math.abs(a.s)*.06)*(o_.aspect<.8?1.4:1)",
+    "((o?5.4:8.5)+Math.abs(a.s)*(o?.05:.06))*(o_.aspect<.8?1.4:1)",
+    "((o?6.2:8.5)+Math.abs(a.s)*.06)*(o_.aspect<.8?1.4:1)*(window.__awCamD||1)",
+    "((o?5.4:8.5)+Math.abs(a.s)*(o?.05:.06))*(o_.aspect<.8?1.4:1)*(window.__awCamD||1)",
+)
+swap(
+    "camera pitch",
+    "v=.2+$.lookPitch+(window.__awCamP||0)",
+    "v=.2+$.lookPitch",
+)
+swap(
+    "collision bump",
+    f":(o&&{enabled}?(a.s*=-.1,window.__awMotoBump=1):a.s*=-.25);",
+    ":a.s*=-.25;",
+)
+swap(
+    "camera shake hook",
+    "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),window.__awMotoCam&&window.__awMotoCam(zv,a,e,o),X_(Rv,zv),o_.position.lerp",
+    "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),X_(Rv,zv),o_.position.lerp",
+)
+
+P.write_text(s)
+print(f"patched {changed}" if changed else "already patched")

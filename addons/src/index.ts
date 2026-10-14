@@ -37,6 +37,11 @@ import { CamCycle } from "./camCycle";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
+// Set synchronously so the minified-bundle hooks can preserve stock handling when
+// either the whole add-on suite or just the motorcycle pass is disabled.
+const motoEnabled = params.get("addons") !== "0" && params.get("gvmoto") !== "0" && params.get("gv") !== "0";
+(window as unknown as { __awMotoEnabled: boolean }).__awMotoEnabled = motoEnabled;
+
 async function main() {
   if (params.get("addons") === "0") return;
   const g = await whenGameReady();
@@ -62,7 +67,7 @@ async function main() {
   const traffic = useDN ? new TrafficLights(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
-  const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
+  const gv = motoEnabled ? new GvMoto(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
@@ -78,7 +83,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, bmerge, mperf, ovm, tmerge, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, bmerge, mperf, ovm, tmerge, version: "0.9.2" };
 
   let last = performance.now();
   const loop = (now: number) => {
