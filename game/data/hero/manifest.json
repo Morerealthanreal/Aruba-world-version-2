@@ -17442,7 +17442,7 @@
   "lod": {
    "hi": "eaglebeach_fx_lod0",
    "lo": "eaglebeach_fx_lod1",
-   "switch_m": 220
+   "switch_m": 394
   },
   "tris": {
    "eaglebeach_fx_lod0": 5063,
@@ -17485,7 +17485,7 @@
   "lod": {
    "hi": "arashi_fx_lod0",
    "lo": "arashi_fx_lod1",
-   "switch_m": 220
+   "switch_m": 600
   },
   "tris": {
    "arashi_fx_lod0": 1633,
@@ -17571,7 +17571,7 @@
   "lod": {
    "hi": "mainstreet_fx_lod0",
    "lo": "mainstreet_fx_lod1",
-   "switch_m": 260
+   "switch_m": 692
   },
   "tris": {
    "mainstreet_fx_lod0": 8093,
@@ -17918,7 +17918,7 @@
   "lod": {
    "hi": "hyattpool_lod0",
    "lo": "hyattpool_lod1",
-   "switch_m": 260
+   "switch_m": 420
   },
   "tris": {
    "hyattpool_lod0": 2927,
@@ -17961,7 +17961,7 @@
   "lod": {
    "hi": "marriottpool_lod0",
    "lo": "marriottpool_lod1",
-   "switch_m": 260
+   "switch_m": 364
   },
   "tris": {
    "marriottpool_lod0": 3004,
@@ -18004,7 +18004,7 @@
   "lod": {
    "hi": "riupool_lod0",
    "lo": "riupool_lod1",
-   "switch_m": 260
+   "switch_m": 382
   },
   "tris": {
    "riupool_lod0": 2089,
@@ -19771,7 +19771,7 @@
   "lod": {
    "hi": "tramline_lod0",
    "lo": "tramline_lod1",
-   "switch_m": 300
+   "switch_m": 823
   },
   "tris": {
    "tramline_lod0": 4069,
@@ -21088,7 +21088,7 @@
   "lod": {
    "hi": "hotelsigns_lod0",
    "lo": "hotelsigns_lod1",
-   "switch_m": 250
+   "switch_m": 1114
   },
   "tris": {
    "hotelsigns_lod0": 107,
@@ -21131,7 +21131,7 @@
   "lod": {
    "hi": "irausquinfx_lod0",
    "lo": "irausquinfx_lod1",
-   "switch_m": 350
+   "switch_m": 701
   },
   "tris": {
    "irausquinfx_lod0": 3511,
@@ -21269,7 +21269,7 @@
   "lod": {
    "hi": "cycle0_lod0",
    "lo": "cycle0_lod1",
-   "switch_m": 700
+   "switch_m": 1642
   },
   "tris": {
    "cycle0_lod0": 607,
@@ -21398,7 +21398,7 @@
   "lod": {
    "hi": "cycle3_lod0",
    "lo": "cycle3_lod1",
-   "switch_m": 700
+   "switch_m": 1767
   },
   "tris": {
    "cycle3_lod0": 599,
@@ -23805,7 +23805,7 @@
   "lod": {
    "hi": "malmok_wall_lod0",
    "lo": "malmok_wall_lod1",
-   "switch_m": 900
+   "switch_m": 909
   },
   "tris": {
    "malmok_wall_lod0": 763,
@@ -24253,7 +24253,7 @@
   "lod": {
    "hi": "pb_bollards0_lod0",
    "lo": "pb_bollards0_lod1",
-   "switch_m": 350
+   "switch_m": 1074
   },
   "tris": {
    "pb_bollards0_lod0": 5983,
@@ -24296,7 +24296,7 @@
   "lod": {
    "hi": "pb_bollards1_lod0",
    "lo": "pb_bollards1_lod1",
-   "switch_m": 350
+   "switch_m": 432
   },
   "tris": {
    "pb_bollards1_lod0": 3103,
@@ -24536,7 +24536,7 @@
   "lod": {
    "hi": "vondel_bumps_lod0",
    "lo": "vondel_bumps_lod1",
-   "switch_m": 400
+   "switch_m": 462
   },
   "tris": {
    "vondel_bumps_lod0": 619,
@@ -25317,7 +25317,7 @@
   "lod": {
    "hi": "dt_bollards0_lod0",
    "lo": "dt_bollards0_lod1",
-   "switch_m": 350
+   "switch_m": 634
   },
   "tris": {
    "dt_bollards0_lod0": 4399,
@@ -25360,7 +25360,7 @@
   "lod": {
    "hi": "sc_bollards0_lod0",
    "lo": "sc_bollards0_lod1",
-   "switch_m": 350
+   "switch_m": 478
   },
   "tris": {
    "sc_bollards0_lod0": 4327,
@@ -26390,7 +26390,7 @@
   "lod": {
    "hi": "sn_bollards0_lod0",
    "lo": "sn_bollards0_lod1",
-   "switch_m": 350
+   "switch_m": 800
   },
   "tris": {
    "sn_bollards0_lod0": 5407,
@@ -26661,7 +26661,7 @@
   "lod": {
    "hi": "ora_canopies_lod0",
    "lo": "ora_canopies_lod1",
-   "switch_m": 400
+   "switch_m": 633
   },
   "tris": {
    "ora_canopies_lod0": 823,
@@ -30558,7 +30558,7 @@
   "lod": {
    "hi": "noord_res_-13_-11_lod0",
    "lo": "noord_res_-13_-11_lod1",
-   "switch_m": 400
+   "switch_m": 607
   },
   "tris": {
    "noord_res_-13_-11_lod0": 14883,
@@ -30601,7 +30601,7 @@
   "lod": {
    "hi": "noord_res_-14_-11_lod0",
    "lo": "noord_res_-14_-11_lod1",
-   "switch_m": 400
+   "switch_m": 721
   },
   "tris": {
    "noord_res_-14_-11_lod0": 32071,
@@ -30644,7 +30644,7 @@
   "lod": {
    "hi": "noord_res_-15_-11_lod0",
    "lo": "noord_res_-15_-11_lod1",
-   "switch_m": 400
+   "switch_m": 531
   },
   "tris": {
    "noord_res_-15_-11_lod0": 8757,
@@ -30687,7 +30687,7 @@
   "lod": {
    "hi": "noord_res_-14_-10_lod0",
    "lo": "noord_res_-14_-10_lod1",
-   "switch_m": 400
+   "switch_m": 694
   },
   "tris": {
    "noord_res_-14_-10_lod0": 9005,
@@ -30730,7 +30730,7 @@
   "lod": {
    "hi": "noord_res_-13_-10_lod0",
    "lo": "noord_res_-13_-10_lod1",
-   "switch_m": 400
+   "switch_m": 490
   },
   "tris": {
    "noord_res_-13_-10_lod0": 6735,
@@ -30859,7 +30859,7 @@
   "lod": {
    "hi": "noord_res_-14_-12_lod0",
    "lo": "noord_res_-14_-12_lod1",
-   "switch_m": 400
+   "switch_m": 800
   },
   "tris": {
    "noord_res_-14_-12_lod0": 10431,
@@ -30902,7 +30902,7 @@
   "lod": {
    "hi": "noord_res_-13_-12_lod0",
    "lo": "noord_res_-13_-12_lod1",
-   "switch_m": 400
+   "switch_m": 640
   },
   "tris": {
    "noord_res_-13_-12_lod0": 5211,
@@ -31550,7 +31550,7 @@
    "switch_m": 400
   },
   "tris": {
-   "noord_brick_lod0": 1207,
+   "noord_brick_lod0": 567,
    "noord_brick_lod1": 7
   },
   "textures": 0,
@@ -33396,7 +33396,7 @@
   "lod": {
    "hi": "arutram_lod0",
    "lo": "arutram_lod1",
-   "switch_m": 350
+   "switch_m": 515
   },
   "tris": {
    "arutram_lod0": 829,
@@ -33767,6 +33767,608 @@
   "new_place": true,
   "geo_source": "OSM building footprint (data/real region extract)",
   "ref_sources": "r40 15:25 Total Finance + Western Union, white building red roof; video-timed between New Wei Taai (14:40) and CMB (16:11), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "ashley_facade",
+  "k": "ashley_facade",
+  "name": "Ashley HomeStore red/grey two-storey facade (approx)",
+  "status": "v4-mall-detail",
+  "x": -8878.47,
+  "z": -1418.65,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/ashley_facade.glb",
+  "lod": {
+   "hi": "ashley_facade_lod0",
+   "lo": "ashley_facade_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "ashley_facade_lod0": 177,
+   "ashley_facade_lod1": 19
+  },
+  "textures": 1,
+  "hide_footprint": [
+   [
+    -8878.6,
+    -1418.8
+   ],
+   [
+    -8878.4,
+    -1418.8
+   ],
+   [
+    -8878.4,
+    -1418.6
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r32 16:46 Ashley HomeStore red/grey two-storey front (frame r32 16:46); L.G. Smith Blvd 144, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "arashi_roadpark",
+  "k": "arashi_roadpark",
+  "name": "Arashi roadside dirt parking strip with parked cars",
+  "status": "v4-mall-detail",
+  "x": -8986,
+  "z": -9905,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/arashi_roadpark.glb",
+  "lod": {
+   "hi": "arashi_roadpark_lod0",
+   "lo": "arashi_roadpark_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "arashi_roadpark_lod0": 225,
+   "arashi_roadpark_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -8986.1,
+    -9905.1
+   ],
+   [
+    -8985.9,
+    -9905.1
+   ],
+   [
+    -8985.9,
+    -9904.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "drive 30:35 Arashi: cars parked on a dirt strip along L.G. Smith Blvd (beach side); road OSM x~-8976; approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "lindas_kiosk",
+  "k": "lindas_kiosk",
+  "name": "Linda's parking kiosk + striped barrier (approx)",
+  "status": "v4-mall-detail",
+  "x": -7358.24,
+  "z": -4946.18,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/lindas_kiosk.glb",
+  "lod": {
+   "hi": "lindas_kiosk_lod0",
+   "lo": "lindas_kiosk_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "lindas_kiosk_lod0": 127,
+   "lindas_kiosk_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -7358.3,
+    -4946.3
+   ],
+   [
+    -7358.1,
+    -4946.3
+   ],
+   [
+    -7358.1,
+    -4946.1
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 0:04 brown wood parking kiosk with red tile roof + striped barrier arm at Linda's Dutch Pancakes, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r39_foodtruck",
+  "k": "r39_foodtruck",
+  "name": "White food truck with blue mountain mural on dirt corner lot (approx)",
+  "status": "v4-mall-detail",
+  "x": -7434.23,
+  "z": -4970.78,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r39_foodtruck.glb",
+  "lod": {
+   "hi": "r39_foodtruck_lod0",
+   "lo": "r39_foodtruck_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r39_foodtruck_lod0": 177,
+   "r39_foodtruck_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -7434.3,
+    -4970.9
+   ],
+   [
+    -7434.1,
+    -4970.9
+   ],
+   [
+    -7434.1,
+    -4970.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 0:55 white food truck with blue mountains mural on a dirt corner lot, between Citgo pylon (0:50) and Century 21 (0:58), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r40_bluegates",
+  "k": "r40_bluegates",
+  "name": "Light blue/yellow building with blue roof and light-blue sliding gates (approx)",
+  "status": "v4-mall-detail",
+  "x": -6774.92,
+  "z": -4787.77,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r40_bluegates.glb",
+  "lod": {
+   "hi": "r40_bluegates_lod0",
+   "lo": "r40_bluegates_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r40_bluegates_lod0": 55,
+   "r40_bluegates_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -6775,
+    -4787.9
+   ],
+   [
+    -6774.8,
+    -4787.9
+   ],
+   [
+    -6774.8,
+    -4787.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r40 04:20 light blue/yellow building, blue roof, light blue sliding gates; video-timed just past roundabout (03:43), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "noord_chinese",
+  "k": "noord_chinese",
+  "name": "White Chinese restaurant, red tile roof, green awnings, Heineken sign (approx)",
+  "status": "v4-mall-detail",
+  "x": -6960.99,
+  "z": -4859.81,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/noord_chinese.glb",
+  "lod": {
+   "hi": "noord_chinese_lod0",
+   "lo": "noord_chinese_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "noord_chinese_lod0": 139,
+   "noord_chinese_lod1": 31
+  },
+  "textures": 1,
+  "hide_footprint": [
+   [
+    -6961.1,
+    -4859.9
+   ],
+   [
+    -6960.9,
+    -4859.9
+   ],
+   [
+    -6960.9,
+    -4859.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r40 12:05 white Chinese restaurant, red tile roof, green awnings, Heineken sign; video-timed between Clean Masters (11:53) and Den Matras (12:43), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r39_smiley",
+  "k": "r39_smiley",
+  "name": "Bright blue building with yellow smiley sign (approx)",
+  "status": "v4-mall-detail",
+  "x": -7486.44,
+  "z": -4993.19,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r39_smiley.glb",
+  "lod": {
+   "hi": "r39_smiley_lod0",
+   "lo": "r39_smiley_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r39_smiley_lod0": 45,
+   "r39_smiley_lod1": 19
+  },
+  "textures": 1,
+  "hide_footprint": [
+   [
+    -7486.5,
+    -4993.3
+   ],
+   [
+    -7486.3,
+    -4993.3
+   ],
+   [
+    -7486.3,
+    -4993.1
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 2:45 bright blue building with a yellow smiley sign (possibly Alamo); video-timed between Subway (2:03) and Palma Real (3:33), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "hooiberg_steps",
+  "k": "hooiberg_steps",
+  "name": "Green-painted concrete Hooiberg steps (approx line)",
+  "status": "v4-mall-detail",
+  "x": -2709.78,
+  "z": 333.95,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/hooiberg_steps.glb",
+  "lod": {
+   "hi": "hooiberg_steps_lod0",
+   "lo": "hooiberg_steps_lod1",
+   "switch_m": 424
+  },
+  "tris": {
+   "hooiberg_steps_lod0": 1375,
+   "hooiberg_steps_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -2709.9,
+    333.8
+   ],
+   [
+    -2709.7,
+    333.8
+   ],
+   [
+    -2709.7,
+    334
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r28.mp4 3:00 green-painted concrete Hooiberg steps; drawn from the peak toward Caya Betico Croes (true stair line not in OSM data available), approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r40_domebollards",
+  "k": "r40_domebollards",
+  "name": "White dome bollards on dirt lot (approx)",
+  "status": "v4-mall-detail",
+  "x": -6785.18,
+  "z": -4813.93,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r40_domebollards.glb",
+  "lod": {
+   "hi": "r40_domebollards_lod0",
+   "lo": "r40_domebollards_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r40_domebollards_lod0": 765,
+   "r40_domebollards_lod1": 169
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -6785.3,
+    -4814
+   ],
+   [
+    -6785.1,
+    -4814
+   ],
+   [
+    -6785.1,
+    -4813.8
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r40 04:30 white dome bollards along a dirt lot; video-timed after the light-blue gate building, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "sa_orangebldg",
+  "k": "sa_orangebldg",
+  "name": "Small orange/red single-storey building + info board by Santa Anna church (approx)",
+  "status": "v4-mall-detail",
+  "x": -6662,
+  "z": -4722,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/sa_orangebldg.glb",
+  "lod": {
+   "hi": "sa_orangebldg_lod0",
+   "lo": "sa_orangebldg_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "sa_orangebldg_lod0": 67,
+   "sa_orangebldg_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -6662.1,
+    -4722.1
+   ],
+   [
+    -6661.9,
+    -4722.1
+   ],
+   [
+    -6661.9,
+    -4721.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r40 00:38 info board in lot + 02:05 small orange/red single-storey building left of Santa Anna church, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r39_exitonly",
+  "k": "r39_exitonly",
+  "name": "EXIT ONLY sign at Citgo (approx)",
+  "status": "v4-mall-detail",
+  "x": -7398.23,
+  "z": -4958.18,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r39_exitonly.glb",
+  "lod": {
+   "hi": "r39_exitonly_lod0",
+   "lo": "r39_exitonly_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r39_exitonly_lod0": 41,
+   "r39_exitonly_lod1": 19
+  },
+  "textures": 1,
+  "hide_footprint": [
+   [
+    -7398.3,
+    -4958.3
+   ],
+   [
+    -7398.1,
+    -4958.3
+   ],
+   [
+    -7398.1,
+    -4958.1
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 0:39 EXIT ONLY sign at the Citgo exit, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r39_lantern",
+  "k": "r39_lantern",
+  "name": "Black vintage lantern street lamp (approx)",
+  "status": "v4-mall-detail",
+  "x": -7449.36,
+  "z": -4981.02,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r39_lantern.glb",
+  "lod": {
+   "hi": "r39_lantern_lod0",
+   "lo": "r39_lantern_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r39_lantern_lod0": 73,
+   "r39_lantern_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -7449.5,
+    -4981.1
+   ],
+   [
+    -7449.3,
+    -4981.1
+   ],
+   [
+    -7449.3,
+    -4980.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 1:38 black vintage lantern lamp on Palm Beach road, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "r39_fenceplanters",
+  "k": "r39_fenceplanters",
+  "name": "Chain-link fence with bushes and terracotta round planters (approx)",
+  "status": "v4-mall-detail",
+  "x": -7499.44,
+  "z": -5008.39,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/r39_fenceplanters.glb",
+  "lod": {
+   "hi": "r39_fenceplanters_lod0",
+   "lo": "r39_fenceplanters_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "r39_fenceplanters_lod0": 667,
+   "r39_fenceplanters_lod1": 115
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -7499.5,
+    -5008.5
+   ],
+   [
+    -7499.3,
+    -5008.5
+   ],
+   [
+    -7499.3,
+    -5008.3
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r39 3:02 chain-link fence with bushes and terracotta round planters, just before Palma Real, approx.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "noord_brick_pb",
+  "k": "noord_brick_pb",
+  "name": "Red brick sidewalks with white (Noord) / black (Palm Beach Rd) street lamps (approx)",
+  "status": "v4-mall-detail",
+  "x": -7150.12,
+  "z": -4921.28,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/noord_brick_pb.glb",
+  "lod": {
+   "hi": "noord_brick_pb_lod0",
+   "lo": "noord_brick_pb_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "noord_brick_pb_lod0": 647,
+   "noord_brick_pb_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -7150.2,
+    -4921.4
+   ],
+   [
+    -7150,
+    -4921.4
+   ],
+   [
+    -7150,
+    -4921.2
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "r40 02:46 red brick sidewalk + white cylindrical lamps on Noord road west of the anchor roundabout; 13:50 red brick both sides + tall black lamps on Palm Beach road near New Wei Taai; approx extents.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
   "cat": "landmark"
  },
@@ -36773,306 +37375,5 @@
   "geo_source": "approximate slot along mall frontage (unit not published)",
   "ref_sources": "directory listing: Caya G.F. Betico Croes 48",
   "mall": "mainstreet_fx"
- },
- {
-  "id": "ashley_facade",
-  "k": "ashley_facade",
-  "name": "Ashley HomeStore red/grey two-storey facade (approx)",
-  "status": "v4-mall-detail",
-  "x": -8878.47,
-  "z": -1418.65,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/ashley_facade.glb",
-  "lod": {
-   "hi": "ashley_facade_lod0",
-   "lo": "ashley_facade_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "ashley_facade_lod0": 177,
-   "ashley_facade_lod1": 19
-  },
-  "textures": 1,
-  "hide_footprint": [
-   [
-    -8878.6,
-    -1418.8
-   ],
-   [
-    -8878.4,
-    -1418.8
-   ],
-   [
-    -8878.4,
-    -1418.6
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r32 16:46 Ashley HomeStore red/grey two-storey front (frame r32 16:46); L.G. Smith Blvd 144, approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "arashi_roadpark",
-  "k": "arashi_roadpark",
-  "name": "Arashi roadside dirt parking strip with parked cars",
-  "status": "v4-mall-detail",
-  "x": -8986,
-  "z": -9905,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/arashi_roadpark.glb",
-  "lod": {
-   "hi": "arashi_roadpark_lod0",
-   "lo": "arashi_roadpark_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "arashi_roadpark_lod0": 225,
-   "arashi_roadpark_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -8986.1,
-    -9905.1
-   ],
-   [
-    -8985.9,
-    -9905.1
-   ],
-   [
-    -8985.9,
-    -9904.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "drive 30:35 Arashi: cars parked on a dirt strip along L.G. Smith Blvd (beach side); road OSM x~-8976; approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "lindas_kiosk",
-  "k": "lindas_kiosk",
-  "name": "Linda's parking kiosk + striped barrier (approx)",
-  "status": "v4-mall-detail",
-  "x": -7358.24,
-  "z": -4946.18,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/lindas_kiosk.glb",
-  "lod": {
-   "hi": "lindas_kiosk_lod0",
-   "lo": "lindas_kiosk_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "lindas_kiosk_lod0": 127,
-   "lindas_kiosk_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7358.3,
-    -4946.3
-   ],
-   [
-    -7358.1,
-    -4946.3
-   ],
-   [
-    -7358.1,
-    -4946.1
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r39 0:04 brown wood parking kiosk with red tile roof + striped barrier arm at Linda's Dutch Pancakes, approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "r39_foodtruck",
-  "k": "r39_foodtruck",
-  "name": "White food truck with blue mountain mural on dirt corner lot (approx)",
-  "status": "v4-mall-detail",
-  "x": -7434.23,
-  "z": -4970.78,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/r39_foodtruck.glb",
-  "lod": {
-   "hi": "r39_foodtruck_lod0",
-   "lo": "r39_foodtruck_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "r39_foodtruck_lod0": 177,
-   "r39_foodtruck_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7434.3,
-    -4970.9
-   ],
-   [
-    -7434.1,
-    -4970.9
-   ],
-   [
-    -7434.1,
-    -4970.7
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r39 0:55 white food truck with blue mountains mural on a dirt corner lot, between Citgo pylon (0:50) and Century 21 (0:58), approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "r40_bluegates",
-  "k": "r40_bluegates",
-  "name": "Light blue/yellow building with blue roof and light-blue sliding gates (approx)",
-  "status": "v4-mall-detail",
-  "x": -6774.92,
-  "z": -4787.77,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/r40_bluegates.glb",
-  "lod": {
-   "hi": "r40_bluegates_lod0",
-   "lo": "r40_bluegates_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "r40_bluegates_lod0": 55,
-   "r40_bluegates_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6775,
-    -4787.9
-   ],
-   [
-    -6774.8,
-    -4787.9
-   ],
-   [
-    -6774.8,
-    -4787.7
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r40 04:20 light blue/yellow building, blue roof, light blue sliding gates; video-timed just past roundabout (03:43), approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "noord_chinese",
-  "k": "noord_chinese",
-  "name": "White Chinese restaurant, red tile roof, green awnings, Heineken sign (approx)",
-  "status": "v4-mall-detail",
-  "x": -6960.99,
-  "z": -4859.81,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/noord_chinese.glb",
-  "lod": {
-   "hi": "noord_chinese_lod0",
-   "lo": "noord_chinese_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "noord_chinese_lod0": 139,
-   "noord_chinese_lod1": 31
-  },
-  "textures": 1,
-  "hide_footprint": [
-   [
-    -6961.1,
-    -4859.9
-   ],
-   [
-    -6960.9,
-    -4859.9
-   ],
-   [
-    -6960.9,
-    -4859.7
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r40 12:05 white Chinese restaurant, red tile roof, green awnings, Heineken sign; video-timed between Clean Masters (11:53) and Den Matras (12:43), approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "r39_smiley",
-  "k": "r39_smiley",
-  "name": "Bright blue building with yellow smiley sign (approx)",
-  "status": "v4-mall-detail",
-  "x": -7486.44,
-  "z": -4993.19,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/r39_smiley.glb",
-  "lod": {
-   "hi": "r39_smiley_lod0",
-   "lo": "r39_smiley_lod1",
-   "switch_m": 400
-  },
-  "tris": {
-   "r39_smiley_lod0": 45,
-   "r39_smiley_lod1": 19
-  },
-  "textures": 1,
-  "hide_footprint": [
-   [
-    -7486.5,
-    -4993.3
-   ],
-   [
-    -7486.3,
-    -4993.3
-   ],
-   [
-    -7486.3,
-    -4993.1
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "r39 2:45 bright blue building with a yellow smiley sign (possibly Alamo); video-timed between Subway (2:03) and Palma Real (3:33), approx.",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
  }
 ]
