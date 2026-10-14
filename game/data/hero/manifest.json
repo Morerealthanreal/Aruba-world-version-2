@@ -38094,7 +38094,7 @@
    "switch_m": 400
   },
   "tris": {
-   "noord_palmcourt_lod0": 45,
+   "noord_palmcourt_lod0": 47,
    "noord_palmcourt_lod1": 19
   },
   "textures": 1,
@@ -38155,7 +38155,12 @@
     -9259.6
    ]
   ],
-  "hide": [],
+  "hide": [
+   [
+    -8791.1,
+    -9274.4
+   ]
+  ],
   "sign": false,
   "kind": "replace",
   "new_place": true,
