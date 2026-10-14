@@ -1,8 +1,9 @@
-// Plane-only TURBO: toggle button in the plane control group; doubles the plane's
-// top speed (bundle reads window.__awTurbo) and shows flickering additive exhaust cones.
+// Plane-only TURBO: toggle button in the plane control group; raises the plane's
+// top speed to a hard cap of 560 km/h (155.6 m/s) (bundle reads window.__awTurbo) and shows flickering additive exhaust cones.
 import * as THREE from "three";
 import type { AGame } from "./env";
 
+export const TURBO_MAX = 560 / 3.6; // Justin: TURBO top speed 560 km/h
 export class Turbo {
   private g: AGame; private on = false; private btn: HTMLButtonElement;
   private fx: THREE.Group; private plane: THREE.Object3D | null = null; private t = 0;
@@ -42,6 +43,7 @@ export class Turbo {
       this.off.set(0, 0.25, 3.6).applyEuler(this.fx.rotation);
       this.fx.position.set(P.x + this.off.x, P.y + this.off.y, P.z + this.off.z);
       this.fx.scale.setScalar(1.5);
+      const PS = this.g.S.plane as unknown as { s: number }; if (PS.s > TURBO_MAX) PS.s = TURBO_MAX;
     }
     this.fx.visible = this.on && flying;
     if (this.fx.visible) {

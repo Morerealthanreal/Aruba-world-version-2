@@ -35,4 +35,4 @@ s=open(P).read()
 if '__awTurbo' not in s:
   a="let d=a.thr*120;a.s+=(d-a.s)*.9*e"
   assert s.count(a)==1
-  open(P,'w').write(s.replace(a,"let d=a.thr*120*(window.__awTurbo?2:1);a.s+=(d-a.s)*(window.__awTurbo?.6:.9)*e"))
+  open(P,'w').write(s.replace(a,"let d=a.thr*120*(window.__awTurbo?1.2963:1);a.s+=(d-a.s)*(window.__awTurbo?.6:.9)*e"))
