@@ -19,6 +19,7 @@ type Mover = { m: EvModel; s: number; target: number; lat: number; sp: number; a
 export class Crash {
   private amb(): Amb | null { return (this.g.real as unknown as { amb?: Amb }).amb || null; }
   private force = params.get("crash") === "force";
+  private tx = Math.min(10, Math.max(1, +(params.get("crashx") || 1))); // test-only time scale
   private next = this.force ? 4 : 60;
   private time = 0;
   private sc: null | {
@@ -88,7 +89,7 @@ export class Crash {
   }
 
   update(dt: number) {
-    this.time += dt;
+    dt *= this.tx; this.time += dt;
     const sc = this.sc;
     if (!sc) {
       if ((this.next -= dt) <= 0) { this.next = this.force ? 6 : 60; const mode = (this.g.S && this.g.S.mode) || "walk"; if (mode !== "plane" && (this.force || Math.random() < 0.2)) this.start(); }
