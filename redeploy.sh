@@ -1,6 +1,7 @@
 #!/bin/sh
 # Rebuild and redeploy Aruba World to the permanent Surge URL (non-interactive).
 set -e
+(set -o pipefail) 2>/dev/null && set -o pipefail
 cd "$(dirname "$0")"
 CREDS=/workspace/.hosting_creds
 SURGE=/workspace/.surge-cli/node_modules/.bin/surge
