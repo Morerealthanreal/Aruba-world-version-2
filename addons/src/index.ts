@@ -67,6 +67,10 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
+  { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
+    const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } return true; };
+    if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
+  }
   const guard = new FpsGuard(g);
   const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch) : null;
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
