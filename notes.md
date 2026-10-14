@@ -4,3 +4,7 @@
 - ora_penharow: MAC (pink) / Crocs (blue, balcony) / Sole (pink) stepped-gable row north of Penha (OSM 3623/3622/3621 hidden). Verified vs Mapillary penha_0/3.
 - hyatt_garden monument sign shrunk to ~0.95x1.3 m.
 - Skipped: Kong Hing neighbour (unverifiable), yellow colonial neighbour (unidentified), "Aruba Car Wash" = actually AVANZA CAR WASH, gone on current aerial (radial plaza).
+
+## Batch 4 (downtown rest) + r191 (Noord aerial checks)
+- Downtown: Mapillary has only 13 photos along Caya Betico Croes, all at the Penha end (done r190). Archaeological Museum photos show only the old car-wash lot; Dollar Plus has 0 facing photos. No identity-verified edits possible -> no downtown changes.
+- Noord Google-aerial checks: rb_anchor sits on a real roundabout (OK). rb_peachwall centre is a residential cul-de-sac bend, not a roundabout (wrong spot, true location unknown, left). pineapple_exp roadside, nothing identifiable (left). altovista_tank was in empty bush -> moved to OSM storage_tank way 335599536 (-5260,-5893), r 20 m, h 8 m, hides generic OSM 3322. Note: video hint said SE of chapel; this tank is ~850 m SW.
