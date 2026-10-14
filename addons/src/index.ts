@@ -7,6 +7,7 @@ import { Clock } from "./clock";
 import { DayNight } from "./daynight";
 import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
+import { Preload } from "./preload";
 import { LampGlow } from "./lampGlow";
 import { TrafficLights } from "./traffic";
 import { mountUI } from "./ui";
@@ -63,6 +64,7 @@ async function main() {
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const guard = new FpsGuard(g);
+  const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
   window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, version: "0.9.1" };
 
@@ -92,6 +94,7 @@ async function main() {
     if (kids) kids.update(Math.min(dt, 0.1));
     if (graph) graph.frame(dt * 1000);
     guard.frame(dt);
+    if (pre) pre.frame(dt);
     tickUI();
     requestAnimationFrame(loop);
   };

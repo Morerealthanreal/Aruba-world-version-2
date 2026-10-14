@@ -41,7 +41,7 @@ export class FpsGuard {
     const big = tier === "high"; // HIGH and Desktop Quality (desktop shares name "high")
     // laptops/desktops on HIGH/Desktop: dynamic resolution only (levels 1-4 = 90..60% render scale),
     // aimed at a steady 60 Hz; never lazy shadows / post off there (those read as popping, not smoothness)
-    this.target = qf > 10 ? qf : tier === "low" ? 30 : desk && big ? 57 : 50;
+    this.target = qf > 10 ? qf : tier === "low" ? (desk ? 30 : 50) : desk && big ? 57 : 50;
     this.maxLevel = desk && big ? 4 : MAX_LEVEL;
     document.addEventListener("visibilitychange", () => { this.warm = 2; this.acc = 0; this.frames = 0; });
   }
