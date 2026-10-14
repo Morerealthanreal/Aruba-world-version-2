@@ -10,6 +10,9 @@ import type { AGame } from "./env";
 import { params } from "./env";
 
 const SCALES = [1, 0.9, 0.8, 0.7, 0.6];
+// phones: fewer, coarser steps with a high floor (75%) and no post-off level, so quality does not
+// swing while driving; steps up only when nearly stationary (each resize reallocates targets = a hitch)
+const PHONE_SCALES = [1, 0.85, 0.75, 0.75, 0.75];
 const MAX_LEVEL = 6;
 
 export class FpsGuard {
@@ -29,6 +32,7 @@ export class FpsGuard {
   private shadowTick = 0;
   private stalls = 0;
   private upAt = -1e9; private bounces = 0; private floorUntil = 0; private t = 0;
+  private phone = false;
   private listeners: Array<() => void> = [];
 
   constructor(g: AGame) {
@@ -42,7 +46,8 @@ export class FpsGuard {
     // laptops/desktops on HIGH/Desktop: dynamic resolution only (levels 1-4 = 90..60% render scale),
     // aimed at a steady 60 Hz; never lazy shadows / post off there (those read as popping, not smoothness)
     this.target = qf > 10 ? qf : tier === "low" ? (desk ? 30 : 50) : desk && big ? 57 : 50;
-    this.maxLevel = desk && big ? 4 : MAX_LEVEL;
+    this.maxLevel = desk && big ? 4 : desk ? MAX_LEVEL : 5;
+    this.phone = !desk;
     document.addEventListener("visibilitychange", () => { this.warm = 2; this.acc = 0; this.frames = 0; });
   }
 
@@ -59,7 +64,7 @@ export class FpsGuard {
     l = Math.max(0, Math.min(this.maxLevel, l));
     if (l === this.level) return;
     const g = this.g;
-    const scale = SCALES[Math.min(l, SCALES.length - 1)];
+    const scale = (this.phone ? PHONE_SCALES : SCALES)[Math.min(l, SCALES.length - 1)];
     const cap = (window as unknown as { __awPRCap?: number }).__awPRCap || Infinity;
     const pr = Math.max(0.5, Math.min(this.basePR, cap) * scale);
     if (Math.abs(g.renderer.getPixelRatio() - pr) > 1e-3) {
@@ -94,7 +99,9 @@ export class FpsGuard {
     if (this.fps < this.target - 2) { this.lowFor += span; this.highFor = 0; }
     else if (this.fps > Math.min(this.target + 8, 58)) { this.highFor += span; this.lowFor = 0; }
     else { this.lowFor = 0; this.highFor = 0; }
-    if (this.lowFor >= 1.5 && this.level < this.maxLevel) {
+    const ah = (window as unknown as { __awAhead?: number[] }).__awAhead;
+    const moving = !!ah && Math.hypot(ah[0], ah[1]) > 25; // > ~5 m/s
+    if (this.lowFor >= (this.phone ? 3 : 1.5) && this.level < this.maxLevel) {
       // anti-flap: dropping again soon after stepping up means the higher level does not hold;
       // every resize reallocates the composer targets (a hitch), so stop probing for 10 min
       if (this.t - this.upAt < 25 && ++this.bounces >= 2) this.floorUntil = this.t + 600;
@@ -102,7 +109,7 @@ export class FpsGuard {
       this.lowFor = 0;
       this.warm = 1; // let the new setting settle
       this.holdUp = 15;
-    } else if (this.highFor >= 6 && this.level > 0 && this.holdUp <= 0 && this.t > this.floorUntil) {
+    } else if (this.highFor >= 6 && this.level > 0 && !(this.phone && moving) && this.holdUp <= 0 && this.t > this.floorUntil) {
       this.setLevel(this.level - 1);
       this.upAt = this.t;
       this.highFor = 0;
@@ -113,7 +120,7 @@ export class FpsGuard {
 
   describe(): string {
     if (!this.enabled) return "off";
-    const s = SCALES[Math.min(this.level, SCALES.length - 1)];
+    const s = (this.phone ? PHONE_SCALES : SCALES)[Math.min(this.level, SCALES.length - 1)];
     const extra = this.level >= 6 ? " · post off" : this.level >= 5 ? " · lazy shadows" : "";
     return `${Math.round(this.fps)} fps · target ${this.target} · scale ${Math.round(s * 100)}%${extra}`;
   }
