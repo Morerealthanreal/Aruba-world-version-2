@@ -26,6 +26,7 @@ import { Emergency } from "./emergency";
 import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
+import { WindFarm } from "./windFarm";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -56,6 +57,7 @@ async function main() {
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
+  const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const guard = new FpsGuard(g);
   const tickUI = mountUI(clock, guard);
   window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, version: "0.9.1" };
@@ -75,6 +77,7 @@ async function main() {
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
     if (turbo) turbo.update(Math.min(dt, 0.1));
+    if (wind) wind.update(Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
