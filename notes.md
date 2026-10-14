@@ -19,3 +19,9 @@
 - Google aerial: hardrock_pb on South Beach Centre plaza OK; rb_divisculpt, rb_tubes, rb_welkom, rb_monolith each centred on a real roundabout (sculpture identity not visible from above) -> kept.
 - digicel_tank: no round tank within ~100 m on aerial (warehouse roof there; game has open lot). Nearest OSM tank (-8038,-299) is a plain white fuel tank per Mapillary 2024 -> not it. Location still unverified, left.
 - BUG FIX gen.mjs cylinder(): side quads + top cap were wound inward, so single-sided materials (tank) looked open/hollow from above. Fixed winding; rebuilt altovista_tank, digicel_tank, jab_tank only. Other GLBs with cyl on non-double-sided mats pick up the fix on their next rebuild (backup gen.mjs.bak5).
+
+## r194
+- Spaans Lagoen bridge: r5 11:16-11:25 frames show we DRIVE ACROSS it (catalog "over the highway" was a misdescription); end-on it reads as an A-frame. VINCI/Freyssinet: two inclined steel arches, 4 transverse beams, 16 hangers, 92 m x 16 m deck. Rebuilt as twin arches leaning from deck edges (u=+-7.6) to +-1.2 at a 26 m crown, paired hangers, 4 cross beams. Matches Wikimedia side photo + r5 end-on. sbs: landmarks/shots/br_sbs.jpg (left labels say Mapillary but are Wikimedia CC + r5 video frame).
+- Diamonds Intl L.G. Smith 17: no Mapillary photo facing it (nearest are ~100 m inland warehouses) -> unverified, unchanged.
+- Subway x4: each sits on an OSM building named Subway (location verified); no Mapillary photos -> facades unverified.
+- Dunkin': official listings = Alhambra (J.E. Irausquin 47; ours 50 m from Alhambra bazaar -> OK), "across from Playa Linda" (dunkin_pb ~115 m from Playa Linda -> plausible), Eagle Aruba Resort (J.E. Irausquin 248, not modelled), L.G. Smith 9 Renaissance Marketplace, Tanki Flip, Savaneta (not modelled).
