@@ -32,7 +32,6 @@ import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { WindFarm } from "./windFarm";
-import { Wheelie } from "./wheelie";
 import { CamCycle } from "./camCycle";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
@@ -70,7 +69,6 @@ async function main() {
   const gv = motoEnabled ? new GvMoto(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
-  const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } return true; };
@@ -102,7 +100,6 @@ async function main() {
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
-    if (wheelie) wheelie.frame((g.S as unknown as { mode: string }).mode);
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
