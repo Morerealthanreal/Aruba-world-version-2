@@ -6,6 +6,7 @@ import * as THREE from "../addons/node_modules/three/build/three.module.js";
 import { mergeGeometries } from "../addons/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js";
 import { GLTFExporter } from "../addons/node_modules/three/examples/jsm/exporters/GLTFExporter.js";
 import { writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 // GLTFExporter uses FileReader in browsers. Keep the generator dependency-free in Node.
 if (!globalThis.FileReader) {
@@ -140,22 +141,6 @@ function mirrorProfile(right) {
   return pts;
 }
 
-// Open arch: left lower edge, over the sharp shoulder, to the right lower edge.
-function arch(w, yTop, ySide, yBot, shoulder = 0.4) {
-  const rise = Math.max(0.01, yTop - ySide);
-  return mirrorProfile([
-    [w * 0.62, yBot],
-    [w * 0.98, ySide],
-    [w * 1.0, ySide + rise * 0.42],
-    [w * shoulder, yTop - Math.min(0.012, rise * 0.18)],
-    [0, yTop],
-  ]);
-}
-
-function stationGrid(stations, profile) {
-  return stations.map((s) => profile(s).map(([x, y]) => v(x, y, s.z)));
-}
-
 // Smooth-shaded shell. Separate calls keep a hard crease where panels meet.
 function addGridSmooth(parts, material, grid, center = v(0, 0.5, 0)) {
   const cols = grid[0].length;
@@ -183,56 +168,118 @@ function addGridSmooth(parts, material, grid, center = v(0, 0.5, 0)) {
   parts[material].push(geometry);
 }
 
-function subdivideStations(stations) {
-  const out = [];
-  for (let i = 0; i < stations.length - 1; i++) {
-    const a = stations[i], b = stations[i + 1];
-    out.push(a);
-    const mid = {};
-    for (const key of Object.keys(a)) mid[key] = (a[key] + b[key]) * 0.5;
-    out.push(mid);
-  }
-  out.push(stations[stations.length - 1]);
-  return out;
-}
-
 // Front of the bike is -Z so heading 0 (movement toward -Z) matches the nose.
 const FRONT_Z = -0.72;
 const REAR_Z = 0.75;
 const FRONT_R = 0.305;
 const REAR_R = 0.325;
 
-const FRONT_COWL = [
-  { z: -1.20, w: 0.006, yt: 0.50, ys: 0.49, yb: 0.48 },
-  { z: -1.12, w: 0.035, yt: 0.58, ys: 0.54, yb: 0.50 },
-  { z: -1.04, w: 0.07, yt: 0.70, ys: 0.62, yb: 0.52 },
-  { z: -0.96, w: 0.11, yt: 0.84, ys: 0.68, yb: 0.50 },
-  { z: -0.88, w: 0.15, yt: 0.98, ys: 0.74, yb: 0.46 },
-  { z: -0.80, w: 0.185, yt: 1.06, ys: 0.74, yb: 0.42 },
-  { z: -0.72, w: 0.20, yt: 1.02, ys: 0.68, yb: 0.38 },
-  { z: -0.64, w: 0.19, yt: 0.94, ys: 0.64, yb: 0.40 },
-  { z: -0.56, w: 0.16, yt: 0.90, ys: 0.68, yb: 0.50 },
+// Compact nose above the front tyre. The lower edge stays beside the tyre, not through it.
+const NOSE = [
+  { z: -1.16, w: 0.012, yt: 0.64, ys: 0.60, yb: 0.56 },
+  { z: -1.05, w: 0.050, yt: 0.76, ys: 0.66, yb: 0.56 },
+  { z: -0.94, w: 0.092, yt: 0.90, ys: 0.72, yb: 0.52 },
+  { z: -0.84, w: 0.128, yt: 0.98, ys: 0.70, yb: 0.50 },
+  { z: -0.74, w: 0.136, yt: 0.94, ys: 0.64, yb: 0.50 },
+  { z: -0.62, w: 0.112, yt: 0.90, ys: 0.62, yb: 0.52 },
+];
+
+// Slim tank the rider lies on. The crankcase stays open underneath it.
+const TANK = [
+  { z: -0.48, w: 0.096, yt: 0.86, ys: 0.74 },
+  { z: -0.32, w: 0.118, yt: 0.97, ys: 0.78 },
+  { z: -0.14, w: 0.108, yt: 0.90, ys: 0.76 },
+  { z: 0.02, w: 0.090, yt: 0.84, ys: 0.74 },
 ];
 
 const TAIL_SHELL = [
-  { z: -0.46, w: 0.145, yt: 0.88, ys: 0.74 },
-  { z: -0.30, w: 0.15, yt: 0.98, ys: 0.78 },
-  { z: -0.14, w: 0.14, yt: 0.92, ys: 0.76 },
-  { z: 0.02, w: 0.125, yt: 0.84, ys: 0.74 },
-  { z: 0.16, w: 0.10, yt: 0.86, ys: 0.78 },
-  { z: 0.30, w: 0.06, yt: 0.90, ys: 0.82 },
-  { z: 0.42, w: 0.025, yt: 0.86, ys: 0.82 },
-  { z: 0.52, w: 0.006, yt: 0.81, ys: 0.79 },
+  { z: 0.08, w: 0.078, yt: 0.84, ys: 0.74 },
+  { z: 0.18, w: 0.052, yt: 0.86, ys: 0.78 },
+  { z: 0.28, w: 0.026, yt: 0.83, ys: 0.77 },
+  { z: 0.36, w: 0.008, yt: 0.79, ys: 0.76 },
 ];
 
-function upperArch(w, yTop, ySide) {
-  const rise = Math.max(0.01, yTop - ySide);
+const BELLY = [
+  { z: -0.30, w: 0.070, yt: 0.40, yb: 0.32 },
+  { z: -0.10, w: 0.086, yt: 0.38, yb: 0.28 },
+  { z: 0.10, w: 0.072, yt: 0.38, yb: 0.30 },
+  { z: 0.22, w: 0.046, yt: 0.40, yb: 0.34 },
+];
+
+function catmull(stations, steps) {
+  if (steps <= 1) return stations.map((s) => ({ ...s }));
+  const out = [];
+  const n = stations.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = stations[Math.max(0, i - 1)];
+    const p1 = stations[i];
+    const p2 = stations[i + 1];
+    const p3 = stations[Math.min(n - 1, i + 2)];
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const row = {};
+      for (const key of Object.keys(p1)) {
+        row[key] = 0.5 * (
+          2 * p1[key]
+          + (-p0[key] + p2[key]) * t
+          + (2 * p0[key] - 5 * p1[key] + 4 * p2[key] - p3[key]) * t2
+          + (-p0[key] + 3 * p1[key] - 3 * p2[key] + p3[key]) * t3
+        );
+      }
+      row.w = Math.max(0.004, row.w);
+      if (row.yb !== undefined && row.ys !== undefined) {
+        row.ys = Math.min(row.yt - 0.008, Math.max(row.yb + 0.008, row.ys));
+        row.yb = Math.min(row.ys - 0.004, row.yb);
+      }
+      out.push(row);
+    }
+  }
+  out.push({ ...stations[n - 1] });
+  return out;
+}
+
+// Right side from the outer bottom, up the flank, over the crown. Open underneath.
+function noseSection(w, yTop, ySide, yBot) {
+  const rise = Math.max(0.02, yTop - ySide);
+  const drop = Math.max(0.02, ySide - yBot);
+  const x0 = Math.max(0.055, w * 0.62);
   return mirrorProfile([
+    [x0, yBot],
+    [w * 0.92, yBot + drop * 0.38],
     [w, ySide],
-    [w * 0.94, ySide + rise * 0.38],
-    [w * 0.36, yTop - Math.min(0.01, rise * 0.15)],
+    [w * 0.86, ySide + rise * 0.32],
+    [w * 0.46, yTop - rise * 0.16],
+    [w * 0.14, yTop - rise * 0.03],
     [0, yTop],
   ]);
+}
+
+function upperArch(w, yTop, ySide) {
+  const rise = Math.max(0.02, yTop - ySide);
+  return mirrorProfile([
+    [w, ySide],
+    [w * 0.90, ySide + rise * 0.28],
+    [w * 0.52, yTop - rise * 0.16],
+    [w * 0.16, yTop - rise * 0.03],
+    [0, yTop],
+  ]);
+}
+
+function bellySection(w, yTop, yBot) {
+  const drop = Math.max(0.02, yTop - yBot);
+  return mirrorProfile([
+    [w, yTop],
+    [w * 0.72, yBot + drop * 0.28],
+    [w * 0.32, yBot],
+    [0, yBot - 0.006],
+  ]);
+}
+
+function addLoft(parts, material, stations, section, center) {
+  const grid = stations.map((s) => section(s).map(([x, y]) => v(x, y, s.z)));
+  addGridSmooth(parts, material, grid, center);
 }
 
 function ringDisc(inner, outer, segments, face) {
@@ -248,13 +295,13 @@ function buildWheel(parts, z, radius, tubeR, segments, front) {
   add(parts, METAL, new THREE.TorusGeometry(radius - tubeR - 0.012, 0.006, 4, segments.rim), v(0, y, z), v(0, Math.PI / 2, 0));
   add(parts, WHEEL, new THREE.CylinderGeometry(0.048, 0.048, 0.06, segments.hub), v(0, y, z), v(0, 0, Math.PI / 2));
   for (let i = 0; i < 5; i++) {
-    const spoke = new THREE.BoxGeometry(0.028, radius * 0.62, 0.07);
-    spoke.translate(0, radius * 0.42, 0);
-    add(parts, WHEEL, spoke, v(0, y, z), v((i * Math.PI * 2) / 5 + 0.15, 0, 0));
+    const spoke = new THREE.BoxGeometry(0.016, radius * 0.70, 0.038);
+    spoke.translate(0, radius * 0.40, 0);
+    add(parts, WHEEL, spoke, v(0, y, z), v((i * Math.PI * 2) / 5 + 0.2, 0, 0));
   }
   const discs = front
-    ? [{ x: -0.07, r: 0.185 }, { x: 0.07, r: 0.185 }]
-    : [{ x: 0.078, r: 0.16 }];
+    ? [{ x: -0.072, r: 0.205 }, { x: 0.072, r: 0.205 }]
+    : [{ x: 0.08, r: 0.17 }];
   for (const disc of discs) {
     const face = disc.x >= 0 ? -Math.PI / 2 : Math.PI / 2;
     add(parts, METAL, ringDisc(disc.r * 0.38, disc.r, segments.disc, face), v(disc.x, y, z));
@@ -274,155 +321,136 @@ function wheelArch(radius, width, z, y, from, to, steps) {
   return grid;
 }
 
-function paintShell(parts, stations) {
-  const full = stationGrid(stations, (s) => arch(s.w, s.yt, s.ys, s.yb));
-  const upper = full.map((ring) => ring.slice(2, 7));
-  const left = full.map((ring) => ring.slice(0, 3));
-  const right = full.map((ring) => ring.slice(6, 9));
-  addGridSmooth(parts, PAINT, upper);
-  addGridSmooth(parts, PAINT, left);
-  addGridSmooth(parts, PAINT, right);
-}
-
 function buildBike(parts, detail) {
   const fine = detail === "near";
-  const cowl = fine ? subdivideStations(FRONT_COWL) : FRONT_COWL;
-  const tail = fine ? subdivideStations(TAIL_SHELL) : TAIL_SHELL;
-  paintShell(parts, cowl);
-  addGridSmooth(parts, PAINT, stationGrid(tail, (s) => upperArch(s.w, s.yt, s.ys)), v(0, 0.2, 0));
-
-  // Slim belly pan between the wheels. Stays clear of both tyres.
-  const belly = fine
-    ? [
-      { z: -0.40, w: 0.11, yt: 0.40, yb: 0.30 },
-      { z: -0.16, w: 0.135, yt: 0.40, yb: 0.27 },
-      { z: 0.08, w: 0.13, yt: 0.40, yb: 0.28 },
-      { z: 0.28, w: 0.09, yt: 0.42, yb: 0.32 },
-    ]
-    : [
-      { z: -0.36, w: 0.12, yt: 0.40, yb: 0.29 },
-      { z: 0.22, w: 0.09, yt: 0.42, yb: 0.32 },
-    ];
-  addGridSmooth(parts, PAINT, stationGrid(belly, (s) => mirrorProfile([
-    [s.w, s.yt],
-    [s.w * 0.7, s.yb],
-    [0, s.yb - 0.01],
-  ])), v(0, 0.7, 0));
-
-  // Shaped side blister with a machined gold cover standing proud of it.
+  const steps = fine ? 3 : 1;
+  const nose = catmull(NOSE, steps);
+  const tank = catmull(TANK, steps);
+  const tail = catmull(TAIL_SHELL, steps);
+  const belly = catmull(BELLY, fine ? 2 : 1);
+  addLoft(parts, PAINT, nose, (s) => noseSection(s.w, s.yt, s.ys, s.yb), v(0, 0.85, -0.9));
+  addLoft(parts, PAINT, tank, (s) => upperArch(s.w, s.yt, s.ys), v(0, 0.45, -0.2));
+  addLoft(parts, PAINT, tail, (s) => upperArch(s.w, s.yt, s.ys), v(0, 0.45, 0.2));
+  addLoft(parts, PAINT, belly, (s) => bellySection(s.w, s.yt, s.yb), v(0, 0.7, 0));
+  // Slim side panels tie the tank to the belly and leave the gold cover proud of them.
   for (const side of [-1, 1]) {
-    add(parts, PAINT, new THREE.CylinderGeometry(0.15, 0.15, 0.012, fine ? 20 : 10), v(side * 0.15, 0.52, -0.04), v(0, 0, Math.PI / 2));
-    add(parts, GOLD, new THREE.CylinderGeometry(0.092, 0.098, 0.03, fine ? 20 : 10), v(side * 0.168, 0.52, -0.04), v(0, 0, Math.PI / 2));
-    add(parts, GOLD, new THREE.CylinderGeometry(0.045, 0.045, 0.012, fine ? 12 : 8), v(side * 0.188, 0.52, -0.04), v(0, 0, Math.PI / 2));
+    const stations = [
+      { z: -0.40, y0: 0.46, y1: 0.74, x: 0.098 },
+      { z: -0.18, y0: 0.40, y1: 0.76, x: 0.112 },
+      { z: 0.02, y0: 0.40, y1: 0.74, x: 0.108 },
+      { z: 0.16, y0: 0.48, y1: 0.72, x: 0.086 },
+    ];
+    const rows = fine ? 4 : 2;
+    const grid = [];
+    for (let i = 0; i < rows; i++) {
+      const t = i / (rows - 1);
+      const bow = Math.sin(t * Math.PI) * 0.010;
+      grid.push(stations.map((s) => v(side * (s.x + bow), s.y0 + (s.y1 - s.y0) * t, s.z)));
+    }
+    addGridSmooth(parts, PAINT, grid, v(0, 0.55, -0.1));
+  }
+
+  // Machined gold crank cover, standing proud of the side skin.
+  for (const side of [-1, 1]) {
+    const seg = fine ? 20 : 10;
+    add(parts, GOLD, new THREE.CylinderGeometry(0.100, 0.108, 0.026, seg), v(side * 0.130, 0.50, -0.06), v(0, 0, Math.PI / 2));
+    add(parts, GOLD, new THREE.CylinderGeometry(0.046, 0.046, 0.012, fine ? 12 : 8), v(side * 0.148, 0.50, -0.06), v(0, 0, Math.PI / 2));
     if (fine) {
-      for (let i = 0; i < 5; i++) {
-        const a = (i / 5) * Math.PI * 2;
-        add(parts, METAL, new THREE.CylinderGeometry(0.008, 0.008, 0.01, 6), v(side * 0.186, 0.52 + Math.sin(a) * 0.07, -0.04 + Math.cos(a) * 0.07), v(0, 0, Math.PI / 2));
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        add(parts, METAL, new THREE.CylinderGeometry(0.007, 0.007, 0.008, 5), v(side * 0.146, 0.50 + Math.sin(a) * 0.074, -0.06 + Math.cos(a) * 0.074), v(0, 0, Math.PI / 2));
       }
-      add(parts, GOLD, new THREE.BoxGeometry(0.018, 0.045, 0.14), v(side * 0.16, 0.66, -0.02));
     }
   }
 
-  // Swept white intake on each side of the nose, dark slot inside.
+  // White intake scoop on each side of the nose, dark slot inside.
   for (const side of [-1, 1]) {
-    const x = side * 0.232;
-    const sheet = (ox, y0, y1, z0, z1) => [[
-      v(x + ox, y0, z0), v(x + ox, y1, z0 - 0.02), v(x + ox, y1 - 0.02, z1), v(x + ox, y0 - 0.03, z1 + 0.03),
-    ], [
-      v(x + ox + side * 0.008, y0, z0), v(x + ox + side * 0.008, y1, z0 - 0.02), v(x + ox + side * 0.008, y1 - 0.02, z1), v(x + ox + side * 0.008, y0 - 0.03, z1 + 0.03),
-    ]];
-    addGrid(parts, VENT, sheet(0, 0.42, 0.72, -0.62, -1.02), v(0, 0.55, -0.82));
-    addGrid(parts, BLACK, sheet(side * 0.014, 0.50, 0.64, -0.74, -0.92), v(0, 0.55, -0.82));
+    const rot = v(0.45, side * 0.2, 0);
+    add(parts, VENT, new THREE.BoxGeometry(0.014, 0.16, 0.28), v(side * 0.175, 0.66, -0.86), rot);
+    add(parts, BLACK, new THREE.BoxGeometry(0.012, 0.09, 0.16), v(side * 0.184, 0.66, -0.86), rot);
   }
 
-  // Sharp twin lamps low in the nose.
+  // Twin slit lamps in the nose.
   for (const side of [-1, 1]) {
-    add(parts, LIGHT, new THREE.BoxGeometry(0.07, 0.02, 0.012), v(side * 0.05, 0.66, -1.10), v(-0.55, side * 0.35, 0));
+    add(parts, LIGHT, new THREE.BoxGeometry(0.05, 0.016, 0.01), v(side * 0.032, 0.74, -1.06), v(-0.2, side * 0.25, 0));
   }
 
-  // Tall screen growing out of the nose and leaning back toward the helmet.
+  // Tall screen rising off the nose and raking back toward the helmet.
   {
-    const rows = fine ? 6 : 3;
+    const rows = fine ? 7 : 3;
     const cols = fine ? 8 : 4;
     const screen = [];
     for (let i = 0; i < rows; i++) {
       const t = i / (rows - 1);
-      const z = -0.94 + t * 0.30;
-      const y0 = 1.00 + t * 0.34;
-      const half = 0.13 - t * 0.04;
+      const z = -0.86 + t * 0.30;
+      const y0 = 0.94 + t * 0.32;
+      const half = 0.11 - t * 0.04;
       const row = [];
       for (let j = 0; j < cols; j++) {
         const u = j / (cols - 1) * 2 - 1;
-        row.push(v(u * half, y0 - Math.abs(u) * 0.03, z - Math.abs(u) * 0.035 + Math.sin(t * Math.PI) * 0.02));
+        row.push(v(u * half, y0 - u * u * 0.025, z - Math.abs(u) * 0.03 + Math.sin(t * Math.PI) * 0.018));
       }
       screen.push(row);
     }
-    addGridSmooth(parts, GLASS, screen, v(0, 0.7, -0.5));
-    add(parts, BLACK, new THREE.BoxGeometry(0.22, 0.012, 0.02), v(0, 0.93, -1.00));
+    addGridSmooth(parts, GLASS, screen, v(0, 0.6, -0.4));
+    add(parts, BLACK, new THREE.BoxGeometry(0.20, 0.012, 0.018), v(0, 0.96, -0.99));
   }
   if (fine) {
     for (const side of [-1, 1]) {
-      tube(parts, BLACK, v(side * 0.14, 0.96, -0.78), v(side * 0.30, 1.06, -0.62), 0.009, 6);
-      add(parts, BLACK, new THREE.BoxGeometry(0.09, 0.05, 0.014), v(side * 0.32, 1.07, -0.58), v(0.15, side * 0.4, 0));
-      add(parts, METAL, new THREE.BoxGeometry(0.07, 0.034, 0.006), v(side * 0.32, 1.07, -0.57), v(0.15, side * 0.4, 0));
+      tube(parts, BLACK, v(side * 0.12, 0.98, -0.82), v(side * 0.28, 1.08, -0.66), 0.008, 6);
+      add(parts, BLACK, new THREE.BoxGeometry(0.075, 0.042, 0.012), v(side * 0.30, 1.09, -0.62), v(0.2, side * 0.45, 0));
+      add(parts, METAL, new THREE.BoxGeometry(0.055, 0.028, 0.005), v(side * 0.305, 1.09, -0.612), v(0.2, side * 0.45, 0));
     }
   }
 
-  // Close-fitting front fender and a short rear hugger, arched over the tyres.
   const fenderSteps = fine ? 10 : 5;
-  addGridSmooth(parts, PAINT, wheelArch(FRONT_R + 0.04, 0.09, FRONT_Z, FRONT_R, -0.9, 0.7, fenderSteps), v(0, FRONT_R, FRONT_Z));
-  addGridSmooth(parts, BLACK, wheelArch(REAR_R + 0.035, 0.11, REAR_Z, REAR_R, -0.2, 1.15, fenderSteps), v(0, REAR_R, REAR_Z));
+  addGridSmooth(parts, PAINT, wheelArch(FRONT_R + 0.035, 0.07, FRONT_Z, FRONT_R, -0.85, 0.55, fenderSteps), v(0, FRONT_R, FRONT_Z));
+  addGridSmooth(parts, BLACK, wheelArch(REAR_R + 0.03, 0.10, REAR_Z, REAR_R, -0.15, 1.05, fenderSteps), v(0, REAR_R, REAR_Z));
 
   const wheelSeg = fine
-    ? { tube: 8, torus: 24, rim: 20, hub: 14, disc: 28 }
+    ? { tube: 8, torus: 28, rim: 24, hub: 12, disc: 32 }
     : { tube: 5, torus: 12, rim: 10, hub: 8, disc: 12 };
-  buildWheel(parts, FRONT_Z, FRONT_R, 0.05, wheelSeg, true);
-  buildWheel(parts, REAR_Z, REAR_R, 0.064, wheelSeg, false);
+  buildWheel(parts, FRONT_Z, FRONT_R, 0.048, wheelSeg, true);
+  buildWheel(parts, REAR_Z, REAR_R, 0.062, wheelSeg, false);
 
-  // Forks, yokes and low clip-ons. Rake matches the nose.
   const forkSeg = fine ? 8 : 5;
   for (const side of [-1, 1]) {
-    tube(parts, METAL, v(side * 0.09, FRONT_R, FRONT_Z), v(side * 0.055, 0.86, -0.50), 0.016, forkSeg);
-    if (fine) tube(parts, BLACK, v(side * 0.09, FRONT_R + 0.02, FRONT_Z), v(side * 0.055, 0.78, -0.52), 0.022, 6);
+    tube(parts, METAL, v(side * 0.08, FRONT_R, FRONT_Z), v(side * 0.048, 0.84, -0.52), 0.015, forkSeg);
+    if (fine) tube(parts, BLACK, v(side * 0.08, FRONT_R + 0.02, FRONT_Z), v(side * 0.05, 0.76, -0.54), 0.02, 6);
   }
-  tube(parts, BLACK, v(-0.10, 0.84, -0.51), v(0.10, 0.84, -0.51), 0.016, forkSeg);
-  tube(parts, BLACK, v(-0.08, 0.70, -0.56), v(0.08, 0.70, -0.56), 0.014, forkSeg);
+  tube(parts, BLACK, v(-0.09, 0.82, -0.53), v(0.09, 0.82, -0.53), 0.014, forkSeg);
+  tube(parts, BLACK, v(-0.07, 0.68, -0.58), v(0.07, 0.68, -0.58), 0.012, forkSeg);
   for (const side of [-1, 1]) {
-    tube(parts, BLACK, v(side * 0.07, 0.72, -0.55), v(side * 0.18, 0.86, -0.40), 0.011, fine ? 6 : 4);
-    tube(parts, BLACK, v(side * 0.16, 0.85, -0.42), v(side * 0.22, 0.86, -0.36), 0.014, fine ? 6 : 4);
+    tube(parts, BLACK, v(side * 0.055, 0.78, -0.54), v(side * 0.16, 0.86, -0.40), 0.01, fine ? 6 : 4);
+    add(parts, BLACK, new THREE.CylinderGeometry(0.016, 0.016, 0.07, fine ? 8 : 5), v(side * 0.18, 0.86, -0.36), v(0, 0, Math.PI / 2));
   }
 
-  // Frame spars and a dark radiator, visible through the open midriff.
-  tube(parts, BLACK, v(-0.06, 0.62, -0.42), v(-0.08, 0.48, 0.18), 0.016, forkSeg);
-  tube(parts, BLACK, v(0.06, 0.62, -0.42), v(0.08, 0.48, 0.18), 0.016, forkSeg);
-  add(parts, BLACK, new THREE.BoxGeometry(0.16, 0.16, 0.04), v(0, 0.50, -0.40));
-  add(parts, BLACK, new THREE.BoxGeometry(0.20, 0.16, 0.22), v(0, 0.48, -0.02));
+  tube(parts, BLACK, v(-0.05, 0.64, -0.42), v(-0.07, 0.46, 0.16), 0.014, forkSeg);
+  tube(parts, BLACK, v(0.05, 0.64, -0.42), v(0.07, 0.46, 0.16), 0.014, forkSeg);
+  add(parts, BLACK, new THREE.BoxGeometry(0.14, 0.14, 0.03), v(0, 0.52, -0.42));
 
-  // Single-sided swingarm on the left, pivot to the rear axle.
-  const arm = new THREE.BoxGeometry(0.045, 0.07, 0.62);
-  arm.translate(0, 0.01, 0.28);
-  add(parts, BLACK, arm, v(-0.10, 0.40, 0.12), v(-0.08, 0, 0));
-  add(parts, METAL, new THREE.CylinderGeometry(0.04, 0.04, 0.06, fine ? 12 : 6), v(-0.10, REAR_R, REAR_Z), v(0, 0, Math.PI / 2));
+  // Single-sided swingarm, pivot to the rear axle.
+  const arm = new THREE.BoxGeometry(0.04, 0.055, 0.58);
+  arm.translate(0, 0.01, 0.26);
+  add(parts, BLACK, arm, v(-0.09, 0.40, 0.16), v(-0.06, 0, 0));
+  add(parts, METAL, new THREE.CylinderGeometry(0.038, 0.038, 0.05, fine ? 12 : 6), v(-0.09, REAR_R, REAR_Z), v(0, 0, Math.PI / 2));
 
-  // Short cans tucked under the tail, outlets just proud of the cowl.
+  // Short under-seat cans. Outlets stop at the tail tip.
   for (const side of [-1, 1]) {
     const seg = fine ? 10 : 6;
-    tube(parts, METAL, v(side * 0.07, 0.50, 0.02), v(side * 0.08, 0.62, 0.28), 0.02, seg);
-    add(parts, METAL, new THREE.CylinderGeometry(0.038, 0.03, 0.22, seg), v(side * 0.08, 0.66, 0.40), v(Math.PI / 2.15, 0, 0));
-    add(parts, BLACK, new THREE.CylinderGeometry(0.026, 0.026, 0.016, seg), v(side * 0.08, 0.68, 0.52), v(Math.PI / 2.15, 0, 0));
+    tube(parts, METAL, v(side * 0.05, 0.48, -0.02), v(side * 0.042, 0.66, 0.14), 0.011, seg);
+    add(parts, METAL, new THREE.CylinderGeometry(0.030, 0.024, 0.14, seg), v(side * 0.042, 0.70, 0.22), v(Math.PI / 2.6, 0, 0));
+    add(parts, BLACK, new THREE.CylinderGeometry(0.020, 0.020, 0.012, seg), v(side * 0.042, 0.728, 0.29), v(Math.PI / 2.6, 0, 0));
   }
 
-  // Seat pad and a thin lamp across the short tail.
-  add(parts, BLACK, new THREE.BoxGeometry(0.16, 0.04, 0.28), v(0, 0.86, 0.10), v(-0.06, 0, 0));
-  add(parts, TAIL, new THREE.BoxGeometry(0.08, 0.016, 0.01), v(0, 0.82, 0.515));
+  add(parts, BLACK, new THREE.BoxGeometry(0.14, 0.035, 0.22), v(0, 0.86, 0.06), v(-0.08, 0, 0));
+  add(parts, TAIL, new THREE.BoxGeometry(0.06, 0.012, 0.01), v(0, 0.80, 0.355));
 
   if (fine) {
-    // Rearsets, so the boots meet a peg.
     for (const side of [-1, 1]) {
-      tube(parts, BLACK, v(side * 0.12, 0.40, 0.22), v(side * 0.20, 0.36, 0.26), 0.01, 5);
-      add(parts, METAL, new THREE.CylinderGeometry(0.012, 0.012, 0.04, 6), v(side * 0.20, 0.36, 0.26), v(0, 0, Math.PI / 2));
+      tube(parts, BLACK, v(side * 0.10, 0.40, 0.16), v(side * 0.17, 0.36, 0.20), 0.009, 5);
+      add(parts, METAL, new THREE.CylinderGeometry(0.011, 0.011, 0.035, 6), v(side * 0.17, 0.36, 0.20), v(0, 0, Math.PI / 2));
     }
-    tube(parts, BLACK, v(-0.09, 0.40, 0.02), v(-0.11, REAR_R, REAR_Z - 0.08), 0.008, 4);
   }
 }
 
@@ -430,27 +458,45 @@ function buildRider(parts, detail) {
   const fine = detail === "near";
   const seg = fine ? 8 : 5;
   const cap = fine ? 3 : 1;
-  // Flat sport tuck: hips on the seat, chest on the tank, helmet just behind the screen.
-  capsule(parts, SUIT, v(0, 0.92, 0.16), v(0, 1.02, -0.08), 0.11, seg, cap);
-  capsule(parts, SUIT, v(0, 1.02, -0.08), v(0, 1.10, -0.30), 0.105, seg, cap);
-  add(parts, HELMET, new THREE.SphereGeometry(1, fine ? 16 : 8, fine ? 12 : 6), v(0, 1.18, -0.40), v(0.35, 0, 0), v(0.12, 0.14, 0.145));
-  add(parts, HELMET, new THREE.SphereGeometry(1, fine ? 10 : 6, fine ? 8 : 5), v(0, 1.12, -0.48), v(0.4, 0, 0), v(0.09, 0.07, 0.08));
-  add(parts, VISOR, new THREE.BoxGeometry(0.15, 0.07, 0.02), v(0, 1.16, -0.52), v(0.5, 0, 0));
+  // Chest on the tank, hips on the seat, helmet tucked behind the screen.
+  capsule(parts, SUIT, v(0, 0.90, 0.10), v(0, 1.00, -0.24), 0.088, seg, cap);
+  capsule(parts, SUIT, v(0, 1.00, -0.22), v(0, 1.06, -0.34), 0.072, seg, cap);
+  add(parts, HELMET, new THREE.SphereGeometry(1, fine ? 16 : 8, fine ? 12 : 6), v(0, 1.12, -0.40), v(0.55, 0, 0), v(0.105, 0.125, 0.130));
+  if (fine) {
+    const visor = [];
+    for (let i = 0; i <= 5; i++) {
+      const a = -0.7 + (i / 5) * 1.4;
+      const row = [];
+      for (let j = 0; j <= 2; j++) {
+        const drop = j / 2;
+        row.push(v(Math.sin(a) * (0.09 - drop * 0.01), 0.015 - drop * 0.055, -0.02 - Math.cos(a) * 0.02));
+      }
+      visor.push(row);
+    }
+    addGridSmooth(parts, VISOR, visor.map((row) => row.map((p) => {
+      const q = p.clone();
+      q.applyEuler(new THREE.Euler(0.7, 0, 0));
+      q.add(v(0, 1.12, -0.46));
+      return q;
+    })), v(0, 1.12, -0.2));
+  } else {
+    add(parts, VISOR, new THREE.BoxGeometry(0.12, 0.05, 0.015), v(0, 1.10, -0.50), v(0.6, 0, 0));
+  }
 
   for (const side of [-1, 1]) {
-    const shoulder = v(side * 0.16, 1.08, -0.18);
-    const elbow = v(side * 0.22, 0.96, -0.36);
-    const hand = v(side * 0.16, 0.84, -0.50);
-    capsule(parts, SUIT, shoulder, elbow, 0.05, seg, cap);
-    capsule(parts, SUIT, elbow, hand, 0.04, seg, cap);
-    add(parts, GEAR, new THREE.SphereGeometry(0.042, fine ? 8 : 5, fine ? 6 : 4), hand);
+    const shoulder = v(side * 0.13, 1.02, -0.22);
+    const elbow = v(side * 0.18, 0.92, -0.36);
+    const hand = v(side * 0.17, 0.85, -0.36);
+    capsule(parts, SUIT, shoulder, elbow, 0.042, seg, cap);
+    capsule(parts, SUIT, elbow, hand, 0.034, seg, cap);
+    add(parts, GEAR, new THREE.SphereGeometry(0.034, fine ? 8 : 5, fine ? 6 : 4), hand);
 
-    const hip = v(side * 0.09, 0.92, 0.12);
-    const knee = v(side * 0.16, 0.66, -0.02);
-    const boot = v(side * 0.14, 0.40, 0.22);
-    capsule(parts, SUIT, hip, knee, 0.072, seg, cap);
-    capsule(parts, SUIT, knee, boot, 0.055, seg, cap);
-    add(parts, GEAR, new THREE.CapsuleGeometry(0.048, 0.11, cap, seg), boot, v(Math.PI / 2.5, 0, side * 0.2), v(1, 1, 1.2));
+    const hip = v(side * 0.07, 0.88, 0.08);
+    const knee = v(side * 0.14, 0.62, -0.08);
+    const boot = v(side * 0.13, 0.40, 0.16);
+    capsule(parts, SUIT, hip, knee, 0.058, seg, cap);
+    capsule(parts, SUIT, knee, boot, 0.046, seg, cap);
+    add(parts, GEAR, new THREE.CapsuleGeometry(0.04, 0.09, cap, seg), boot, v(Math.PI / 2.6, 0, side * 0.15));
   }
 }
 
@@ -504,7 +550,9 @@ const result = await exporter.parseAsync(root, {
   trs: false,
   maxTextureSize: 256,
 });
-const output = new URL("../game/models/moto.glb", import.meta.url);
+const output = process.env.MOTO_OUT
+  ? pathToFileURL(process.env.MOTO_OUT)
+  : new URL("../game/models/moto.glb", import.meta.url);
 await writeFile(output, Buffer.from(result));
 
 const nearTris = countTriangles(bike) + countTriangles(rider);
