@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+"""Cache-bust landmark (hero) GLB loads: ./models/hero/<id>.glb?v=HV. HV is the ONE constant to bump on any landmark change;
+landmarks/install.sh rewrites it automatically (timestamp) and re-runs this patch. Idempotent."""
+import re,glob,os
+HV='h202610150417'
+f=glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../game/assets/index-*.js'))[0]; s=open(f).read()
+pat=r'dm\.loadAsync\(`\./`\+n\.glb\.replace\(/\^\\\.\?\\//,``\)(\+`\?v=\w+`)?\)'
+s2,n=re.subn(pat,'dm.loadAsync(`./`+n.glb.replace(/^\\.?\\//,``)+`?v=%s`)'%HV,s,count=1)
+assert n==1,'hero load site not found'
+open(f,'w').write(s2); print('herover',HV)
