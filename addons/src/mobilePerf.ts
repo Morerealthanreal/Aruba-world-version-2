@@ -6,8 +6,9 @@
 //    Incremental (default, ?warmup=full for the old way): every 0.5 s only objects not seen before
 //    are checked and one per program-relevant signature is compiled against the scene's lights;
 //    compileAsync(scene) walked all ~5k objects (getParameters each, ~65 ms on the main thread).
-//  - texture pre-upload (?preup=0 off): the textures of those new objects are uploaded ~2 per frame
-//    (renderer.initTexture) so the first frame that draws them does not also pay the upload.
+//  - texture pre-upload (opt-in ?preup=1): the textures of those new objects are uploaded ~2 per frame
+//    (renderer.initTexture) so the first frame that draws them does not also pay the upload. Off by
+//    default: it also uploads textures of objects that never get drawn (headless drive: 2.4x upload time).
 import type { Object3D } from "three";
 import type { AGame } from "./env";
 type R = {
@@ -27,7 +28,7 @@ export class MobilePerf {
   private seen = new WeakSet<object>(); private keys = new Set<string>(); private lightKey = "";
   private seenTex = new WeakSet<object>(); private texQ: Tex[] = [];
   stats = { compiles: 0, objs: 0, reps: 0, uploads: 0 };
-  constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) { this.on = mobile; }
+  constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = false) { this.on = mobile; }
   frame(dt: number) {
     if (!this.on) return;
     const r = this.g.renderer as unknown as R;
