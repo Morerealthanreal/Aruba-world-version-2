@@ -5,7 +5,7 @@ entries with a scale ending in the marker digit (scale rounded to 3 dp, last dig
 import json,glob,os,math
 D=os.path.join(os.path.dirname(os.path.abspath(__file__)),'../game/data/real/')
 M=json.load(open(D+'manifest.json')); X0,Z0,RS=M['X0'],M['Z0'],M['RS']
-SRC={'p':'/workspace/landmarks/yard_palms.json','d':'/workspace/landmarks/noord_divis.json'}  # r242: + roadside divi thickets (noord_divis.py)
+SRC={'p':'/workspace/landmarks/yard_palms.json','d':'/workspace/landmarks/noord_divis.json','s':'/workspace/landmarks/noord_scrub.json'}  # r249: + vacant-lot scrub (noord_scrub.py)  # r242: + roadside divi thickets (noord_divis.py)
 by={}
 for kind,fn in SRC.items():
   for x,z,s,r in json.load(open(fn)): by.setdefault(('r_%d_%d.json'%((x-X0)//RS,(z-Z0)//RS),kind),[]).append([x,z,round(math.floor(s*100)/100+0.007,3),r])
