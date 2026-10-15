@@ -38,6 +38,7 @@ export class PedestrianCrowds {
   private torso: InstancedMesh;
   private legs: InstancedMesh;
   private arms: InstancedMesh;
+  private meshes: InstancedMesh[];
   private root = new Matrix4();
   private local = new Matrix4();
   private world = new Matrix4();
@@ -62,6 +63,7 @@ export class PedestrianCrowds {
     this.torso = this.mesh(new BoxGeometry(1, 1, 1), cloth, cap, "torsos");
     this.legs = this.mesh(new BoxGeometry(1, 1, 1), pants, cap * 2, "legs");
     this.arms = this.mesh(new BoxGeometry(1, 1, 1), skin, cap * 2, "arms");
+    this.meshes = [this.head, this.torso, this.legs, this.arms];
     this.group.add(this.head, this.torso, this.legs, this.arms);
     g.scene.add(this.group);
 
@@ -223,7 +225,7 @@ export class PedestrianCrowds {
     this.torso.count = visible;
     this.legs.count = visible * 2;
     this.arms.count = visible * 2;
-    for (const mesh of [this.head, this.torso, this.legs, this.arms]) {
+    for (const mesh of this.meshes) {
       if (mesh.count) {
         mesh.instanceMatrix.needsUpdate = true;
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
@@ -232,7 +234,7 @@ export class PedestrianCrowds {
     }
     this.stats.visible = visible;
     this.stats.draws = visible ? 4 : 0;
-    // 48 head + 12 torso + two 12-triangle legs + two 12-triangle arms.
-    this.stats.triangles = visible * 108;
+    // 36 head + 12 torso + two 12-triangle legs + two 12-triangle arms.
+    this.stats.triangles = visible * 96;
   }
 }

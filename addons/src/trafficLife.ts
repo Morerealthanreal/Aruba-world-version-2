@@ -136,6 +136,7 @@ export class TrafficSystem {
     const amb = this.amb!;
     const batch = this.batches[v];
     const count = batch.cars.length;
+    if (!count) return;
     for (const name of Object.keys(kit)) {
       const src = amb.mats[name];
       if (!src) continue;
