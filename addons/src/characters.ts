@@ -1,5 +1,6 @@
 import {
-  Color, Mesh, MeshStandardMaterial, SkinnedMesh, type Material, type Object3D,
+  Color, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, SkinnedMesh,
+  type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
   type WebGLRenderer,
 } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -74,6 +75,40 @@ function triangles(mesh: Mesh) {
   return (geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3;
 }
 
+function asFloat(
+  attribute: BufferAttribute | InterleavedBufferAttribute,
+): Float32BufferAttribute {
+  const values = new Float32Array(attribute.count * attribute.itemSize);
+  for (let i = 0; i < attribute.count; i++) {
+    const offset = i * attribute.itemSize;
+    values[offset] = attribute.getX(i);
+    if (attribute.itemSize > 1) values[offset + 1] = attribute.getY(i);
+    if (attribute.itemSize > 2) values[offset + 2] = attribute.getZ(i);
+    if (attribute.itemSize > 3) values[offset + 3] = attribute.getW(i);
+  }
+  return new Float32BufferAttribute(values, attribute.itemSize);
+}
+
+function geometryInBindSpace(mesh: SkinnedMesh, target: SkinnedMesh) {
+  const geometry = mesh.geometry.clone();
+  // KHR_mesh_quantization stores each source part in its own normalized object
+  // space. Convert only transformed attributes to float before rebasing so
+  // values outside [-1, 1] are not clamped by normalized integer setters.
+  geometry.setAttribute("position", asFloat(geometry.getAttribute("position")));
+  geometry.setAttribute("normal", asFloat(geometry.getAttribute("normal")));
+  const tangent = geometry.getAttribute("tangent");
+  if (tangent) geometry.setAttribute("tangent", asFloat(tangent));
+
+  // glTF's inverse bind matrices differ by a constant object-space transform
+  // for each part. Rebase every part to the target skin before merging.
+  const transform = new Matrix4()
+    .copy(target.skeleton.boneInverses[0])
+    .invert()
+    .multiply(mesh.skeleton.boneInverses[0]);
+  geometry.applyMatrix4(transform);
+  return geometry;
+}
+
 /**
  * All source primitives use one atlas material and one skeleton. Merge once
  * before cloning so every crowd rig shares the resulting geometry and texture.
@@ -86,19 +121,22 @@ export function prepareCharacterSource(gl: GLTF): CharacterMetrics {
   });
   if (!skins.length) throw new Error("Character source has no skinned mesh");
   if (skins.length > 1) {
-    const geometry = mergeGeometries(skins.map((mesh) => mesh.geometry), false);
+    const target = skins.find((mesh) => mesh.name === "base") || skins[0];
+    const geometry = mergeGeometries(
+      skins.map((mesh) => geometryInBindSpace(mesh, target)),
+      false,
+    );
     if (!geometry) throw new Error("Character source geometry could not be merged");
     geometry.clearGroups();
-    const first = skins[0];
-    const parent = first.parent || gl.scene;
-    const sourceMaterial = Array.isArray(first.material) ? first.material[0] : first.material;
+    const parent = target.parent || gl.scene;
+    const sourceMaterial = Array.isArray(target.material) ? target.material[0] : target.material;
     const merged = new SkinnedMesh(geometry, sourceMaterial);
     merged.name = "aw:character:shared-skin";
-    merged.bindMode = first.bindMode;
-    merged.bind(first.skeleton, first.bindMatrix);
-    merged.position.copy(first.position);
-    merged.quaternion.copy(first.quaternion);
-    merged.scale.copy(first.scale);
+    merged.bindMode = target.bindMode;
+    merged.bind(target.skeleton, target.bindMatrix);
+    merged.position.copy(target.position);
+    merged.quaternion.copy(target.quaternion);
+    merged.scale.copy(target.scale);
     for (const mesh of skins) mesh.parent?.remove(mesh);
     parent.add(merged);
   }
