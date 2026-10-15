@@ -54507,7 +54507,7 @@
   "lod": {
    "hi": "nd_st_m7_m3_lod0",
    "lo": "nd_st_m7_m3_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m3_lod0": 65213,
@@ -54550,7 +54550,7 @@
   "lod": {
    "hi": "nd_st_m7_m2_lod0",
    "lo": "nd_st_m7_m2_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m2_lod0": 31363,
@@ -54593,7 +54593,7 @@
   "lod": {
    "hi": "nd_st_m7_m6_lod0",
    "lo": "nd_st_m7_m6_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m6_lod0": 44387,
@@ -54636,7 +54636,7 @@
   "lod": {
    "hi": "nd_st_m7_m7_lod0",
    "lo": "nd_st_m7_m7_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m7_lod0": 20087,
@@ -54679,7 +54679,7 @@
   "lod": {
    "hi": "nd_st_m7_m5_lod0",
    "lo": "nd_st_m7_m5_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m5_lod0": 45320,
@@ -54722,7 +54722,7 @@
   "lod": {
    "hi": "nd_st_m8_m5_lod0",
    "lo": "nd_st_m8_m5_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m5_lod0": 37883,
@@ -54765,7 +54765,7 @@
   "lod": {
    "hi": "nd_st_m8_m4_lod0",
    "lo": "nd_st_m8_m4_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m4_lod0": 29402,
@@ -54808,7 +54808,7 @@
   "lod": {
    "hi": "nd_st_m7_m4_lod0",
    "lo": "nd_st_m7_m4_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m7_m4_lod0": 36249,
@@ -54851,7 +54851,7 @@
   "lod": {
    "hi": "nd_st_m8_m3_lod0",
    "lo": "nd_st_m8_m3_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m3_lod0": 11731,
@@ -54894,7 +54894,7 @@
   "lod": {
    "hi": "nd_st_m8_m2_lod0",
    "lo": "nd_st_m8_m2_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m2_lod0": 39847,
@@ -54937,7 +54937,7 @@
   "lod": {
    "hi": "nd_st_m8_m7_lod0",
    "lo": "nd_st_m8_m7_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m7_lod0": 34702,
@@ -54980,7 +54980,7 @@
   "lod": {
    "hi": "nd_st_m8_m6_lod0",
    "lo": "nd_st_m8_m6_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m8_m6_lod0": 66728,
@@ -55023,7 +55023,7 @@
   "lod": {
    "hi": "nd_st_m9_m5_lod0",
    "lo": "nd_st_m9_m5_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m9_m5_lod0": 1567,
@@ -55066,7 +55066,7 @@
   "lod": {
    "hi": "nd_st_m6_m3_lod0",
    "lo": "nd_st_m6_m3_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m6_m3_lod0": 297,
@@ -55109,7 +55109,7 @@
   "lod": {
    "hi": "nd_st_m6_m4_lod0",
    "lo": "nd_st_m6_m4_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m6_m4_lod0": 262,
@@ -55152,7 +55152,7 @@
   "lod": {
    "hi": "nd_st_m6_m2_lod0",
    "lo": "nd_st_m6_m2_lod1",
-   "switch_m": 620
+   "switch_m": 850
   },
   "tris": {
    "nd_st_m6_m2_lod0": 42,
