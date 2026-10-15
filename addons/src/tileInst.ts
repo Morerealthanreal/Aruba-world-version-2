@@ -8,11 +8,14 @@
 // per-lot distance rules A applied (kitR, parkHi/parkR, detailR/2) are applied per
 // instance instead: the visible instances are compacted into the front of the buffer,
 // one region per frame (round robin), only when the player moved > 4 m.
+// r192: with pools (instPool.ts, default on, ?ipool=0 off) the buckets of every region that share a
+// (kind, geometry, material) draw from one InstancedMesh instead of one per region.
 import { InstancedBufferAttribute, InstancedMesh, Matrix4, type BufferGeometry, type Material, type Object3D } from "three";
+import { Pool } from "./instPool";
 
 type IM = Object3D & { isInstancedMesh: true; count: number; geometry: BufferGeometry; material: Material; instanceMatrix: { array: Float32Array }; instanceColor: { array: Float32Array } | null };
 type Q = Record<string, unknown>;
-type Bucket = { kind: string; im: InstancedMesh; mats: Float32Array; cols: Float32Array | null; cx: Float32Array; cz: Float32Array; n: number; box: [number, number, number, number] };
+type Bucket = { kind: string; im: InstancedMesh | null; pool?: Pool; mats: Float32Array; cols: Float32Array | null; cx: Float32Array; cz: Float32Array; n: number; box: [number, number, number, number] };
 type Reg = { state: string; group?: Object3D; __awInst?: Bucket[] };
 
 const KINDS = new Set(["bld:kit", "parked", "parkedHi", "props"]);
@@ -22,7 +25,9 @@ export class TileInstances {
   buckets = 0;
   private lastX = 1e9; private lastZ = 1e9;
   private dirty = new Set<Reg>();
-  constructor(private q: Q) {}
+  private pools = new Map<string, Pool>();
+  private dirtyPools = new Set<Pool>();
+  constructor(private q: Q, private poolParent: Object3D | null = null) {}
 
   /** Fold one built region. Returns true if something was folded. */
   fold(r: Reg): boolean {
@@ -56,6 +61,18 @@ export class TileInstances {
         }
       }
       const f = list[0];
+      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for (let i = 0; i < n; i++) { x0 = Math.min(x0, cx[i]); x1 = Math.max(x1, cx[i]); z0 = Math.min(z0, cz[i]); z1 = Math.max(z1, cz[i]); }
+      if (this.poolParent) {
+        const key = f.name + "|" + f.geometry.uuid + "|" + f.material.uuid + "|" + f.castShadow + "|" + f.receiveShadow + "|" + (cols ? 1 : 0);
+        let pool = this.pools.get(key);
+        if (!pool) this.pools.set(key, (pool = new Pool(f.geometry, f.material, { name: "aw:inst:" + f.name, castShadow: f.castShadow, receiveShadow: f.receiveShadow, colored: !!cols }, this.poolParent)));
+        const b: Bucket = { kind: f.name, im: null, pool, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] };
+        pool.add(b); this.dirtyPools.add(pool);
+        for (const m of list) { m.parent?.remove(m); this.folded++; }
+        out.push(b); this.buckets++;
+        continue;
+      }
       const im = new InstancedMesh(f.geometry, f.material, n);
       im.name = "aw:inst:" + f.name;
       im.castShadow = f.castShadow; im.receiveShadow = f.receiveShadow;
@@ -66,13 +83,11 @@ export class TileInstances {
       if (cols) im.instanceColor = new InstancedBufferAttribute(new Float32Array(n * 3), 3);
       r.group.add(im as unknown as Object3D);
       for (const m of list) { m.parent?.remove(m); this.folded++; }
-      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
-      for (let i = 0; i < n; i++) { x0 = Math.min(x0, cx[i]); x1 = Math.max(x1, cx[i]); z0 = Math.min(z0, cz[i]); z1 = Math.max(z1, cz[i]); }
       out.push({ kind: f.name, im, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] });
       this.buckets++;
     }
     r.__awInst = out;
-    this.dirty.add(r);
+    if (!this.poolParent) this.dirty.add(r);
     return out.length > 0;
   }
 
@@ -87,6 +102,7 @@ export class TileInstances {
 
   private cull(r: Reg, x: number, z: number) {
     for (const b of r.__awInst || []) {
+      if (!b.im) continue;
       const [lo, hi] = this.range(b.kind);
       const lo2 = lo < 0 ? -1 : lo * lo, hi2 = (hi + 3) * (hi + 3);
       const bx = Math.max(b.box[0] - x, 0, x - b.box[2]), bz = Math.max(b.box[1] - z, 0, z - b.box[3]);
@@ -97,7 +113,7 @@ export class TileInstances {
       for (let i = 0; i < b.n; i++) {
         const dx = b.cx[i] - x, dz = b.cz[i] - z, d = dx * dx + dz * dz;
         if (d >= hi2 || d < lo2) continue;
-        dst.set(b.mats.subarray(i * 16, i * 16 + 16), c * 16);
+        const s = i * 16, t = c * 16; for (let k = 0; k < 16; k++) dst[t + k] = b.mats[s + k];
         if (dc && b.cols) { dc[c * 3] = b.cols[i * 3]; dc[c * 3 + 1] = b.cols[i * 3 + 1]; dc[c * 3 + 2] = b.cols[i * 3 + 2]; }
         c++;
       }
@@ -116,13 +132,15 @@ export class TileInstances {
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
     for (const r of regions.values()) if (!r.__awInst && r.state === "built") { if (this.fold(r) || r.__awInst) this.live.add(r); break; } // at most one fold per frame
-    // regions A disposed: free our instance buffers
-    if (this.live.size > regions.size) {
-      const cur = new Set(regions.values());
-      for (const r of this.live) if (!cur.has(r)) { for (const b of r.__awInst || []) b.im.dispose(); this.live.delete(r); this.dirty.delete(r); }
+    // regions A disposed (disposeRegion detaches the group): free our instance buffers / leave the pools
+    for (const r of this.live) if (!r.group || !r.group.parent) {
+      for (const b of r.__awInst || []) { if (b.im) b.im.dispose(); if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); } }
+      this.live.delete(r); this.dirty.delete(r);
     }
     const moved = (x - this.lastX) ** 2 + (z - this.lastZ) ** 2 > 16;
-    if (moved) { this.lastX = x; this.lastZ = z; for (const r of this.live) this.dirty.add(r); }
+    if (moved) { this.lastX = x; this.lastZ = z; for (const r of this.live) this.dirty.add(r); for (const p of this.pools.values()) this.dirtyPools.add(p); }
+    for (const [key, p] of this.pools) if (this.dirtyPools.has(p)) { const [lo, hi] = this.range(key.slice(0, key.indexOf("|"))); p.fill(this.lastX, this.lastZ, lo, hi + 3); }
+    this.dirtyPools.clear();
     // far buckets are rejected by their bounding box, so all dirty regions fit in one frame
     for (const r of this.dirty) this.cull(r, this.lastX, this.lastZ);
     this.dirty.clear();

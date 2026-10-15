@@ -57,7 +57,7 @@ async function main() {
   const look = params.get("look") !== "0" ? new Look(g) : null;
   const sea = params.get("sea") !== "0" ? new Sea(g) : null;
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-  const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
+  const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch, params.get("ipool") !== "0") : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
   const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low", params.get("farbatch") !== "0") : null;

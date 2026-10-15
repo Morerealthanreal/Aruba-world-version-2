@@ -68,7 +68,7 @@ export class PerfFixes {
     this.heroCap = tier === "low" ? 700 : tier === "med" ? 1000 : this.mobile ? 1400 : (this.real.q as unknown as { id?: string }).id === "desktop" ? 5000 : 2000;
     window.__awMMDiv = 3;
     this.tierProfile();
-    if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q);
+    if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
     this.hookHero();
     this.fixGlass();
