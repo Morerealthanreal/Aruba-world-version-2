@@ -3,8 +3,11 @@
 // one mesh per material (~11 draws at L0, ~10 at L1 beyond 45 m) plus the flashing bar lenses.
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
-import { BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, Vector3, type Material, type Object3D } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export type EvKind = "everest" | "isuzu" | "ambY" | "ambP" | "forensys";
 const texCache = new Map<string, CanvasTexture>();
@@ -184,11 +187,53 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
 export type Npc = {
   g: Group; rig: Group; torso: Mesh; head: Mesh;
   armL: Group; armR: Group; legL: Mesh; legR: Mesh; t: number;
+  detail?: { inner: Object3D; mixer: AnimationMixer; walk: AnimationAction; idle: AnimationAction };
 };
 const NPC_HEAD = new SphereGeometry(0.12, 10, 8);
 const NPC_TORSO = new CylinderGeometry(0.5, 0.39, 1, 7, 1);
 const NPC_LIMB = new CylinderGeometry(0.4, 0.5, 1, 6, 1);
 NPC_LIMB.translate(0, -0.5, 0); // rotations now happen at the shoulder / hip
+let npcSources: GLTF[] | null = null;
+let npcLoad: Promise<void> | null = null;
+let npcSerial = 0;
+function loadNpcRigs() {
+  return (npcLoad ||= Promise.all(["ped_casual2_m.glb", "ped_casual3_f.glb"].map((file) =>
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`./models/${file}`)))
+    .then((sources) => { npcSources = sources; })
+    .catch((e) => console.warn("[aw-npc] detailed rigs", e)));
+}
+function upgradeNpc(n: Npc, sourceIndex: number) {
+  if (n.detail || !npcSources) return;
+  const source = npcSources[sourceIndex % npcSources.length];
+  const inner = skClone(source.scene);
+  const skins: SkinnedMesh[] = [];
+  inner.traverse((o) => { const mesh = o as SkinnedMesh; if (mesh.isSkinnedMesh) skins.push(mesh); });
+  if (skins.length > 1) {
+    const geometry = mergeGeometries(skins.map((mesh) => mesh.geometry), false);
+    if (geometry) {
+      const first = skins[0];
+      const merged = new SkinnedMesh(geometry, Array.isArray(first.material) ? first.material[0] : first.material);
+      merged.bindMode = first.bindMode;
+      merged.bind(first.skeleton, first.bindMatrix);
+      merged.castShadow = false;
+      for (const mesh of skins) mesh.parent?.remove(mesh);
+      inner.add(merged);
+    }
+  }
+  inner.rotation.y = Math.PI;
+  inner.scale.setScalar(0.56);
+  inner.traverse((o) => {
+    const mesh = o as Mesh;
+    if (mesh.isMesh) { mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false; }
+  });
+  n.rig.visible = false;
+  n.g.add(inner);
+  const mixer = new AnimationMixer(inner);
+  const clip = (name: string) => source.animations.find((a) => a.name === name) || source.animations[0];
+  const walk = mixer.clipAction(clip("Walk")), idle = mixer.clipAction(clip("Idle"));
+  walk.play(); idle.play(); walk.setEffectiveWeight(0);
+  n.detail = { inner, mixer, walk, idle };
+}
 export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const g = new Group(); g.name = "aw:npc";
   const rig = new Group(); g.add(rig);
@@ -201,10 +246,24 @@ export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const arm = (s: number) => { const p = new Group(); p.position.set(s * 0.25, 1.4, 0); const a = new Mesh(NPC_LIMB, sh); a.scale.set(0.1, 0.62, 0.11); p.add(a); rig.add(p); return p; };
   const armL = arm(-1), armR = arm(1);
   if (tablet) { const tb = new Mesh(BOX, std("tablet", "#202326", 0.3, 0.2)); tb.scale.set(0.24, 0.32, 0.02); tb.position.set(0, -0.6, 0.12); armR.add(tb); const sc = new Mesh(BOX, new MeshBasicMaterial({ color: 0x8fc6ff, toneMapped: false })); sc.scale.set(0.2, 0.27, 0.005); sc.position.set(0, -0.6, 0.135); armR.add(sc); armR.rotation.x = -0.9; }
-  return { g, rig, torso, head, armL, armR, legL, legR, t: Math.random() * 10 };
+  const n: Npc = { g, rig, torso, head, armL, armR, legL, legR, t: Math.random() * 10 };
+  const sourceIndex = npcSerial++;
+  if (!tablet) {
+    if (npcSources) upgradeNpc(n, sourceIndex);
+    else void loadNpcRigs().then(() => upgradeNpc(n, sourceIndex));
+  }
+  return n;
 }
 export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tablet = false) {
   n.t += dt;
+  if (n.detail) {
+    const walking = mode === "walk";
+    n.detail.walk.setEffectiveWeight(walking ? 1 : 0);
+    n.detail.idle.setEffectiveWeight(walking ? 0 : 1);
+    n.detail.walk.timeScale = 1.05;
+    n.detail.mixer.update(dt);
+    return;
+  }
   const breath = Math.sin(n.t * 1.45);
   n.torso.scale.y = 0.6 + breath * 0.006;
   n.rig.position.y = 0;
