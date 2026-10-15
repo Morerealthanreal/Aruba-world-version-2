@@ -32,7 +32,7 @@ const X_AXIS = new Vector3(1, 0, 0);
 // Rounded, tapered primitives read as people at street distance without adding
 // materials or draw calls. The dark vertex tint makes a built-in hair cap.
 const HEAD = (() => {
-  const geo = new SphereGeometry(1, 8, 5);
+  const geo = new SphereGeometry(1, 6, 4);
   const p = geo.attributes.position;
   const colors = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
@@ -48,9 +48,11 @@ const HEAD = (() => {
   geo.computeVertexNormals();
   return geo;
 })();
-const TORSO = new CylinderGeometry(0.5, 0.4, 1, 6, 1);
-const LEG = new CylinderGeometry(0.42, 0.5, 1, 5, 1);
-const ARM = new CylinderGeometry(0.38, 0.48, 1, 5, 1);
+// Open four-sided tapers stay at eight triangles each. Joints cover the open
+// ends, and the far LOD is cheaper than the old six boxes (76 vs 96 triangles).
+const TORSO = new CylinderGeometry(0.5, 0.4, 1, 4, 1, true, Math.PI / 4);
+const LEG = new CylinderGeometry(0.42, 0.5, 1, 4, 1, true, Math.PI / 4);
+const ARM = new CylinderGeometry(0.38, 0.48, 1, 4, 1, true, Math.PI / 4);
 const tris = (g: BufferGeometry) => (g.index ? g.index.count : g.attributes.position.count) / 3;
 const HEAD_TRIS = tris(HEAD), TORSO_TRIS = tris(TORSO), LEG_TRIS = tris(LEG), ARM_TRIS = tris(ARM);
 
@@ -82,7 +84,7 @@ export class PedestrianCrowds {
     const tier = g.real!.q.name;
     const cap = tier === "low" ? 18 : tier === "med" ? 32 : 48;
     const lod = tier === "low" ? 190 : 250;
-    const near = tier === "low" ? 48 : tier === "med" ? 68 : 86;
+    const near = tier === "low" ? 32 : tier === "med" ? 48 : 64;
     this.lod2 = lod * lod;
     this.near2 = near * near;
 
