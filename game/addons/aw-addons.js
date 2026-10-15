@@ -3934,7 +3934,7 @@ uniform vec3 uAwPedBottom;
 uniform vec3 uAwPedDress;`).replace("#include <map_fragment>",`#include <map_fragment>
 float awTile = floor(vMapUv.x * ${s.toFixed(1)}) + ${s.toFixed(1)} * floor(vMapUv.y * ${s.toFixed(1)});
 if (${h}) diffuseColor.rgb *= uAwPedSkin;
-else if (${u}) diffuseColor.rgb *= uAwPedHair;
+else if (${u}) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.62) * 1.12;
 else if (${d}) diffuseColor.rgb *= uAwPedTop;
 else if (${f}) diffuseColor.rgb *= uAwPedBottom;
 else if (${p}) diffuseColor.rgb *= uAwPedDress;`).replace("#include <emissivemap_fragment>",`#include <emissivemap_fragment>
