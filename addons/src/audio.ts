@@ -35,9 +35,11 @@ export class WorldAudio {
     this.quick.id = "awmutebtn";
     this.quick.type = "button";
     this.quick.setAttribute("aria-label", "Mute game audio");
-    this.quick.style.cssText = "position:fixed;z-index:50;left:12px;top:calc(96px + env(safe-area-inset-top));" +
+    const st = document.createElement("style");
+    st.textContent = "#awmutebtn{position:fixed;z-index:50;left:12px;top:calc(96px + env(safe-area-inset-top));" +
       "width:42px;height:42px;border:2px solid #ffffff73;border-radius:50%;background:#0009;color:#fff;" +
-      "font:20px system-ui;display:grid;place-items:center";
+      "font:20px system-ui;display:grid;place-items:center;padding:0}";
+    document.head.appendChild(st);
     this.quick.onclick = (event) => { event.stopPropagation(); this.toggle(); };
     document.body.appendChild(this.quick);
     this.syncButtons();
