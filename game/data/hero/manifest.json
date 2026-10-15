@@ -55198,7 +55198,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m7_m2_00_lod0": 13051,
+   "nd_stn_m7_m2_00_lod0": 13663,
    "nd_stn_m7_m2_00_lod1": 7
   },
   "textures": 0,
@@ -55886,7 +55886,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m7_m5_01_lod0": 6903,
+   "nd_stn_m7_m5_01_lod0": 7011,
    "nd_stn_m7_m5_01_lod1": 7
   },
   "textures": 0,
@@ -56488,7 +56488,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m7_m4_00_lod0": 3095,
+   "nd_stn_m7_m4_00_lod0": 3179,
    "nd_stn_m7_m4_00_lod1": 7
   },
   "textures": 0,
@@ -56531,7 +56531,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m7_m4_01_lod0": 7375,
+   "nd_stn_m7_m4_01_lod0": 7591,
    "nd_stn_m7_m4_01_lod1": 7
   },
   "textures": 0,
@@ -56703,7 +56703,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m8_m3_00_lod0": 671,
+   "nd_stn_m8_m3_00_lod0": 1151,
    "nd_stn_m8_m3_00_lod1": 7
   },
   "textures": 0,
@@ -57348,7 +57348,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m8_m6_01_lod0": 6799,
+   "nd_stn_m8_m6_01_lod0": 7039,
    "nd_stn_m8_m6_01_lod1": 7
   },
   "textures": 0,
