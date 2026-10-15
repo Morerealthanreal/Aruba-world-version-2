@@ -107,3 +107,31 @@ and A's veg.setRegions (~7 ms per built region).
   low, med and high. Fix: fpsGuard redraws the frame after its resize (only on step frames).
 - bldBatch / staticFreeze: no difference found at Oranjestad, Noord, Palm Beach (on foot, ground + 60 m aerial,
   low / med / high, puppeteer + Playwright, teleport and reload-at-spot, fps guard on and off, ?preup=1).
+
+### Rebase on main 28cbba1 (r232-r245: Noord street furniture v2 / Draco hero cells, yard palms + divis in veg data, Palm Beach JEI lamps + medians, Noord palette / asphalt / dirt)
+- main's hero loader is now `new Nf().setDRACOLoader(...)`, so patch_perf_core.py anchors on `var dm=new Nf`
+  (the rebase had silently dropped corefix). Bundle = main's + patch_perf_core.py + patch_street_hook.py,
+  byte-identical when re-applied to main's file. The streets class (A's `Ch`) is byte-identical to a83a8ea,
+  so the split streets job still runs exactly A's code; the original `hides` is unchanged apart from a ?v= string.
+- guard_step.mjs on 28cbba1: frame presented after a guard step is 88% page background on main (rest = HUD) at
+  low / med / high, 0% with this PR.
+- Visual check harness pitfalls (handled in tools/perf/air_cmp.mjs): software GL renders well under 1 fps at 1000x620, so
+  (1) settle at a 320x200 viewport, then restore 1000x620 (main at Noord q=med had 172 region jobs queued after
+  26 min otherwise); (2) wait for hero GLBs within A's 1500 m load radius (main's Oranjestad / Palm Beach shots
+  were taken before its heroes arrived); (3) wait for main's bldMerge queue (one bucket every 3rd frame, no
+  pending()): until a region is merged A's per-cell bldR rule (from the focus incl. __awAhead) hides its far
+  cells, which looked like "PR draws extra buildings" at Palm Beach q=med. bldBatch keeps r186's region-level
+  shell result, i.e. main's merged end state. Time fixed with `t=10&freeze=1`. (4) Both shots use a fixed
+  camera derived from the player: A's follow camera eases toward its target and comes to rest a few pixels apart
+  after settle runs of different length (main settles 3-4x longer), a 6 px shift = 39% "diff" at Palm Beach q=high.
+- Settled diffs (RGB sum > 24), aerial / ground: low 1.8/0.4 Oranjestad, 0.7/0.4 Noord, 0.9/4.1 Palm Beach;
+  med 2.5/0.5, 1.4/0.7, 2.5/5.6; high 3.2/2.8, 2.0/0.5, 4.8/9.0. Remaining pixels: far roof trim / contact decals
+  beyond A's detailR / contactR (see above), palm sway and the player's idle pose (animation time), and on main at
+  q=high the farCity leak below.
+- main q=high: farCity shows through inside the streamed area (a dirt-coloured block behind the Palm Beach hotels,
+  a dark translucent slab on the hotel ground floor, the dark patch at Oranjestad). Main hides built regions in
+  farCity's vertex shader (mask texture via onBeforeCompile); the post chain's override-material passes (GTAO
+  depth / normals) draw the mesh without that patch. Identified with an id-colour pick render (aw:farCity at those
+  pixels) and `?far=0` on main (block gone; main ?far=0 vs PR 4.0% aerial instead of 11.2%). With this PR the far
+  city is a BatchedMesh whose draw list leaves built regions out (CPU, every pass), so the leak is gone; the
+  `?farbatch=0` fallback is main's code and still has it.
