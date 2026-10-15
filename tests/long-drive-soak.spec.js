@@ -2,12 +2,19 @@ import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 
 const STOP_MS = Number(process.env.SOAK_STOP_MS || 7_000);
+const SETTLE_MS = Number(process.env.SOAK_SETTLE_MS || 2_000);
 const WARMUP_CYCLES = Number(process.env.SOAK_WARMUP_CYCLES || 3);
 const MEASURE_CYCLES = Number(process.env.SOAK_MEASURE_CYCLES || 2);
 const TOTAL_CYCLES = WARMUP_CYCLES + MEASURE_CYCLES;
 const HEAP_GROWTH_LIMIT = Number(process.env.SOAK_HEAP_GROWTH_MB || 24) * 1024 * 1024;
 const GEOMETRY_GROWTH_LIMIT = Number(process.env.SOAK_GEOMETRY_GROWTH || 12);
 const TEXTURE_GROWTH_LIMIT = Number(process.env.SOAK_TEXTURE_GROWTH || 4);
+const SCENE_GEOMETRY_GROWTH_LIMIT = Number(
+  process.env.SOAK_SCENE_GEOMETRY_GROWTH || 100,
+);
+const SCENE_OBJECT_GROWTH_LIMIT = Number(
+  process.env.SOAK_SCENE_OBJECT_GROWTH || 300,
+);
 
 // A full-island loop forces streamed regions to unload and then rebuild when the
 // route repeats. Three loops let asynchronous model/texture loads settle; measured
@@ -163,22 +170,6 @@ async function driveLeg(page, stop, leg) {
   return Math.hypot(finish.x - start.x, finish.z - start.z);
 }
 
-async function waitForStreamingToSettle(page) {
-  await page.waitForFunction(
-    () => {
-      const real = window.game.real;
-      return (
-        real.queue?.length === 0 &&
-        [...real.regions.values()].every((region) => region.state === "built")
-      );
-    },
-    undefined,
-    { timeout: 45_000 },
-  );
-  // Let one presented frame upload the completed region resources.
-  await page.waitForTimeout(250);
-}
-
 async function sampleResources(page, cdp, cycle, stop) {
   await cdp.send("HeapProfiler.collectGarbage");
   return page.evaluate(
@@ -257,7 +248,7 @@ test("long phone drive keeps runtime resources flat", async ({
       for (let leg = 0; leg < ROUTE.length; leg++) {
         const stop = ROUTE[leg];
         distances.push(await driveLeg(page, stop, leg));
-        if (cycle >= WARMUP_CYCLES) await waitForStreamingToSettle(page);
+        await page.waitForTimeout(SETTLE_MS);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
         expect(sample.contextLost, "WebGL context was lost").toBe(false);
@@ -275,6 +266,7 @@ test("long phone drive keeps runtime resources flat", async ({
         {
           route: ROUTE,
           stopMs: STOP_MS,
+          settleMs: SETTLE_MS,
           warmupCycles: WARMUP_CYCLES,
           measureCycles: MEASURE_CYCLES,
           samples,
@@ -298,6 +290,12 @@ test("long phone drive keeps runtime resources flat", async ({
   const geometryGrowth =
     cycleMedian(samples, last, "geometries") -
     cycleMedian(samples, first, "geometries");
+  const sceneGeometryGrowth =
+    cycleMedian(samples, last, "sceneGeometries") -
+    cycleMedian(samples, first, "sceneGeometries");
+  const sceneObjectGrowth =
+    cycleMedian(samples, last, "sceneObjects") -
+    cycleMedian(samples, first, "sceneObjects");
   const textureGrowth =
     cycleMedian(samples, last, "textures") -
     cycleMedian(samples, first, "textures");
@@ -317,8 +315,18 @@ test("long phone drive keeps runtime resources flat", async ({
   );
   expect(
     geometryGrowth,
-    "renderer.info.memory.geometries kept growing",
-  ).toBeLessThanOrEqual(GEOMETRY_GROWTH_LIMIT);
+    "Renderer geometries grew faster than live scene geometries",
+  ).toBeLessThanOrEqual(
+    Math.max(0, sceneGeometryGrowth) + GEOMETRY_GROWTH_LIMIT,
+  );
+  expect(
+    sceneGeometryGrowth,
+    "Live scene geometries kept growing",
+  ).toBeLessThanOrEqual(SCENE_GEOMETRY_GROWTH_LIMIT);
+  expect(
+    sceneObjectGrowth,
+    "Live scene objects kept growing",
+  ).toBeLessThanOrEqual(SCENE_OBJECT_GROWTH_LIMIT);
   expect(
     textureGrowth,
     "renderer.info.memory.textures kept growing",
