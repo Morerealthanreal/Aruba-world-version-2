@@ -160,7 +160,8 @@ swap(
 )
 swap(
     "motorcycle distance lod",
-    "t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0,/_far$/.test(e.name)&&(e.visible=!1)",
+    "e.scene.traverse(e=>{/_far$/.test(e.name)&&(e.visible=!1);if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})",
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0,/_far$/.test(e.name)&&(e.visible=!1)}})",
     "t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0",
 )
 
