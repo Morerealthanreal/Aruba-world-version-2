@@ -61,3 +61,5 @@
 - malls.mjs loops AREAS noord/palmbeach/oranjestad/sannicolas (msb/<area>_add.json from landmarks/msb_area.py).
 - tools/patch_veg_clear.py: grid-hashed tree clearing (window.__awVegHit) incl. circles over every msb house in AREAS (re-run after adding areas).
 - r199b: added msb chunks for Palm Beach (169), Oranjestad (1270), San Nicolas (499) = 197 chunks, 51.7k tris, max 892/chunk; veg clearing now covers 3598 houses.
+- r199c: msb walls are now plain vertex-tinted walls + untinted decal quads (material ground_dec, gen.mjs decalTex: window w/ white frame+shutters, door, roller door) so frames/shutters stay white. >400 m2 footprints (70) -> 'shed' commercial/warehouse look (6.3 m, muted cladding, roller door on longest side, high windows, flat grey roof). Total msb 165k tris (327 chunks, max 1656), LOD 650 m.
+- bldMerge "before/after" in lc2 stats counts core OSM building meshes merged per region, NOT msb chunks; verified msb chunks loaded+visible with landmarks/vis.mjs (on/off screenshots, shots/vis_sheet.png).
