@@ -161,3 +161,23 @@ and A's veg.setRegions (~7 ms per built region).
   No page errors in any run. Harness settle is slower for the PR at q=high (95-118 s main vs 294-579 s PR): it waits
   for bldBatch, which batches a few cells per frame while A's original cell meshes stay visible; main's bldMerge is
   pumped synchronously by the harness instead.
+- Drive (measure.mjs --drive, q=low phone, 2,401 fixed 1/30 s frames, main abf87ae vs this PR on abf87ae):
+  | metric | main | PR |
+  |---|---|---|
+  | CPU frame task p50 / p95 / p99 | 10.8 / 16.6 / 44.2 ms | 8.6 / 15.2 / 23.0 ms |
+  | CPU frame task over 33 / 50 ms | 30 / 12 | 7 / 3 |
+  | triangles avg | 799k | 471k |
+  | draw calls avg | 344 | 364 |
+  | alloc per frame | 1.6 MB | 1.0 MB |
+  | scene.updateMatrixWorld avg / max | 3.5 / 12.4 ms | 1.1 / 10.0 ms |
+  | streets.build max | 177 ms | 17.5 ms |
+  | flora.update max | 20.9 ms | 3.1 ms |
+  | tileInst.update max | 22.7 ms | 7.2 ms |
+  | renderer.compile max | 65.5 ms | 8.6 ms |
+  Raw frame task incl. GL max is 2,054 ms for the PR vs 979 ms on main: one SwiftShader shader compile (glc max
+  2,007 ms) landing on a different frame; compile totals are 8.1 vs 7.0 s for 243 vs 233 programs (BatchedMesh
+  variants). Static spawn view (q=low phone): draw calls 512/364 -> 506/364, triangles 1.48M/960k -> 725k/530k.
+
+### Rebase on main dbf35eb (r257-r260b: Faro Blanco balustrade, California Lighthouse lot, +5 shop signs, data cache bump)
+- Same --exec regeneration; only generated-file conflicts. Bundles byte-identical to a fresh rebuild / re-patch,
+  typecheck clean, cache versions bumped (-pf11).
