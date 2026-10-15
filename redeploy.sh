@@ -11,6 +11,6 @@ export SURGE_TOKEN=$(sed -n 's/^token=//p' "$CREDS")
 DOMAIN=$(sed -n 's/^domain=//p' "$CREDS")
 sh make-deploy.sh
 echo "$DOMAIN" > deploy/CNAME
-"$SURGE" ./deploy "$DOMAIN"
-curl -fsS -o /dev/null -w "check: %{http_code}\n" "https://$DOMAIN/?q=low"
+timeout 600 "$SURGE" ./deploy "$DOMAIN"
+curl --max-time 30 --retry 2 -fsS -o /dev/null -w "check: %{http_code}\n" "https://$DOMAIN/?q=low"
 echo "Live: https://$DOMAIN/?q=low"
