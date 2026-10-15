@@ -53083,33 +53083,33 @@
   "k": "jei_boulders_17",
   "name": "Boulders along J.E. Irausquin Blvd sea-side shoulder (Eagle Beach)",
   "status": "v4-mall-detail",
-  "x": -8583.48,
-  "z": -4876.01,
+  "x": -8574.64,
+  "z": -4878.79,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/jei_boulders_17.glb",
   "lod": {
    "hi": "jei_boulders_17_lod0",
    "lo": "jei_boulders_17_lod1",
-   "switch_m": 446
+   "switch_m": 425
   },
   "tris": {
-   "jei_boulders_17_lod0": 3752,
-   "jei_boulders_17_lod1": 1933
+   "jei_boulders_17_lod0": 3612,
+   "jei_boulders_17_lod1": 1861
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -8583.6,
-    -4876.1
+    -8574.7,
+    -4878.9
    ],
    [
-    -8583.4,
-    -4876.1
+    -8574.5,
+    -4878.9
    ],
    [
-    -8583.4,
-    -4875.9
+    -8574.5,
+    -4878.7
    ]
   ],
   "hide": [],
@@ -53126,8 +53126,8 @@
   "k": "jei_boulders_14",
   "name": "Boulders along J.E. Irausquin Blvd sea-side shoulder (Eagle Beach)",
   "status": "v4-mall-detail",
-  "x": -9203.84,
-  "z": -4062.15,
+  "x": -9203.6,
+  "z": -4053.58,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/jei_boulders_14.glb",
@@ -53137,22 +53137,22 @@
    "switch_m": 400
   },
   "tris": {
-   "jei_boulders_14_lod0": 1687,
-   "jei_boulders_14_lod1": 871
+   "jei_boulders_14_lod0": 1582,
+   "jei_boulders_14_lod1": 817
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -9203.9,
-    -4062.3
+    -9203.7,
+    -4053.7
    ],
    [
-    -9203.7,
-    -4062.3
+    -9203.5,
+    -4053.7
    ],
    [
-    -9203.7,
-    -4062.1
+    -9203.5,
+    -4053.5
    ]
   ],
   "hide": [],
@@ -53212,33 +53212,33 @@
   "k": "jei_boulders_16",
   "name": "Boulders along J.E. Irausquin Blvd sea-side shoulder (Eagle Beach)",
   "status": "v4-mall-detail",
-  "x": -8691.76,
-  "z": -4697.04,
+  "x": -8633.15,
+  "z": -4679.83,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/jei_boulders_16.glb",
   "lod": {
    "hi": "jei_boulders_16_lod0",
    "lo": "jei_boulders_16_lod1",
-   "switch_m": 791
+   "switch_m": 758
   },
   "tris": {
-   "jei_boulders_16_lod0": 5642,
-   "jei_boulders_16_lod1": 2905
+   "jei_boulders_16_lod0": 4242,
+   "jei_boulders_16_lod1": 2185
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -8691.9,
-    -4697.1
+    -8633.3,
+    -4679.9
    ],
    [
-    -8691.7,
-    -4697.1
+    -8633.1,
+    -4679.9
    ],
    [
-    -8691.7,
-    -4696.9
+    -8633.1,
+    -4679.7
    ]
   ],
   "hide": [],
