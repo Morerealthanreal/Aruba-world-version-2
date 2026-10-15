@@ -39,7 +39,7 @@ type Real = {
   hero?: Hero;
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
-type Post = { ao?: { enabled: boolean }; composer?: unknown };
+type Post = { ao?: { enabled: boolean }; composer?: unknown; render(): void };
 
 declare global {
   interface Window { __awPost?: Post; __awMMDiv?: number }

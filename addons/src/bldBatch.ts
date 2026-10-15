@@ -70,7 +70,11 @@ export class BldBatch {
       return r;
     };
   }
-  pending() { return this.jobs.length; }
+  pending() {
+    let n = this.jobs.length;
+    for (const R of (this.g.real as unknown as A).regions.values()) if (!R.__awBB && R.state === "built" && R.group) n++;
+    return n;
+  }
 
   frame() {
     const A = this.g.real as unknown as A, t0 = performance.now();

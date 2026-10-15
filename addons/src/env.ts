@@ -40,7 +40,6 @@ declare global {
     game?: AGame;
     __fps?: number;
     __noPost?: boolean;
-    __awPost?: { render(): void };
     __aw?: Record<string, unknown>;
   }
 }
