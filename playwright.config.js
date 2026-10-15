@@ -1,4 +1,11 @@
 import { defineConfig } from "@playwright/test";
+import path from "node:path";
+
+const requestedRunId =
+  process.env.PLAYWRIGHT_RUN_ID ||
+  `${new Date().toISOString().replaceAll(":", "-")}-${process.pid}`;
+const runId = requestedRunId.replace(/[^a-zA-Z0-9._-]/g, "-");
+const runOutputDir = path.join("tests", "artifacts", "runs", runId);
 
 export default defineConfig({
   testDir: "./tests",
@@ -16,16 +23,21 @@ export default defineConfig({
   reporter: process.env.CI
     ? [
         ["line"],
-        ["html", { outputFolder: "tests/artifacts/report", open: "never" }],
+        [
+          "html",
+          { outputFolder: path.join(runOutputDir, "report"), open: "never" },
+        ],
       ]
     : "line",
-  outputDir: "tests/artifacts/test-results",
+  outputDir: path.join(runOutputDir, "test-results"),
   use: {
     baseURL: "http://127.0.0.1:8777",
     viewport: { width: 1280, height: 720 },
     actionTimeout: 15 * 1000,
     navigationTimeout: 120 * 1000,
-    trace: "retain-on-failure",
+    // Local runs have no retries, so this records nothing. In CI, a trace is
+    // recorded only for the retry after an initial failure.
+    trace: "on-first-retry",
     screenshot: "only-on-failure",
     launchOptions: {
       args: [
