@@ -29,7 +29,7 @@ for r in R:
     pts=r[2]
     for i in range(len(pts)-1):
       a,b=pts[i],pts[i+1]
-      if not (-6720<a[0]<-6500 and -4400<a[1]<-1900): continue
+      if not (-6800<a[0]<-6500 and -5400<a[1]<-1900): continue
       L=math.hypot(b[0]-a[0],b[1]-a[1]); n=max(1,int(L/5))
       for k in range(n): NP+=[round(a[0]+(b[0]-a[0])*k/n,1),round(a[1]+(b[1]-a[1])*k/n,1)]
 pre+='window.__awVegNP='+json.dumps(NP).replace(' ','')+';\n'
