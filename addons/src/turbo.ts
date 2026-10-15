@@ -33,7 +33,7 @@ void main(){
   float dia = mix(1.0, 0.55 + 0.9 * pow(abs(cos(L * 15.7 - 0.6)), 8.0) * (1.0 - smoothstep(0.1, 0.85, L)), uCore);
   vec3 col = mix(uC1, uC0, smoothstep(0.15, 0.9, f) * (1.0 - L * (1.0 - uCore) * 0.6));
   float a = pow(f, mix(0.9, 1.6, uCore)) * pow(1.0 - L, mix(1.3, 2.2, uCore)) * smoothstep(0.0, 0.06, L + 0.02) * n * uI;
-  a *= mix(0.3 + 0.7 * smoothstep(0.0, 0.32, L), 1.0, uCore);
+  a *= mix(0.12 + 0.88 * smoothstep(0.0, 0.38, L), 1.0, uCore);
   gl_FragColor = vec4(col * a * dia * uGain, min(1.0, a * uOcc));
 }`;
 const partVS = `
@@ -58,7 +58,7 @@ void main(){
 function glowTexture() {
   const c = document.createElement("canvas"); c.width = c.height = 64;
   const x = c.getContext("2d")!; const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, "rgba(200,225,255,0.75)");
+  gr.addColorStop(0, "rgba(225,238,255,1)"); gr.addColorStop(0.25, "rgba(150,190,255,0.6)");
   gr.addColorStop(0.55, "rgba(255,140,40,0.3)"); gr.addColorStop(1, "rgba(255,90,10,0)");
   x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
@@ -97,9 +97,9 @@ export class Turbo {
     window.addEventListener("keyup", (e) => { if (e.code === "KeyT") this.release(e.timeStamp); });
     window.addEventListener("blur", (e) => this.release(e.timeStamp));
     const kh = document.getElementById("keyhelp"); if (kh && !/turbo/i.test(kh.textContent || "")) kh.textContent += " · T turbo jet (plane)";
-    this.core = this.plume(0xc4dcff, 0x4a7dff, 1, 0, 1.15); this.core.scale.set(0.3, 0.3, CORE_L);
-    this.outer = this.plume(0xffd890, 0xff5a12, 0, 0.6, 1.7); this.outer.scale.set(OUTER_R, OUTER_R, OUTER_L);
-    this.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xfff1dc, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false }));
+    this.core = this.plume(0x9cc2ff, 0x4070ff, 1, 0.5, 1.0); this.core.scale.set(0.3, 0.3, CORE_L);
+    this.outer = this.plume(0xffbe6a, 0xff5a12, 0, 0.6, 1.7); this.outer.scale.set(OUTER_R, OUTER_R, OUTER_L);
+    this.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xd2e2ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false }));
     this.glow.position.z = 0.15; this.glow.scale.setScalar(3); this.glow.renderOrder = 6;
     const pg = new THREE.BufferGeometry();
     pg.setAttribute("position", new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
@@ -165,7 +165,7 @@ export class Turbo {
     this.outer.scale.z = OUTER_L * (0.4 + 0.6 * I) * (2 - f);
     const wob = 1 + (Math.random() - 0.5) * 0.06;
     this.outer.scale.x = this.outer.scale.y = OUTER_R * wob;
-    (this.glow.material as THREE.SpriteMaterial).opacity = (0.75 + Math.random() * 0.25) * I;
+    (this.glow.material as THREE.SpriteMaterial).opacity = (0.5 + Math.random() * 0.2) * I;
     this.glow.scale.setScalar(3 * (0.8 + 0.2 * f));
     this.particles(dt, I);
   }
@@ -190,7 +190,7 @@ export class Turbo {
     geo.attributes.position.needsUpdate = true; geo.attributes.aLife.needsUpdate = true;
     const m = this.parts.material as THREE.ShaderMaterial;
     m.uniforms.uI.value = I;
-    m.uniforms.uScale.value = this.g.renderer.domElement.height * 0.34;
+    m.uniforms.uScale.value = this.g.renderer.domElement.height * 0.27;
   }
   /** FOV push through camera.zoom (< 1 widens): composes with gvMoto's speed FOV instead of fighting it. */
   private fov(flying: boolean) {
