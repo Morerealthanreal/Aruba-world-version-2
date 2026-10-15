@@ -28,6 +28,7 @@ export type CharacterPaint = {
 };
 
 export type CharacterMetrics = { draws: number; triangles: number };
+export type PreparedCharacterSource = { gl: GLTF; metrics: CharacterMetrics };
 
 export const CHARACTER_PALETTES: readonly CharacterPalette[] = [
   { skin: 0xfff4e8, hair: 0x5b2f1d, top: 0xd96f56, bottom: 0x31546b, dress: 0xc65d53 },
@@ -39,6 +40,7 @@ export const CHARACTER_PALETTES: readonly CharacterPalette[] = [
 ];
 
 let loader: GLTFLoader | null = null;
+const sourceCache = new Map<string, Promise<PreparedCharacterSource>>();
 
 export function characterLoader(renderer: WebGLRenderer): GLTFLoader {
   if (loader) return loader;
@@ -50,6 +52,21 @@ export function characterLoader(renderer: WebGLRenderer): GLTFLoader {
     .setMeshoptDecoder(MeshoptDecoder)
     .setKTX2Loader(ktx);
   return loader;
+}
+
+export function loadCharacterSource(
+  renderer: WebGLRenderer,
+  file: string,
+): Promise<PreparedCharacterSource> {
+  let source = sourceCache.get(file);
+  if (!source) {
+    source = characterLoader(renderer).loadAsync(`./models/${file}`).then((gl) => ({
+      gl,
+      metrics: prepareCharacterSource(gl),
+    }));
+    sourceCache.set(file, source);
+  }
+  return source;
 }
 
 function triangles(mesh: Mesh) {

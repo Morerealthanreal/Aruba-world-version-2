@@ -7,7 +7,7 @@ import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeo
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, characterLoader, prepareCharacterSource, styleCharacter,
+  CHARACTER_PALETTES, loadCharacterSource, styleCharacter,
   updateCharacterPaint, type CharacterPaint,
 } from "./characters";
 
@@ -204,12 +204,10 @@ let npcSerial = 0;
 function loadNpcRigs() {
   const renderer = window.game?.renderer;
   if (!renderer) return Promise.reject(new Error("renderer is not ready"));
-  const loader = characterLoader(renderer);
   return (npcLoad ||= Promise.all(["ped_sam_near.glb", "ped_maya_dress_near.glb"].map((file) =>
-    loader.loadAsync(`./models/${file}`)))
+    loadCharacterSource(renderer, file)))
     .then((sources) => {
-      for (const source of sources) prepareCharacterSource(source);
-      npcSources = sources;
+      npcSources = sources.map((source) => source.gl);
     })
     .catch((e) => console.warn("[aw-npc] detailed rigs", e)));
 }
