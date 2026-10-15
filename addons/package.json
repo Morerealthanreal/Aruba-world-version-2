@@ -8,7 +8,7 @@
     "typecheck": "tsc -p .",
     "cars": "node cars/build.mjs",
     "dev": "npm run build -- --watch",
-    "model:moto": "node ../tools/generate_moto.mjs"
+    "model:moto": "node -e \"console.error('game/models/moto.glb is the CC-BY Sports Bike mesh. The procedural generator is retired.'); process.exit(1)\""
   },
   "keywords": [],
   "author": "",
