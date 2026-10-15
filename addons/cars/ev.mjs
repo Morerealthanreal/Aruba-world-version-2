@@ -65,7 +65,7 @@ function buildAmbulance(L) {
   loftCabin(P, cb, L);
   lights(P, cb, ambCab, L, "light", true);
   frontEnd(P, cb, ambCab, L);
-  endDecal(P, cb, "chrome", L.detail ? 10 : 2, 1, 1, (u, v) => { const [a, b] = rounded(u, 0.2); return [lerp(-0.9, 0.9, u), lerp(0.4, 0.62, lerp(a, b, v))]; }, 0.006);
+  if (L.detail) endDecal(P, cb, "chrome", 10, 1, 1, (u, v) => { const [a, b] = rounded(u, 0.2); return [lerp(-0.9, 0.9, u), lerp(0.5, 0.68, lerp(a, b, v))]; }, 0.006);
   sideBits(P, cb, ambCab, L);
   livery(P, cb, ambCab, ["cabr", "cabl"], L, () => ambCab.livery.y[0], (z) => cb.yt(z) - ambCab.body.rt * 0.6);
   // box: separate parts so cab decals never land on it (and vice versa)
