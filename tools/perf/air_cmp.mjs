@@ -1,11 +1,12 @@
 // PORT=8777 node air_cmp.mjs <label> "<query>" <spot> [settleMaxS]  e.g. air_cmp.mjs pr_med_noord "q=med&t=10&freeze=1" noord
 // Visual check at a named spot (tests/aruba-world.spec.js coordinates), for main vs PR comparisons with compose.py.
-// Teleports on foot, waits until the scene is complete, then shoots the ground view and a 60 m aerial view
-// (camera override at render time, so A's / the add-ons' culling still use the player as focus).
-// "Complete" = no region jobs / loads, add-on pending() jobs done, hero GLBs within A's 1500 m radius loaded and
+// Teleports on foot, waits until the scene is complete, then shoots a ground view 7 m behind the player and a
+// 60 m aerial view (camera override at render time, so A's / the add-ons' culling still use the player as focus).
+// "Complete" = no region jobs / loads, add-on pending() jobs done, flora generated, hero GLBs within A's 1500 m radius loaded and
 // (on main) bldMerge's queue empty: before that A's per-cell bldR rule hides far cells, which is not what a
 // player sees after a few seconds. Software GL is well under 1 fps at 1000x620, so it settles at a small
-// viewport (SETTLE_VP, default 320x200) and switches back for the shots.
+// viewport (SETTLE_VP, default 320x200) and switches back for the shots; bldMerge (one bucket every 3rd
+// frame) is pumped directly once regions are built (same end state, >1 h of frames at q=high otherwise).
 import fs from "fs";
 import { boot, sleep } from "./boot.mjs";
 fs.mkdirSync("./res/shots", { recursive: true });
@@ -30,28 +31,40 @@ for (;;) {
   await sleep(5000);
   st = await page.evaluate(() => {
     const A = game.real, aw = window.__aw || {}, S = game.S, e = S.mode === "walk" ? S.walk : S.car;
+    // A runs its region jobs with a 7 ms budget per frame; run more of them between frames (dt 0: no time passes)
+    if (A.queue.length) for (let k = 0; k < 10 && A.queue.length; k++) A.update(e.x, e.y, e.z, 0, 200);
     let p = 0, nb = 0, hp = 0, bm = 0;
     for (const r of A.regions.values()) if (r.state !== "built") nb++;
     for (const k of Object.keys(aw)) if (aw[k] && typeof aw[k].pending === "function") p += aw[k].pending();
     if (A.hero) for (const n of A.hero.list) if (!n._g && Math.hypot(n.x - e.x, n.z - e.z) < 1500) hp++;
     const B = aw.bmerge;
-    if (B && !aw.bbatch && B.todo) { bm = B.todo.length; for (const r of A.regions.values()) if (r.state === "built" && r.group && !r.__awBM) bm++; }
-    return { q: A.queue.length, l: A.loading, nb, p, hp, bm };
+    if (B && !aw.bbatch && B.todo) { if (!A.queue.length && !A.loading && !nb) for (let i = 0; i < 300 && B.todo.length + [...A.regions.values()].filter((r) => r.state === "built" && r.group && !r.__awBM).length; i++) B.frame(); bm = B.todo.length; for (const r of A.regions.values()) if (r.state === "built" && r.group && !r.__awBM) bm++; }
+    const F = aw.flora; let fl = 0;
+    if (F && !A.queue.length && !nb) { const b0 = F.budget; F.budget = 200; for (let k = 0; k < 5; k++) F.update(A.regions, e.x, e.z); F.budget = b0; }
+    if (F) { fl = F.gen ? 1 : 0; for (const r of A.regions.values()) if (r.state === "built" && r.group && r.json && !r.__awFlora) fl++; }
+    return { q: A.queue.length, l: A.loading, nb, p, hp, bm, fl };
   });
-  if (!st.q && !st.l && !st.nb && !st.p && !st.hp && !st.bm) break;
+  if (!st.q && !st.l && !st.nb && !st.p && !st.hp && !st.bm && !st.fl) break;
   if (Date.now() - t0 > +settleMax * 1000) { console.log("NOT SETTLED", JSON.stringify(st)); break; }
 }
 const settleS = (Date.now() - t0) / 1000 | 0;
 await page.setViewport(VP);
-await sleep(12000);
-await page.screenshot({ path: `./res/shots/${label}_ground.png` });
+// Both shots use a fixed camera derived from the player: A's follow camera eases toward its target, so after
+// settle runs of different length it rests a few pixels apart, which shows up as a full-frame diff.
 await page.evaluate(() => {
   const g = window.game, P = window.__awPost, cam = g.camera, S = g.S;
   const e = S.mode === "walk" ? S.walk : S.car, ox = Math.sin(S.camYaw), oz = Math.cos(S.camYaw);
-  const v = { p: [e.x + ox * 70, e.y + 60, e.z + oz * 70], t: [e.x - ox * 120, e.y, e.z - oz * 120] };
-  const wrap = (o, k) => { const f = o[k].bind(o); o[k] = (...a) => { cam.position.set(...v.p); cam.lookAt(...v.t); cam.updateMatrixWorld(); return f(...a); }; };
+  window.__camViews = {
+    ground: { p: [e.x + ox * 7, e.y + 3.2, e.z + oz * 7], t: [e.x - ox * 30, e.y + 1, e.z - oz * 30] },
+    aerial: { p: [e.x + ox * 70, e.y + 60, e.z + oz * 70], t: [e.x - ox * 120, e.y, e.z - oz * 120] },
+  };
+  window.__camView = "ground";
+  const wrap = (o, k) => { const f = o[k].bind(o); o[k] = (...a) => { const v = window.__camViews[window.__camView]; cam.position.set(...v.p); cam.lookAt(...v.t); cam.updateMatrixWorld(); return f(...a); }; };
   if (P && P.on) wrap(P, "render"); else wrap(g.renderer, "render");
 });
+await sleep(12000);
+await page.screenshot({ path: `./res/shots/${label}_ground.png` });
+await page.evaluate(() => { window.__camView = "aerial"; });
 await sleep(15000);
 await page.screenshot({ path: `./res/shots/${label}.png` });
 const d = await page.evaluate(() => {
