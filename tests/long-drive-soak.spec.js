@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 
 const STOP_MS = Number(process.env.SOAK_STOP_MS || 7_000);
-const WARMUP_CYCLES = Number(process.env.SOAK_WARMUP_CYCLES || 2);
+const WARMUP_CYCLES = Number(process.env.SOAK_WARMUP_CYCLES || 3);
 const MEASURE_CYCLES = Number(process.env.SOAK_MEASURE_CYCLES || 2);
 const TOTAL_CYCLES = WARMUP_CYCLES + MEASURE_CYCLES;
 const HEAP_GROWTH_LIMIT = Number(process.env.SOAK_HEAP_GROWTH_MB || 24) * 1024 * 1024;
@@ -10,7 +10,7 @@ const GEOMETRY_GROWTH_LIMIT = Number(process.env.SOAK_GEOMETRY_GROWTH || 12);
 const TEXTURE_GROWTH_LIMIT = Number(process.env.SOAK_TEXTURE_GROWTH || 4);
 
 // A full-island loop forces streamed regions to unload and then rebuild when the
-// route repeats. Two loops let asynchronous model/texture loads settle; measured
+// route repeats. Three loops let asynchronous model/texture loads settle; measured
 // loops after that must stay flat.
 const ROUTE = [
   { name: "oranjestad", lat: 12.5186, lon: -70.0358 },
@@ -165,6 +165,12 @@ async function sampleResources(page, cdp, cycle, stop) {
     ({ cycle: sampleCycle, stop: sampleStop }) => {
       const game = window.game;
       const memory = game.renderer.info.memory;
+      const sceneGeometries = new Set();
+      let sceneObjects = 0;
+      game.scene.traverse((object) => {
+        sceneObjects++;
+        if (object.geometry) sceneGeometries.add(object.geometry.uuid);
+      });
       return {
         cycle: sampleCycle,
         stop: sampleStop,
@@ -172,6 +178,8 @@ async function sampleResources(page, cdp, cycle, stop) {
         heap: performance.memory?.usedJSHeapSize ?? null,
         geometries: memory.geometries,
         textures: memory.textures,
+        sceneGeometries: sceneGeometries.size,
+        sceneObjects,
         listeners: window.__awListenerProbe.count(),
         regions: game.real.regions?.size ?? null,
         contextLost: game.renderer.getContext().isContextLost(),
@@ -202,7 +210,7 @@ test("long phone drive keeps runtime resources flat", async ({
   context,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "low", "The phone soak runs on LOW only");
-  test.setTimeout(6 * 60 * 1000);
+  test.setTimeout(7 * 60 * 1000);
 
   const failures = captureRuntimeFailures(page);
   await installListenerProbe(page);

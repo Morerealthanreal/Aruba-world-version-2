@@ -18,7 +18,7 @@ Local runs do not record traces. CI records a trace only on the retry after an
 initial failure, avoiding trace-finalization errors on successful browser close.
 
 The LOW project also runs a Galaxy S24+-sized long-drive soak. It repeatedly
-drives a full-island route after two warm-up loops, forces garbage collection at
+drives a full-island route after three warm-up loops, forces garbage collection at
 each stop, and records the JS heap, `renderer.info` geometry/texture totals, and
 active event-listener count. The test fails on a browser error, crash, WebGL
 context loss, lost controls, or continued resource growth. Its samples are
