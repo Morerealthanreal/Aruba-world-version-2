@@ -2,7 +2,7 @@
 """Clear core vegetation inside listed circles (x,z,r) e.g. paved roundabout islands, plus (r199) inside ML-footprint houses (grid-hashed circles from landmarks/msb/<area>_add.json). Idempotent; edit CLEAR/AREAS and re-run."""
 import re,json,math
 P='/workspace/aruba-world-merged/game/assets/index-D_YJh5Nn.js'
-CLEAR=[[-2723,-659,9],[-6596,-2863,13],[8629,9624,85],[8793,9624,85],[8629,9754,85],[8793,9754,85],[-7345,-5362,32],[-6518,-5811,30],[-6234,1242,31],[-6630.5,-1925.3,17]]  # Piedra Plat island; Wei Ming island; Sunrise Solar Park blocks; Noord complex
+CLEAR=[[-2723,-659,9],[-6596,-2863,13],[8629,9624,85],[8793,9624,85],[8629,9754,85],[8793,9754,85],[-7345,-5362,32],[-6518,-5811,30],[-6234,1242,31],[-6630.5,-1925.3,17],[-5857,733,30],[-5857,785,30]]  # Piedra Plat island; Wei Ming island; Sunrise Solar Park blocks; Noord complex
 AREAS=['noord','palmbeach','oranjestad','sannicolas']
 H=[]
 for a in AREAS:
