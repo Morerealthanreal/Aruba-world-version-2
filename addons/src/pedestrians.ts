@@ -3,10 +3,14 @@
 // pedestrian parts, and instance counts drop to zero outside the LOD radius.
 // ?peds=0 (or ?life=0) restores A's original pedestrians.
 import {
-  BufferGeometry, Color, CylinderGeometry, DynamicDrawUsage, Float32BufferAttribute,
-  Group, InstancedMesh, Matrix4, MeshLambertMaterial, Quaternion, SphereGeometry,
-  Vector3, type Object3D,
+  AnimationMixer, BufferGeometry, Color, CylinderGeometry, DynamicDrawUsage,
+  Float32BufferAttribute, Group, InstancedMesh, Matrix4, MeshLambertMaterial,
+  Quaternion, SphereGeometry, Vector3, type AnimationAction, type Material,
+  type Mesh, type Object3D,
 } from "three";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { AGame } from "./env";
 
 type Road = {
@@ -22,7 +26,14 @@ type Walker = {
   road: Road | null; length: number; s: number; dir: number; side: number;
   speed: number; phase: number; x: number; y: number; z: number; yaw: number;
   skin: number; top: number; bottom: number; height: number; build: number;
+  d2: number; selected: boolean;
 };
+type DetailedPed = {
+  root: Group; inner: Object3D; mixer: AnimationMixer;
+  walk: AnimationAction; idle: AnimationAction; walker: Walker | null; beach: boolean;
+  draws: number; triangles: number; scale: number;
+};
+type DetailedSource = { gl: GLTF; beach: boolean; scale: number };
 
 const TOPS = [0xe95b5b, 0x3d8fcb, 0xf1c84b, 0x4da968, 0xe983b3, 0xe78b45, 0x735db2];
 const BOTTOMS = [0x263445, 0x554535, 0xd9d4c7, 0x334c69, 0x313338];
@@ -55,13 +66,22 @@ const LEG = new CylinderGeometry(0.42, 0.5, 1, 4, 1, true, Math.PI / 4);
 const ARM = new CylinderGeometry(0.38, 0.48, 1, 4, 1, true, Math.PI / 4);
 const tris = (g: BufferGeometry) => (g.index ? g.index.count : g.attributes.position.count) / 3;
 const HEAD_TRIS = tris(HEAD), TORSO_TRIS = tris(TORSO), LEG_TRIS = tris(LEG), ARM_TRIS = tris(ARM);
+const DETAIL_MODELS = [
+  { file: "ped_casual2_f.glb", beach: false, scale: 0.56 },
+  { file: "ped_casual2_m.glb", beach: false, scale: 0.56 },
+  { file: "ped_casual3_f.glb", beach: false, scale: 0.56 },
+  { file: "ped_casual3_m.glb", beach: false, scale: 0.56 },
+  { file: "ped_beach_f.glb", beach: true, scale: 0.98 },
+];
 
 export class PedestrianCrowds {
-  stats = { pooled: 0, visible: 0, draws: 0, triangles: 0, corridors: 0 };
+  stats = { pooled: 0, visible: 0, detailed: 0, draws: 0, triangles: 0, corridors: 0 };
   private amb: Amb | null = null;
   private walkers: Walker[] = [];
   private routes: Road[] = [];
   private group = new Group();
+  private detailGroup = new Group();
+  private details: DetailedPed[] = [];
   private head: InstancedMesh;
   private torso: InstancedMesh;
   private legs: InstancedMesh;
@@ -77,18 +97,29 @@ export class PedestrianCrowds {
   private scanIn = 0;
   private lod2: number;
   private near2: number;
+  private detail2: number;
+  private hideFallback2: number;
+  private detailCap: number;
   private legN = 0;
   private armN = 0;
+  private detailDraws = 0;
+  private detailTriangles = 0;
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
     const cap = tier === "low" ? 18 : tier === "med" ? 32 : 48;
     const lod = tier === "low" ? 190 : 250;
     const near = tier === "low" ? 32 : tier === "med" ? 48 : 64;
+    const detail = tier === "low" ? 24 : tier === "med" ? 32 : 40;
+    const hideFallback = tier === "low" ? 12 : tier === "med" ? 15 : 18;
+    this.detailCap = tier === "low" ? 1 : tier === "med" ? 2 : 3;
     this.lod2 = lod * lod;
     this.near2 = near * near;
+    this.detail2 = detail * detail;
+    this.hideFallback2 = hideFallback * hideFallback;
 
     this.group.name = "aw:pedestrians";
+    this.detailGroup.name = "aw:pedestrians:detailed";
     const face = new MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
     const skin = new MeshLambertMaterial({ color: 0xffffff });
     const cloth = new MeshLambertMaterial({ color: 0xffffff });
@@ -99,7 +130,7 @@ export class PedestrianCrowds {
     this.arms = this.mesh(ARM, skin, cap * 4, "arms");
     this.meshes = [this.head, this.torso, this.legs, this.arms];
     this.group.add(this.head, this.torso, this.legs, this.arms);
-    g.scene.add(this.group);
+    g.scene.add(this.group, this.detailGroup);
 
     for (let i = 0; i < cap; i++) {
       this.walkers.push({
@@ -111,9 +142,11 @@ export class PedestrianCrowds {
         bottom: BOTTOMS[(i * 7) % BOTTOMS.length],
         height: 0.92 + (i % 7) * 0.025,
         build: 0.9 + (i % 5) * 0.05,
+        d2: Infinity, selected: false,
       });
     }
     this.stats.pooled = cap;
+    this.loadDetailed();
   }
 
   private mesh(geo: BufferGeometry, mat: MeshLambertMaterial, count: number, name: string) {
@@ -124,6 +157,57 @@ export class PedestrianCrowds {
     mesh.castShadow = this.g.real!.q.name !== "low";
     mesh.count = 0;
     return mesh;
+  }
+
+  private loadDetailed() {
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    Promise.all(DETAIL_MODELS.map(async (model): Promise<DetailedSource> => ({
+      gl: await loader.loadAsync(`./models/${model.file}`),
+      beach: model.beach,
+      scale: model.scale,
+    }))).then((sources) => {
+      for (const source of sources) this.details.push(this.makeDetailed(source));
+      console.info("[aw-peds] detailed rigs ready", this.details.length);
+    }).catch((e) => console.warn("[aw-peds] detailed rigs", e));
+  }
+
+  private makeDetailed(source: DetailedSource): DetailedPed {
+    const inner = skClone(source.gl.scene);
+    inner.rotation.y = Math.PI;
+    const root = new Group();
+    root.name = source.beach ? "aw:pedestrians:beach-rig" : "aw:pedestrians:casual-rig";
+    root.add(inner);
+    root.visible = false;
+    let draws = 0, triangles = 0;
+    inner.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = false;
+      mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      // glTF-Transform palettes every clothing/skin colour into one tiny texture.
+      // GLTFLoader preserves the old primitive groups even though they now share
+      // one material; collapsing those groups makes each skinned mesh one draw.
+      if (materials.length > 1 && materials.every((m) => m === materials[0])) {
+        const count = mesh.geometry.index?.count || mesh.geometry.attributes.position.count;
+        mesh.geometry.clearGroups();
+        mesh.geometry.addGroup(0, count, 0);
+        mesh.material = materials[0] as Material;
+      }
+      draws++;
+      triangles += tris(mesh.geometry);
+    });
+    const mixer = new AnimationMixer(inner);
+    const clip = (name: string) => source.gl.animations.find((a) => a.name === name) || source.gl.animations[0];
+    const walk = mixer.clipAction(clip("Walk"));
+    const idle = mixer.clipAction(clip("Idle"));
+    walk.play();
+    idle.play();
+    idle.setEffectiveWeight(0);
+    walk.time = this.details.length * 0.37 * walk.getClip().duration;
+    this.detailGroup.add(root);
+    return { root, inner, mixer, walk, idle, walker: null, beach: source.beach, draws, triangles, scale: source.scale };
   }
 
   private roadLength(road: Road) {
@@ -262,6 +346,67 @@ export class PedestrianCrowds {
     }
   }
 
+  private updateDetailed(dt: number) {
+    for (const w of this.walkers) w.selected = false;
+    if (!this.details.length) {
+      this.stats.detailed = 0;
+      this.detailDraws = 0;
+      this.detailTriangles = 0;
+      return;
+    }
+
+    // Fixed-size nearest selection: no sort arrays or frame allocations.
+    for (let slot = 0; slot < this.detailCap; slot++) {
+      let best: Walker | null = null, bestD2 = this.detail2;
+      for (const w of this.walkers) {
+        if (!w.selected && w.d2 < bestD2) { best = w; bestD2 = w.d2; }
+      }
+      if (!best) break;
+      best.selected = true;
+    }
+
+    // Keep a rig attached to the same walker while it remains in the nearest set.
+    for (const d of this.details) {
+      if (d.walker?.selected) continue;
+      d.walker = null;
+      d.root.visible = false;
+    }
+    for (const w of this.walkers) {
+      if (!w.selected) continue;
+      let assigned = false;
+      for (const d of this.details) if (d.walker === w) { assigned = true; break; }
+      if (assigned) continue;
+      const beach = w.road?.n === "J.E. Irausquin Boulevard";
+      let chosen: DetailedPed | null = null;
+      for (const d of this.details) {
+        if (!d.walker && d.beach === beach) { chosen = d; break; }
+      }
+      if (!chosen) for (const d of this.details) if (!d.walker) { chosen = d; break; }
+      if (chosen) chosen.walker = w;
+      else w.selected = false;
+    }
+
+    let visible = 0, draws = 0, triangles = 0;
+    for (const d of this.details) {
+      const w = d.walker;
+      if (!w) continue;
+      d.root.position.set(w.x, w.y, w.z);
+      d.root.rotation.y = w.yaw;
+      d.root.scale.setScalar(d.scale * w.height);
+      d.root.visible = true;
+      d.walk.timeScale = 0.85 + w.speed * 0.18;
+      d.walk.setEffectiveWeight(1);
+      d.idle.setEffectiveWeight(0);
+      d.mixer.update(dt);
+      visible++;
+      draws += d.draws;
+      triangles += d.triangles;
+    }
+    this.stats.detailed = visible;
+    this.detailDraws = draws;
+    this.detailTriangles = triangles;
+  }
+
   update(dt: number, time: number) {
     if (!this.amb) {
       const amb = (this.g.real as unknown as { amb?: Amb }).amb;
@@ -282,10 +427,8 @@ export class PedestrianCrowds {
     }
 
     const cam = this.g.camera.position;
-    let visible = 0;
-    this.legN = 0;
-    this.armN = 0;
     for (const w of this.walkers) {
+      w.d2 = Infinity;
       if (!w.road || w.length <= 0) continue;
       w.s += w.dir * w.speed * dt;
       if (w.s >= w.length) { w.s = w.length; w.dir = -1; }
@@ -294,7 +437,16 @@ export class PedestrianCrowds {
       const dx = w.x - cam.x, dz = w.z - cam.z;
       const d2 = dx * dx + dz * dz;
       if (d2 > this.lod2) continue;
-      this.drawWalker(w, visible++, time, d2 < this.near2);
+      w.d2 = d2;
+    }
+
+    this.updateDetailed(dt);
+    let visible = 0;
+    this.legN = 0;
+    this.armN = 0;
+    for (const w of this.walkers) {
+      if (w.d2 === Infinity || w.selected || w.d2 < this.hideFallback2) continue;
+      this.drawWalker(w, visible++, time, w.d2 < this.near2);
     }
 
     this.head.count = visible;
@@ -308,10 +460,10 @@ export class PedestrianCrowds {
       }
       mesh.visible = mesh.count > 0;
     }
-    this.stats.visible = visible;
+    this.stats.visible = visible + this.stats.detailed;
     this.stats.draws = (this.head.count ? 1 : 0) + (this.torso.count ? 1 : 0)
-      + (this.legs.count ? 1 : 0) + (this.arms.count ? 1 : 0);
+      + (this.legs.count ? 1 : 0) + (this.arms.count ? 1 : 0) + this.detailDraws;
     this.stats.triangles = this.head.count * HEAD_TRIS + this.torso.count * TORSO_TRIS
-      + this.legs.count * LEG_TRIS + this.arms.count * ARM_TRIS;
+      + this.legs.count * LEG_TRIS + this.arms.count * ARM_TRIS + this.detailTriangles;
   }
 }
