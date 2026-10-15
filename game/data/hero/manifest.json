@@ -52787,8 +52787,8 @@
   "k": "rb_ponton_obelisk",
   "name": "Stone obelisk roundabout (Ponton, past Wing Hung)",
   "status": "v4-mall-detail",
-  "x": -6635,
-  "z": -1925,
+  "x": -6630.5,
+  "z": -1925.3,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/rb_ponton_obelisk.glb",
@@ -52804,16 +52804,16 @@
   "textures": 0,
   "hide_footprint": [
    [
-    -6635.1,
-    -1925.1
+    -6630.6,
+    -1925.4
    ],
    [
-    -6634.9,
-    -1925.1
+    -6630.4,
+    -1925.4
    ],
    [
-    -6634.9,
-    -1924.9
+    -6630.4,
+    -1925.2
    ]
   ],
   "hide": [],
