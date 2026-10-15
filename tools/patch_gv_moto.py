@@ -50,7 +50,7 @@ swap(
 )
 swap(
     "brake drift",
-    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:15):30)*e))",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:20):30)*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),30*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(Math.abs(t)>.35&&Math.abs(a.s)>11?8:30)*e))",
     f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}&&Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:30)*e))",
