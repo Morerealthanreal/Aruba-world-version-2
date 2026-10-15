@@ -6,6 +6,7 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --format=esm --minify --target=es2020 --outfile=../game/addons/aw-addons.js --legal-comments=none",
     "typecheck": "tsc -p .",
+    "cars": "node cars/build.mjs",
     "dev": "npm run build -- --watch"
   },
   "keywords": [],
