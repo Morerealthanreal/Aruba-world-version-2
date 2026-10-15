@@ -1,12 +1,31 @@
-------------------------------------------------------
-LowPoly Models by @Quaternius
-Consider supporting me on Patreon, even $1 helps me a lot!
+ARUBA WORLD PEDESTRIAN CHARACTER ASSETS
+=======================================
 
-https://www.patreon.com/quaternius
--------------------------------------------------------
+Source characters and animations
+--------------------------------
 
-License:
-CC0 1.0 Universal (CC0 1.0) 
-Public Domain Dedication
+Maya and Sam locomotion collections from the Innerscene 3D Parts Library:
+
+https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-maya-3d-person-animated-1499b2fd
+https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f
+
+The source pages identify these as original Innerscene characters and motion
+adapted from MakeHuman/MPFB CC0 body, rig, and skin assets. Both source files
+are dedicated to the public domain under CC0 1.0 Universal:
+
 https://creativecommons.org/publicdomain/zero/1.0/
+https://www.innerscene.com/tools/library/terms
 
+Project modifications
+---------------------
+
+The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
+
+- Retain only the Idle_Standing and Walk_Relaxed skeletal clips.
+- Add opaque layered hair cards and, for the dress variant, an opaque rigged
+  flowing skirt.
+- Bake skin, face, hair, and fabric into a hand-painted 4x4 texture atlas.
+- Add near and reduced mid-distance mesh LODs.
+- Compress textures as KTX2/ETC1S and geometry/animation with Meshopt.
+
+No Quaternius character assets are used by these files.
