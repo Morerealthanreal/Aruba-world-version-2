@@ -3957,10 +3957,12 @@ body.touch.drive:not(.awmoto) #actions .grp[data-for=car].on{grid-template-colum
 body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=gas]{width:calc(var(--db)*.95)!important;height:calc(var(--db)*1.55)!important;border-radius:18px!important;background:repeating-linear-gradient(0deg,#ffffff30 0 6px,#0000 6px 14px),#28aa50b0!important;order:2}
 body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=brake]{width:calc(var(--db)*1.15)!important;height:calc(var(--db)*.85)!important;border-radius:16px!important;background:repeating-linear-gradient(90deg,#ffffff26 0 6px,#0000 6px 14px),#c83228a8!important;order:1}
 @media (max-width:600px){
- body.touch.awmoto #hud{max-width:112px;padding:5px 8px;font-size:11px}
- body.touch.awmoto #hudmode{font-size:13px}
- body.touch.awmoto #modes{gap:4px}
- body.touch.awmoto #modes button{width:36px;height:38px;font-size:18px}
+ body.touch #modes{left:calc(8px + env(safe-area-inset-left))!important;transform:none!important;gap:4px}
+ body.touch #modes button{width:36px;height:38px;font-size:18px}
+ body.touch #realbar{left:calc(8px + env(safe-area-inset-left))!important;transform:none!important;top:calc(52px + env(safe-area-inset-top))!important}
+ body.touch #hud{top:calc(98px + env(safe-area-inset-top))!important;max-width:120px;padding:5px 8px;font-size:11px}
+ body.touch #hudmode{font-size:13px}
+ body.touch #awmutebtn{top:calc(196px + env(safe-area-inset-top))!important}
 }
 @media (orientation:landscape) and (pointer:coarse){
  body.touch.awmoto{--moto-btn:clamp(68px,11.5vw,82px)}
