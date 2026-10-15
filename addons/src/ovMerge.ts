@@ -25,8 +25,9 @@ export class OvMerge {
     const orig = real.update.bind(real);
     real.update = (...a: unknown[]) => { const r = orig(...a); this.apply(); return r; };
   }
-  // per super-block state key = each block's LOD index or "h" (hidden); merged geometry cached per key
-  // (max 4 per super-block, LRU-ish), so a mixed-LOD or partly-hidden super-block is still one draw.
+  // One live merge per super-block. Keeping older LOD copies left them in
+  // renderer.info after they left the scene, so the phone soak's geometry
+  // budget drifted whenever a new key showed up after warmup.
   private apply() {
     let drawn = 0;
     for (const s of this.sbs) {
@@ -37,7 +38,14 @@ export class OvMerge {
       if (g === undefined) {
         g = mergeGeometries(s.kids.filter((k) => k.visible).map((k) => k.geometry as BufferGeometry)) || null;
         if (g) g.computeBoundingSphere();
-        if (s.cache.size >= 4) { const [k0, g0] = s.cache.entries().next().value as [string, BufferGeometry | null]; s.cache.delete(k0); if (g0 && g0 !== g) g0.dispose(); }
+        if (g) {
+          // Assign before dispose so the mesh never points at a freed geometry.
+          s.mesh.geometry = g;
+          for (const [k0, g0] of s.cache) {
+            s.cache.delete(k0);
+            if (g0 && g0 !== g) g0.dispose();
+          }
+        }
         s.cache.set(key, g);
       } else { s.cache.delete(key); s.cache.set(key, g); }
       if (!g) { s.mesh.visible = false; continue; }
