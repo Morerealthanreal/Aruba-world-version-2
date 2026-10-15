@@ -11,11 +11,11 @@ def rep(a,b):
   assert s.count(a)==1,(s.count(a),a[:80]); s=s.replace(a,b)
 
 if 'awCF=' not in s:
-  rep("var dm=new Nf,fm=",
+  rep("var dm=new Nf",
       "var awCF=new URLSearchParams(location.search).get(`corefix`)!==`0`,awPC=new WeakMap,"
       "awFm=(e,t,n)=>{let r=!1;for(let i=0,a=e.length-1;i<e.length;a=i++){let I=e[i],A=e[a],o=I[0],s=I[1],c=A[0],l=A[1];s>n!=l>n&&t<(c-o)*(n-s)/(l-s)+o&&(r=!r)}return r},"
       "awPoly=e=>{let z0=1/0,z1=-1/0,x=0,z=0;for(let i=0;i<e.length;i++){let p=e[i];x+=p[0],z+=p[1],p[1]<z0&&(z0=p[1]),p[1]>z1&&(z1=p[1])}return{z0,z1,cx:x/e.length,cz:z/e.length}},"
-      "dm=new Nf,fm=")
+      "dm=new Nf")
   # point-in-polygon can only toggle when z0<=n<z1, so the z-range test is an exact early-out
   rep("hides(e){for(let[t,n]of this.pts)",
       "hides(e){if(!awCF)return this.hides0(e);let z0=1/0,z1=-1/0,sx=0,sz=0,L=e.length;for(let i=0;i<L;i++){let p=e[i];sx+=p[0],sz+=p[1],p[1]<z0&&(z0=p[1]),p[1]>z1&&(z1=p[1])}"

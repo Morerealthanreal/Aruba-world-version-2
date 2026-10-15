@@ -92,3 +92,18 @@ Drive 150 km/h, 2401 frames (res/base3 vs res/new8):
 | renderer.compile max | 119 ms | 7.1 ms |
 Left alone: mon.update (one-off landmark build when its region arrives, 90-125 ms headless; content code)
 and A's veg.setRegions (~7 ms per built region).
+
+### Rebase on main a83a8ea (moto, plane, traffic/audio, sea, cars, landmarks, Noord street furniture, road shader)
+- Bundle = main's bundle (incl. tools/patch_streets.py) + tools/patch_perf_core.py + tools/patch_street_hook.py, nothing else
+  (checked by re-applying both scripts to main's file: byte-identical). aw-addons.js rebuilt from the merged sources.
+- "Empty sky" reports (Oranjestad / Noord at ?q=med, flat light blue, no clouds, HUD fine): that colour is the page
+  background (#7ec8ff) showing through a canvas with nothing presented, not culled geometry (culling cannot remove
+  the HDR sky). Cause: the add-ons loop runs after A's render in every frame (measured order: render, guard.frame),
+  so an fps-guard resolution step (setPixelRatio + resize) cleared the frame A had just drawn and the browser
+  presented the empty canvas until A's next frame. At 60 fps a one-frame flash per step; in software GL (0.5-1 fps)
+  it stays up for seconds, and the PR build stepped the guard further there (level 6 = post off + lazy shadows,
+  which is also why its triangle count read ~0.67M vs ~1.35M). Repro: tools/perf/guard_step.mjs (guard step
+  inside a rAF after A's render, then __noRender): main 30/30 sample points page background, with the fix 0/30 at
+  low, med and high. Fix: fpsGuard redraws the frame after its resize (only on step frames).
+- bldBatch / staticFreeze: no difference found at Oranjestad, Noord, Palm Beach (on foot, ground + 60 m aerial,
+  low / med / high, puppeteer + Playwright, teleport and reload-at-spot, fps guard on and off, ?preup=1).
