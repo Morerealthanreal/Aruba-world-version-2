@@ -37,6 +37,7 @@ import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
 import { Wheelie } from "./wheelie";
 import { CamCycle } from "./camCycle";
+import { Sea } from "./sea";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -46,6 +47,7 @@ async function main() {
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
+  const sea = params.get("sea") !== "0" ? new Sea(g) : null;
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
   const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
@@ -85,7 +87,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, version: "0.10.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.10.2" };
 
   let last = performance.now();
   const loop = (now: number) => {
