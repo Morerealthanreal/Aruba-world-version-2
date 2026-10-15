@@ -5,7 +5,8 @@ export class CamCycle {
   i = 0; btn: HTMLButtonElement; tip: HTMLDivElement; cd = 1; cp = 0;
   constructor() {
     this.btn = document.createElement("button");
-    this.btn.textContent = "🎥"; this.btn.title = "Camera (C)";
+    this.btn.textContent = "🎥"; this.btn.title = "Camera (C)"; this.btn.className = "aw-cam";
+    this.btn.setAttribute("aria-label", "Cycle chase camera");
     this.btn.style.cssText = "position:fixed;right:12px;top:170px;z-index:40;display:none;width:44px;height:44px;border-radius:12px;border:0;font:20px system-ui;background:#1e2a3ab0;color:#fff";
     this.btn.addEventListener("click", (e) => { e.preventDefault(); this.next(); });
     document.body.appendChild(this.btn);
