@@ -7,7 +7,7 @@
 import { Group, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
-import { animNpc, buildEv, buildNpc, evReady, flashBar, loadEv, type EvModel, type Npc } from "./evModels";
+import { animNpc, buildEv, buildNpc, disposeTree, evReady, flashBar, loadEv, type EvModel, type Npc } from "./evModels";
 import type { Emergency } from "./emergency";
 
 type Rd = { p: number[][]; w: number; ow?: boolean; c: number };
@@ -73,6 +73,7 @@ export class Crash {
   private clear() {
     const sc = this.sc!, A = this.amb();
     sc.root.parent?.remove(sc.root);
+    disposeTree(sc.root);
     for (const car of [sc.A, sc.B]) { car.rd = null; car.g.visible = false; car.g.rotation.set(0, car.g.rotation.y, 0); if (A) A.cars.push(car); }
     if (this.emerg) this.emerg.ext = null;
     this.sc = null; this.stats.active = false; this.stats.phase = 0;

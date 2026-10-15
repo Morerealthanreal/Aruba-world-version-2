@@ -5,14 +5,17 @@ entries with a scale ending in the marker digit (scale rounded to 3 dp, last dig
 import json,glob,os,math
 D=os.path.join(os.path.dirname(os.path.abspath(__file__)),'../game/data/real/')
 M=json.load(open(D+'manifest.json')); X0,Z0,RS=M['X0'],M['Z0'],M['RS']
-P=json.load(open('/workspace/landmarks/yard_palms.json'))
+SRC={'p':'/workspace/landmarks/yard_palms.json','d':'/workspace/landmarks/noord_divis.json','s':'/workspace/landmarks/noord_scrub.json'}  # r249: + vacant-lot scrub (noord_scrub.py)  # r242: + roadside divi thickets (noord_divis.py)
 by={}
-for x,z,s,r in P: by.setdefault('r_%d_%d.json'%((x-X0)//RS,(z-Z0)//RS),[]).append([x,z,round(math.floor(s*100)/100+0.007,3),r])
+for kind,fn in SRC.items():
+  for x,z,s,r in json.load(open(fn)): by.setdefault(('r_%d_%d.json'%((x-X0)//RS,(z-Z0)//RS),kind),[]).append([x,z,round(math.floor(s*100)/100+0.007,3),r])
 mark=lambda s: abs(round(s*1000)%10-7)==0 and abs(s*1000-round(s*1000))<1e-6
 n=0
 for f in glob.glob(D+'r_*.json'):
-  d=json.load(open(f)); v=d['veg'].get('p',[]); old=len(v); v=[q for q in v if not (len(str(q[2]).split('.')[-1])==3 and str(q[2]).endswith('7'))]
-  add=by.get(os.path.basename(f),[])
-  if add or len(v)!=old:
-    d['veg']['p']=v+add; n+=len(add); json.dump(d,open(f,'w'))
-print('yard palms',n)
+  d=json.load(open(f)); ch=False
+  for kind in SRC:
+    v=d['veg'].get(kind,[]); old=len(v); v=[q for q in v if not (len(str(q[2]).split('.')[-1])==3 and str(q[2]).endswith('7'))]
+    add=by.get((os.path.basename(f),kind),[])
+    if add or len(v)!=old: d['veg'][kind]=v+add; n+=len(add); ch=True
+  if ch: json.dump(d,open(f,'w'))
+print('yard palms + divis',n)

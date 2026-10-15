@@ -1,7 +1,8 @@
 // Aruba World merge add-ons: B's (SuperGrok) day/night cycle, night lighting
 // and an auto FPS guard, running on top of A's live build without editing its
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
-// Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0.
+// Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0,
+// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap).
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
@@ -36,6 +37,8 @@ import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
 import { CamCycle } from "./camCycle";
 import { Sea } from "./sea";
+import { mountHud } from "./hud";
+import { MiniMap } from "./minimap";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -46,6 +49,7 @@ const motoEnabled = params.get("addons") !== "0" && params.get("gvmoto") !== "0"
 
 async function main() {
   if (params.get("addons") === "0") return;
+  if (params.get("hud") !== "0") mountHud();
   const g = await whenGameReady();
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
@@ -77,6 +81,7 @@ async function main() {
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
+  const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
@@ -88,7 +93,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.11.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
