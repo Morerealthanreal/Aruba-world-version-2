@@ -1,0 +1,20 @@
+{
+  "name": "aruba-world-tests",
+  "version": "1.0.0",
+  "description": "Automated browser tests for Aruba World",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix addons run build",
+    "test": "npm run test:e2e",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:headed": "npm run build && playwright test --headed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Morerealthanreal/Aruba-world-version-2.git"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}
