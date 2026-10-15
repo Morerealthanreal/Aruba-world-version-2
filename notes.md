@@ -92,3 +92,7 @@
 - Bon Bini (pp_bonbini) and Palm Court (noord_palmcourt) signs were already built (r159/r161, approx). Purun digital-billboard roundabout (n8 04:27): could not anchor (no GPS; Kick Super Center not in OSM/web) -> skipped.
 - n1 Noord main road (Caya F.D. Figaroa) items: NAPA, Wei Ming, WEMA, Wing Hung, starburst rb already built; Siu Kin, Valvoline, Samsung, Yen Ming, Pizza Italia not in OSM/Nominatim.
 - New: sherwin_noord on OSM 3592 "Topcret High Performance Coverings" (paint dealer at the n1 06:25 spot, west side heading south): cream store, blue SHERWIN-WILLIAMS sign.
+
+## r205 (n1 Noord shops not in OSM - ALL APPROX)
+- siukin_noord (OSM 58670), valvoline_noord (58169), samsung_noord (53561), yenming_noord (32636), pizzaitalia_noord (35096): restyled OSM footprints + signs, positions estimated from n1.mp4 timing between built anchors (rb_anchor 05:30, Sherwin 06:25, NAPA 07:37, starburst 09:09, WEMA 10:03, Wing Hung 11:58) and road side; Siu Kin and Samsung weakest (Siu Kin: T-junction ~90 s before rb_anchor; Samsung lettering not legible in frames). Facade colours/sign colours from frames (batch8.mjs).
+- Siu Kin web search: no Aruba address. Game-side screenshots at Pizza Italia/Valvoline mis-framed (camera off the main road) - not visually verified yet.
