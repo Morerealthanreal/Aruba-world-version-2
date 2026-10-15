@@ -7,12 +7,16 @@ export class CamCycle {
     this.btn = document.createElement("button");
     this.btn.textContent = "🎥"; this.btn.title = "Camera (C)"; this.btn.className = "aw-cam";
     this.btn.setAttribute("aria-label", "Cycle chase camera");
-    this.btn.style.cssText = "position:fixed;right:12px;top:170px;z-index:40;display:none;width:44px;height:44px;border-radius:12px;border:0;font:20px system-ui;background:#1e2a3ab0;color:#fff";
+    this.btn.style.display = "none";
     this.btn.addEventListener("click", (e) => { e.preventDefault(); this.next(); });
     document.body.appendChild(this.btn);
     this.tip = document.createElement("div");
-    this.tip.style.cssText = "position:fixed;right:62px;top:180px;z-index:40;font:800 12px system-ui;color:#fff;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .4s;pointer-events:none";
+    this.tip.className = "aw-camtip";
     document.body.appendChild(this.tip);
+    const st = document.createElement("style");
+    st.textContent = ".aw-cam{position:fixed;right:12px;top:170px;z-index:40;width:44px;height:44px;border-radius:12px;border:0;font:20px system-ui;background:#1e2a3ab0;color:#fff}" +
+      ".aw-camtip{position:fixed;right:62px;top:180px;z-index:40;font:800 12px system-ui;color:#fff;text-shadow:0 1px 3px #000;opacity:0;transition:opacity .4s;pointer-events:none}";
+    document.head.appendChild(st);
     addEventListener("keydown", (e) => { if (e.code === "KeyC" && !(e.target instanceof HTMLInputElement)) this.next(); });
   }
   next() { this.i = (this.i + 1) % MODES.length; this.tip.textContent = "CAM " + MODES[this.i].n; this.tip.style.opacity = "1"; setTimeout(() => (this.tip.style.opacity = "0"), 1200); }

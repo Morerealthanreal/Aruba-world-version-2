@@ -69,18 +69,9 @@ body.touch.awmoto #actions .grp[data-for=moto] button{position:absolute!importan
 body.touch.awmoto #actions .grp[data-for=moto] button[data-act=gas]{right:0;bottom:0;width:calc(var(--moto-btn)*.98)!important;height:calc(var(--moto-btn)*1.38)!important;border-radius:24px!important;background:repeating-linear-gradient(0deg,#ffffff24 0 6px,#0000 6px 14px),#218b47dc!important}
 body.touch.awmoto #actions .grp[data-for=moto] button[data-act=brake]{left:0;top:0;width:calc(var(--moto-btn)*.86)!important;height:calc(var(--moto-btn)*.86)!important;border-radius:20px!important;background:repeating-linear-gradient(90deg,#ffffff20 0 6px,#0000 6px 14px),#b82c2bdc!important}
 body.touch.awmoto #actions .grp[data-for=moto] button.held,body.touch.awmoto #steerbtns button.held{background:#ffd23f!important;color:#20242a!important;transform:scale(.96)}
-body.touch.awmoto .aw-cam{right:calc(18px + env(safe-area-inset-right))!important;top:calc(126px + env(safe-area-inset-top))!important;width:48px!important;height:48px!important}
 body.touch.drive:not(.awmoto) #actions .grp[data-for=car].on{grid-template-columns:auto auto!important;align-items:end}
 body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=gas]{width:calc(var(--db)*.95)!important;height:calc(var(--db)*1.55)!important;border-radius:18px!important;background:repeating-linear-gradient(0deg,#ffffff30 0 6px,#0000 6px 14px),#28aa50b0!important;order:2}
 body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=brake]{width:calc(var(--db)*1.15)!important;height:calc(var(--db)*.85)!important;border-radius:16px!important;background:repeating-linear-gradient(90deg,#ffffff26 0 6px,#0000 6px 14px),#c83228a8!important;order:1}
-@media (max-width:600px){
- body.touch #modes{left:calc(8px + env(safe-area-inset-left))!important;transform:none!important;gap:4px}
- body.touch #modes button{width:36px;height:38px;font-size:18px}
- body.touch #realbar{left:calc(8px + env(safe-area-inset-left))!important;transform:none!important;top:calc(52px + env(safe-area-inset-top))!important}
- body.touch #hud{top:calc(98px + env(safe-area-inset-top))!important;max-width:120px;padding:5px 8px;font-size:11px}
- body.touch #hudmode{font-size:13px}
- body.touch #awmutebtn{top:calc(196px + env(safe-area-inset-top))!important}
-}
 @media (orientation:landscape) and (pointer:coarse){
  body.touch.awmoto{--moto-btn:clamp(68px,11.5vw,82px)}
 }`;
