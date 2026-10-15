@@ -169,6 +169,7 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
       const lg = new Group();
       for (const [k, geo] of parts) { const mat = mats[k]; if (!mat) continue; const m = new Mesh(geo, mat); m.castShadow = l === 0; m.matrixAutoUpdate = false; lg.add(m); }
       lod.addLevel(lg, l ? L1_DIST : 0);
+      lg.visible = l === 0; // until the first LOD.update at render
     });
     g.add(lod);
     // bar lenses: [left, right] then the ambulance's box markers [left, right] (flashBar pairs by index parity)

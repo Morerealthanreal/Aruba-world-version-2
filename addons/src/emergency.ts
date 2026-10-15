@@ -154,6 +154,7 @@ export class Emergency {
       let s = this.st.get(c.g);
       if (!s) { s = { role: null, rd: null, on: false, t: 0, ph: 0 }; this.st.set(c.g, s); }
       if (c.rd && c.rd !== s.rd) { s.rd = c.rd; this.apply(c, s, this.pickRole()); }
+      else if ((s.role === "police" || s.role === "amb") && !s.model && evReady()) this.apply(c, s, s.role); // rolled before ev.glb loaded
       if (s.role && s.model) { if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; } flashBar(s.model, this.time, s.ph, s.on && c.g.visible); if (s.on && c.g.visible) { active++; const d = c.g.position.distanceTo(cam); if (d < 160 && (!near || d < near.d)) near = { d, s }; } continue; }
       if (!s.role || !s.bar) continue;
       if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; }
