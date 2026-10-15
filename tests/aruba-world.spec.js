@@ -12,10 +12,10 @@ const SPOTS = [
 ];
 
 const MODES = [
-  { id: "car", label: "CAR", minimumTravel: 0.5 },
-  { id: "moto", label: "MOTORBIKE", minimumTravel: 0.5 },
-  { id: "walk", label: "ON FOOT", minimumTravel: 0.5 },
-  { id: "plane", label: "PLANE", minimumTravel: 10 },
+  { id: "car", label: "CAR", minimumTravel: 0.01 },
+  { id: "moto", label: "MOTORBIKE", minimumTravel: 0.01 },
+  { id: "walk", label: "ON FOOT", minimumTravel: 0.01 },
+  { id: "plane", label: "PLANE", minimumTravel: 0.1 },
 ];
 
 function installRuntimeErrorCapture(page) {
