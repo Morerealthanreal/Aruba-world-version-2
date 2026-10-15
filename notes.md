@@ -25,3 +25,9 @@
 - Diamonds Intl L.G. Smith 17: no Mapillary photo facing it (nearest are ~100 m inland warehouses) -> unverified, unchanged.
 - Subway x4: each sits on an OSM building named Subway (location verified); no Mapillary photos -> facades unverified.
 - Dunkin': official listings = Alhambra (J.E. Irausquin 47; ours 50 m from Alhambra bazaar -> OK), "across from Playa Linda" (dunkin_pb ~115 m from Playa Linda -> plausible), Eagle Aruba Resort (J.E. Irausquin 248, not modelled), L.G. Smith 9 Renaissance Marketplace, Tanki Flip, Savaneta (not modelled).
+
+## r195
+- spaans_water: DEM has the Spaans Lagoen channel as 3.2-4 m land and the road is draped on it, so no global water plane works. Built 8 m terrain-following water prisms (top = max of 16 samples +0.55 m, 0.2 m steps, 0.8 m skirts hide steps) inside the shoreline traced from the Google aerial (shots/aer_sl_w.png), leaving a +-8.8 m gap for the road deck. Opaque mat 'pondw' (#2f7277). NB gen.mjs strips a leading 'l' from material names (lod prefix): 'lagw'/'lawn' etc. fall back to wall colour. 4.9k tris, switch 1500 m. Faint light step-lines remain at grazing angles.
+- Dunkin': OSM/Nominatim nodes: Tanki Flip (-6543,-2888) -> NEW dunkin_tf pole sign by OSM building 3228; L.G. Smith (-7260,339) = Renaissance Marketplace L.G. Smith 9 -> already a renmarket tenant storefront; Bushiri/Alhambra + Bubali/Playa Linda already modelled. Eagle Aruba Resort and Savaneta: not in OSM/Nominatim -> not pinned.
+- rb_hearts (-935,4480): night segment of r5 is the return trip (Savaneta -> Oranjestad), hearts ~800 m NW of the bridge. Google aerial shows a large roundabout with brick-red apron + small trees on the island, matching the red-lit curb in r5 11:50-11:52. Kept.
+- Silver pipelines: r5 7:40-7:52 pipes alongside a coastal highway (captioned about thermal expansion); the green crossing gantry was not found in 6:40-8:10. Overpass (man_made=pipeline) down -> location unknown, not built.
