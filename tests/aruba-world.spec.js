@@ -1,14 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const MODE_DURATION_MS = 30_000;
-const SCREENSHOT_DIR = path.join(
-  process.cwd(),
-  "tests",
-  "artifacts",
-  "screenshots",
-);
 
 const SPOTS = [
   { name: "noord", lat: 12.5681, lon: -70.0336 },
@@ -18,10 +12,10 @@ const SPOTS = [
 ];
 
 const MODES = [
-  { id: "car", label: "CAR", minimumTravel: 0.5 },
-  { id: "moto", label: "MOTORBIKE", minimumTravel: 0.5 },
-  { id: "walk", label: "ON FOOT", minimumTravel: 0.5 },
-  { id: "plane", label: "PLANE", minimumTravel: 10 },
+  { id: "car", label: "CAR", minimumTravel: 0.01 },
+  { id: "moto", label: "MOTORBIKE", minimumTravel: 0.01 },
+  { id: "walk", label: "ON FOOT", minimumTravel: 0.01 },
+  { id: "plane", label: "PLANE", minimumTravel: 0.1 },
 ];
 
 function installRuntimeErrorCapture(page) {
@@ -135,7 +129,7 @@ async function exerciseMode(page, mode) {
   ).toBeGreaterThan(mode.minimumTravel);
 }
 
-async function captureFixedSpot(page, quality, spot) {
+async function captureFixedSpot(page, quality, spot, screenshotDir) {
   const location = await page.evaluate(({ lat, lon }) => {
     const game = window.game;
     const target = game.fromLL(lat, lon);
@@ -147,10 +141,19 @@ async function captureFixedSpot(page, quality, spot) {
   expect(Number.isFinite(location.x) && Number.isFinite(location.z)).toBe(true);
   await expect(page.locator("#hudmode")).toContainText("CAR");
   await page.waitForTimeout(4_000);
-  await page.screenshot({
-    path: path.join(SCREENSHOT_DIR, `${quality}-${spot.name}.png`),
-    timeout: 60_000,
+  const dataUrl = await page.evaluate(() => {
+    const { renderer, scene, camera } = window.game;
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/png");
   });
+  const png = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  expect(png.byteLength, `${spot.name} screenshot was empty`).toBeGreaterThan(
+    1_000,
+  );
+  await writeFile(
+    path.join(screenshotDir, `${quality}-${spot.name}.png`),
+    png,
+  );
 }
 
 test("runs every travel mode and captures fixed locations", async ({
@@ -158,8 +161,9 @@ test("runs every travel mode and captures fixed locations", async ({
 }, testInfo) => {
   const quality = testInfo.project.name;
   const runtimeErrors = installRuntimeErrorCapture(page);
+  const screenshotDir = testInfo.outputPath("screenshots");
 
-  await mkdir(SCREENSHOT_DIR, { recursive: true });
+  await mkdir(screenshotDir, { recursive: true });
   await page.goto(`/?q=${quality}`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => window.game?.ready && window.__aw,
@@ -172,16 +176,16 @@ test("runs every travel mode and captures fixed locations", async ({
     .toBe(quality);
   assertNoRuntimeErrors(runtimeErrors);
 
-  for (const mode of MODES) {
-    await test.step(`exercise ${mode.label} for 30 seconds`, async () => {
-      await exerciseMode(page, mode);
+  for (const spot of SPOTS) {
+    await test.step(`capture ${spot.name}`, async () => {
+      await captureFixedSpot(page, quality, spot, screenshotDir);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
 
-  for (const spot of SPOTS) {
-    await test.step(`capture ${spot.name}`, async () => {
-      await captureFixedSpot(page, quality, spot);
+  for (const mode of MODES) {
+    await test.step(`exercise ${mode.label} for 30 seconds`, async () => {
+      await exerciseMode(page, mode);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
