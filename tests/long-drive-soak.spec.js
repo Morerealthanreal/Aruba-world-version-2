@@ -141,7 +141,7 @@ async function driveLeg(page, stop, leg) {
     const point = game.fromLL(lat, lon);
     const road = game.nearestRoad(point.x, point.z);
     game.teleport("car", road.x, road.z, road.h);
-    return { x: road.x, z: road.z };
+    return { x: road.x, z: road.z, h: road.h };
   }, stop);
 
   await page.keyboard.down("w");
@@ -156,7 +156,27 @@ async function driveLeg(page, stop, leg) {
     x: window.game.S.car.x,
     z: window.game.S.car.z,
   }));
+  await page.evaluate(
+    ({ x, z, h }) => window.game.teleport("car", x, z, h),
+    start,
+  );
   return Math.hypot(finish.x - start.x, finish.z - start.z);
+}
+
+async function waitForStreamingToSettle(page) {
+  await page.waitForFunction(
+    () => {
+      const real = window.game.real;
+      return (
+        real.queue?.length === 0 &&
+        [...real.regions.values()].every((region) => region.state === "built")
+      );
+    },
+    undefined,
+    { timeout: 45_000 },
+  );
+  // Let one presented frame upload the completed region resources.
+  await page.waitForTimeout(250);
 }
 
 async function sampleResources(page, cdp, cycle, stop) {
@@ -210,7 +230,7 @@ test("long phone drive keeps runtime resources flat", async ({
   context,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "low", "The phone soak runs on LOW only");
-  test.setTimeout(7 * 60 * 1000);
+  test.setTimeout(10 * 60 * 1000);
 
   const failures = captureRuntimeFailures(page);
   await installListenerProbe(page);
@@ -237,6 +257,7 @@ test("long phone drive keeps runtime resources flat", async ({
       for (let leg = 0; leg < ROUTE.length; leg++) {
         const stop = ROUTE[leg];
         distances.push(await driveLeg(page, stop, leg));
+        if (cycle >= WARMUP_CYCLES) await waitForStreamingToSettle(page);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
         expect(sample.contextLost, "WebGL context was lost").toBe(false);

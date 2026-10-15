@@ -19,7 +19,8 @@ initial failure, avoiding trace-finalization errors on successful browser close.
 
 The LOW project also runs a Galaxy S24+-sized long-drive soak. It repeatedly
 drives a full-island route after three warm-up loops, forces garbage collection at
-each stop, and records the JS heap, `renderer.info` geometry/texture totals, and
+each stop, returns to the same road pose, waits for streaming to settle, and
+records the JS heap, `renderer.info` geometry/texture totals, and
 active event-listener count. The test fails on a browser error, crash, WebGL
 context loss, lost controls, or continued resource growth. Its samples are
 written to `soak-metrics.json` in the test output directory.
