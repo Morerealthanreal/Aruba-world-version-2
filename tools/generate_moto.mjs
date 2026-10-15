@@ -45,7 +45,7 @@ const bikeMaterials = [
   standard("Seat and grips", { color: 0x17191d, metalness: 0.02, roughness: 0.82 }),
   standard("Chain", { color: 0xa97c36, metalness: 0.82, roughness: 0.32 }),
   standard("Headlight", { color: 0xf8fbff, emissive: 0xeef6ff, emissiveIntensity: 2.5, metalness: 0.08, roughness: 0.12 }),
-  standard("Taillight", { color: 0xff2038, emissive: 0xff001c, emissiveIntensity: 3, metalness: 0.05, roughness: 0.2 }),
+  standard("Taillight", { color: 0xe81935, emissive: 0xff001c, emissiveIntensity: 1.35, metalness: 0.05, roughness: 0.2 }),
   physical("Windscreen", { color: 0x142c42, metalness: 0.25, roughness: 0.08, transmission: 0.2, transparent: true, opacity: 0.72 }),
 ];
 const riderMaterials = [
@@ -160,7 +160,7 @@ tube(bikeParts, 4, v(0.28, 1.2, -0.46), v(0.43, 1.39, -0.42), 0.015, 6);
 ellipsoid(bikeParts, 2, v(-0.46, 1.41, -0.42), v(0.12, 0.065, 0.045), 10, 6);
 ellipsoid(bikeParts, 2, v(0.46, 1.41, -0.42), v(0.12, 0.065, 0.045), 10, 6);
 ellipsoid(bikeParts, 8, v(0, 1.02, -0.77), v(0.18, 0.12, 0.055), 12, 8);
-ellipsoid(bikeParts, 9, v(0, 1.08, 0.83), v(0.17, 0.07, 0.045), 10, 6);
+ellipsoid(bikeParts, 9, v(0, 1.08, 0.83), v(0.12, 0.048, 0.03), 10, 6);
 
 // Sport rider: hips planted on the seat, torso tucked toward tank, elbows bent,
 // knees hugging the fairing and feet resting on the pegs.

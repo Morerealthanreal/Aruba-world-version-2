@@ -50,8 +50,8 @@ export class GvMoto {
     grad.addColorStop(0, "rgba(220,225,228,.72)"); grad.addColorStop(0.42, "rgba(150,158,164,.34)"); grad.addColorStop(1, "rgba(90,98,104,0)");
     ctx.fillStyle = grad; ctx.fillRect(0, 0, 64, 64);
     this.smoke = new THREE.Points(smokeGeo, new THREE.PointsMaterial({
-      map: new THREE.CanvasTexture(puff), color: 0xc5c9cb, size: 0.5,
-      transparent: true, opacity: 0.3, depthWrite: false, sizeAttenuation: true,
+      map: new THREE.CanvasTexture(puff), color: 0xc5c9cb, size: 0.46,
+      transparent: true, opacity: 0.25, depthWrite: false, sizeAttenuation: true,
     }));
     this.smoke.name = "aw:moto-smoke";
     this.smoke.frustumCulled = false; this.smoke.renderOrder = 2; g.scene.add(this.smoke);
@@ -157,7 +157,7 @@ body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=brake]
     this.lastSpeed = sp;
     if (moto && skid && sp > 8) {
       this.smokeClock += dt * (drift > 0.5 ? 1.6 : 1);
-      while (this.smokeClock > 0.11) { this.smokeClock -= 0.11; this.spawnSmoke(a); }
+      while (this.smokeClock > 0.08) { this.smokeClock -= 0.08; this.spawnSmoke(a); }
     } else this.smokeClock = 0;
     const dx = a.x - this.lx, dz = a.z - this.lz, d2 = dx * dx + dz * dz;
     if (!this.tracking || !skid || d2 > 25) { this.lx = a.x; this.lz = a.z; this.tracking = true; return; }

@@ -72,9 +72,10 @@ swap(
 )
 swap(
     "steering response",
-    f"(o?({enabled}?Math.abs(t)>.05?8:10:Math.abs(t)>.05?3.2:6):9)",
+    f"(o?({enabled}?Math.abs(t)>.05?12:10:Math.abs(t)>.05?3.2:6):9)",
     "(o?Math.abs(t)>.05?3.2:6:9)",
     "(o?Math.abs(t)>.05?6.5:8:9)",
+    f"(o?({enabled}?Math.abs(t)>.05?8:10:Math.abs(t)>.05?3.2:6):9)",
 )
 swap(
     "drift and turn",
@@ -97,11 +98,12 @@ swap(
 )
 swap(
     "lean response",
-    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?(Math.abs(t)<Math.abs(a.lean||0)?4.5:8):3.5)*e)",
+    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?(Math.abs(t)<Math.abs(a.lean||0)?4.5:10):3.5)*e)",
     "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,3.5*e)",
     "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,6*e)",
     f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?8:3.5)*e)",
     f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?7:3.5)*e)",
+    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?(Math.abs(t)<Math.abs(a.lean||0)?4.5:8):3.5)*e)",
 )
 swap(
     "bike slip",
@@ -149,8 +151,9 @@ swap(
 )
 swap(
     "motorcycle model cache",
-    "Uh.loadAsync(`./models/moto.glb?v=2`)",
+    "Uh.loadAsync(`./models/moto.glb?v=3`)",
     "Uh.loadAsync(`./models/moto.glb`)",
+    "Uh.loadAsync(`./models/moto.glb?v=2`)",
 )
 
 wheelie_hook = ",window.__awWh&&window.__awWh(ev,a,e)"
