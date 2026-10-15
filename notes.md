@@ -46,3 +46,11 @@
 - Arch placement: Google aerial crop (landmarks/shots/tb_crop.png) shows ONE 4-lane deck carrying both carriageways; the two arch ribs spring from the outer deck edges, hangers drop to the outer edges, cross beams over the deck. r5 11:22 shows hangers on both sides of the car. Our model (ribs from u=+-7.6 about the centreline between the two OSM carriageways, leaning to +-1.2) = spans both carriageways. Correct, no change.
 - Roundabouts: island-wide OSM junction=roundabout pulled via API tiles -> landmarks/osm_rbs.json (59 rings). My lon/lat->game formula drifts ~1.7 m per km east (dx ~ -16 -0.0017x), so 5-40 m "offsets" east are projection drift, not misplacement. After correction every rb_* incl. rb_pyramid sits on an OSM ring, except rb_peachwall (no OSM ring; n1 00:27 frames show a small residential circle with peach scalloped wall + dark-blue columns, and the aerial at its spot shows a residential turning circle, so plausibly right) and rb_n2mound_n (134 m from any ring; free mini-rb with a mound island at Catiri (-4285,-4751) is a candidate, unconfirmed).
 - Arashi stone walls/palapas: no specific location -> skipped.
+
+## r198 (route accuracy, Noord batch 1)
+- Google Map Tiles aerials started coming back blank (~21:00, likely quota); switched to Esri World Imagery z18 via landmarks/esri.py (out x z halfwidth). NB aerial.mjs game shots hide hero GLBs (use shot4 to see heroes).
+- Noord 12-point Esri-vs-game comparison (shots/noord_cmp2.jpg, noord_cmp7.jpg): road layout matches well; main gap = houses missing from OSM.
+- Added Microsoft Global ML Building Footprints (2026-02, Aruba, 68k) minus OSM overlap (>15%), roads (buffered), heroes (15 m), <40 m2 -> 1660 Noord buildings (msb/noord_add.json; drift-corrected lon/lat->game). Built as 130 400 m chunks msb_noord_* (1-storey, hip tile roof if rect <=300 m2, else flat; one wall colour per chunk), 37k tris total, max 749/chunk, switch 650 m.
+- IMPORTANT: after any `node malls.mjs` run that re-emits msb chunks, run `python3 msb_fix.py` before install.sh (clears name/new_place/hide_footprint so they don't become 130 search places or hide OSM buildings).
+- Credits: addons/src/index.ts adds the MSB ODbL line (only the credits block touched).
+- Island-wide there are ~10.4k MSB-only buildings (msb/missing.json); only Noord added so far.
