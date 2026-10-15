@@ -35,11 +35,15 @@ import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
-import { Wheelie } from "./wheelie";
 import { CamCycle } from "./camCycle";
 import { Sea } from "./sea";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
+
+// Set synchronously so the minified-bundle hooks can preserve stock handling when
+// either the whole add-on suite or just the motorcycle pass is disabled.
+const motoEnabled = params.get("addons") !== "0" && params.get("gvmoto") !== "0" && params.get("gv") !== "0";
+(window as unknown as { __awMotoEnabled: boolean }).__awMotoEnabled = motoEnabled;
 
 async function main() {
   if (params.get("addons") === "0") return;
@@ -70,11 +74,10 @@ async function main() {
   const audio = params.get("audio") !== "0" ? new WorldAudio(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
-  const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
+  const gv = motoEnabled ? new GvMoto(g) : null;
   const fly = params.get("fly") !== "0" ? new Fly(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
-  const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } return true; };
@@ -87,7 +90,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.10.2" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.11.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -109,7 +112,6 @@ async function main() {
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
-    if (wheelie) wheelie.frame((g.S as unknown as { mode: string }).mode);
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
     if (jobs) jobs.frame();
