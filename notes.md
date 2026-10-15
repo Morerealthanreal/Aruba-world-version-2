@@ -87,3 +87,8 @@
 - New: mvceagle (batch8 site(), OSM 4387 "MCV", 2 floors, cream + terracotta tile roof per Esri, sign approx).
 - Mapillary at these hotels: no photos facing them in coverage (mly.py 0 facing; JEI survey 0-2 usable) -> colours from Esri/brand refs only.
 - Route 1 Mapillary: 1 photo in coverage across 25 sample points (Oranjestad->San Nicolas) -> no photo signage pass possible. r2/r5 Route 1 sign items (Macro, Vanco, Do it, S-Chow, Winter Garden, La Granja, Pirate Ranch) all already built; remaining open sign items are off-corridor (Piedra Plat Bon Bini, Purun billboard, Palm Court) or unlocated (Capriccio: one web search, no Aruba address).
+
+## r204 (Noord n1 frame pass, sign items)
+- Bon Bini (pp_bonbini) and Palm Court (noord_palmcourt) signs were already built (r159/r161, approx). Purun digital-billboard roundabout (n8 04:27): could not anchor (no GPS; Kick Super Center not in OSM/web) -> skipped.
+- n1 Noord main road (Caya F.D. Figaroa) items: NAPA, Wei Ming, WEMA, Wing Hung, starburst rb already built; Siu Kin, Valvoline, Samsung, Yen Ming, Pizza Italia not in OSM/Nominatim.
+- New: sherwin_noord on OSM 3592 "Topcret High Performance Coverings" (paint dealer at the n1 06:25 spot, west side heading south): cream store, blue SHERWIN-WILLIAMS sign.
