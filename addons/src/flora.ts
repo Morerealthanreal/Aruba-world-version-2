@@ -6,11 +6,12 @@
 // drawn once on a 256 px canvas (mipmapped). No shadows cast. Off with ?flora=0.
 import { BoxGeometry, InstancedBufferAttribute, BufferGeometry, CanvasTexture, Color, DoubleSide, Float32BufferAttribute, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, type Object3D } from "three";
 import type { AGame } from "./env";
+import { Pool } from "./instPool";
 
 type Row = [number, number, number, number, number];
 type Bld = { p: [number, number][]; k?: string; h?: number };
 type Reg = { state: string; group?: Object3D; json?: { b?: Bld[] }; rx: number; rz: number; __awFlora?: Bucket[] };
-type Bucket = { im: InstancedMesh; cols?: Float32Array; mats: Float32Array; cx: Float32Array; cz: Float32Array; n: number; range: number; box: [number, number, number, number] };
+type Bucket = { im: InstancedMesh | null; pool?: Pool; cols?: Float32Array; mats: Float32Array; cx: Float32Array; cz: Float32Array; n: number; range: number; box: [number, number, number, number] };
 
 function rng(seed: number) { let s = (seed * 2654435761) >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
@@ -116,8 +117,11 @@ export class Flora {
   private gen: Generator<void, void, void> | null = null; private genR: Reg | null = null; private budget = 2;
   private lastX = 1e9; private lastZ = 1e9;
   private mul: number;
+  // r192: one InstancedMesh per species for all regions (instPool.ts), ?ipool=0 for one per region
+  private pools: Map<string, { pool: Pool; range: number }> | null = null;
 
-  constructor(private g: AGame, mobile: boolean) {
+  constructor(private g: AGame, mobile: boolean, pooled = false) {
+    if (pooled) this.pools = new Map();
     const tier = (g.real as unknown as { q: { name: string } }).q.name;
     this.mul = (tier === "low" ? 0.6 : tier === "med" ? 0.85 : (g.real as unknown as { q: { id?: string } }).q.id === "desktop" ? 1.4 : 1) * (mobile ? 0.8 : 1);
     const mk = (map: CanvasTexture) => new MeshStandardMaterial({ map, alphaTest: 0.45, side: DoubleSide, roughness: 0.85, metalness: 0 });
@@ -138,6 +142,16 @@ export class Flora {
   private bucket(r: Reg, geo: BufferGeometry, mat: MeshStandardMaterial, mats: number[], range: number, name: string, cols?: number[]): Bucket | null {
     const n = mats.length / 16;
     if (!n) return null;
+    if (this.pools) {
+      const M = new Float32Array(mats), cx = new Float32Array(n), cz = new Float32Array(n);
+      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for (let i = 0; i < n; i++) { cx[i] = M[i * 16 + 12]; cz[i] = M[i * 16 + 14]; x0 = Math.min(x0, cx[i]); x1 = Math.max(x1, cx[i]); z0 = Math.min(z0, cz[i]); z1 = Math.max(z1, cz[i]); }
+      let e = this.pools.get(name);
+      if (!e) this.pools.set(name, (e = { pool: new Pool(geo, mat, { name: "aw:flora:" + name, castShadow: false, receiveShadow: true, colored: !!cols }, (this.g.real as unknown as { group: Object3D }).group), range: range * Math.sqrt(this.mul) }));
+      const b: Bucket = { im: null, pool: e.pool, cols: cols ? new Float32Array(cols) : undefined, mats: M, cx, cz, n, range: e.range, box: [x0, z0, x1, z1] };
+      e.pool.add(b);
+      return b;
+    }
     const im = new InstancedMesh(geo, mat, n);
     im.name = "aw:flora:" + name;
     im.frustumCulled = false; im.castShadow = false; im.receiveShadow = true; im.matrixAutoUpdate = false;
@@ -298,11 +312,12 @@ export class Flora {
 
   private cull(r: Reg, x: number, z: number) {
     for (const b of r.__awFlora || []) {
+      if (!b.im) continue;
       const hi2 = b.range * b.range;
       const bx = Math.max(b.box[0] - x, 0, x - b.box[2]), bz = Math.max(b.box[1] - z, 0, z - b.box[3]);
       if (bx * bx + bz * bz >= hi2) { b.im.count = 0; b.im.visible = false; continue; }
       const dst = b.im.instanceMatrix.array as Float32Array; let c = 0;
-      for (let i = 0; i < b.n; i++) { const dx = b.cx[i] - x, dz = b.cz[i] - z; if (dx * dx + dz * dz < hi2) { dst.set(b.mats.subarray(i * 16, i * 16 + 16), c * 16); if (b.cols) (b.im.instanceColor!.array as Float32Array).set(b.cols.subarray(i * 3, i * 3 + 3), c * 3); c++; } }
+      for (let i = 0; i < b.n; i++) { const dx = b.cx[i] - x, dz = b.cz[i] - z; if (dx * dx + dz * dz < hi2) { const s = i * 16, t = c * 16; for (let k = 0; k < 16; k++) dst[t + k] = b.mats[s + k]; if (b.cols) { const dc = b.im.instanceColor!.array as Float32Array; dc[c * 3] = b.cols[i * 3]; dc[c * 3 + 1] = b.cols[i * 3 + 1]; dc[c * 3 + 2] = b.cols[i * 3 + 2]; } c++; } }
       b.im.count = c; b.im.visible = c > 0;
       if (c) { b.im.instanceMatrix.clearUpdateRanges(); b.im.instanceMatrix.addUpdateRange(0, c * 16); b.im.instanceMatrix.needsUpdate = true; if (b.cols) b.im.instanceColor!.needsUpdate = true; }
     }
@@ -312,11 +327,15 @@ export class Flora {
     const t0 = performance.now();
     if (!this.gen) for (const r of regions.values()) if (!r.__awFlora && r.state === "built" && r.group && r.json) { this.gen = this.build(r); this.genR = r; break; }
     while (this.gen && performance.now() - t0 < this.budget) { if (this.genR && this.genR.state !== "built") { this.gen = null; break; } if (this.gen.next().done) { this.gen = null; this.lastX = 1e9; } }
-    if (this.live.size > regions.size) { const cur = new Set(regions.values()); for (const r of this.live) if (!cur.has(r)) { for (const b of r.__awFlora || []) b.im.dispose(); this.live.delete(r); } }
+    for (const r of this.live) if (!r.group || !r.group.parent) { // region disposed by A
+      for (const b of r.__awFlora || []) { if (b.im) b.im.dispose(); if (b.pool) b.pool.remove(b); }
+      this.live.delete(r); this.lastX = 1e9;
+    }
     if ((x - this.lastX) ** 2 + (z - this.lastZ) ** 2 < 36) return;
     this.lastX = x; this.lastZ = z;
     let drawn = 0;
-    for (const r of this.live) { this.cull(r, x, z); for (const b of r.__awFlora || []) drawn += b.im.count; }
+    if (this.pools) { for (const e of this.pools.values()) drawn += e.pool.fill(x, z, -1, e.range); this.stats.drawn = drawn; return; }
+    for (const r of this.live) { this.cull(r, x, z); for (const b of r.__awFlora || []) drawn += b.im ? b.im.count : 0; }
     this.stats.drawn = drawn;
   }
 }

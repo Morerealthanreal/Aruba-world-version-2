@@ -1,0 +1,9 @@
+{
+  "name": "aw-perf",
+  "private": true,
+  "type": "module",
+  "description": "Headless (SwiftShader) perf harness: renderer.info draw calls/triangles, per-frame task timing, deterministic screenshots",
+  "dependencies": {
+    "puppeteer-core": "^25.14.0"
+  }
+}

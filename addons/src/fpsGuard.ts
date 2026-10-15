@@ -70,6 +70,9 @@ export class FpsGuard {
     if (Math.abs(g.renderer.getPixelRatio() - pr) > 1e-3) {
       g.renderer.setPixelRatio(pr);
       window.dispatchEvent(new Event("resize")); // A's resize handler resizes the renderer + composer
+      // the add-ons loop runs after A has drawn this frame and the resize cleared that drawing: without a
+      // redraw the browser presents the empty canvas (page background, "empty sky") until A's next frame
+      if (window.__awPost) window.__awPost.render(); else g.renderer.render(g.scene, g.camera);
     }
     g.renderer.shadowMap.autoUpdate = l < 5;
     if (l < 5) g.renderer.shadowMap.needsUpdate = true;

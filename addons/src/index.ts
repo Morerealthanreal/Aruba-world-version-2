@@ -10,7 +10,9 @@ import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
 import { Preload } from "./preload";
 import { MobilePerf } from "./mobilePerf";
+import { StaticFreeze } from "./staticFreeze";
 import { BldMerge } from "./bldMerge";
+import { BldBatch } from "./bldBatch";
 import { OvMerge } from "./ovMerge";
 import { TerrMerge } from "./terrMerge";
 import { LampGlow } from "./lampGlow";
@@ -56,10 +58,10 @@ async function main() {
   const look = params.get("look") !== "0" ? new Look(g) : null;
   const sea = params.get("sea") !== "0" ? new Sea(g) : null;
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-  const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
+  const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch, params.get("ipool") !== "0") : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
-  const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
+  const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low", params.get("farbatch") !== "0") : null;
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
@@ -87,13 +89,15 @@ async function main() {
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
-  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch) : null;
+  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") === "1") : null;
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
   const tmerge = params.get("tmerge") !== "0" && g.real ? new TerrMerge(g.real as never) : null;
-  const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
+  const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3, +(params.get("bbshell") || Infinity)) : null;
+  const bmerge = !bbatch && params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
+  const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -125,6 +129,8 @@ async function main() {
     if (pre) pre.frame(dt);
     if (mperf) mperf.frame(dt);
     if (bmerge) bmerge.frame();
+    if (bbatch) bbatch.frame();
+    if (mwf) mwf.frame(Math.min(dt, 0.1));
     tickUI();
     requestAnimationFrame(loop);
   };
