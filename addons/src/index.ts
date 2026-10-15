@@ -10,6 +10,7 @@ import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
 import { Preload } from "./preload";
 import { MobilePerf } from "./mobilePerf";
+import { StaticFreeze } from "./staticFreeze";
 import { BldMerge } from "./bldMerge";
 import { BldBatch } from "./bldBatch";
 import { OvMerge } from "./ovMerge";
@@ -94,8 +95,9 @@ async function main() {
   const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3) : null;
   const bmerge = !bbatch && params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
+  const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -128,6 +130,7 @@ async function main() {
     if (mperf) mperf.frame(dt);
     if (bmerge) bmerge.frame();
     if (bbatch) bbatch.frame();
+    if (mwf) mwf.frame(Math.min(dt, 0.1));
     tickUI();
     requestAnimationFrame(loop);
   };
