@@ -1,25 +1,25 @@
 // Emergency vehicle + NPC models for Aruba (refs: landmarks/refs/emergency/*).
-// Built from a handful of boxes per vehicle; liveries are canvas textures (cached, shared).
+// Vehicles come from models/ev.glb (addons/cars, `npm run cars`): lofted bodies in the traffic kit's style,
+// one mesh per material (~11 draws at L0, ~10 at L1 beyond 45 m) plus the flashing bar lenses.
+// Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
-import { CircleGeometry, TorusGeometry, BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, type Material, type Object3D } from "three";
+import { BoxGeometry, BufferGeometry, CanvasTexture, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, Vector3, type Material, type Object3D } from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export type EvKind = "everest" | "isuzu" | "ambY" | "ambP" | "forensys";
 const texCache = new Map<string, CanvasTexture>();
 const matCache = new Map<string, Material>();
 const BOX = new BoxGeometry(1, 1, 1);
-const WHEEL = new CylinderGeometry(0.38, 0.38, 0.26, 12).rotateZ(Math.PI / 2);
-const ARCH_D = new CircleGeometry(0.5, 10, 0, Math.PI);
-const ARCH_T = new TorusGeometry(0.5, 0.07, 4, 10, Math.PI);
-const RIM = new CylinderGeometry(0.22, 0.22, 0.28, 8).rotateZ(Math.PI / 2);
 
-function std(key: string, color: string, rough = 0.5, metal = 0.1): Material {
-  let m = matCache.get(key); if (!m) { m = new MeshStandardMaterial({ color, roughness: rough, metalness: metal }); matCache.set(key, m); } return m;
+function std(key: string, color: string, rough = 0.5, metal = 0.1): MeshStandardMaterial {
+  let m = matCache.get(key) as MeshStandardMaterial | undefined; if (!m) { m = new MeshStandardMaterial({ color, roughness: rough, metalness: metal }); matCache.set(key, m); } return m;
 }
-function texMat(key: string, draw: (c: CanvasRenderingContext2D, w: number, h: number) => void, w = 512, h = 128, rough = 0.45): Material {
+/** canvas-textured material; UVs come from ev.glb (glTF convention, so no flip) */
+function texMat(key: string, draw: (c: CanvasRenderingContext2D, w: number, h: number) => void, w = 512, h = 128, rough = 0.42, metal = 0.1): Material {
   let m = matCache.get(key); if (m) return m;
   let t = texCache.get(key);
-  if (!t) { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const c = cv.getContext("2d")!; draw(c, w, h); t = new CanvasTexture(cv); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; texCache.set(key, t); }
-  m = new MeshStandardMaterial({ map: t, roughness: rough, metalness: 0.08 }); matCache.set(key, m); return m;
+  if (!t) { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const c = cv.getContext("2d")!; draw(c, w, h); t = new CanvasTexture(cv); t.colorSpace = SRGBColorSpace; t.flipY = false; t.anisotropy = 4; texCache.set(key, t); }
+  m = new MeshStandardMaterial({ map: t, roughness: rough, metalness: metal }); matCache.set(key, m); return m;
 }
 function txt(c: CanvasRenderingContext2D, s: string, x: number, y: number, px: number, col: string, font = "bold", align: CanvasTextAlign = "left", fam = "Arial, Helvetica, sans-serif") {
   c.font = `${font} ${px}px ${fam}`; c.fillStyle = col; c.textAlign = align; c.textBaseline = "middle"; c.fillText(s, x, y);
@@ -52,7 +52,7 @@ function policeSide(num: number, frontLeft: boolean) {
 }
 function forenSide(frontLeft: boolean) {
   return (c: CanvasRenderingContext2D, w: number, h: number) => {
-    c.fillStyle = "#f6f7f8"; c.fillRect(0, 0, w, h);
+    c.fillStyle = "#f4f5f7"; c.fillRect(0, 0, w, h);
     const X = (f: number) => (frontLeft ? f : 1 - f) * w;
     c.fillStyle = "#1f3b73"; c.fillRect(0, h * 0.60, w, h * 0.05);
     txt(c, "ForenSys", X(0.45), h * 0.36, 44, "#1f3b73", "bold", "center");
@@ -86,87 +86,98 @@ function cabSide(pink: boolean, frontLeft: boolean) {
     if (!pink) txt(c, "PA SALBA BO BIDA", X(0.55), h * 0.80, 13, "#c8202a", "bold", "center");
   };
 }
-function plateTex(key: string, bg: string, s: string, fg: string, px = 40) {
-  return texMat(key, (c, w, h) => { c.fillStyle = bg; c.fillRect(0, 0, w, h); txt(c, s, w / 2, h / 2, px, fg, "bold", "center"); }, 256, 128);
+function textTex(key: string, bg: string, s: string, fg: string, px: number, w: number, h: number) {
+  return texMat(key, (c) => { c.fillStyle = bg; c.fillRect(0, 0, w, h); txt(c, s, w / 2, h / 2, px, fg, "bold", "center"); }, w, h);
 }
-const glass = () => std("glass", "#1c242c", 0.15, 0.4);
-function box(g: Group, mat: Material | Material[], sx: number, sy: number, sz: number, x: number, y: number, z: number, name = "") {
-  const m = new Mesh(BOX, mat); m.scale.set(sx, sy, sz); m.position.set(x, y + sy / 2, z); m.name = name; m.castShadow = true; g.add(m); return m;
+function plateMat(num: number) {
+  return texMat("evPlate" + num, (c, w, h) => {
+    c.fillStyle = "#f4f2ea"; c.fillRect(0, 0, w, h); c.strokeStyle = "#1d3f8a"; c.lineWidth = 4; c.strokeRect(3, 3, w - 6, h - 6);
+    txt(c, "ARUBA", w / 2, 13, 12, "#1d3f8a", "bold", "center"); txt(c, `A-${10000 + num * 37}`, w / 2, 40, 34, "#1d3f8a", "bold", "center");
+  }, 256, 64, 0.4, 0);
 }
-function wheels(g: Group, w: number, zf: number, zr: number) {
-  const tm = std("tyre", "#151515", 0.9, 0), rm = std("rim", "#b9bec4", 0.3, 0.7);
-  for (const z of [zf, zr]) for (const s of [-1, 1]) { const t = new Mesh(WHEEL, tm); t.position.set(s * (w / 2 - 0.1), 0.38, z); g.add(t); const r = new Mesh(RIM, rm); r.position.copy(t.position); g.add(r); }
+
+// ---- ev.glb: per variant, geometry per LOD and material, bar / marker anchors ----
+type EvGeo = { lods: Map<string, BufferGeometry>[]; bar: { p: Vector3; w: number }; mk?: Vector3 };
+let evGeo: EvGeo[] | null = null;
+let evLoad: Promise<void> | null = null;
+export function loadEv(): Promise<void> {
+  return (evLoad ||= new GLTFLoader().loadAsync("./models/ev.glb").then((gl) => {
+    const vars: EvGeo[] = [];
+    gl.scene.traverse((o) => {
+      const t = /^ev(\d)_(?:L(\d)_([a-z]+)|(bar|mk))$/.exec(o.name); if (!t) return;
+      const v = (vars[+t[1]] ||= { lods: [new Map(), new Map()], bar: { p: new Vector3(), w: 1 } });
+      if (t[3] && (o as Mesh).isMesh) v.lods[+t[2]].set(t[3], (o as Mesh).geometry);
+      else if (t[4] === "bar") v.bar = { p: o.position.clone(), w: o.scale.x };
+      else if (t[4] === "mk") v.mk = o.position.clone();
+    });
+    evGeo = vars;
+  }).catch((e) => { console.warn("[aw-ev] models/ev.glb", e); }));
 }
-function arches(g: Group, w: number, zs: number[], col = "#2a2b2e") {
-  const hole = std("archHole", "#0b0b0c", 0.95, 0), flare = std("archFl" + col, col, 0.7, 0.05);
-  for (const z of zs) for (const s of [-1, 1]) {
-    const d = new Mesh(ARCH_D, hole); d.rotation.y = s * Math.PI / 2; d.position.set(s * (w / 2 + 0.006), 0.4, z); g.add(d);
-    const t = new Mesh(ARCH_T, flare); t.rotation.y = s * Math.PI / 2; t.position.set(s * (w / 2 + 0.01), 0.4, z); g.add(t);
+export const evReady = () => !!evGeo;
+const VARIANT: Record<EvKind, number> = { everest: 0, forensys: 0, isuzu: 1, ambY: 2, ambP: 2 };
+const L1_DIST = 45;
+
+function evMats(kind: EvKind, num: number): Record<string, Material> {
+  const amb = kind === "ambY" || kind === "ambP", pink = kind === "ambP", fs = kind === "forensys";
+  const body = amb ? (pink ? "#f29ac4" : "#e8ef1c") : "#f4f5f7";
+  const paint = std("evPaint" + body, body, 0.42, 0.1);
+  const m: Record<string, Material> = {
+    paint, glass: std("evGlass", "#121a21", 0.08, 0.6), dark: std("evDark", "#1c1d20", 0.8, 0.05),
+    chrome: std("evChrome", "#d6d9dc", 0.18, 0.95), light: std("evLight", "#eef2f5", 0.15, 0.3), tail: std("evTail", "#a3151a", 0.3, 0.1),
+    plate: plateMat(num),
+  };
+  if (amb) {
+    m.livr = texMat("abR" + kind, ambSide(pink, true), 512, 264); m.livl = texMat("abL" + kind, ambSide(pink, false), 512, 264);
+    m.cabr = texMat("acR" + kind, cabSide(pink, true), 256, 192); m.cabl = texMat("acL" + kind, cabSide(pink, false), 256, 192);
+    m.rear = textTex("aback" + kind, body, pink ? "InSan  911" : "AMBULANCE", pink ? "#ffffff" : "#1f3a9c", 40, 512, 122);
+  } else if (fs) {
+    m.livr = texMat("fsR", forenSide(true), 768, 128); m.livl = texMat("fsL", forenSide(false), 768, 128);
+    m.hood = m.rear = paint;
+  } else {
+    m.livr = texMat(`pR${num}`, policeSide(num, true), 768, 128); m.livl = texMat(`pL${num}`, policeSide(num, false), 768, 128);
+    m.hood = textTex("hoodPolis", "#f4f5f7", "POLIS", "#1747b8", 64, 256, 128);
+    m.rear = textTex(`rear${num}`, "#f4f5f7", `\u260E100   ${num}`, "#1747b8", 44, 512, 76);
   }
+  return m;
 }
-function tilt(m: Mesh, rx: number) { m.rotation.x = rx; return m; }
+/** EV head/tail lights glow at night (k: 0 day .. 1 night); shared by every EV */
+export function evNight(k: number) {
+  const l = std("evLight", "#eef2f5", 0.15, 0.3), t = std("evTail", "#a3151a", 0.3, 0.1);
+  l.emissive.setRGB(1, 0.95, 0.85).multiplyScalar(k); l.emissiveIntensity = 1 + 4 * k;
+  t.emissive.setRGB(1, 0.12, 0.06).multiplyScalar(k); t.emissiveIntensity = 1 + 2 * k;
+}
+
+/** rounded light-bar lens, unit size */
+const LENS = (() => {
+  const g = new SphereGeometry(0.5, 12, 6), p = g.attributes.position, f = (v: number) => Math.sign(v) * (Math.abs(2 * v) ** 0.3) / 2;
+  for (let i = 0; i < p.count; i++) p.setXYZ(i, f(p.getX(i)), f(p.getY(i)), f(p.getZ(i)));
+  return g;
+})();
+const lens = (g: Group, col: number, x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
+  const m = new Mesh(LENS, new MeshBasicMaterial({ color: col, toneMapped: false })); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.name = "aw:ebar"; g.add(m); return m;
+};
+
 export type EvModel = { g: Group; bar: Mesh[]; colors: [number, number] };
-function lightBar(g: Group, y: number, z: number, w: number): Mesh[] {
-  return [-1, 1].map((s) => { const m = new Mesh(BOX, new MeshBasicMaterial({ color: 0x202024, toneMapped: false })); m.scale.set(w * 0.42, 0.13, 0.28); m.position.set(s * w * 0.22, y + 0.065, z); m.name = "aw:ebar"; g.add(m); return m; });
-}
 export function buildEv(kind: EvKind, num = 45): EvModel {
   const g = new Group(); g.name = "aw:ev:" + kind;
-  if (kind === "everest" || kind === "isuzu" || kind === "forensys") {
-    const L = 4.9, W = 1.86, isu = kind === "isuzu", fs = kind === "forensys";
-    const white = std("evwhite", "#f4f5f7", 0.4, 0.1);
-    const sideR = fs ? texMat("fsR", forenSide(true)) : texMat(`pR${num}`, policeSide(num, true));
-    const sideL = fs ? texMat("fsL", forenSide(false)) : texMat(`pL${num}`, policeSide(num, false));
-    const hood = fs ? white : plateTex("hoodPolis", "#f4f5f7", "POLIS", "#1747b8", 64);
-    const rear = fs ? white : plateTex(`rear${num}`, "#f4f5f7", `\u260E100   ${num}`, "#1747b8", 34);
-    const grille = std(isu ? "grilleC" : "grilleB", isu ? "#9da3aa" : "#202326", 0.4, isu ? 0.6 : 0.2);
-    // lower body: [+x,-x,+y,-y,+z,-z]
-    box(g, [sideR, sideL, white, white, white, rear], W, 0.78, L, 0, 0.4, 0, "body");
-    box(g, grille, W * 0.62, 0.3, 0.04, 0, 0.78, L / 2 + 0.005);
-    tilt(box(g, [white, white, hood, white, white, white], W * 0.96, 0.14, 1.35, 0, 1.12, 1.72), 0.07);
-    // rounded nose: half-cylinder along x across the front edge
-    { const n = new Mesh(new CylinderGeometry(0.2, 0.2, W * 0.96, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), white); n.position.set(0, 1.0, L / 2 - 0.12); g.add(n); }
-    // raked windshield + bumpers, mirrors, roof rails, side skirt
-    tilt(box(g, glass(), W * 0.9, 0.05, 0.9, 0, 1.38, 1.18), 0.95);
-    const plast = std("evPlast", "#2a2b2e", 0.7, 0.05);
-    box(g, plast, W * 1.0, 0.24, 0.18, 0, 0.36, L / 2 + 0.02); box(g, plast, W * 1.0, 0.24, 0.18, 0, 0.36, -L / 2 - 0.02);
-    box(g, plast, W * 1.01, 0.12, L * 0.42, 0, 0.4, -0.02);
-    for (const s of [-1, 1]) { box(g, white, 0.18, 0.13, 0.08, s * (W / 2 + 0.08), 1.32, 0.9); if (!isu || true) box(g, plast, 0.05, 0.06, 2.6, s * W * 0.4, isu ? 1.85 : 1.89, -0.6); }
-    const cabH = isu ? 0.62 : 0.66;
-    box(g, [glass(), glass(), white, white, glass(), glass()], W * 0.94, cabH, 3.25, 0, 1.18, -0.55);
-    box(g, white, W * 0.95, 0.05, 3.3, 0, 1.18 + cabH, -0.55);
-    for (const z of [0.95, -0.15, -1.25, -2.1]) box(g, white, W * 0.955, cabH, z === 0.95 ? 0.12 : 0.16, 0, 1.18, z);
-    // headlights / tail lights
-    const hl = std("hl", "#e9eef2", 0.2, 0.3), tl = std("tl", "#c01818", 0.3, 0.1);
-    for (const s of [-1, 1]) { box(g, hl, 0.38, 0.14, 0.04, s * 0.68, 0.98, L / 2 + 0.01); box(g, tl, 0.12, 0.3, 0.06, s * 0.88, 0.86, -L / 2 - 0.01); }
-    wheels(g, W, 1.45, -1.5); arches(g, W, [1.45, -1.5], isu ? "#d9dbde" : "#2a2b2e");
-    let bar: Mesh[] = [];
-    if (!fs) bar = lightBar(g, 1.18 + cabH + 0.05, 0.4, W * 0.9);
-    else bar = lightBar(g, 1.18 + cabH + 0.05, 0.4, W * 0.55);
-    return { g, bar, colors: fs ? [0xffa000, 0xffa000] : [0xff1008, 0x1a40ff] };
-  }
-  // Ford E-series box ambulance
-  const pink = kind === "ambP", W = 2.3, body = pink ? "#f29ac4" : "#e8ef1c";
-  const paint = std("amb" + kind, body, 0.45, 0.1);
-  const sR = texMat("abR" + kind, ambSide(pink, true), 512, 192), sL = texMat("abL" + kind, ambSide(pink, false), 512, 192);
-  const cR = texMat("acR" + kind, cabSide(pink, true), 256, 192), cL = texMat("acL" + kind, cabSide(pink, false), 256, 192);
-  const back = plateTex("aback" + kind, body, pink ? "InSan  911" : "AMBULANCE", pink ? "#ffffff" : "#1f3a9c", 30);
-  box(g, [sR, sL, paint, paint, paint, back], W, 2.35, 4.0, 0, 0.62, -1.15, "box");
-  box(g, [cR, cL, paint, paint, paint, paint], W * 0.92, 1.0, 1.6, 0, 0.55, 1.65);
-  box(g, [glass(), glass(), paint, paint, glass(), paint], W * 0.9, 0.62, 1.1, 0, 1.55, 1.45);
-  tilt(box(g, [paint, paint, paint, paint, std("grilleB", "#202326"), paint], W * 0.86, 0.66, 0.95, 0, 0.5, 2.85), 0.12);
-  { const n = new Mesh(new CylinderGeometry(0.18, 0.18, W * 0.86, 10, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), paint); n.position.set(0, 0.98, 3.12); g.add(n); }
-  tilt(box(g, glass(), W * 0.86, 0.05, 0.75, 0, 1.25, 2.12), 0.9);
-  const chrome = std("chrome", "#c9ccd0", 0.25, 0.8), dk = std("evPlast", "#2a2b2e", 0.7, 0.05);
-  box(g, chrome, W * 0.95, 0.22, 0.16, 0, 0.36, 3.36); box(g, dk, W * 0.95, 0.2, 0.3, 0, 0.32, -3.2);
-  box(g, paint, W * 1.03, 0.1, 4.08, 0, 2.97, -1.15); // roof lip
-  for (const s of [-1, 1]) box(g, dk, 0.16, 0.24, 0.07, s * (W / 2 + 0.06), 1.45, 1.9);
-  const hl = std("hl", "#e9eef2", 0.2, 0.3);
-  for (const s of [-1, 1]) box(g, hl, 0.34, 0.16, 0.04, s * 0.72, 0.95, 3.31);
-  wheels(g, W, 2.4, -2.0); arches(g, W, [2.4], "#2a2b2e"); arches(g, W, [-2.0], body);
-  // corner marker lights on the box (red/white) + cab bar
-  const bar = lightBar(g, 2.97, 0.95, W * 0.8);
-  for (const s of [-1, 1]) { const m = new Mesh(BOX, new MeshBasicMaterial({ color: 0x501010, toneMapped: false })); m.scale.set(0.22, 0.14, 0.05); m.position.set(s * 0.8, 2.75, 0.86); m.name = "aw:ebar"; g.add(m); bar.push(m); }
-  return { g, bar, colors: [0xff1008, 0xffffff] };
+  const amb = kind === "ambY" || kind === "ambP", fs = kind === "forensys";
+  const model: EvModel = { g, bar: [], colors: fs ? [0xffa000, 0xffa000] : amb ? [0xff1008, 0xffffff] : [0xff1008, 0x1a40ff] };
+  const fill = () => {
+    const E = evGeo && evGeo[VARIANT[kind]]; if (!E) return;
+    const mats = evMats(kind, num), lod = new LOD(); lod.name = "aw:evlod";
+    E.lods.forEach((parts, l) => {
+      const lg = new Group();
+      for (const [k, geo] of parts) { const mat = mats[k]; if (!mat) continue; const m = new Mesh(geo, mat); m.castShadow = l === 0; m.matrixAutoUpdate = false; lg.add(m); }
+      lod.addLevel(lg, l ? L1_DIST : 0);
+    });
+    g.add(lod);
+    // bar lenses: [left, right] then the ambulance's box markers [left, right] (flashBar pairs by index parity)
+    const { p, w } = E.bar;
+    for (const s of [-1, 1]) model.bar.push(lens(g, 0x202024, s * w * 0.25, p.y + 0.05, p.z, w * 0.48, 0.1, 0.26));
+    if (amb && E.mk) for (const s of [-1, 1]) model.bar.push(lens(g, 0x501010, s * E.mk.x, E.mk.y, E.mk.z, 0.22, 0.14, 0.05));
+  };
+  if (evGeo) fill(); else void loadEv().then(fill);
+  return model;
 }
 // --- simple low-poly person: legs, torso, head, two arm pivots ---
 export type Npc = { g: Group; armL: Group; armR: Group; legL: Mesh; legR: Mesh; t: number };

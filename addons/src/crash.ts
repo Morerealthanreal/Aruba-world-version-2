@@ -2,12 +2,12 @@
 // a road near the player and stay put. A police unit (Everest/Isuzu, KPA livery, bar + siren) arrives,
 // then a ForenSys accident-registration car; its staff member walks to the two drivers with a tablet and
 // they talk with gestures. Scene clears after ~4 min or when the player is >700 m away.
-// Cost: ~4 vehicles (<= 12 meshes each, shared box geometry), 3 low-poly people, emissive bars only.
+// Cost: 2 evModels vehicles (~11 draws each, shared ev.glb geometry), 3 low-poly people, emissive bars only.
 // ?crash=0 disables, ?crash=force triggers within seconds (tests). ?evshow=x,z lines up all models at x,z.
 import { Group, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
-import { animNpc, buildEv, buildNpc, flashBar, type EvModel, type Npc } from "./evModels";
+import { animNpc, buildEv, buildNpc, evReady, flashBar, loadEv, type EvModel, type Npc } from "./evModels";
 import type { Emergency } from "./emergency";
 
 type Rd = { p: number[][]; w: number; ow?: boolean; c: number };
@@ -30,6 +30,7 @@ export class Crash {
   stats = { scenes: 0, active: false, phase: 0, x: 0, z: 0, police: false, fs: false, talk: 0, fx: 0, fz: 0 };
 
   constructor(private g: AGame, private emerg: Emergency | null) {
+    void loadEv();
     const show = params.get("evshow");
     if (show) { const tryShow = () => { if (this.amb()) this.showroom(show); else setTimeout(tryShow, 1000); }; setTimeout(tryShow, 3000); }
   }
@@ -92,7 +93,7 @@ export class Crash {
     dt *= this.tx; this.time += dt;
     const sc = this.sc;
     if (!sc) {
-      if ((this.next -= dt) <= 0) { this.next = this.force ? 6 : 60; const mode = (this.g.S && this.g.S.mode) || "walk"; if (mode !== "plane" && (this.force || Math.random() < 0.2)) this.start(); }
+      if ((this.next -= dt) <= 0) { this.next = this.force ? 6 : 60; const mode = (this.g.S && this.g.S.mode) || "walk"; if (mode !== "plane" && evReady() && (this.force || Math.random() < 0.2)) this.start(); }
       return;
     }
     sc.age += dt; this.stats.phase = sc.phase; this.stats.police = !!sc.police?.arrived; this.stats.fs = !!sc.fs?.arrived; this.stats.talk = Math.round(sc.talk); if (sc.fs) { this.stats.fx = sc.fs.m.g.position.x; this.stats.fz = sc.fs.m.g.position.z; }
