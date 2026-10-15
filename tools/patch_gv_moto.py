@@ -48,10 +48,16 @@ swap(
 )
 swap(
     "brake drift",
-    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:15):30)*e))",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:5):30)*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),30*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(Math.abs(t)>.35&&Math.abs(a.s)>11?8:30)*e))",
     f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}&&Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:30)*e))",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:15):30)*e))",
+)
+swap(
+    "drift rolling resistance",
+    f"a.s-=a.s*(o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?.08:.25)*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active||o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?0:o?6.5:7.5)*e)",
+    "a.s-=a.s*.25*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active?0:o?6.5:7.5)*e)",
 )
 swap(
     "bike top speed",

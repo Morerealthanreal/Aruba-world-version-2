@@ -27,8 +27,8 @@ not on copied art or branding:
 - [Gameplay: forgiving tight turn and persistent skid marks, 7:45–7:58](https://www.dailymotion.com/video/x5xv8m0?start=465)
 
 The resulting targets are an approximately 42 m/s sustained maximum, a roughly 3–4 second
-run to 28 m/s, 15 m/s² straight-line braking, a 40° lean clamp, and a 6–7.5 m portrait
-chase distance. These are evidence-informed arcade targets rather than claimed measurements
-from the original game.
+run to 28 m/s, 14–17 m/s² total straight-line braking, 60–70% speed retention through a
+one-second drift, a 40° lean clamp, and a 6–7.5 m portrait chase distance. These are
+evidence-informed arcade targets rather than claimed measurements from the original game.
 
 All controls and graphics in Aruba World use the project's own generic labels and styling.
