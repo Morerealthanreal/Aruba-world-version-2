@@ -5,13 +5,14 @@
 // detailR, contact decals within contactR, walls/roofs within bldR) and frustum culling stopped
 // removing anything: every near region drew all of its trim and walls (~830k tris at Oranjestad).
 // Here each region's bld:* meshes of one material become ONE BatchedMesh (one multi-draw call)
-// whose instances are A's original cell meshes. A's rules are applied per instance with A's
-// cadence and focus point (A's 0.5 s cull, streaming centre incl. __awAhead), and each pass
+// whose instances are A's original cell meshes. A's trim/contact rules are applied per instance with
+// A's cadence and focus point (A's 0.5 s cull, streaming centre incl. __awAhead); walls/roofs keep
+// r186's region-level bldR result (see cull), and each pass
 // (main + shadow) frustum-tests every visible instance against its world bounding sphere, which
 // is what three did for the original per-cell meshes. Geometry is world space (identity matrices),
 // so no per-instance matrix work. Batches are filled a few cells per frame under a time budget
 // and swapped in only when complete.
-import { BatchedMesh, Frustum, Matrix4, Sphere, type BufferGeometry, type Camera, type Material, type Mesh, type Object3D } from "three";
+import { BatchedMesh, Box3, Frustum, Matrix4, Sphere, Vector3, type BufferGeometry, type Camera, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 
 type M = Mesh & { isInstancedMesh?: boolean };
@@ -24,10 +25,11 @@ type BM = BatchedMesh & {
 };
 /** world-space bounding spheres per instance (instance i draws geometry i) + the current candidate list */
 export type CullSet = { cx: Float32Array; cy: Float32Array; cz: Float32Array; r: Float32Array; vis: Uint16Array; nVis: number };
-type Batch = CullSet & { bm: BM; kind: number; n: number };
-type Job = { R: Reg; list: M[]; i: number; b: Batch };
+/** sx/sz/sr: the bounding sphere three computes for all of the batch's geometry merged into one (r186's mesh) */
+type Batch = CullSet & { bm: BM; kind: number; n: number; sx: number; sz: number; sr: number };
+type Job = { R: Reg; list: M[]; i: number; b: Batch; box: Box3; k: number; r2: number };
 
-const IDENT = new Matrix4(), _m = new Matrix4(), _fr = new Frustum();
+const IDENT = new Matrix4(), _m = new Matrix4(), _fr = new Frustum(), _c = new Vector3();
 const KIND_BLD = 0, KIND_TRIM = 1, KIND_CONTACT = 2;
 
 // per pass (main + shadow): frustum-test the candidate instances, write three's multi-draw lists directly
@@ -53,7 +55,7 @@ export class BldBatch {
   private jobs: Job[] = [];
   private live = new Set<Reg>();
   private fx = NaN; private fz = NaN;
-  constructor(private g: AGame, private budget: number) {
+  constructor(private g: AGame, private budget: number, private shellR = Infinity) {
     const A = g.real as unknown as A, orig = A.update.bind(A);
     A.update = (...a: number[]) => {
       const r = orig(...a);
@@ -77,9 +79,23 @@ export class BldBatch {
     while (this.jobs.length && performance.now() - t0 < this.budget) {
       const j = this.jobs[0];
       if (!j.list[0].parent || !j.R.group || !j.R.group.parent) { this.jobs.shift(); j.b.bm.dispose(); continue; } // region unloaded meanwhile
-      const bm = j.b.bm, m = j.list[j.i], geo = m.geometry as BufferGeometry;
-      try { bm.addInstance(bm.addGeometry(geo)); } catch (e) { console.warn("[aw-bb]", e); this.stats.failed++; this.jobs.shift(); bm.dispose(); continue; }
-      if (++j.i === j.list.length) { this.jobs.shift(); this.swap(j); }
+      const bm = j.b.bm;
+      if (j.i < j.list.length) {
+        const geo = j.list[j.i].geometry as BufferGeometry;
+        try { bm.addInstance(bm.addGeometry(geo)); } catch (e) { console.warn("[aw-bb]", e); this.stats.failed++; this.jobs.shift(); bm.dispose(); continue; }
+        if (!geo.boundingBox) geo.computeBoundingBox();
+        j.box.union(geo.boundingBox!);
+        j.i++;
+        continue;
+      }
+      // second pass, one cell per step: max vertex distance from the merged box centre (BufferGeometry.computeBoundingSphere)
+      const p = (j.list[j.k].geometry as BufferGeometry).attributes.position, a = p.array as ArrayLike<number>, st = (p as unknown as { data?: { stride: number } }).data ? -1 : p.itemSize;
+      j.box.getCenter(_c);
+      let r2 = j.r2;
+      if (st > 0) for (let v = 0; v < a.length; v += st) { const dx = a[v] - _c.x, dy = a[v + 1] - _c.y, dz = a[v + 2] - _c.z, d = dx * dx + dy * dy + dz * dz; if (d > r2) r2 = d; }
+      else for (let v = 0; v < p.count; v++) { const dx = p.getX(v) - _c.x, dy = p.getY(v) - _c.y, dz = p.getZ(v) - _c.z, d = dx * dx + dy * dy + dz * dz; if (d > r2) r2 = d; }
+      j.r2 = r2;
+      if (++j.k === j.list.length) { j.b.sx = _c.x; j.b.sz = _c.z; j.b.sr = Math.sqrt(r2); this.jobs.shift(); this.swap(j); }
     }
     const dt = performance.now() - t0; if (dt > this.stats.maxSlice) this.stats.maxSlice = dt;
   }
@@ -106,13 +122,13 @@ export class BldBatch {
       bm.name = "aw:bb:" + f.name.slice(4);
       bm.castShadow = f.castShadow; bm.receiveShadow = f.receiveShadow; bm.renderOrder = f.renderOrder;
       bm.sortObjects = false; bm.perObjectFrustumCulled = true; bm.matrixAutoUpdate = false;
-      const b: Batch = { bm, kind: f.name === "bld:MeshBasicMaterial" ? KIND_CONTACT : f.name === "bld:trim" ? KIND_TRIM : KIND_BLD, n, cx: new Float32Array(n), cy: new Float32Array(n), cz: new Float32Array(n), r: new Float32Array(n), vis: new Uint16Array(n), nVis: 0 };
+      const b: Batch = { bm, kind: f.name === "bld:MeshBasicMaterial" ? KIND_CONTACT : f.name === "bld:trim" ? KIND_TRIM : KIND_BLD, n, cx: new Float32Array(n), cy: new Float32Array(n), cz: new Float32Array(n), r: new Float32Array(n), vis: new Uint16Array(n), nVis: 0, sx: 0, sz: 0, sr: Infinity };
       const all = new Sphere(), s = new Sphere();
       list.forEach((m, i) => { const bs = (m.geometry as BufferGeometry).boundingSphere!; b.cx[i] = bs.center.x; b.cy[i] = bs.center.y; b.cz[i] = bs.center.z; b.r[i] = bs.radius; if (i) all.union(s.copy(bs)); else all.copy(bs); });
       bm.boundingSphere = all;
       bm.userData.awb = b;
       bm.onBeforeRender = multiDrawCull as unknown as BatchedMesh["onBeforeRender"];
-      this.jobs.push({ R, list, i: 0, b });
+      this.jobs.push({ R, list, i: 0, b, box: new Box3(), k: 0, r2: 0 });
     }
     this.stats.regions++;
   }
@@ -132,11 +148,18 @@ export class BldBatch {
     this.stats.visCells = v;
   }
 
-  // A's rule per mesh: (distance to bounding-sphere centre) - radius < range
+  // A's rule per mesh: (distance to bounding-sphere centre) - radius < range. Trim and contact decals
+  // get it per cell (the far LOD). Building shells keep r186's result: the rule on the sphere of the
+  // whole merged region mesh, so the same blocks show at the same distances (per-cell bldR would
+  // empty far blocks that are clearly visible through the light fog); ?bbshell=<m> culls shells per cell.
   private cull(b: Batch) {
-    if (!Number.isFinite(this.fx)) { b.vis.forEach((_, i) => (b.vis[i] = i)); b.nVis = b.n; return; }
-    const q = (this.g.real as unknown as A).q;
-    const T = b.kind === KIND_CONTACT ? q.contactR : b.kind === KIND_TRIM ? q.detailR : q.bldR;
+    const q = (this.g.real as unknown as A).q, all = () => { for (let i = 0; i < b.n; i++) b.vis[i] = i; b.nVis = b.n; b.bm.visible = b.n > 0; };
+    if (!Number.isFinite(this.fx)) return all();
+    if (b.kind === KIND_BLD && !Number.isFinite(this.shellR)) {
+      if (Math.hypot(b.sx - this.fx, b.sz - this.fz) - b.sr < q.bldR) all(); else { b.nVis = 0; b.bm.visible = false; }
+      return;
+    }
+    const T = b.kind === KIND_CONTACT ? q.contactR : b.kind === KIND_TRIM ? q.detailR : this.shellR;
     let c = 0;
     for (let i = 0; i < b.n; i++) if (Math.hypot(b.cx[i] - this.fx, b.cz[i] - this.fz) - b.r[i] < T) b.vis[c++] = i;
     b.nVis = c; b.bm.visible = c > 0;

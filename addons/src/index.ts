@@ -92,7 +92,7 @@ async function main() {
   const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") === "1") : null;
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
   const tmerge = params.get("tmerge") !== "0" && g.real ? new TerrMerge(g.real as never) : null;
-  const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3) : null;
+  const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3, +(params.get("bbshell") || Infinity)) : null;
   const bmerge = !bbatch && params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
