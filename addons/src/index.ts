@@ -88,7 +88,7 @@ async function main() {
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
-  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch) : null;
+  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full") : null;
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
   const tmerge = params.get("tmerge") !== "0" && g.real ? new TerrMerge(g.real as never) : null;
   const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3) : null;
