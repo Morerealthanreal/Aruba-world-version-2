@@ -63,3 +63,9 @@
 - r199b: added msb chunks for Palm Beach (169), Oranjestad (1270), San Nicolas (499) = 197 chunks, 51.7k tris, max 892/chunk; veg clearing now covers 3598 houses.
 - r199c: msb walls are now plain vertex-tinted walls + untinted decal quads (material ground_dec, gen.mjs decalTex: window w/ white frame+shutters, door, roller door) so frames/shutters stay white. >400 m2 footprints (70) -> 'shed' commercial/warehouse look (6.3 m, muted cladding, roller door on longest side, high windows, flat grey roof). Total msb 165k tris (327 chunks, max 1656), LOD 650 m.
 - bldMerge "before/after" in lc2 stats counts core OSM building meshes merged per region, NOT msb chunks; verified msb chunks loaded+visible with landmarks/vis.mjs (on/off screenshots, shots/vis_sheet.png).
+
+## r200 (Route 1 roundabout, Palm Beach pools/palapas)
+- rb_plazacultura (Route 1 / L.G. Smith roundabout at Plaza di Cultura): island resurfaced per Esri: dusty olive ground, light-stone perimeter path r21-23.6, 8 radial stone paths, reddish paved centre disc r7.2 (bust/pedestals/flag kept); palms 8->1 + core veg cleared in r31 (patch_veg_clear CLEAR).
+- pbpool_* (8 chunks): 65 resort pools from OSM leisure=swimming_pool within 450 m of J.E. Irausquin (OSM API map tiles, drift-corrected) -> deck rim + turquoise water.
+- palapa_* : 268 thatched palapas auto-detected on Esri (landmarks/palapa_detect.py, brown discs on sand, kept clusters >=3 within 8 m) -> post + thatch cone.
+- msb_fix.py now also clears pbpool_/palapa_ manifest metadata.
