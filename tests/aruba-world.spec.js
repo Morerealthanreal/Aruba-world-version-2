@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const MODE_DURATION_MS = 30_000;
@@ -141,10 +141,19 @@ async function captureFixedSpot(page, quality, spot, screenshotDir) {
   expect(Number.isFinite(location.x) && Number.isFinite(location.z)).toBe(true);
   await expect(page.locator("#hudmode")).toContainText("CAR");
   await page.waitForTimeout(4_000);
-  await page.screenshot({
-    path: path.join(screenshotDir, `${quality}-${spot.name}.png`),
-    timeout: 60_000,
+  const dataUrl = await page.evaluate(() => {
+    const { renderer, scene, camera } = window.game;
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/png");
   });
+  const png = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  expect(png.byteLength, `${spot.name} screenshot was empty`).toBeGreaterThan(
+    1_000,
+  );
+  await writeFile(
+    path.join(screenshotDir, `${quality}-${spot.name}.png`),
+    png,
+  );
 }
 
 test("runs every travel mode and captures fixed locations", async ({
