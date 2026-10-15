@@ -8,7 +8,7 @@
 // per-lot distance rules A applied (kitR, parkHi/parkR, detailR/2) are applied per
 // instance instead: the visible instances are compacted into the front of the buffer,
 // one region per frame (round robin), only when the player moved > 4 m.
-// Folding a region is sliced (whole instance groups, ~3 ms per frame); each group's originals are
+// Folding a region is sliced (the graph walk, then whole instance groups, ~3 ms per frame); each group's originals are
 // removed in the same frame its bucket goes live.
 // r192: with pools (instPool.ts, default on, ?ipool=0 off) the buckets of every region that share a
 // (kind, geometry, material) draw from one InstancedMesh instead of one per region.
@@ -31,13 +31,17 @@ export class TileInstances {
   private dirtyPools = new Set<Pool>();
   constructor(private q: Q, private poolParent: Object3D | null = null) {}
 
-  private job: { r: Reg; lists: IM[][]; i: number; out: Bucket[] } | null = null;
-  /** Fold one built region, a few instance groups per call within `budget` ms. Returns true when the region is done. */
+  private job: { r: Reg; stack: Object3D[]; groups: Map<string, IM[]>; seen: Set<Object3D>; lists: IM[][] | null; i: number; out: Bucket[] } | null = null;
+  /** Fold one built region: walk its graph, then a few instance groups per call, within `budget` ms. Returns true when the region is done. */
   fold(r: Reg, budget = 1e9): boolean {
     if (r.__awInst || r.state !== "built" || !r.group) return false;
     let j = this.job;
-    if (!j || j.r !== r) j = this.job = { r, lists: [...this.gather(r).values()].filter((l) => l.length >= 2), i: 0, out: [] };
+    if (!j || j.r !== r) j = this.job = { r, stack: [r.group], groups: new Map(), seen: new Set(), lists: null, i: 0, out: [] };
     const t0 = performance.now();
+    if (!j.lists) {
+      if (!this.gather(j, t0, budget)) return false;
+      j.lists = [...j.groups.values()].filter((l) => l.length >= 2);
+    }
     while (j.i < j.lists.length) {
       this.foldList(r, j.lists[j.i++], j.out);
       if (performance.now() - t0 > budget) break;
@@ -48,18 +52,25 @@ export class TileInstances {
     if (!this.poolParent) this.dirty.add(r);
     return true;
   }
-  private gather(r: Reg) {
-    const groups = new Map<string, IM[]>();
-    r.group!.traverse((o) => {
+  /** pre-order walk (traverse's order) of the region graph in budgeted steps; true when complete */
+  private gather(j: NonNullable<TileInstances["job"]>, t0: number, budget: number) {
+    const st = j.stack;
+    for (let n = 1; st.length; n++) {
+      const o = st.pop()!, ch = o.children;
+      for (let k = ch.length - 1; k >= 0; k--) st.push(ch[k]);
       const m = o as IM;
-      if (!m.isInstancedMesh || !KINDS.has(m.name) || Array.isArray(m.material) || m.count === 0) return;
-      m.updateWorldMatrix(true, false);
-      const key = m.name + "|" + m.geometry.uuid + "|" + m.material.uuid + "|" + m.castShadow + "|" + m.receiveShadow + "|" + (m.instanceColor ? 1 : 0);
-      let l = groups.get(key);
-      if (!l) groups.set(key, (l = []));
-      l.push(m);
-    });
-    return groups;
+      if (m.isInstancedMesh && KINDS.has(m.name) && !Array.isArray(m.material) && m.count !== 0) {
+        const p = m.parent;
+        if (p && !j.seen.has(p)) { p.updateWorldMatrix(true, false); j.seen.add(p); }
+        m.updateWorldMatrix(false, false);
+        const key = m.name + "|" + m.geometry.uuid + "|" + m.material.uuid + "|" + m.castShadow + "|" + m.receiveShadow + "|" + (m.instanceColor ? 1 : 0);
+        let l = j.groups.get(key);
+        if (!l) j.groups.set(key, (l = []));
+        l.push(m);
+      }
+      if ((n & 127) === 0 && performance.now() - t0 > budget) return false;
+    }
+    return true;
   }
   private foldList(r: Reg, list: IM[], out: Bucket[]) {
     const mw = new Matrix4(), mi = new Matrix4();
