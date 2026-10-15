@@ -54495,37 +54495,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m6",
-  "k": "nd_st_m14_m6",
+  "id": "nd_st_m7_m3",
+  "k": "nd_st_m7_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -2750,
+  "x": -6500,
+  "z": -2500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m6.glb",
+  "glb": "models/hero/nd_st_m7_m3.glb",
   "lod": {
-   "hi": "nd_st_m14_m6_lod0",
-   "lo": "nd_st_m14_m6_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m3_lod0",
+   "lo": "nd_st_m7_m3_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m6_lod0": 8755,
-   "nd_st_m14_m6_lod1": 7
+   "nd_st_m7_m3_lod0": 65213,
+   "nd_st_m7_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -2750.1
+    -6500.1,
+    -2500.1
    ],
    [
-    -6749.9,
-    -2750.1
+    -6499.9,
+    -2500.1
    ],
    [
-    -6749.9,
-    -2749.9
+    -6499.9,
+    -2499.9
    ]
   ],
   "hide": [],
@@ -54538,37 +54538,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m5",
-  "k": "nd_st_m14_m5",
+  "id": "nd_st_m7_m2",
+  "k": "nd_st_m7_m2",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -2250,
+  "x": -6500,
+  "z": -1500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m5.glb",
+  "glb": "models/hero/nd_st_m7_m2.glb",
   "lod": {
-   "hi": "nd_st_m14_m5_lod0",
-   "lo": "nd_st_m14_m5_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m2_lod0",
+   "lo": "nd_st_m7_m2_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m5_lod0": 17191,
-   "nd_st_m14_m5_lod1": 7
+   "nd_st_m7_m2_lod0": 31363,
+   "nd_st_m7_m2_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -2250.1
+    -6500.1,
+    -1500.1
    ],
    [
-    -6749.9,
-    -2250.1
+    -6499.9,
+    -1500.1
    ],
    [
-    -6749.9,
-    -2249.9
+    -6499.9,
+    -1499.9
    ]
   ],
   "hide": [],
@@ -54581,37 +54581,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m6",
-  "k": "nd_st_m13_m6",
+  "id": "nd_st_m7_m6",
+  "k": "nd_st_m7_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -2750,
+  "x": -6500,
+  "z": -5500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m6.glb",
+  "glb": "models/hero/nd_st_m7_m6.glb",
   "lod": {
-   "hi": "nd_st_m13_m6_lod0",
-   "lo": "nd_st_m13_m6_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m6_lod0",
+   "lo": "nd_st_m7_m6_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m6_lod0": 22543,
-   "nd_st_m13_m6_lod1": 7
+   "nd_st_m7_m6_lod0": 44387,
+   "nd_st_m7_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -2750.1
+    -6500.1,
+    -5500.1
    ],
    [
-    -6249.9,
-    -2750.1
+    -6499.9,
+    -5500.1
    ],
    [
-    -6249.9,
-    -2749.9
+    -6499.9,
+    -5499.9
    ]
   ],
   "hide": [],
@@ -54624,37 +54624,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m5",
-  "k": "nd_st_m13_m5",
+  "id": "nd_st_m7_m7",
+  "k": "nd_st_m7_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -2250,
+  "x": -6500,
+  "z": -6500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m5.glb",
+  "glb": "models/hero/nd_st_m7_m7.glb",
   "lod": {
-   "hi": "nd_st_m13_m5_lod0",
-   "lo": "nd_st_m13_m5_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m7_lod0",
+   "lo": "nd_st_m7_m7_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m5_lod0": 11263,
-   "nd_st_m13_m5_lod1": 7
+   "nd_st_m7_m7_lod0": 20087,
+   "nd_st_m7_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -2250.1
+    -6500.1,
+    -6500.1
    ],
    [
-    -6249.9,
-    -2250.1
+    -6499.9,
+    -6500.1
    ],
    [
-    -6249.9,
-    -2249.9
+    -6499.9,
+    -6499.9
    ]
   ],
   "hide": [],
@@ -54667,37 +54667,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m4",
-  "k": "nd_st_m13_m4",
+  "id": "nd_st_m7_m5",
+  "k": "nd_st_m7_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -1750,
+  "x": -6500,
+  "z": -4500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m4.glb",
+  "glb": "models/hero/nd_st_m7_m5.glb",
   "lod": {
-   "hi": "nd_st_m13_m4_lod0",
-   "lo": "nd_st_m13_m4_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m5_lod0",
+   "lo": "nd_st_m7_m5_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m4_lod0": 7699,
-   "nd_st_m13_m4_lod1": 7
+   "nd_st_m7_m5_lod0": 45320,
+   "nd_st_m7_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -1750.1
+    -6500.1,
+    -4500.1
    ],
    [
-    -6249.9,
-    -1750.1
+    -6499.9,
+    -4500.1
    ],
    [
-    -6249.9,
-    -1749.9
+    -6499.9,
+    -4499.9
    ]
   ],
   "hide": [],
@@ -54710,37 +54710,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m4",
-  "k": "nd_st_m14_m4",
+  "id": "nd_st_m8_m5",
+  "k": "nd_st_m8_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -1750,
+  "x": -7500,
+  "z": -4500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m4.glb",
+  "glb": "models/hero/nd_st_m8_m5.glb",
   "lod": {
-   "hi": "nd_st_m14_m4_lod0",
-   "lo": "nd_st_m14_m4_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m5_lod0",
+   "lo": "nd_st_m8_m5_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m4_lod0": 15499,
-   "nd_st_m14_m4_lod1": 7
+   "nd_st_m8_m5_lod0": 37883,
+   "nd_st_m8_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -1750.1
+    -7500.1,
+    -4500.1
    ],
    [
-    -6749.9,
-    -1750.1
+    -7499.9,
+    -4500.1
    ],
    [
-    -6749.9,
-    -1749.9
+    -7499.9,
+    -4499.9
    ]
   ],
   "hide": [],
@@ -54753,37 +54753,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m12",
-  "k": "nd_st_m14_m12",
+  "id": "nd_st_m8_m4",
+  "k": "nd_st_m8_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -5750,
+  "x": -7500,
+  "z": -3500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m12.glb",
+  "glb": "models/hero/nd_st_m8_m4.glb",
   "lod": {
-   "hi": "nd_st_m14_m12_lod0",
-   "lo": "nd_st_m14_m12_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m4_lod0",
+   "lo": "nd_st_m8_m4_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m12_lod0": 15343,
-   "nd_st_m14_m12_lod1": 7
+   "nd_st_m8_m4_lod0": 29402,
+   "nd_st_m8_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -5750.1
+    -7500.1,
+    -3500.1
    ],
    [
-    -6749.9,
-    -5750.1
+    -7499.9,
+    -3500.1
    ],
    [
-    -6749.9,
-    -5749.9
+    -7499.9,
+    -3499.9
    ]
   ],
   "hide": [],
@@ -54796,37 +54796,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m13",
-  "k": "nd_st_m13_m13",
+  "id": "nd_st_m7_m4",
+  "k": "nd_st_m7_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -6250,
+  "x": -6500,
+  "z": -3500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m13.glb",
+  "glb": "models/hero/nd_st_m7_m4.glb",
   "lod": {
-   "hi": "nd_st_m13_m13_lod0",
-   "lo": "nd_st_m13_m13_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m7_m4_lod0",
+   "lo": "nd_st_m7_m4_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m13_lod0": 7987,
-   "nd_st_m13_m13_lod1": 7
+   "nd_st_m7_m4_lod0": 36249,
+   "nd_st_m7_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -6250.1
+    -6500.1,
+    -3500.1
    ],
    [
-    -6249.9,
-    -6250.1
+    -6499.9,
+    -3500.1
    ],
    [
-    -6249.9,
-    -6249.9
+    -6499.9,
+    -3499.9
    ]
   ],
   "hide": [],
@@ -54839,37 +54839,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m13",
-  "k": "nd_st_m14_m13",
+  "id": "nd_st_m8_m3",
+  "k": "nd_st_m8_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -6250,
+  "x": -7500,
+  "z": -2500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m13.glb",
+  "glb": "models/hero/nd_st_m8_m3.glb",
   "lod": {
-   "hi": "nd_st_m14_m13_lod0",
-   "lo": "nd_st_m14_m13_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m3_lod0",
+   "lo": "nd_st_m8_m3_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m13_lod0": 4639,
-   "nd_st_m14_m13_lod1": 7
+   "nd_st_m8_m3_lod0": 11731,
+   "nd_st_m8_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -6250.1
+    -7500.1,
+    -2500.1
    ],
    [
-    -6749.9,
-    -6250.1
+    -7499.9,
+    -2500.1
    ],
    [
-    -6749.9,
-    -6249.9
+    -7499.9,
+    -2499.9
    ]
   ],
   "hide": [],
@@ -54882,37 +54882,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m14",
-  "k": "nd_st_m13_m14",
+  "id": "nd_st_m8_m2",
+  "k": "nd_st_m8_m2",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -6750,
+  "x": -7500,
+  "z": -1500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m14.glb",
+  "glb": "models/hero/nd_st_m8_m2.glb",
   "lod": {
-   "hi": "nd_st_m13_m14_lod0",
-   "lo": "nd_st_m13_m14_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m2_lod0",
+   "lo": "nd_st_m8_m2_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m14_lod0": 3751,
-   "nd_st_m13_m14_lod1": 7
+   "nd_st_m8_m2_lod0": 39847,
+   "nd_st_m8_m2_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -6750.1
+    -7500.1,
+    -1500.1
    ],
    [
-    -6249.9,
-    -6750.1
+    -7499.9,
+    -1500.1
    ],
    [
-    -6249.9,
-    -6749.9
+    -7499.9,
+    -1499.9
    ]
   ],
   "hide": [],
@@ -54925,37 +54925,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m11",
-  "k": "nd_st_m13_m11",
+  "id": "nd_st_m8_m7",
+  "k": "nd_st_m8_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -5250,
+  "x": -7500,
+  "z": -6500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m11.glb",
+  "glb": "models/hero/nd_st_m8_m7.glb",
   "lod": {
-   "hi": "nd_st_m13_m11_lod0",
-   "lo": "nd_st_m13_m11_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m7_lod0",
+   "lo": "nd_st_m8_m7_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m11_lod0": 6091,
-   "nd_st_m13_m11_lod1": 7
+   "nd_st_m8_m7_lod0": 34702,
+   "nd_st_m8_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -5250.1
+    -7500.1,
+    -6500.1
    ],
    [
-    -6249.9,
-    -5250.1
+    -7499.9,
+    -6500.1
    ],
    [
-    -6249.9,
-    -5249.9
+    -7499.9,
+    -6499.9
    ]
   ],
   "hide": [],
@@ -54968,37 +54968,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m11",
-  "k": "nd_st_m14_m11",
+  "id": "nd_st_m8_m6",
+  "k": "nd_st_m8_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -5250,
+  "x": -7500,
+  "z": -5500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m11.glb",
+  "glb": "models/hero/nd_st_m8_m6.glb",
   "lod": {
-   "hi": "nd_st_m14_m11_lod0",
-   "lo": "nd_st_m14_m11_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m8_m6_lod0",
+   "lo": "nd_st_m8_m6_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m11_lod0": 13543,
-   "nd_st_m14_m11_lod1": 7
+   "nd_st_m8_m6_lod0": 66728,
+   "nd_st_m8_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -5250.1
+    -7500.1,
+    -5500.1
    ],
    [
-    -6749.9,
-    -5250.1
+    -7499.9,
+    -5500.1
    ],
    [
-    -6749.9,
-    -5249.9
+    -7499.9,
+    -5499.9
    ]
   ],
   "hide": [],
@@ -55011,37 +55011,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m10",
-  "k": "nd_st_m13_m10",
+  "id": "nd_st_m9_m5",
+  "k": "nd_st_m9_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -4750,
+  "x": -8500,
+  "z": -4500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m10.glb",
+  "glb": "models/hero/nd_st_m9_m5.glb",
   "lod": {
-   "hi": "nd_st_m13_m10_lod0",
-   "lo": "nd_st_m13_m10_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m9_m5_lod0",
+   "lo": "nd_st_m9_m5_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m10_lod0": 6319,
-   "nd_st_m13_m10_lod1": 7
+   "nd_st_m9_m5_lod0": 1567,
+   "nd_st_m9_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -4750.1
+    -8500.1,
+    -4500.1
    ],
    [
-    -6249.9,
-    -4750.1
+    -8499.9,
+    -4500.1
    ],
    [
-    -6249.9,
-    -4749.9
+    -8499.9,
+    -4499.9
    ]
   ],
   "hide": [],
@@ -55054,37 +55054,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m14_m10",
-  "k": "nd_st_m14_m10",
+  "id": "nd_st_m6_m3",
+  "k": "nd_st_m6_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -4750,
+  "x": -5500,
+  "z": -2500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m10.glb",
+  "glb": "models/hero/nd_st_m6_m3.glb",
   "lod": {
-   "hi": "nd_st_m14_m10_lod0",
-   "lo": "nd_st_m14_m10_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m6_m3_lod0",
+   "lo": "nd_st_m6_m3_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m14_m10_lod0": 3451,
-   "nd_st_m14_m10_lod1": 7
+   "nd_st_m6_m3_lod0": 297,
+   "nd_st_m6_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6750.1,
-    -4750.1
+    -5500.1,
+    -2500.1
    ],
    [
-    -6749.9,
-    -4750.1
+    -5499.9,
+    -2500.1
    ],
    [
-    -6749.9,
-    -4749.9
+    -5499.9,
+    -2499.9
    ]
   ],
   "hide": [],
@@ -55097,37 +55097,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m13_m12",
-  "k": "nd_st_m13_m12",
+  "id": "nd_st_m6_m4",
+  "k": "nd_st_m6_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -5750,
+  "x": -5500,
+  "z": -3500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m12.glb",
+  "glb": "models/hero/nd_st_m6_m4.glb",
   "lod": {
-   "hi": "nd_st_m13_m12_lod0",
-   "lo": "nd_st_m13_m12_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m6_m4_lod0",
+   "lo": "nd_st_m6_m4_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m13_m12_lod0": 2815,
-   "nd_st_m13_m12_lod1": 7
+   "nd_st_m6_m4_lod0": 262,
+   "nd_st_m6_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6250.1,
-    -5750.1
+    -5500.1,
+    -3500.1
    ],
    [
-    -6249.9,
-    -5750.1
+    -5499.9,
+    -3500.1
    ],
    [
-    -6249.9,
-    -5749.9
+    -5499.9,
+    -3499.9
    ]
   ],
   "hide": [],
@@ -55140,1456 +55140,37 @@
   "cat": "landmark"
  },
  {
-  "id": "nd_st_m15_m9",
-  "k": "nd_st_m15_m9",
+  "id": "nd_st_m6_m2",
+  "k": "nd_st_m6_m2",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -4250,
+  "x": -5500,
+  "z": -1500,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m9.glb",
+  "glb": "models/hero/nd_st_m6_m2.glb",
   "lod": {
-   "hi": "nd_st_m15_m9_lod0",
-   "lo": "nd_st_m15_m9_lod1",
-   "switch_m": 330
+   "hi": "nd_st_m6_m2_lod0",
+   "lo": "nd_st_m6_m2_lod1",
+   "switch_m": 620
   },
   "tris": {
-   "nd_st_m15_m9_lod0": 13303,
-   "nd_st_m15_m9_lod1": 7
+   "nd_st_m6_m2_lod0": 42,
+   "nd_st_m6_m2_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7250.1,
-    -4250.1
+    -5500.1,
+    -1500.1
    ],
    [
-    -7249.9,
-    -4250.1
+    -5499.9,
+    -1500.1
    ],
    [
-    -7249.9,
-    -4249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m8",
-  "k": "nd_st_m15_m8",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -3750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m8.glb",
-  "lod": {
-   "hi": "nd_st_m15_m8_lod0",
-   "lo": "nd_st_m15_m8_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m8_lod0": 14035,
-   "nd_st_m15_m8_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -3750.1
-   ],
-   [
-    -7249.9,
-    -3750.1
-   ],
-   [
-    -7249.9,
-    -3749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m14_m9",
-  "k": "nd_st_m14_m9",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -4250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m9.glb",
-  "lod": {
-   "hi": "nd_st_m14_m9_lod0",
-   "lo": "nd_st_m14_m9_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m14_m9_lod0": 7807,
-   "nd_st_m14_m9_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6750.1,
-    -4250.1
-   ],
-   [
-    -6749.9,
-    -4250.1
-   ],
-   [
-    -6749.9,
-    -4249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m14_m8",
-  "k": "nd_st_m14_m8",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -3750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m8.glb",
-  "lod": {
-   "hi": "nd_st_m14_m8_lod0",
-   "lo": "nd_st_m14_m8_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m14_m8_lod0": 2911,
-   "nd_st_m14_m8_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6750.1,
-    -3750.1
-   ],
-   [
-    -6749.9,
-    -3750.1
-   ],
-   [
-    -6749.9,
-    -3749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m10",
-  "k": "nd_st_m15_m10",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -4750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m10.glb",
-  "lod": {
-   "hi": "nd_st_m15_m10_lod0",
-   "lo": "nd_st_m15_m10_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m10_lod0": 8575,
-   "nd_st_m15_m10_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -4750.1
-   ],
-   [
-    -7249.9,
-    -4750.1
-   ],
-   [
-    -7249.9,
-    -4749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m10",
-  "k": "nd_st_m16_m10",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -4750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m10.glb",
-  "lod": {
-   "hi": "nd_st_m16_m10_lod0",
-   "lo": "nd_st_m16_m10_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m10_lod0": 6259,
-   "nd_st_m16_m10_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -4750.1
-   ],
-   [
-    -7749.9,
-    -4750.1
-   ],
-   [
-    -7749.9,
-    -4749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m9",
-  "k": "nd_st_m16_m9",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -4250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m9.glb",
-  "lod": {
-   "hi": "nd_st_m16_m9_lod0",
-   "lo": "nd_st_m16_m9_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m9_lod0": 3403,
-   "nd_st_m16_m9_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -4250.1
-   ],
-   [
-    -7749.9,
-    -4250.1
-   ],
-   [
-    -7749.9,
-    -4249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m8",
-  "k": "nd_st_m16_m8",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -3750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m8.glb",
-  "lod": {
-   "hi": "nd_st_m16_m8_lod0",
-   "lo": "nd_st_m16_m8_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m8_lod0": 3751,
-   "nd_st_m16_m8_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -3750.1
-   ],
-   [
-    -7749.9,
-    -3750.1
-   ],
-   [
-    -7749.9,
-    -3749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m5",
-  "k": "nd_st_m15_m5",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -2250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m5.glb",
-  "lod": {
-   "hi": "nd_st_m15_m5_lod0",
-   "lo": "nd_st_m15_m5_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m5_lod0": 7159,
-   "nd_st_m15_m5_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -2250.1
-   ],
-   [
-    -7249.9,
-    -2250.1
-   ],
-   [
-    -7249.9,
-    -2249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m6",
-  "k": "nd_st_m15_m6",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -2750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m6.glb",
-  "lod": {
-   "hi": "nd_st_m15_m6_lod0",
-   "lo": "nd_st_m15_m6_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m6_lod0": 1039,
-   "nd_st_m15_m6_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -2750.1
-   ],
-   [
-    -7249.9,
-    -2750.1
-   ],
-   [
-    -7249.9,
-    -2749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m4",
-  "k": "nd_st_m16_m4",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -1750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m4.glb",
-  "lod": {
-   "hi": "nd_st_m16_m4_lod0",
-   "lo": "nd_st_m16_m4_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m4_lod0": 7531,
-   "nd_st_m16_m4_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -1750.1
-   ],
-   [
-    -7749.9,
-    -1750.1
-   ],
-   [
-    -7749.9,
-    -1749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m4",
-  "k": "nd_st_m15_m4",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -1750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m4.glb",
-  "lod": {
-   "hi": "nd_st_m15_m4_lod0",
-   "lo": "nd_st_m15_m4_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m4_lod0": 18511,
-   "nd_st_m15_m4_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -1750.1
-   ],
-   [
-    -7249.9,
-    -1750.1
-   ],
-   [
-    -7249.9,
-    -1749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m13",
-  "k": "nd_st_m15_m13",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -6250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m13.glb",
-  "lod": {
-   "hi": "nd_st_m15_m13_lod0",
-   "lo": "nd_st_m15_m13_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m13_lod0": 18439,
-   "nd_st_m15_m13_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -6250.1
-   ],
-   [
-    -7249.9,
-    -6250.1
-   ],
-   [
-    -7249.9,
-    -6249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m12",
-  "k": "nd_st_m15_m12",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -5750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m12.glb",
-  "lod": {
-   "hi": "nd_st_m15_m12_lod0",
-   "lo": "nd_st_m15_m12_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m12_lod0": 22279,
-   "nd_st_m15_m12_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -5750.1
-   ],
-   [
-    -7249.9,
-    -5750.1
-   ],
-   [
-    -7249.9,
-    -5749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m12",
-  "k": "nd_st_m16_m12",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -5750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m12.glb",
-  "lod": {
-   "hi": "nd_st_m16_m12_lod0",
-   "lo": "nd_st_m16_m12_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m12_lod0": 15775,
-   "nd_st_m16_m12_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -5750.1
-   ],
-   [
-    -7749.9,
-    -5750.1
-   ],
-   [
-    -7749.9,
-    -5749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m13",
-  "k": "nd_st_m16_m13",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -6250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m13.glb",
-  "lod": {
-   "hi": "nd_st_m16_m13_lod0",
-   "lo": "nd_st_m16_m13_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m13_lod0": 6667,
-   "nd_st_m16_m13_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -6250.1
-   ],
-   [
-    -7749.9,
-    -6250.1
-   ],
-   [
-    -7749.9,
-    -6249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m14",
-  "k": "nd_st_m16_m14",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -6750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m14.glb",
-  "lod": {
-   "hi": "nd_st_m16_m14_lod0",
-   "lo": "nd_st_m16_m14_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m14_lod0": 2239,
-   "nd_st_m16_m14_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -6750.1
-   ],
-   [
-    -7749.9,
-    -6750.1
-   ],
-   [
-    -7749.9,
-    -6749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m14",
-  "k": "nd_st_m15_m14",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -6750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m14.glb",
-  "lod": {
-   "hi": "nd_st_m15_m14_lod0",
-   "lo": "nd_st_m15_m14_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m14_lod0": 2887,
-   "nd_st_m15_m14_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -6750.1
-   ],
-   [
-    -7249.9,
-    -6750.1
-   ],
-   [
-    -7249.9,
-    -6749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m11",
-  "k": "nd_st_m15_m11",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -5250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m11.glb",
-  "lod": {
-   "hi": "nd_st_m15_m11_lod0",
-   "lo": "nd_st_m15_m11_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m11_lod0": 11011,
-   "nd_st_m15_m11_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -5250.1
-   ],
-   [
-    -7249.9,
-    -5250.1
-   ],
-   [
-    -7249.9,
-    -5249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m11",
-  "k": "nd_st_m16_m11",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -5250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m11.glb",
-  "lod": {
-   "hi": "nd_st_m16_m11_lod0",
-   "lo": "nd_st_m16_m11_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m11_lod0": 8191,
-   "nd_st_m16_m11_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -5250.1
-   ],
-   [
-    -7749.9,
-    -5250.1
-   ],
-   [
-    -7749.9,
-    -5249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m13_m9",
-  "k": "nd_st_m13_m9",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -4250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m9.glb",
-  "lod": {
-   "hi": "nd_st_m13_m9_lod0",
-   "lo": "nd_st_m13_m9_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m13_m9_lod0": 19519,
-   "nd_st_m13_m9_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6250.1,
-    -4250.1
-   ],
-   [
-    -6249.9,
-    -4250.1
-   ],
-   [
-    -6249.9,
-    -4249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m13_m8",
-  "k": "nd_st_m13_m8",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -3750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m8.glb",
-  "lod": {
-   "hi": "nd_st_m13_m8_lod0",
-   "lo": "nd_st_m13_m8_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m13_m8_lod0": 7255,
-   "nd_st_m13_m8_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6250.1,
-    -3750.1
-   ],
-   [
-    -6249.9,
-    -3750.1
-   ],
-   [
-    -6249.9,
-    -3749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m3",
-  "k": "nd_st_m16_m3",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -1250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m3.glb",
-  "lod": {
-   "hi": "nd_st_m16_m3_lod0",
-   "lo": "nd_st_m16_m3_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m3_lod0": 1327,
-   "nd_st_m16_m3_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -1250.1
-   ],
-   [
-    -7749.9,
-    -1250.1
-   ],
-   [
-    -7749.9,
-    -1249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m3",
-  "k": "nd_st_m15_m3",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -1250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m3.glb",
-  "lod": {
-   "hi": "nd_st_m15_m3_lod0",
-   "lo": "nd_st_m15_m3_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m3_lod0": 7939,
-   "nd_st_m15_m3_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -1250.1
-   ],
-   [
-    -7249.9,
-    -1250.1
-   ],
-   [
-    -7249.9,
-    -1249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m14_m3",
-  "k": "nd_st_m14_m3",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -1250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m3.glb",
-  "lod": {
-   "hi": "nd_st_m14_m3_lod0",
-   "lo": "nd_st_m14_m3_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m14_m3_lod0": 4339,
-   "nd_st_m14_m3_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6750.1,
-    -1250.1
-   ],
-   [
-    -6749.9,
-    -1250.1
-   ],
-   [
-    -6749.9,
-    -1249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m15_m7",
-  "k": "nd_st_m15_m7",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7250,
-  "z": -3250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m15_m7.glb",
-  "lod": {
-   "hi": "nd_st_m15_m7_lod0",
-   "lo": "nd_st_m15_m7_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m15_m7_lod0": 3751,
-   "nd_st_m15_m7_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7250.1,
-    -3250.1
-   ],
-   [
-    -7249.9,
-    -3250.1
-   ],
-   [
-    -7249.9,
-    -3249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m14_m7",
-  "k": "nd_st_m14_m7",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6750,
-  "z": -3250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m14_m7.glb",
-  "lod": {
-   "hi": "nd_st_m14_m7_lod0",
-   "lo": "nd_st_m14_m7_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m14_m7_lod0": 8779,
-   "nd_st_m14_m7_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6750.1,
-    -3250.1
-   ],
-   [
-    -6749.9,
-    -3250.1
-   ],
-   [
-    -6749.9,
-    -3249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m6",
-  "k": "nd_st_m16_m6",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -2750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m6.glb",
-  "lod": {
-   "hi": "nd_st_m16_m6_lod0",
-   "lo": "nd_st_m16_m6_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m6_lod0": 475,
-   "nd_st_m16_m6_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -2750.1
-   ],
-   [
-    -7749.9,
-    -2750.1
-   ],
-   [
-    -7749.9,
-    -2749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m16_m7",
-  "k": "nd_st_m16_m7",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -7750,
-  "z": -3250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m16_m7.glb",
-  "lod": {
-   "hi": "nd_st_m16_m7_lod0",
-   "lo": "nd_st_m16_m7_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m16_m7_lod0": 2779,
-   "nd_st_m16_m7_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -7750.1,
-    -3250.1
-   ],
-   [
-    -7749.9,
-    -3250.1
-   ],
-   [
-    -7749.9,
-    -3249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m13_m3",
-  "k": "nd_st_m13_m3",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -1250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m3.glb",
-  "lod": {
-   "hi": "nd_st_m13_m3_lod0",
-   "lo": "nd_st_m13_m3_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m13_m3_lod0": 295,
-   "nd_st_m13_m3_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6250.1,
-    -1250.1
-   ],
-   [
-    -6249.9,
-    -1250.1
-   ],
-   [
-    -6249.9,
-    -1249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m13_m7",
-  "k": "nd_st_m13_m7",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -6250,
-  "z": -3250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m13_m7.glb",
-  "lod": {
-   "hi": "nd_st_m13_m7_lod0",
-   "lo": "nd_st_m13_m7_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m13_m7_lod0": 10915,
-   "nd_st_m13_m7_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -6250.1,
-    -3250.1
-   ],
-   [
-    -6249.9,
-    -3250.1
-   ],
-   [
-    -6249.9,
-    -3249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m17_m10",
-  "k": "nd_st_m17_m10",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -8250,
-  "z": -4750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m17_m10.glb",
-  "lod": {
-   "hi": "nd_st_m17_m10_lod0",
-   "lo": "nd_st_m17_m10_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m17_m10_lod0": 1567,
-   "nd_st_m17_m10_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -8250.1,
-    -4750.1
-   ],
-   [
-    -8249.9,
-    -4750.1
-   ],
-   [
-    -8249.9,
-    -4749.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m12_m5",
-  "k": "nd_st_m12_m5",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -5750,
-  "z": -2250,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m12_m5.glb",
-  "lod": {
-   "hi": "nd_st_m12_m5_lod0",
-   "lo": "nd_st_m12_m5_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m12_m5_lod0": 103,
-   "nd_st_m12_m5_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -5750.1,
-    -2250.1
-   ],
-   [
-    -5749.9,
-    -2250.1
-   ],
-   [
-    -5749.9,
-    -2249.9
-   ]
-  ],
-  "hide": [],
-  "sign": false,
-  "kind": "replace",
-  "new_place": true,
-  "geo_source": "OSM building footprint (data/real region extract)",
-  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
-  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
-  "cat": "landmark"
- },
- {
-  "id": "nd_st_m12_m8",
-  "k": "nd_st_m12_m8",
-  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
-  "status": "v4-mall-detail",
-  "x": -5750,
-  "z": -3750,
-  "y": 0,
-  "rotation": 0,
-  "glb": "models/hero/nd_st_m12_m8.glb",
-  "lod": {
-   "hi": "nd_st_m12_m8_lod0",
-   "lo": "nd_st_m12_m8_lod1",
-   "switch_m": 330
-  },
-  "tris": {
-   "nd_st_m12_m8_lod0": 55,
-   "nd_st_m12_m8_lod1": 7
-  },
-  "textures": 0,
-  "hide_footprint": [
-   [
-    -5750.1,
-    -3750.1
-   ],
-   [
-    -5749.9,
-    -3750.1
-   ],
-   [
-    -5749.9,
-    -3749.9
+    -5499.9,
+    -1499.9
    ]
   ],
   "hide": [],
