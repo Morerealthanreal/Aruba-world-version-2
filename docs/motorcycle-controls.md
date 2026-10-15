@@ -44,9 +44,18 @@ It is a faired sport bike, not a Panigale. The licensed file has a one-piece fai
 twin slim headlights, an integrated windscreen, stalk mirrors and gold forks. It also
 has a dual swingarm, a chain and low twin exhausts, and the wheels are red five-spoke
 rather than black. No CC0 or CC-BY Panigale with a single-sided swingarm and under-seat
-exhausts was actually downloadable, and no CC0 or CC-BY rigged rider in leathers and a
-full-face helmet was either, so the seat is deliberately empty. Do not put a capsule
-rider back on it.
+exhausts was actually downloadable.
+
+The rider is a posed, baked copy of **Sam** from the Innerscene locomotion collection,
+adapted from a MakeHuman / MPFB character and released
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+([source](https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f)).
+Hair, street clothes and the head are not shown. The body wears black leathers with red
+chest and shoulder panels, black gloves and black boots, and sits in a tucked sport
+position with the hands on the grips and the feet on the pegs. The full-face helmet,
+dark visor, glove shells and boot shafts are modelled for this project. `sport_rider`
+is about 6,300 triangles and `sport_rider_far` about 2,900, and both are children of the
+same leaning group as the bike.
 
 The near group `sport_bike` is about 20,000 triangles. `sport_bike_far` is about 4,000
 triangles, hidden at load and shown past about 18 m. Both wheels sit on y = 0 with the
