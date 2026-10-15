@@ -73,7 +73,14 @@ const snapStats = () => page.evaluate(() => {
 });
 if (doStatic) {
   // freeze sim (A dt=0) so the screenshot pose is the same in every run
-  await page.evaluate(() => { window.__stepN = 0; });
+  // freeze the sim (A dt=0) and pin the car to a rounded pose: how far the car settled at boot depends on
+  // frame timing, and a 0.1 m offset moves every near object in the shots
+  out.pose = await page.evaluate(() => {
+    window.__stepN = 0;
+    const c = game.S.car, A = game.real, dy = Math.round((c.y - A.heightAt(c.x, c.z)) * 100) / 100;
+    c.x = Math.round(c.x); c.z = Math.round(c.z); c.h = Math.round(c.h * 20) / 20; c.y = A.heightAt(c.x, c.z) + dy;
+    return [c.x, c.y, c.z, c.h];
+  });
   await page.setViewport(PHONE);
   await sleep(12000);
   const tally = await page.evaluate(async () => {
@@ -112,7 +119,7 @@ if (doStatic) {
   for (const v of ["chase", "street", "aerial"]) {
     await page.evaluate((v) => {
       const c = game.S.car, fx = -Math.sin(c.h), fz = -Math.cos(c.h), y = game.real.heightAt(c.x, c.z);
-      window.__freeCam = v === "chase" ? undefined : v === "street" ? [c.x - fx * 6, y + 3.2, c.z - fz * 6, c.x + fx * 900, y + 3, c.z + fz * 900] : [c.x - fx * 150, y + 140, c.z - fz * 150, c.x + fx * 1500, y, c.z + fz * 1500];
+      window.__freeCam = v === "chase" ? [c.x - fx * 8, y + 3.4, c.z - fz * 8, c.x + fx * 30, y + 0.5, c.z + fz * 30] : v === "street" ? [c.x - fx * 6, y + 3.2, c.z - fz * 6, c.x + fx * 900, y + 3, c.z + fz * 900] : [c.x - fx * 150, y + 140, c.z - fz * 150, c.x + fx * 1500, y, c.z + fz * 1500];
       if (v === "chase") { game.car.visible = true; }
     }, v);
     await sleep(9000);
