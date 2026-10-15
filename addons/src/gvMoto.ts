@@ -37,6 +37,7 @@ export class GvMoto {
     const geo = new THREE.PlaneGeometry(0.28, 1.0).rotateX(-Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({ color: 0x10151a, transparent: true, opacity: 0.56, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     this.marks = new THREE.InstancedMesh(geo, mat, MARKS);
+    this.marks.name = "aw:vehicle-skids";
     this.marks.count = 0; this.marks.frustumCulled = false; this.marks.renderOrder = 1;
     this.marks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     g.scene.add(this.marks);
@@ -49,9 +50,10 @@ export class GvMoto {
     grad.addColorStop(0, "rgba(220,225,228,.72)"); grad.addColorStop(0.42, "rgba(150,158,164,.34)"); grad.addColorStop(1, "rgba(90,98,104,0)");
     ctx.fillStyle = grad; ctx.fillRect(0, 0, 64, 64);
     this.smoke = new THREE.Points(smokeGeo, new THREE.PointsMaterial({
-      map: new THREE.CanvasTexture(puff), color: 0xc5c9cb, size: 0.7,
-      transparent: true, opacity: 0.5, depthWrite: false, sizeAttenuation: true,
+      map: new THREE.CanvasTexture(puff), color: 0xc5c9cb, size: 0.5,
+      transparent: true, opacity: 0.3, depthWrite: false, sizeAttenuation: true,
     }));
+    this.smoke.name = "aw:moto-smoke";
     this.smoke.frustumCulled = false; this.smoke.renderOrder = 2; g.scene.add(this.smoke);
     const st = document.createElement("style");
     st.textContent = `
@@ -61,17 +63,24 @@ body.touch.awmoto #steerbtns button{width:var(--moto-btn);height:var(--moto-btn)
 body.touch.awmoto #steerbtns button:before{font-size:calc(var(--moto-btn)*.43);line-height:1}
 body.touch.awmoto #steerbtns button[data-act=left]:before{content:"◀"}
 body.touch.awmoto #steerbtns button[data-act=right]:before{content:"▶"}
-body.touch.awmoto #actions{right:calc(14px + env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));width:calc(var(--moto-btn)*1.72);height:calc(var(--moto-btn)*1.72)}
+body.touch.awmoto #actions{right:calc(14px + env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));width:calc(var(--moto-btn)*1.9);height:calc(var(--moto-btn)*1.72)}
 body.touch.awmoto #actions .grp[data-for=moto].on{display:block!important;position:relative;width:100%;height:100%}
 body.touch.awmoto #actions .grp[data-for=moto] button{position:absolute!important;min-width:0!important;touch-action:none;border:3px solid #ffffffdf;box-shadow:0 4px 14px #0007,0 0 0 2px #0003 inset;font-size:13px!important;letter-spacing:.04em}
 body.touch.awmoto #actions .grp[data-for=moto] button[data-act=gas]{right:0;bottom:0;width:calc(var(--moto-btn)*.98)!important;height:calc(var(--moto-btn)*1.38)!important;border-radius:24px!important;background:repeating-linear-gradient(0deg,#ffffff24 0 6px,#0000 6px 14px),#218b47dc!important}
 body.touch.awmoto #actions .grp[data-for=moto] button[data-act=brake]{left:0;top:0;width:calc(var(--moto-btn)*.86)!important;height:calc(var(--moto-btn)*.86)!important;border-radius:20px!important;background:repeating-linear-gradient(90deg,#ffffff20 0 6px,#0000 6px 14px),#b82c2bdc!important}
 body.touch.awmoto #actions .grp[data-for=moto] button.held,body.touch.awmoto #steerbtns button.held{background:#ffd23f!important;color:#20242a!important;transform:scale(.96)}
-body.touch.awmoto .aw-wheelie{right:calc(18px + env(safe-area-inset-right))!important;bottom:calc(214px + env(safe-area-inset-bottom))!important;width:74px;height:56px;padding:0!important;border:2px solid #ffffffc9!important;border-radius:18px!important;background:#24334bd9!important;font-size:11px!important}
 body.touch.awmoto .aw-cam{right:calc(18px + env(safe-area-inset-right))!important;top:calc(126px + env(safe-area-inset-top))!important;width:48px!important;height:48px!important}
+body.touch.drive:not(.awmoto) #actions .grp[data-for=car].on{grid-template-columns:auto auto!important;align-items:end}
+body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=gas]{width:calc(var(--db)*.95)!important;height:calc(var(--db)*1.55)!important;border-radius:18px!important;background:repeating-linear-gradient(0deg,#ffffff30 0 6px,#0000 6px 14px),#28aa50b0!important;order:2}
+body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=brake]{width:calc(var(--db)*1.15)!important;height:calc(var(--db)*.85)!important;border-radius:16px!important;background:repeating-linear-gradient(90deg,#ffffff26 0 6px,#0000 6px 14px),#c83228a8!important;order:1}
+@media (max-width:600px){
+ body.touch.awmoto #hud{max-width:112px;padding:5px 8px;font-size:11px}
+ body.touch.awmoto #hudmode{font-size:13px}
+ body.touch.awmoto #modes{gap:4px}
+ body.touch.awmoto #modes button{width:36px;height:38px;font-size:18px}
+}
 @media (orientation:landscape) and (pointer:coarse){
  body.touch.awmoto{--moto-btn:clamp(68px,11.5vw,82px)}
- body.touch.awmoto .aw-wheelie{right:calc(190px + env(safe-area-inset-right))!important;bottom:calc(26px + env(safe-area-inset-bottom))!important}
 }`;
     document.head.appendChild(st);
     const w = window as MotoWindow;
@@ -83,13 +92,13 @@ body.touch.awmoto .aw-cam{right:calc(18px + env(safe-area-inset-right))!importan
     const w = window as MotoWindow;
     if (!moto) { w.__awMotoBump = Math.max(0, (w.__awMotoBump || 0) - dt * 5); return; }
     const sp = Math.abs(a.s || 0), now = performance.now() * 0.001;
-    const road = Math.max(0, Math.min(1, (sp - 22) / 28));
+    const road = Math.max(0, Math.min(1, (sp - 25) / 30));
     const bump = Math.max(0, w.__awMotoBump || 0);
-    const shake = road * 0.035 + bump * 0.2;
+    const shake = road * 0.025 + bump * 0.2;
     const lateral = Math.sin(now * 23) * shake;
     target.x += Math.cos(a.h) * lateral;
     target.z -= Math.sin(a.h) * lateral;
-    target.y += Math.sin(now * 31) * shake * 0.65 + bump * 0.08;
+    target.y += Math.sin(now * 31) * shake * 0.65 + bump * 0.08 - 0.5;
     w.__awMotoBump = Math.max(0, bump - dt * 4.5);
   }
 
@@ -130,19 +139,25 @@ body.touch.awmoto .aw-cam{right:calc(18px + env(safe-area-inset-right))!importan
     }
     const cam = g.camera;
     if (!this.baseFov) this.baseFov = cam.fov;
-    const a = S.car, sp = moto ? Math.abs(a.s || 0) : 0;
-    const tf = this.baseFov + Math.min(12, Math.max(0, sp - 10) * 0.29);
+    const a = S.car, sp = drive ? Math.abs(a.s || 0) : 0;
+    const tf = moto
+      ? this.baseFov + Math.min(6, Math.max(0, sp - 10) * 0.14)
+      : S.mode === "car"
+        ? this.baseFov + Math.min(14, Math.max(0, sp - 8) * 0.3)
+        : this.baseFov;
     if (Math.abs(cam.fov - tf) > 0.05) { cam.fov += (tf - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix(); }
     this.updateSmoke(dt);
-    if (!drive || !moto) return;
+    if (!drive) return;
     const held = (g as unknown as { held: Record<string, boolean> }).held || {};
     const drift = (window as MotoWindow).__awDrift || 0;
     const decel = Math.max(0, (this.lastSpeed - sp) / Math.max(0.001, dt));
-    const skid = drift > 0.28 || ((held.brake || decel > 16) && sp > 10);
+    const skid = moto
+      ? drift > 0.22 || ((held.brake || decel > 14) && sp > 9)
+      : (held.brake || decel > 16) && sp > 14;
     this.lastSpeed = sp;
-    if (skid && sp > 8) {
+    if (moto && skid && sp > 8) {
       this.smokeClock += dt * (drift > 0.5 ? 1.6 : 1);
-      while (this.smokeClock > 0.065) { this.smokeClock -= 0.065; this.spawnSmoke(a); }
+      while (this.smokeClock > 0.11) { this.smokeClock -= 0.11; this.spawnSmoke(a); }
     } else this.smokeClock = 0;
     const dx = a.x - this.lx, dz = a.z - this.lz, d2 = dx * dx + dz * dz;
     if (!this.tracking || !skid || d2 > 25) { this.lx = a.x; this.lz = a.z; this.tracking = true; return; }
@@ -151,12 +166,16 @@ body.touch.awmoto .aw-cam{right:calc(18px + env(safe-area-inset-right))!importan
     this.q.setFromAxisAngle(this.up, yaw);
     this.sc.set(1, 1, Math.sqrt(d2));
     const sn = Math.sin(a.h), cs = Math.cos(a.h);
-    // Midpoint between previous/current position, under the rear wheel.
-    this.p.set((a.x + this.lx) / 2 + sn * 0.75, a.y + 0.04, (a.z + this.lz) / 2 + cs * 0.75);
-    this.m.compose(this.p, this.q, this.sc);
-    this.marks.setMatrixAt(this.i, this.m);
-    this.i = (this.i + 1) % MARKS;
-    this.marks.count = Math.min(MARKS, this.marks.count + 1);
+    const back = moto ? 0.75 : 1.3;
+    const sides = moto ? [0] : [-0.78, 0.78];
+    for (const side of sides) {
+      // Midpoint between previous/current position, under each rear tyre.
+      this.p.set((a.x + this.lx) / 2 + sn * back + cs * side, a.y + 0.04, (a.z + this.lz) / 2 + cs * back - sn * side);
+      this.m.compose(this.p, this.q, this.sc);
+      this.marks.setMatrixAt(this.i, this.m);
+      this.i = (this.i + 1) % MARKS;
+      this.marks.count = Math.min(MARKS, this.marks.count + 1);
+    }
     this.marks.instanceMatrix.needsUpdate = true;
     this.lx = a.x; this.lz = a.z;
   }

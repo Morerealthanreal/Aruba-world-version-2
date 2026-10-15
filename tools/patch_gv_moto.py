@@ -36,34 +36,39 @@ enabled = "window.__awMotoEnabled"
 
 swap(
     "bike base acceleration",
-    f"s>0&&(a.s+=Math.min(1,s)*14*(o&&{enabled}?.65:1)*e*(a.s<0?2:1))",
+    f"s>0&&(a.s+=Math.min(1,s)*14*(o&&{enabled}?.85:1)*e*(a.s<0?2:1))",
     "s>0&&(a.s+=Math.min(1,s)*14*e*(a.s<0?2:1))",
+    f"s>0&&(a.s+=Math.min(1,s)*14*(o&&{enabled}?.65:1)*e*(a.s<0?2:1))",
 )
 swap(
     "bike throttle",
-    f"o&&s>0&&(a.s+=Math.min(1,s)*({enabled}?(a.s<18?3:a.s<34?2:1.5):6)*e)",
+    f"o&&s>0&&(a.s+=Math.min(1,s)*({enabled}?(a.s<18?8:a.s<34?4:2):6)*e)",
     "o&&s>0&&(a.s+=Math.min(1,s)*6*e)",
     "o&&s>0&&(a.s+=Math.min(1,s)*(a.s<20?10:6)*e)",
     f"o&&s>0&&(a.s+=Math.min(1,s)*({enabled}?(a.s<18?13:a.s<38?7:3.5):6)*e)",
+    f"o&&s>0&&(a.s+=Math.min(1,s)*({enabled}?(a.s<18?3:a.s<34?2:1.5):6)*e)",
 )
 swap(
     "brake drift",
-    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:5):30)*e))",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:15):30)*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),30*e))",
     "c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(Math.abs(t)>.35&&Math.abs(a.s)>11?8:30)*e))",
     f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}&&Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:30)*e))",
     f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:15):30)*e))",
+    f"c&&(a.s-=Math.sign(a.s)*Math.min(Math.abs(a.s),(o&&{enabled}?(Math.abs(t)>.3&&Math.abs(a.s)>9?5.5:5):30)*e))",
 )
 swap(
     "drift rolling resistance",
-    f"a.s-=a.s*(o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?.08:.25)*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active||o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?0:o?6.5:7.5)*e)",
+    f"a.s-=a.s*(o&&{enabled}?(c&&Math.abs(t)>.3&&Math.abs(a.s)>9?.08:c?.2:s?.25:.12):.25)*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active||o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?0:o&&{enabled}?2.5:o?6.5:7.5)*e)",
     "a.s-=a.s*.25*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active?0:o?6.5:7.5)*e)",
+    f"a.s-=a.s*(o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?.08:.25)*e+Math.sign(a.s)*Math.min(Math.abs(a.s),(s||l||yv&&yv.active||o&&{enabled}&&c&&Math.abs(t)>.3&&Math.abs(a.s)>9?0:o?6.5:7.5)*e)",
 )
 swap(
     "bike top speed",
-    f"a.s=Math.max(-7,Math.min(o&&{enabled}?45:o?55:48,a.s))",
+    f"a.s=Math.max(-7,Math.min(o&&{enabled}?55:o?55:48,a.s))",
     "a.s=Math.max(-7,Math.min(o?55:48,a.s))",
     f"a.s=Math.max(-7,Math.min(o&&{enabled}?52:o?55:48,a.s))",
+    f"a.s=Math.max(-7,Math.min(o&&{enabled}?45:o?55:48,a.s))",
 )
 swap(
     "steering response",
@@ -92,10 +97,11 @@ swap(
 )
 swap(
     "lean response",
-    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?7:3.5)*e)",
+    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?(Math.abs(t)<Math.abs(a.lean||0)?4.5:8):3.5)*e)",
     "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,3.5*e)",
     "a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,6*e)",
     f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?8:3.5)*e)",
+    f"a.lean=(a.lean||0)+(t-(a.lean||0))*Math.min(1,({enabled}?7:3.5)*e)",
 )
 swap(
     "bike slip",
@@ -105,18 +111,20 @@ swap(
 )
 swap(
     "camera follow",
-    f"a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?({enabled}?6.2:3):6))",
+    f"a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?({enabled}?3.3:3):6))",
     "a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?3:6))",
     "a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?4.5:6))",
+    f"a.camH=(a.camH??a.h)+t*Math.min(1,e*(o?({enabled}?6.2:3):6))",
 )
 swap(
     "camera distance",
-    f"((o?({enabled}?5.1:6.2):8.5)+Math.abs(a.s)*(o?({enabled}?.03:.06):.06))*(o_.aspect<.8?(o&&{enabled}?1.18:1.4):1)*(window.__awCamD||1)",
+    f"((o?({enabled}?4.25:6.2):8.5)+Math.abs(a.s)*(o?({enabled}?.01:.06):.06))*(o_.aspect<.8?(o&&{enabled}?1.05:1.4):1)*(window.__awCamD||1)",
     "((o?6.2:8.5)+Math.abs(a.s)*.06)*(o_.aspect<.8?1.4:1)",
     "((o?5.4:8.5)+Math.abs(a.s)*(o?.05:.06))*(o_.aspect<.8?1.4:1)",
     "((o?6.2:8.5)+Math.abs(a.s)*.06)*(o_.aspect<.8?1.4:1)*(window.__awCamD||1)",
     "((o?5.4:8.5)+Math.abs(a.s)*(o?.05:.06))*(o_.aspect<.8?1.4:1)*(window.__awCamD||1)",
     f"((o?({enabled}?5.1:6.2):8.5)+Math.abs(a.s)*(o?({enabled}?.055:.06):.06))*(o_.aspect<.8?(o&&{enabled}?1.22:1.4):1)*(window.__awCamD||1)",
+    f"((o?({enabled}?5.1:6.2):8.5)+Math.abs(a.s)*(o?({enabled}?.03:.06):.06))*(o_.aspect<.8?(o&&{enabled}?1.18:1.4):1)*(window.__awCamD||1)",
 )
 swap(
     "camera pitch",
@@ -133,6 +141,22 @@ swap(
     "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),window.__awMotoCam&&window.__awMotoCam(zv,a,e,o),X_(Rv,zv),o_.position.lerp",
     "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),X_(Rv,zv),o_.position.lerp",
 )
+
+swap(
+    "multi-material motorcycle",
+    "n.traverse(e=>{e.isMesh&&(Array.isArray(e.material)?e.material:[e.material]).forEach(e=>Am(e))}),n}",
+    "n.traverse(e=>{e.isMesh&&Am(e.material)}),n}",
+)
+swap(
+    "motorcycle model cache",
+    "Uh.loadAsync(`./models/moto.glb?v=2`)",
+    "Uh.loadAsync(`./models/moto.glb`)",
+)
+
+wheelie_hook = ",window.__awWh&&window.__awWh(ev,a,e)"
+if wheelie_hook in s:
+    s = s.replace(wheelie_hook, "")
+    changed += 1
 
 P.write_text(s)
 print(f"patched {changed}" if changed else "already patched")
