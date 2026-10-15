@@ -81,3 +81,8 @@
 - nightLights.ts: OSM facade lit windows emissive 2.4 -> 0.9 and lit share 64% -> 50%; hero facade windows 1.2 -> 0.55 (warmer); street bulbs +7.5 -> +3.5; hero sign/neon ramps 3.2/2.2/0.55 -> 1.8/1.2/0.3.
 - look.ts: bloom strength 0.18+0.1n -> 0.16+0.04n, threshold 1.05 -> 1.05+0.25n.
 - before/after phone (390x844 @2x, MED, t=19.4) at Hyatt/JEI: landmarks/shots/dusk_ba.png (landmarks/dusk.mjs).
+
+## r203 (Eagle Beach hotels)
+- Amsterdam Manor (batch3), Divi Phoenix (batch8 divephoenix), Casa del Mar (batch9) and Tamarijn (batch5) already had heroes; my r201 "no hero within 60 m of the POI" check was wrong (hero origins sit on footprint centroids, far from the POI points). Verified in game (shots/r203_*; note shot3 needs WAIT=60000 for full region load, 15 s shows far-LOD boxes).
+- New: mvceagle (batch8 site(), OSM 4387 "MCV", 2 floors, cream + terracotta tile roof per Esri, sign approx).
+- Mapillary at these hotels: no photos facing them in coverage (mly.py 0 facing; JEI survey 0-2 usable) -> colours from Esri/brand refs only.
