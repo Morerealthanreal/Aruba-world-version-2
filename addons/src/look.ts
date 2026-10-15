@@ -40,6 +40,6 @@ export class Look {
       u.uVig.value = 0.14;
       (u.uLift.value as Vector3).set(0.008, 0.007, 0.002);
     }
-    if (p.bloom) p.bloom.strength = 0.18 + 0.1 * night; // night lamps/windows glow a bit more
+    if (p.bloom) { p.bloom.strength = 0.16 + 0.04 * night; p.bloom.threshold = 1.05 + 0.25 * night; } // r202: was 0.18+0.1*night, thr 1.05 (night facades blew out on phones)
   }
 }

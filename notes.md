@@ -73,11 +73,11 @@
 - Route 1 east / Noord top-down vs Esri (shots/b3_r1n.jpg): road layout matches at 6 samples; only the Balashi tanks were missing.
 
 ## r201 (Balashi tank roofs, signage survey 1)
-- web_balashi_tanks: tan roofs/shells now on 335599534/538/539 (Esri roof mean R-B >= 33; the rest <= 26 = white). web_balashi now in msb_fix.py prefix list (clears hide).
-- landmarks/mlysurvey.py: Mapillary photos along a named road (newest within 20 m of samples). L.G. Smith: only 6 photos in coverage (no big signs missing in them); J.E. Irausquin: 626 photos.
-- Hotels on JEI without a hero model: Tamarijn, MVC Eagle Beach, Divi Phoenix, Casa Del Mar, Amsterdam Manor. Only Tamarijn had a readable sign photo -> tamarijn_entry (cream porte-cochere + teal "Tamarijn Aruba | all inclusive" fascia, NE facade of OSM bld 4360).
-
-## r201 (Balashi tank roofs, signage survey 1)
 - web_balashi_tanks: tan roofs/shells on 335599534/538/539 (Esri roof mean R-B >= 33; others <= 26 = white). web_balashi added to msb_fix.py prefix list.
 - landmarks/mlysurvey.py: Mapillary photos along a named road. L.G. Smith: only 6 photos in coverage; J.E. Irausquin: 626.
 - JEI hotels without hero: Tamarijn, MVC Eagle Beach, Divi Phoenix, Casa Del Mar, Amsterdam Manor; only Tamarijn had a readable sign photo -> tamarijn_entry (cream porte-cochere + teal "Tamarijn Aruba | all inclusive").
+
+## r202 (night lights toned down, Justin: Palm Beach facades blew out on MED/phone)
+- nightLights.ts: OSM facade lit windows emissive 2.4 -> 0.9 and lit share 64% -> 50%; hero facade windows 1.2 -> 0.55 (warmer); street bulbs +7.5 -> +3.5; hero sign/neon ramps 3.2/2.2/0.55 -> 1.8/1.2/0.3.
+- look.ts: bloom strength 0.18+0.1n -> 0.16+0.04n, threshold 1.05 -> 1.05+0.25n.
+- before/after phone (390x844 @2x, MED, t=19.4) at Hyatt/JEI: landmarks/shots/dusk_ba.png (landmarks/dusk.mjs).
