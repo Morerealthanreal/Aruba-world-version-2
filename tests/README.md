@@ -17,6 +17,14 @@ Frame rate is intentionally not asserted because CI uses software rendering.
 Local runs do not record traces. CI records a trace only on the retry after an
 initial failure, avoiding trace-finalization errors on successful browser close.
 
+The LOW project also runs a Galaxy S24+-sized long-drive soak. It repeatedly
+drives a full-island route after three warm-up loops, forces garbage collection at
+each stop, returns to the same road pose for a brief settling window, and
+records the JS heap, `renderer.info` geometry/texture totals, and
+active event-listener count. The test fails on a browser error, crash, WebGL
+context loss, lost controls, or continued resource growth. Its samples are
+written to `soak-metrics.json` in the test output directory.
+
 ## Run locally
 
 ```bash
@@ -30,3 +38,7 @@ Use `npm run test:e2e:headed` to watch the browser. Both commands rebuild the
 game add-on bundle before testing. Set `PLAYWRIGHT_RUN_ID` to give an invocation
 a recognizable artifact directory name; otherwise a timestamp and process ID
 are used.
+
+For focused local diagnostics, shorten or lengthen the soak with
+`SOAK_STOP_MS`, `SOAK_SETTLE_MS`, `SOAK_WARMUP_CYCLES`, and
+`SOAK_MEASURE_CYCLES`. The default is roughly five minutes plus game startup.

@@ -44,6 +44,7 @@ export default defineConfig({
         "--use-angle=swiftshader",
         "--enable-unsafe-swiftshader",
         "--disable-gpu-sandbox",
+        "--enable-precise-memory-info",
       ],
     },
   },
