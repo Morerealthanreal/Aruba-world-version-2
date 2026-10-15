@@ -52450,8 +52450,8 @@
   "k": "pizzaitalia_noord",
   "name": "Pizza Italia (approx)",
   "status": "v3-procedural (OSM footprint, photo/brand refs)",
-  "x": -6665.75,
-  "z": -2097.15,
+  "x": -6646.65,
+  "z": -2096.8,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/pizzaitalia_noord.glb",
@@ -52467,20 +52467,20 @@
   "textures": 1,
   "hide_footprint": [
    [
-    -6675.5,
-    -2091.4
+    -6653.4,
+    -2102.1
    ],
    [
-    -6656.4,
-    -2090.8
+    -6653.2,
+    -2091.2
    ],
    [
-    -6656,
-    -2102.9
+    -6639.9,
+    -2091.5
    ],
    [
-    -6675.1,
-    -2103.5
+    -6640.1,
+    -2102.4
    ]
   ],
   "hide": [],
