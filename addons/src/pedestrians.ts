@@ -63,7 +63,7 @@ const HEAD = (() => {
   return geo;
 })();
 // Open four-sided tapers stay at eight triangles each. Joints cover the open
-// ends, and the far LOD is cheaper than the old six boxes (76 vs 96 triangles).
+// ends, and the far LOD is cheaper than the old six boxes (60 vs 96 triangles).
 const TORSO = new CylinderGeometry(0.5, 0.4, 1, 4, 1, true, Math.PI / 4);
 const LEG = new CylinderGeometry(0.42, 0.5, 1, 4, 1, true, Math.PI / 4);
 const ARM = new CylinderGeometry(0.38, 0.48, 1, 4, 1, true, Math.PI / 4);
@@ -104,6 +104,7 @@ export class PedestrianCrowds {
   private detail2: number;
   private hideFallback2: number;
   private detailCap: number;
+  private texturedDetail: boolean;
   private legN = 0;
   private armN = 0;
   private detailDraws = 0;
@@ -116,7 +117,8 @@ export class PedestrianCrowds {
     const near = tier === "low" ? 32 : tier === "med" ? 48 : 64;
     const detail = tier === "low" ? 24 : tier === "med" ? 32 : 40;
     const hideFallback = tier === "low" ? 12 : tier === "med" ? 15 : 18;
-    this.detailCap = tier === "low" ? 1 : tier === "med" ? 2 : 3;
+    this.detailCap = tier === "high" ? 3 : 1;
+    this.texturedDetail = tier === "high";
     this.lod2 = lod * lod;
     this.near2 = near * near;
     this.detail2 = detail * detail;
@@ -165,7 +167,8 @@ export class PedestrianCrowds {
 
   private loadDetailed() {
     const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    Promise.all(DETAIL_MODELS.map(async (model): Promise<DetailedSource> => ({
+    Promise.all(DETAIL_MODELS.filter((model) => this.texturedDetail || model.file !== "ped_maya_mobile.glb")
+      .map(async (model): Promise<DetailedSource> => ({
       gl: await loader.loadAsync(`./models/${model.file}`),
       beach: model.beach,
       scale: model.scale,
@@ -369,8 +372,6 @@ export class PedestrianCrowds {
     } else {
       this.putLeg(w, -legX, hipY, 0, gait * 0.35, 0.89 * h, 0.1 * build);
       this.putLeg(w, legX, hipY, 0, -gait * 0.35, 0.89 * h, 0.1 * build);
-      this.putArm(w, -0.27 * build, 1.49 * h, 0, -gait * 0.34, 0.64 * h, 0.069 * build);
-      this.putArm(w, 0.27 * build, 1.49 * h, 0, gait * 0.34, 0.64 * h, 0.069 * build);
     }
   }
 
@@ -407,7 +408,7 @@ export class PedestrianCrowds {
       if (assigned) continue;
       const beach = w.road?.n === "J.E. Irausquin Boulevard";
       let chosen: DetailedPed | null = null;
-      if (!beach && w.detailRank === 0 && !this.details[0].walker) chosen = this.details[0];
+      if (this.texturedDetail && !beach && w.detailRank === 0 && !this.details[0].walker) chosen = this.details[0];
       for (let step = 0; step < this.details.length; step++) {
         const d = this.details[(w.style + step) % this.details.length];
         if (!chosen && !d.walker && d.beach === beach) { chosen = d; break; }
