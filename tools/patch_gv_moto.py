@@ -151,9 +151,10 @@ swap(
 )
 swap(
     "motorcycle model cache",
-    "Uh.loadAsync(`./models/moto.glb?v=3`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=3`)",
     "Uh.loadAsync(`./models/moto.glb`)",
     "Uh.loadAsync(`./models/moto.glb?v=2`)",
+    "Uh.loadAsync(`./models/moto.glb?v=3`)",
 )
 
 wheelie_hook = ",window.__awWh&&window.__awWh(ev,a,e)"
