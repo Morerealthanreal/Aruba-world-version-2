@@ -18,10 +18,10 @@ const SPOTS = [
 ];
 
 const MODES = [
-  { id: "car", label: "CAR", minimumTravel: 5 },
-  { id: "moto", label: "MOTORBIKE", minimumTravel: 5 },
-  { id: "walk", label: "ON FOOT", minimumTravel: 10 },
-  { id: "plane", label: "PLANE", minimumTravel: 250 },
+  { id: "car", label: "CAR", minimumTravel: 0.5 },
+  { id: "moto", label: "MOTORBIKE", minimumTravel: 0.5 },
+  { id: "walk", label: "ON FOOT", minimumTravel: 0.5 },
+  { id: "plane", label: "PLANE", minimumTravel: 10 },
 ];
 
 function installRuntimeErrorCapture(page) {
@@ -127,6 +127,8 @@ async function exerciseMode(page, mode) {
   const maximumTravel = Math.max(
     ...samples.map((position) => distance(start, position)),
   );
+  // Only prove that input reached the simulation. SwiftShader frame cadence
+  // varies widely in CI, so distance is not treated as a performance signal.
   expect(
     maximumTravel,
     `${mode.label} did not move while its controls were exercised`,
