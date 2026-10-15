@@ -5,9 +5,10 @@
 import {
   AnimationMixer, BufferGeometry, Color, CylinderGeometry, DynamicDrawUsage,
   Float32BufferAttribute, Group, InstancedMesh, Matrix4, MeshLambertMaterial,
-  Quaternion, SphereGeometry, Vector3, type AnimationAction, type Material,
-  type Mesh, type Object3D,
+  Quaternion, SkinnedMesh, SphereGeometry, Vector3, type AnimationAction,
+  type Material, type Mesh, type Object3D,
 } from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -26,14 +27,16 @@ type Walker = {
   road: Road | null; length: number; s: number; dir: number; side: number;
   speed: number; phase: number; x: number; y: number; z: number; yaw: number;
   skin: number; top: number; bottom: number; height: number; build: number;
-  d2: number; selected: boolean;
+  d2: number; selected: boolean; style: number; detailRank: number;
 };
 type DetailedPed = {
   root: Group; inner: Object3D; mixer: AnimationMixer;
   walk: AnimationAction; idle: AnimationAction; walker: Walker | null; beach: boolean;
   draws: number; triangles: number; scale: number;
 };
-type DetailedSource = { gl: GLTF; beach: boolean; scale: number };
+type DetailedSource = {
+  gl: GLTF; beach: boolean; scale: number; walk: string; idle: string; merge: boolean;
+};
 
 const TOPS = [0xe95b5b, 0x3d8fcb, 0xf1c84b, 0x4da968, 0xe983b3, 0xe78b45, 0x735db2];
 const BOTTOMS = [0x263445, 0x554535, 0xd9d4c7, 0x334c69, 0x313338];
@@ -67,11 +70,12 @@ const ARM = new CylinderGeometry(0.38, 0.48, 1, 4, 1, true, Math.PI / 4);
 const tris = (g: BufferGeometry) => (g.index ? g.index.count : g.attributes.position.count) / 3;
 const HEAD_TRIS = tris(HEAD), TORSO_TRIS = tris(TORSO), LEG_TRIS = tris(LEG), ARM_TRIS = tris(ARM);
 const DETAIL_MODELS = [
-  { file: "ped_casual2_f.glb", beach: false, scale: 0.56 },
-  { file: "ped_casual2_m.glb", beach: false, scale: 0.56 },
-  { file: "ped_casual3_f.glb", beach: false, scale: 0.56 },
-  { file: "ped_casual3_m.glb", beach: false, scale: 0.56 },
-  { file: "ped_beach_f.glb", beach: true, scale: 0.98 },
+  { file: "ped_maya_mobile.glb", beach: false, scale: 1, walk: "Walk_Relaxed", idle: "Idle_Standing", merge: false },
+  { file: "ped_casual2_f.glb", beach: false, scale: 0.56, walk: "Walk", idle: "Idle", merge: true },
+  { file: "ped_casual2_m.glb", beach: false, scale: 0.56, walk: "Walk", idle: "Idle", merge: true },
+  { file: "ped_casual3_f.glb", beach: false, scale: 0.56, walk: "Walk", idle: "Idle", merge: true },
+  { file: "ped_casual3_m.glb", beach: false, scale: 0.56, walk: "Walk", idle: "Idle", merge: true },
+  { file: "ped_beach_f.glb", beach: true, scale: 0.98, walk: "Walk", idle: "Idle", merge: true },
 ];
 
 export class PedestrianCrowds {
@@ -142,7 +146,7 @@ export class PedestrianCrowds {
         bottom: BOTTOMS[(i * 7) % BOTTOMS.length],
         height: 0.92 + (i % 7) * 0.025,
         build: 0.9 + (i % 5) * 0.05,
-        d2: Infinity, selected: false,
+        d2: Infinity, selected: false, style: i, detailRank: -1,
       });
     }
     this.stats.pooled = cap;
@@ -165,6 +169,9 @@ export class PedestrianCrowds {
       gl: await loader.loadAsync(`./models/${model.file}`),
       beach: model.beach,
       scale: model.scale,
+      walk: model.walk,
+      idle: model.idle,
+      merge: model.merge,
     }))).then((sources) => {
       for (const source of sources) this.details.push(this.makeDetailed(source));
       console.info("[aw-peds] detailed rigs ready", this.details.length);
@@ -174,6 +181,23 @@ export class PedestrianCrowds {
   private makeDetailed(source: DetailedSource): DetailedPed {
     const inner = skClone(source.gl.scene);
     inner.rotation.y = Math.PI;
+    const skins: SkinnedMesh[] = [];
+    inner.traverse((o) => {
+      const mesh = o as SkinnedMesh;
+      if (mesh.isSkinnedMesh) skins.push(mesh);
+    });
+    if (source.merge && skins.length > 1) {
+      const geometry = mergeGeometries(skins.map((mesh) => mesh.geometry), false);
+      if (geometry) {
+        const first = skins[0];
+        const merged = new SkinnedMesh(geometry, Array.isArray(first.material) ? first.material[0] : first.material);
+        merged.name = "aw:pedestrians:merged-skin";
+        merged.bindMode = first.bindMode;
+        merged.bind(first.skeleton, first.bindMatrix);
+        for (const mesh of skins) mesh.parent?.remove(mesh);
+        inner.add(merged);
+      }
+    }
     const root = new Group();
     root.name = source.beach ? "aw:pedestrians:beach-rig" : "aw:pedestrians:casual-rig";
     root.add(inner);
@@ -182,6 +206,10 @@ export class PedestrianCrowds {
     inner.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
+      if (/accessory|ankle lining/i.test(mesh.name)) {
+        mesh.visible = false;
+        return;
+      }
       mesh.castShadow = false;
       mesh.receiveShadow = true;
       mesh.frustumCulled = false;
@@ -189,7 +217,7 @@ export class PedestrianCrowds {
       // glTF-Transform palettes every clothing/skin colour into one tiny texture.
       // GLTFLoader preserves the old primitive groups even though they now share
       // one material; collapsing those groups makes each skinned mesh one draw.
-      if (materials.length > 1 && materials.every((m) => m === materials[0])) {
+      if (materials.length > 1 && materials.every((m) => m.name === materials[0].name)) {
         const count = mesh.geometry.index?.count || mesh.geometry.attributes.position.count;
         mesh.geometry.clearGroups();
         mesh.geometry.addGroup(0, count, 0);
@@ -200,8 +228,8 @@ export class PedestrianCrowds {
     });
     const mixer = new AnimationMixer(inner);
     const clip = (name: string) => source.gl.animations.find((a) => a.name === name) || source.gl.animations[0];
-    const walk = mixer.clipAction(clip("Walk"));
-    const idle = mixer.clipAction(clip("Idle"));
+    const walk = mixer.clipAction(clip(source.walk));
+    const idle = mixer.clipAction(clip(source.idle));
     walk.play();
     idle.play();
     idle.setEffectiveWeight(0);
@@ -347,7 +375,7 @@ export class PedestrianCrowds {
   }
 
   private updateDetailed(dt: number) {
-    for (const w of this.walkers) w.selected = false;
+    for (const w of this.walkers) { w.selected = false; w.detailRank = -1; }
     if (!this.details.length) {
       this.stats.detailed = 0;
       this.detailDraws = 0;
@@ -363,6 +391,7 @@ export class PedestrianCrowds {
       }
       if (!best) break;
       best.selected = true;
+      best.detailRank = slot;
     }
 
     // Keep a rig attached to the same walker while it remains in the nearest set.
@@ -378,8 +407,10 @@ export class PedestrianCrowds {
       if (assigned) continue;
       const beach = w.road?.n === "J.E. Irausquin Boulevard";
       let chosen: DetailedPed | null = null;
-      for (const d of this.details) {
-        if (!d.walker && d.beach === beach) { chosen = d; break; }
+      if (!beach && w.detailRank === 0 && !this.details[0].walker) chosen = this.details[0];
+      for (let step = 0; step < this.details.length; step++) {
+        const d = this.details[(w.style + step) % this.details.length];
+        if (!chosen && !d.walker && d.beach === beach) { chosen = d; break; }
       }
       if (!chosen) for (const d of this.details) if (!d.walker) { chosen = d; break; }
       if (chosen) chosen.walker = w;
