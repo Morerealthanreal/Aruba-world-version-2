@@ -44,3 +44,51 @@ Round-2 LOW: 382 draws (608 r1, 1628 A), 510k tris, 5,647 objects (44k), SwiftSh
 - flora.ts: bougainvillea, aloe, sea grape, desert scrub, wall AC units, shop awnings. All instanced and distance culled, no shadows (?flora=0)
 - jobPump.ts + bundle patch (`window.__awJobB`): A's tile-build queue drains from a post-frame MessageChannel task (?jobs=0)
 - Phone HIGH: 689 -> 709 draws, 1.229M -> 1.232M tris. Phone LOW: 382 -> 388 draws, 500.6k -> 500.7k tris. No page errors.
+
+## Round 4 (r192, rendering / frame pacing; branch cursor/render-perf-batching-ee34)
+Harness: tools/perf (README in measure.mjs header). Serve game/ (PORT, default 8777) and run
+`node measure.mjs <label> "" --static [--at=x,z,h]` (draw calls / tris / deterministic chase, street, aerial shots)
+and `node measure.mjs <label> "" --drive [--trace --frames=900]` (planned route from spawn at 150 km/h,
+fixed 1/30 s steps, q=low, software GL). `cmpdrive.py` makes the before/after table, `trace_top.py` lists
+the longest main-thread tasks from the trace. "CPU frame task" = rAF task minus time blocked in GL
+shader compile / texture+buffer upload calls; SwiftShader also stalls inside render on its GPU-process
+backlog, so the remaining 300-700 ms single frames (both builds) are not phone-representative.
+
+Changes (each off with its flag; everything else unchanged):
+| change | flag (off) |
+|---|---|
+| bldBatch.ts: each region's bld:* cell meshes of one material -> one BatchedMesh (multi-draw). Trim / contact decals use A's own per-cell detailR/contactR rules (A's far LOD that r186's merge disabled); walls/roofs keep r186's region-level bldR result exactly; per-pass frustum test per cell; indirect texture uploaded once | `?bbatch=0` (`?bbshell=<m>` = per-cell shell cull) |
+| farCity.ts: far city as one BatchedMesh with per-region frustum culling | `?farbatch=0` |
+| instPool.ts: tileInst (kit / parked / props) and flora buckets of all regions share one InstancedMesh per (geometry, material); grow without three's identity fill | `?ipool=0` |
+| tools/patch_perf_core.py: allocation-free point-in-polygon / hero `hides` / `__blocked` / brands region key (bit-identical results) | `?corefix=0` |
+| splitJobs.ts + tools/patch_street_hook.py: streets job (parked cars, furniture, walls, signs, pools) as time-sliced stages; walls built in adaptive runs and merged back per (material, 80 m cell) | `?split=0` |
+| tileInst.ts: region fold sliced (graph walk + instance groups, ~3 ms per frame) | (part of tileInst) |
+| mobilePerf.ts: incremental shader warm-up (only new program signatures, max 4 per frame); optional texture pre-upload | `?warmup=full`, `?preup=1` (opt-in) |
+| staticFreeze.ts: skip the per-frame matrix walk of subtrees that have not moved (thaw on add / change; check_freeze.mjs: 0 mismatches) | `?mwfreeze=0` |
+
+Static (alternating shadow / no-shadow frames, phone viewport 412x915 @2.625):
+| scene | calls before -> after | triangles before -> after | objects |
+|---|---|---|---|
+| Oranjestad spawn | 441/569 -> 371/492 | 973k/1.48M -> 529k/709k | 5516 -> 4926 |
+| spawn chase view | 375/288 -> 288/368 | 1.20M/815k -> 382k/438k | |
+| Palm Beach | 476/306 -> 297/444 | 928k/619k -> 428k/601k | 9707 -> 8216 |
+Screenshots: chase and street views pixel-identical at both places (max per-pixel RGB sum diff 0 / 11);
+aerial view 0.98% / 0.25% of pixels differ: trim and contact decals of houses beyond A's detailR (180 m)
+/ contactR (150 m).
+
+Drive 150 km/h, 2401 frames (res/base3 vs res/new8):
+| metric | before | after |
+|---|---|---|
+| CPU frame task p50 / p95 / p99 | 12.5 / 19.4 / 56.1 ms | 10.4 / 18.0 / 27.3 ms |
+| frames > 33 / > 50 ms | 51 / 29 | 14 / 7 |
+| triangles avg | 776k | 452k |
+| draw calls avg | 368 | 367 |
+| allocation per frame | 2.0 MB | 1.0 MB |
+| scene.updateMatrixWorld avg / max | 3.3 / 87 ms | 1.3 / 9.3 ms |
+| buildings.build max | 118 ms | 14.6 ms |
+| streets.build max | 156 ms | 13.6 ms |
+| flora.update max | 69.6 ms | 10.8 ms |
+| tileInst.update max | 27.1 ms | 5.5 ms |
+| renderer.compile max | 119 ms | 7.1 ms |
+Left alone: mon.update (one-off landmark build when its region arrives, 90-125 ms headless; content code)
+and A's veg.setRegions (~7 ms per built region).
