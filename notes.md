@@ -60,3 +60,4 @@
 - msb chunks are now textured facade parts (windows + shutters, 'upper' bay), 12-colour vivid palette per building, hip tile roofs in 5 shades / parapet flat roofs. Noord 43.8k tris, max 988/chunk.
 - malls.mjs loops AREAS noord/palmbeach/oranjestad/sannicolas (msb/<area>_add.json from landmarks/msb_area.py).
 - tools/patch_veg_clear.py: grid-hashed tree clearing (window.__awVegHit) incl. circles over every msb house in AREAS (re-run after adding areas).
+- r199b: added msb chunks for Palm Beach (169), Oranjestad (1270), San Nicolas (499) = 197 chunks, 51.7k tris, max 892/chunk; veg clearing now covers 3598 houses.

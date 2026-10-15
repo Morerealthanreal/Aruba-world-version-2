@@ -3,7 +3,7 @@
 import re,json,math
 P='/workspace/aruba-world-merged/game/assets/index-D_YJh5Nn.js'
 CLEAR=[[-2723,-659,9],[-6596,-2863,13],[8629,9624,85],[8793,9624,85],[8629,9754,85],[8793,9754,85],[-7345,-5362,32],[-6518,-5811,30]]  # Piedra Plat island; Wei Ming island; Sunrise Solar Park blocks; Noord complex
-AREAS=['noord']
+AREAS=['noord','palmbeach','oranjestad','sannicolas']
 H=[]
 for a in AREAS:
   for b in json.load(open(f'/workspace/landmarks/msb/{a}_add.json')):
