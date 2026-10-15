@@ -54,3 +54,9 @@
 - IMPORTANT: after any `node malls.mjs` run that re-emits msb chunks, run `python3 msb_fix.py` before install.sh (clears name/new_place/hide_footprint so they don't become 130 search places or hide OSM buildings).
 - Credits: addons/src/index.ts adds the MSB ODbL line (only the credits block touched).
 - Island-wide there are ~10.4k MSB-only buildings (msb/missing.json); only Noord added so far.
+
+## r199 (ML-footprint houses quality)
+- gen.mjs: per-part vertex colours (part.vcol walls, part.vroof roof) -> COLOR_0; white textures/materials tinted per building, so 1 chunk keeps ~4 draw calls. part.gnd forces ground facade on raised parts.
+- msb chunks are now textured facade parts (windows + shutters, 'upper' bay), 12-colour vivid palette per building, hip tile roofs in 5 shades / parapet flat roofs. Noord 43.8k tris, max 988/chunk.
+- malls.mjs loops AREAS noord/palmbeach/oranjestad/sannicolas (msb/<area>_add.json from landmarks/msb_area.py).
+- tools/patch_veg_clear.py: grid-hashed tree clearing (window.__awVegHit) incl. circles over every msb house in AREAS (re-run after adding areas).
