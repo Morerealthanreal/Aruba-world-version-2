@@ -1,4 +1,4 @@
-// node measure.mjs <label> "<extra query>" [--static] [--drive] [--alloc] [--cpu] [--trace] [--frames=N] [--to=x,z] [--at=x,z,h]
+// [Q=q=med] node measure.mjs <label> "<extra query>" [--static] [--drive] [--alloc] [--cpu] [--trace] [--frames=N] [--to=x,z] [--at=x,z,h]
 // Serve game/ first (PORT, default 8777). Boots q=low at a small phone-aspect viewport (software GL),
 // waits for streaming + add-on work to settle, then
 //  --static: freezes the sim, switches to the S24-class viewport and records draw calls / triangles per
@@ -12,7 +12,7 @@ const [label, extra = "", ...flags] = process.argv.slice(2);
 const doDrive = flags.includes("--drive"), doStatic = flags.includes("--static") || !doDrive, doTrace = flags.includes("--trace");
 const routeTo = (flags.find((f) => f.startsWith("--to=")) || "--to=-9700,-2900").slice(5).split(",").map(Number);
 const maxFrames = +((flags.find((f) => f.startsWith("--frames=")) || "--frames=2400").slice(9));
-const q = "q=low&t=10&freeze=1&fpsguard=0" + (extra ? "&" + extra : "");
+const q = (process.env.Q || "q=low") + "&t=10&freeze=1&fpsguard=0" + (extra ? "&" + extra : "");
 const out = { label, q, t: new Date().toISOString() };
 const t0 = Date.now();
 fs.mkdirSync(OUT + "shots", { recursive: true });
