@@ -76,3 +76,8 @@
 - web_balashi_tanks: tan roofs/shells now on 335599534/538/539 (Esri roof mean R-B >= 33; the rest <= 26 = white). web_balashi now in msb_fix.py prefix list (clears hide).
 - landmarks/mlysurvey.py: Mapillary photos along a named road (newest within 20 m of samples). L.G. Smith: only 6 photos in coverage (no big signs missing in them); J.E. Irausquin: 626 photos.
 - Hotels on JEI without a hero model: Tamarijn, MVC Eagle Beach, Divi Phoenix, Casa Del Mar, Amsterdam Manor. Only Tamarijn had a readable sign photo -> tamarijn_entry (cream porte-cochere + teal "Tamarijn Aruba | all inclusive" fascia, NE facade of OSM bld 4360).
+
+## r201 (Balashi tank roofs, signage survey 1)
+- web_balashi_tanks: tan roofs/shells on 335599534/538/539 (Esri roof mean R-B >= 33; others <= 26 = white). web_balashi added to msb_fix.py prefix list.
+- landmarks/mlysurvey.py: Mapillary photos along a named road. L.G. Smith: only 6 photos in coverage; J.E. Irausquin: 626.
+- JEI hotels without hero: Tamarijn, MVC Eagle Beach, Divi Phoenix, Casa Del Mar, Amsterdam Manor; only Tamarijn had a readable sign photo -> tamarijn_entry (cream porte-cochere + teal "Tamarijn Aruba | all inclusive").
