@@ -164,8 +164,12 @@ swap(
 swap(
     "motorcycle distance lod",
     "e.scene.traverse(e=>{/_far$/.test(e.name)&&(e.visible=!1);if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})",
+    # A short material-line match used to be replaced with this whole traverse, which
+    # nested `e.scene` inside a mesh and stopped the bike from loading. Match only
+    # complete traverses.
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);e.scene.traverse(e=>{/_far$/.test(e.name)&&(e.visible=!1);if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})}})",
     "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0,/_far$/.test(e.name)&&(e.visible=!1)}})",
-    "t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0",
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})",
 )
 
 wheelie_hook = ",window.__awWh&&window.__awWh(ev,a,e)"
