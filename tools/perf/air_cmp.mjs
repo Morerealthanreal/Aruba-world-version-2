@@ -12,7 +12,10 @@ import { boot, sleep } from "./boot.mjs";
 fs.mkdirSync("./res/shots", { recursive: true });
 const SPOTS = { noord: [12.5681, -70.0336], "palm-beach": [12.5704, -70.045], oranjestad: [12.5186, -70.0358], hooiberg: [12.5167, -69.9958] };
 const [label, query = "q=med&t=10&freeze=1", spot = "oranjestad", settleMax = "3000"] = process.argv.slice(2);
-const { browser, page } = await boot(query + "&fpsguard=0", { w: 1000, h: 620, dpr: 1, mobile: false });
+// preload=0: Preload shifts A's streaming / LOD centre (__awAhead) up to 220 m along the camera's velocity and only
+// decays it on frames under 0.5 s, so in software GL the teleport (and the jump to the aerial camera) leaves a
+// stale, run-dependent offset: hero LOD, terrain LOD and building cull then differ between otherwise equal runs.
+const { browser, page } = await boot(query + "&fpsguard=0&preload=0", { w: 1000, h: 620, dpr: 1, mobile: false });
 const errs = [];
 page.on("pageerror", (e) => errs.push(e.message));
 await sleep(5000);
@@ -59,7 +62,15 @@ await page.evaluate(() => {
     aerial: { p: [e.x + ox * 70, e.y + 60, e.z + oz * 70], t: [e.x - ox * 120, e.y, e.z - oz * 120] },
   };
   window.__camView = "ground";
-  const wrap = (o, k) => { const f = o[k].bind(o); o[k] = (...a) => { const v = window.__camViews[window.__camView]; cam.position.set(...v.p); cam.lookAt(...v.t); cam.updateMatrixWorld(); return f(...a); }; };
+  // wall-clock driven: cloud drift / sea / stars (shared uTime, sky uWind) and the minimap HUD (heading, label picks)
+  const mm = document.getElementById("minimap");
+  if (mm && mm.parentElement) mm.parentElement.style.visibility = "hidden";
+  const sky = g.scene.getObjectByName("aw:sky"), U = sky && sky.material && sky.material.uniforms;
+  const wrap = (o, k) => { const f = o[k].bind(o); o[k] = (...a) => {
+    const v = window.__camViews[window.__camView]; cam.position.set(...v.p); cam.lookAt(...v.t); cam.updateMatrixWorld();
+    if (U && U.uTime && U.uWind) { U.uTime.value = 100; U.uWind.value.set(0.3, 0.6, 0.1, 0.8); }
+    return f(...a);
+  }; };
   if (P && P.on) wrap(P, "render"); else wrap(g.renderer, "render");
 });
 await sleep(12000);

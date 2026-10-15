@@ -125,9 +125,9 @@ and A's veg.setRegions (~7 ms per built region).
   camera derived from the player: A's follow camera eases toward its target and comes to rest a few pixels apart
   after settle runs of different length (main settles 3-4x longer), a 6 px shift = 39% "diff" at Palm Beach q=high.
 - Settled diffs (RGB sum > 24), aerial / ground: low 1.8/0.4 Oranjestad, 0.7/0.4 Noord, 0.9/4.1 Palm Beach;
-  med 2.5/0.5, 1.4/0.7, 2.5/5.6; high 3.2/2.8, 2.0/0.5, 4.8/9.0. Remaining pixels: far roof trim / contact decals
-  beyond A's detailR / contactR (see above), palm sway and the player's idle pose (animation time), and on main at
-  q=high the farCity leak below.
+  med 2.5/0.5, 1.4/0.7, 2.5/5.6; high 3.2/2.8, 2.0/0.5, 4.8/9.0 (preload still on; see the abf87ae notes).
+  Remaining pixels: far roof trim / contact decals beyond A's detailR / contactR (see above), palm sway and the
+  player's idle pose (animation time), and on main at q=high the farCity leak below.
 - main q=high: farCity shows through inside the streamed area (a dirt-coloured block behind the Palm Beach hotels,
   a dark translucent slab on the hotel ground floor, the dark patch at Oranjestad). Main hides built regions in
   farCity's vertex shader (mask texture via onBeforeCompile); the post chain's override-material passes (GTAO
@@ -135,3 +135,29 @@ and A's veg.setRegions (~7 ms per built region).
   pixels) and `?far=0` on main (block gone; main ?far=0 vs PR 4.0% aerial instead of 11.2%). With this PR the far
   city is a BatchedMesh whose draw list leaves built regions out (CPU, every pass), so the leak is gone; the
   `?farbatch=0` fallback is main's code and still has it.
+
+### Rebase on main abf87ae (r246-r256 Noord yard walls / roofs, bus shelters, zebras, scrub, JEI sidewalks; #10 soak + leak fixes, #11 phone HUD + minimap, #12 realistic sky / sun path)
+- Rebased with an --exec step per commit: core bundle = main's file + patch_perf_core.py + patch_street_hook.py,
+  aw-addons.js rebuilt from the merged sources, so no auto-merged minified text survives (both byte-identical to a
+  fresh rebuild / re-patch at the tip). main's own bundle patches (noord roofwall, minimap) are in main's file.
+  Source conflicts were only the `window.__aw` export line (main dropped `sun`, added `minimap`). Typecheck clean.
+  The new sky dome is added to the scene, outside A's world group, so staticFreeze never sees it.
+- guard_step.mjs on abf87ae: presented frame after a guard step is 88% page background on main at low / med / high,
+  0% with this PR.
+- Harness: (5) `preload=0`. Preload's look-ahead (__awAhead, up to 220 m along the camera velocity) only decays on
+  frames under 0.5 s, so in software GL the teleport / aerial-camera jump leaves a stale, run-dependent focus offset;
+  A's hero LOD (switch_m), terrain LOD and bldR then centre on a point up to 220 m away. That made the Coconut Inn
+  hero show its LOD1 and the nd_pitch area its overview terrain in one run and not the other (10% "diff" at Noord
+  q=med); identical hero state in both builds once probed directly. (6) Cloud drift / sea (shared uTime, sky uWind)
+  pinned at render time and the minimap HUD hidden; both are wall-clock driven.
+- Settled diffs on abf87ae (RGB sum > 24), aerial / ground:
+  | q | Oranjestad | Noord | Palm Beach |
+  |---|---|---|---|
+  | low | 1.6 / 0.4 | 0.8 / 0.2 | 0.3 / 2.4 |
+  | med | 2.4 / 0.8 | 1.1 / 0.2 | 2.0 / 6.1 |
+  | high | 3.2 / 2.0 | 2.2 / 0.6 | 5.6 / 10.3 |
+  What remains: far roof trim / contact decals beyond A's detailR / contactR (aerial), palm sway + the player's idle
+  pose + traffic positions (ground; a bus at Palm Beach q=high), and main's q=high farCity leak (Palm Beach aerial).
+  No page errors in any run. Harness settle is slower for the PR at q=high (95-118 s main vs 294-579 s PR): it waits
+  for bldBatch, which batches a few cells per frame while A's original cell meshes stay visible; main's bldMerge is
+  pumped synchronously by the harness instead.
