@@ -54499,33 +54499,33 @@
   "k": "nd_st_m14_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6717.01,
-  "z": -2550.76,
+  "x": -6750,
+  "z": -2750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m6.glb",
   "lod": {
    "hi": "nd_st_m14_m6_lod0",
    "lo": "nd_st_m14_m6_lod1",
-   "switch_m": 671
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m6_lod0": 8899,
+   "nd_st_m14_m6_lod0": 8755,
    "nd_st_m14_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6717.1,
-    -2550.9
+    -6750.1,
+    -2750.1
    ],
    [
-    -6716.9,
-    -2550.9
+    -6749.9,
+    -2750.1
    ],
    [
-    -6716.9,
-    -2550.7
+    -6749.9,
+    -2749.9
    ]
   ],
   "hide": [],
@@ -54542,33 +54542,33 @@
   "k": "nd_st_m14_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6716.62,
-  "z": -2439.02,
+  "x": -6750,
+  "z": -2250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m5.glb",
   "lod": {
    "hi": "nd_st_m14_m5_lod0",
    "lo": "nd_st_m14_m5_lod1",
-   "switch_m": 680
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m5_lod0": 14167,
+   "nd_st_m14_m5_lod0": 17191,
    "nd_st_m14_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6716.7,
-    -2439.1
+    -6750.1,
+    -2250.1
    ],
    [
-    -6716.5,
-    -2439.1
+    -6749.9,
+    -2250.1
    ],
    [
-    -6716.5,
-    -2438.9
+    -6749.9,
+    -2249.9
    ]
   ],
   "hide": [],
@@ -54585,33 +54585,33 @@
   "k": "nd_st_m13_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6334.66,
-  "z": -2540.75,
+  "x": -6250,
+  "z": -2750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m6.glb",
   "lod": {
    "hi": "nd_st_m13_m6_lod0",
    "lo": "nd_st_m13_m6_lod1",
-   "switch_m": 703
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m6_lod0": 18319,
+   "nd_st_m13_m6_lod0": 22543,
    "nd_st_m13_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6334.8,
-    -2540.8
+    -6250.1,
+    -2750.1
    ],
    [
-    -6334.6,
-    -2540.8
+    -6249.9,
+    -2750.1
    ],
    [
-    -6334.6,
-    -2540.7
+    -6249.9,
+    -2749.9
    ]
   ],
   "hide": [],
@@ -54628,33 +54628,33 @@
   "k": "nd_st_m13_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6479.4,
-  "z": -2368.09,
+  "x": -6250,
+  "z": -2250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m5.glb",
   "lod": {
    "hi": "nd_st_m13_m5_lod0",
    "lo": "nd_st_m13_m5_lod1",
-   "switch_m": 669
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m5_lod0": 9667,
+   "nd_st_m13_m5_lod0": 11263,
    "nd_st_m13_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6479.5,
-    -2368.2
+    -6250.1,
+    -2250.1
    ],
    [
-    -6479.3,
-    -2368.2
+    -6249.9,
+    -2250.1
    ],
    [
-    -6479.3,
-    -2368
+    -6249.9,
+    -2249.9
    ]
   ],
   "hide": [],
@@ -54671,33 +54671,33 @@
   "k": "nd_st_m13_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6286.97,
-  "z": -1992.92,
+  "x": -6250,
+  "z": -1750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m4.glb",
   "lod": {
    "hi": "nd_st_m13_m4_lod0",
    "lo": "nd_st_m13_m4_lod1",
-   "switch_m": 723
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m4_lod0": 6919,
+   "nd_st_m13_m4_lod0": 7699,
    "nd_st_m13_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6287.1,
-    -1993
+    -6250.1,
+    -1750.1
    ],
    [
-    -6286.9,
-    -1993
+    -6249.9,
+    -1750.1
    ],
    [
-    -6286.9,
-    -1992.8
+    -6249.9,
+    -1749.9
    ]
   ],
   "hide": [],
@@ -54714,33 +54714,33 @@
   "k": "nd_st_m14_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6762.02,
-  "z": -1946.38,
+  "x": -6750,
+  "z": -1750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m4.glb",
   "lod": {
    "hi": "nd_st_m14_m4_lod0",
    "lo": "nd_st_m14_m4_lod1",
-   "switch_m": 676
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m4_lod0": 13819,
+   "nd_st_m14_m4_lod0": 15499,
    "nd_st_m14_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6762.1,
-    -1946.5
+    -6750.1,
+    -1750.1
    ],
    [
-    -6761.9,
-    -1946.5
+    -6749.9,
+    -1750.1
    ],
    [
-    -6761.9,
-    -1946.3
+    -6749.9,
+    -1749.9
    ]
   ],
   "hide": [],
@@ -54757,33 +54757,33 @@
   "k": "nd_st_m14_m12",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6725.93,
-  "z": -5824.74,
+  "x": -6750,
+  "z": -5750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m12.glb",
   "lod": {
    "hi": "nd_st_m14_m12_lod0",
    "lo": "nd_st_m14_m12_lod1",
-   "switch_m": 593
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m12_lod0": 15379,
+   "nd_st_m14_m12_lod0": 15343,
    "nd_st_m14_m12_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6726,
-    -5824.8
+    -6750.1,
+    -5750.1
    ],
    [
-    -6725.8,
-    -5824.8
+    -6749.9,
+    -5750.1
    ],
    [
-    -6725.8,
-    -5824.6
+    -6749.9,
+    -5749.9
    ]
   ],
   "hide": [],
@@ -54800,33 +54800,33 @@
   "k": "nd_st_m13_m13",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6179.56,
-  "z": -6482.92,
+  "x": -6250,
+  "z": -6250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m13.glb",
   "lod": {
    "hi": "nd_st_m13_m13_lod0",
    "lo": "nd_st_m13_m13_lod1",
-   "switch_m": 676
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m13_lod0": 7171,
+   "nd_st_m13_m13_lod0": 7987,
    "nd_st_m13_m13_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6179.7,
-    -6483
+    -6250.1,
+    -6250.1
    ],
    [
-    -6179.5,
-    -6483
+    -6249.9,
+    -6250.1
    ],
    [
-    -6179.5,
-    -6482.8
+    -6249.9,
+    -6249.9
    ]
   ],
   "hide": [],
@@ -54843,33 +54843,33 @@
   "k": "nd_st_m14_m13",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6516.17,
-  "z": -6393.85,
+  "x": -6750,
+  "z": -6250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m13.glb",
   "lod": {
    "hi": "nd_st_m14_m13_lod0",
    "lo": "nd_st_m14_m13_lod1",
-   "switch_m": 782
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m13_lod0": 3883,
+   "nd_st_m14_m13_lod0": 4639,
    "nd_st_m14_m13_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6516.3,
-    -6394
+    -6750.1,
+    -6250.1
    ],
    [
-    -6516.1,
-    -6394
+    -6749.9,
+    -6250.1
    ],
    [
-    -6516.1,
-    -6393.8
+    -6749.9,
+    -6249.9
    ]
   ],
   "hide": [],
@@ -54886,33 +54886,33 @@
   "k": "nd_st_m13_m14",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6406.74,
-  "z": -6548.65,
+  "x": -6250,
+  "z": -6750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m14.glb",
   "lod": {
    "hi": "nd_st_m13_m14_lod0",
    "lo": "nd_st_m13_m14_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m14_lod0": 2635,
+   "nd_st_m13_m14_lod0": 3751,
    "nd_st_m13_m14_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6406.8,
-    -6548.8
+    -6250.1,
+    -6750.1
    ],
    [
-    -6406.6,
-    -6548.8
+    -6249.9,
+    -6750.1
    ],
    [
-    -6406.6,
-    -6548.5
+    -6249.9,
+    -6749.9
    ]
   ],
   "hide": [],
@@ -54929,33 +54929,33 @@
   "k": "nd_st_m13_m11",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6393.51,
-  "z": -5103.9,
+  "x": -6250,
+  "z": -5250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m11.glb",
   "lod": {
    "hi": "nd_st_m13_m11_lod0",
    "lo": "nd_st_m13_m11_lod1",
-   "switch_m": 564
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m11_lod0": 5707,
+   "nd_st_m13_m11_lod0": 6091,
    "nd_st_m13_m11_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6393.6,
-    -5104
+    -6250.1,
+    -5250.1
    ],
    [
-    -6393.4,
-    -5104
+    -6249.9,
+    -5250.1
    ],
    [
-    -6393.4,
-    -5103.8
+    -6249.9,
+    -5249.9
    ]
   ],
   "hide": [],
@@ -54972,33 +54972,33 @@
   "k": "nd_st_m14_m11",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6693.43,
-  "z": -5326.96,
+  "x": -6750,
+  "z": -5250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m11.glb",
   "lod": {
    "hi": "nd_st_m14_m11_lod0",
    "lo": "nd_st_m14_m11_lod1",
-   "switch_m": 569
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m11_lod0": 11359,
+   "nd_st_m14_m11_lod0": 13543,
    "nd_st_m14_m11_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6693.5,
-    -5327.1
+    -6750.1,
+    -5250.1
    ],
    [
-    -6693.3,
-    -5327.1
+    -6749.9,
+    -5250.1
    ],
    [
-    -6693.3,
-    -5326.9
+    -6749.9,
+    -5249.9
    ]
   ],
   "hide": [],
@@ -55015,33 +55015,33 @@
   "k": "nd_st_m13_m10",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6346.54,
-  "z": -4873.51,
+  "x": -6250,
+  "z": -4750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m10.glb",
   "lod": {
    "hi": "nd_st_m13_m10_lod0",
    "lo": "nd_st_m13_m10_lod1",
-   "switch_m": 584
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m10_lod0": 5911,
+   "nd_st_m13_m10_lod0": 6319,
    "nd_st_m13_m10_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6346.6,
-    -4873.6
+    -6250.1,
+    -4750.1
    ],
    [
-    -6346.4,
-    -4873.6
+    -6249.9,
+    -4750.1
    ],
    [
-    -6346.4,
-    -4873.4
+    -6249.9,
+    -4749.9
    ]
   ],
   "hide": [],
@@ -55058,33 +55058,33 @@
   "k": "nd_st_m14_m10",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6682.73,
-  "z": -4836.92,
+  "x": -6750,
+  "z": -4750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m10.glb",
   "lod": {
    "hi": "nd_st_m14_m10_lod0",
    "lo": "nd_st_m14_m10_lod1",
-   "switch_m": 512
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m10_lod0": 2815,
+   "nd_st_m14_m10_lod0": 3451,
    "nd_st_m14_m10_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6682.8,
-    -4837
+    -6750.1,
+    -4750.1
    ],
    [
-    -6682.6,
-    -4837
+    -6749.9,
+    -4750.1
    ],
    [
-    -6682.6,
-    -4836.8
+    -6749.9,
+    -4749.9
    ]
   ],
   "hide": [],
@@ -55101,33 +55101,33 @@
   "k": "nd_st_m13_m12",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6393.34,
-  "z": -5679.86,
+  "x": -6250,
+  "z": -5750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m12.glb",
   "lod": {
    "hi": "nd_st_m13_m12_lod0",
    "lo": "nd_st_m13_m12_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m12_lod0": 2203,
+   "nd_st_m13_m12_lod0": 2815,
    "nd_st_m13_m12_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6393.4,
-    -5680
+    -6250.1,
+    -5750.1
    ],
    [
-    -6393.2,
-    -5680
+    -6249.9,
+    -5750.1
    ],
    [
-    -6393.2,
-    -5679.8
+    -6249.9,
+    -5749.9
    ]
   ],
   "hide": [],
@@ -55144,33 +55144,33 @@
   "k": "nd_st_m15_m9",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7496.29,
-  "z": -4447.06,
+  "x": -7250,
+  "z": -4250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m9.glb",
   "lod": {
    "hi": "nd_st_m15_m9_lod0",
    "lo": "nd_st_m15_m9_lod1",
-   "switch_m": 735
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m9_lod0": 11815,
+   "nd_st_m15_m9_lod0": 13303,
    "nd_st_m15_m9_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7496.4,
-    -4447.2
+    -7250.1,
+    -4250.1
    ],
    [
-    -7496.2,
-    -4447.2
+    -7249.9,
+    -4250.1
    ],
    [
-    -7496.2,
-    -4447
+    -7249.9,
+    -4249.9
    ]
   ],
   "hide": [],
@@ -55187,33 +55187,33 @@
   "k": "nd_st_m15_m8",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7397.66,
-  "z": -3996.59,
+  "x": -7250,
+  "z": -3750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m8.glb",
   "lod": {
    "hi": "nd_st_m15_m8_lod0",
    "lo": "nd_st_m15_m8_lod1",
-   "switch_m": 737
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m8_lod0": 10867,
+   "nd_st_m15_m8_lod0": 14035,
    "nd_st_m15_m8_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7397.8,
-    -3996.7
+    -7250.1,
+    -3750.1
    ],
    [
-    -7397.6,
-    -3996.7
+    -7249.9,
+    -3750.1
    ],
    [
-    -7397.6,
-    -3996.5
+    -7249.9,
+    -3749.9
    ]
   ],
   "hide": [],
@@ -55230,33 +55230,33 @@
   "k": "nd_st_m14_m9",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6888.58,
-  "z": -4019.14,
+  "x": -6750,
+  "z": -4250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m9.glb",
   "lod": {
    "hi": "nd_st_m14_m9_lod0",
    "lo": "nd_st_m14_m9_lod1",
-   "switch_m": 763
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m9_lod0": 8371,
+   "nd_st_m14_m9_lod0": 7807,
    "nd_st_m14_m9_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6888.7,
-    -4019.2
+    -6750.1,
+    -4250.1
    ],
    [
-    -6888.5,
-    -4019.2
+    -6749.9,
+    -4250.1
    ],
    [
-    -6888.5,
-    -4019
+    -6749.9,
+    -4249.9
    ]
   ],
   "hide": [],
@@ -55273,33 +55273,33 @@
   "k": "nd_st_m14_m8",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6890.37,
-  "z": -3942.05,
+  "x": -6750,
+  "z": -3750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m8.glb",
   "lod": {
    "hi": "nd_st_m14_m8_lod0",
    "lo": "nd_st_m14_m8_lod1",
-   "switch_m": 659
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m8_lod0": 3067,
+   "nd_st_m14_m8_lod0": 2911,
    "nd_st_m14_m8_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6890.5,
-    -3942.2
+    -6750.1,
+    -3750.1
    ],
    [
-    -6890.3,
-    -3942.2
+    -6749.9,
+    -3750.1
    ],
    [
-    -6890.3,
-    -3942
+    -6749.9,
+    -3749.9
    ]
   ],
   "hide": [],
@@ -55316,33 +55316,33 @@
   "k": "nd_st_m15_m10",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7446.34,
-  "z": -4764.77,
+  "x": -7250,
+  "z": -4750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m10.glb",
   "lod": {
    "hi": "nd_st_m15_m10_lod0",
    "lo": "nd_st_m15_m10_lod1",
-   "switch_m": 610
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m10_lod0": 7339,
+   "nd_st_m15_m10_lod0": 8575,
    "nd_st_m15_m10_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7446.4,
-    -4764.9
+    -7250.1,
+    -4750.1
    ],
    [
-    -7446.2,
-    -4764.9
+    -7249.9,
+    -4750.1
    ],
    [
-    -7446.2,
-    -4764.7
+    -7249.9,
+    -4749.9
    ]
   ],
   "hide": [],
@@ -55359,33 +55359,33 @@
   "k": "nd_st_m16_m10",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7561.89,
-  "z": -4793.18,
+  "x": -7750,
+  "z": -4750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m10.glb",
   "lod": {
    "hi": "nd_st_m16_m10_lod0",
    "lo": "nd_st_m16_m10_lod1",
-   "switch_m": 512
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m10_lod0": 5239,
+   "nd_st_m16_m10_lod0": 6259,
    "nd_st_m16_m10_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7562,
-    -4793.3
+    -7750.1,
+    -4750.1
    ],
    [
-    -7561.8,
-    -4793.3
+    -7749.9,
+    -4750.1
    ],
    [
-    -7561.8,
-    -4793.1
+    -7749.9,
+    -4749.9
    ]
   ],
   "hide": [],
@@ -55402,33 +55402,33 @@
   "k": "nd_st_m16_m9",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7613.68,
-  "z": -4499.65,
+  "x": -7750,
+  "z": -4250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m9.glb",
   "lod": {
    "hi": "nd_st_m16_m9_lod0",
    "lo": "nd_st_m16_m9_lod1",
-   "switch_m": 706
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m9_lod0": 2875,
+   "nd_st_m16_m9_lod0": 3403,
    "nd_st_m16_m9_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7613.8,
-    -4499.8
+    -7750.1,
+    -4250.1
    ],
    [
-    -7613.6,
-    -4499.8
+    -7749.9,
+    -4250.1
    ],
    [
-    -7613.6,
-    -4499.5
+    -7749.9,
+    -4249.9
    ]
   ],
   "hide": [],
@@ -55445,33 +55445,33 @@
   "k": "nd_st_m16_m8",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7655.58,
-  "z": -3995.64,
+  "x": -7750,
+  "z": -3750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m8.glb",
   "lod": {
    "hi": "nd_st_m16_m8_lod0",
    "lo": "nd_st_m16_m8_lod1",
-   "switch_m": 690
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m8_lod0": 2851,
+   "nd_st_m16_m8_lod0": 3751,
    "nd_st_m16_m8_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7655.7,
-    -3995.7
+    -7750.1,
+    -3750.1
    ],
    [
-    -7655.5,
-    -3995.7
+    -7749.9,
+    -3750.1
    ],
    [
-    -7655.5,
-    -3995.5
+    -7749.9,
+    -3749.9
    ]
   ],
   "hide": [],
@@ -55488,33 +55488,33 @@
   "k": "nd_st_m15_m5",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7144.01,
-  "z": -2486.09,
+  "x": -7250,
+  "z": -2250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m5.glb",
   "lod": {
    "hi": "nd_st_m15_m5_lod0",
    "lo": "nd_st_m15_m5_lod1",
-   "switch_m": 608
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m5_lod0": 5923,
+   "nd_st_m15_m5_lod0": 7159,
    "nd_st_m15_m5_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7144.1,
-    -2486.2
+    -7250.1,
+    -2250.1
    ],
    [
-    -7143.9,
-    -2486.2
+    -7249.9,
+    -2250.1
    ],
    [
-    -7143.9,
-    -2486
+    -7249.9,
+    -2249.9
    ]
   ],
   "hide": [],
@@ -55531,33 +55531,33 @@
   "k": "nd_st_m15_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7078.73,
-  "z": -2515.45,
+  "x": -7250,
+  "z": -2750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m6.glb",
   "lod": {
    "hi": "nd_st_m15_m6_lod0",
    "lo": "nd_st_m15_m6_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m6_lod0": 1171,
+   "nd_st_m15_m6_lod0": 1039,
    "nd_st_m15_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7078.8,
-    -2515.5
+    -7250.1,
+    -2750.1
    ],
    [
-    -7078.6,
-    -2515.5
+    -7249.9,
+    -2750.1
    ],
    [
-    -7078.6,
-    -2515.3
+    -7249.9,
+    -2749.9
    ]
   ],
   "hide": [],
@@ -55574,33 +55574,33 @@
   "k": "nd_st_m16_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7657.61,
-  "z": -1835.67,
+  "x": -7750,
+  "z": -1750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m4.glb",
   "lod": {
    "hi": "nd_st_m16_m4_lod0",
    "lo": "nd_st_m16_m4_lod1",
-   "switch_m": 561
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m4_lod0": 5791,
+   "nd_st_m16_m4_lod0": 7531,
    "nd_st_m16_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7657.7,
-    -1835.8
+    -7750.1,
+    -1750.1
    ],
    [
-    -7657.5,
-    -1835.8
+    -7749.9,
+    -1750.1
    ],
    [
-    -7657.5,
-    -1835.6
+    -7749.9,
+    -1749.9
    ]
   ],
   "hide": [],
@@ -55617,33 +55617,33 @@
   "k": "nd_st_m15_m4",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7270.25,
-  "z": -1834.14,
+  "x": -7250,
+  "z": -1750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m4.glb",
   "lod": {
    "hi": "nd_st_m15_m4_lod0",
    "lo": "nd_st_m15_m4_lod1",
-   "switch_m": 586
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m4_lod0": 16315,
+   "nd_st_m15_m4_lod0": 18511,
    "nd_st_m15_m4_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7270.4,
-    -1834.2
+    -7250.1,
+    -1750.1
    ],
    [
-    -7270.1,
-    -1834.2
+    -7249.9,
+    -1750.1
    ],
    [
-    -7270.1,
-    -1834
+    -7249.9,
+    -1749.9
    ]
   ],
   "hide": [],
@@ -55660,33 +55660,33 @@
   "k": "nd_st_m15_m13",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7341.2,
-  "z": -6087.03,
+  "x": -7250,
+  "z": -6250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m13.glb",
   "lod": {
    "hi": "nd_st_m15_m13_lod0",
    "lo": "nd_st_m15_m13_lod1",
-   "switch_m": 651
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m13_lod0": 15547,
+   "nd_st_m15_m13_lod0": 18439,
    "nd_st_m15_m13_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7341.3,
-    -6087.1
+    -7250.1,
+    -6250.1
    ],
    [
-    -7341.1,
-    -6087.1
+    -7249.9,
+    -6250.1
    ],
    [
-    -7341.1,
-    -6086.9
+    -7249.9,
+    -6249.9
    ]
   ],
   "hide": [],
@@ -55703,33 +55703,33 @@
   "k": "nd_st_m15_m12",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7349.89,
-  "z": -5989.27,
+  "x": -7250,
+  "z": -5750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m12.glb",
   "lod": {
    "hi": "nd_st_m15_m12_lod0",
    "lo": "nd_st_m15_m12_lod1",
-   "switch_m": 773
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m12_lod0": 18667,
+   "nd_st_m15_m12_lod0": 22279,
    "nd_st_m15_m12_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7350,
-    -5989.4
+    -7250.1,
+    -5750.1
    ],
    [
-    -7349.8,
-    -5989.4
+    -7249.9,
+    -5750.1
    ],
    [
-    -7349.8,
-    -5989.2
+    -7249.9,
+    -5749.9
    ]
   ],
   "hide": [],
@@ -55746,33 +55746,33 @@
   "k": "nd_st_m16_m12",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7670.81,
-  "z": -5887.27,
+  "x": -7750,
+  "z": -5750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m12.glb",
   "lod": {
    "hi": "nd_st_m16_m12_lod0",
    "lo": "nd_st_m16_m12_lod1",
-   "switch_m": 580
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m12_lod0": 11635,
+   "nd_st_m16_m12_lod0": 15775,
    "nd_st_m16_m12_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7670.9,
-    -5887.4
+    -7750.1,
+    -5750.1
    ],
    [
-    -7670.7,
-    -5887.4
+    -7749.9,
+    -5750.1
    ],
    [
-    -7670.7,
-    -5887.2
+    -7749.9,
+    -5749.9
    ]
   ],
   "hide": [],
@@ -55789,33 +55789,33 @@
   "k": "nd_st_m16_m13",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7702.2,
-  "z": -6036.12,
+  "x": -7750,
+  "z": -6250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m13.glb",
   "lod": {
    "hi": "nd_st_m16_m13_lod0",
    "lo": "nd_st_m16_m13_lod1",
-   "switch_m": 680
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m13_lod0": 4267,
+   "nd_st_m16_m13_lod0": 6667,
    "nd_st_m16_m13_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7702.3,
-    -6036.2
+    -7750.1,
+    -6250.1
    ],
    [
-    -7702.1,
-    -6036.2
+    -7749.9,
+    -6250.1
    ],
    [
-    -7702.1,
-    -6036
+    -7749.9,
+    -6249.9
    ]
   ],
   "hide": [],
@@ -55832,33 +55832,33 @@
   "k": "nd_st_m16_m14",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7504.56,
-  "z": -6516.08,
+  "x": -7750,
+  "z": -6750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m14.glb",
   "lod": {
    "hi": "nd_st_m16_m14_lod0",
    "lo": "nd_st_m16_m14_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m14_lod0": 2359,
+   "nd_st_m16_m14_lod0": 2239,
    "nd_st_m16_m14_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7504.7,
-    -6516.2
+    -7750.1,
+    -6750.1
    ],
    [
-    -7504.5,
-    -6516.2
+    -7749.9,
+    -6750.1
    ],
    [
-    -7504.5,
-    -6516
+    -7749.9,
+    -6749.9
    ]
   ],
   "hide": [],
@@ -55875,33 +55875,33 @@
   "k": "nd_st_m15_m14",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7496.37,
-  "z": -6514.94,
+  "x": -7250,
+  "z": -6750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m14.glb",
   "lod": {
    "hi": "nd_st_m15_m14_lod0",
    "lo": "nd_st_m15_m14_lod1",
-   "switch_m": 632
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m14_lod0": 2191,
+   "nd_st_m15_m14_lod0": 2887,
    "nd_st_m15_m14_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7496.5,
-    -6515
+    -7250.1,
+    -6750.1
    ],
    [
-    -7496.3,
-    -6515
+    -7249.9,
+    -6750.1
    ],
    [
-    -7496.3,
-    -6514.8
+    -7249.9,
+    -6749.9
    ]
   ],
   "hide": [],
@@ -55918,33 +55918,33 @@
   "k": "nd_st_m15_m11",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7398.79,
-  "z": -5015.61,
+  "x": -7250,
+  "z": -5250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m11.glb",
   "lod": {
    "hi": "nd_st_m15_m11_lod0",
    "lo": "nd_st_m15_m11_lod1",
-   "switch_m": 799
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m11_lod0": 9895,
+   "nd_st_m15_m11_lod0": 11011,
    "nd_st_m15_m11_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7398.9,
-    -5015.7
+    -7250.1,
+    -5250.1
    ],
    [
-    -7398.7,
-    -5015.7
+    -7249.9,
+    -5250.1
    ],
    [
-    -7398.7,
-    -5015.5
+    -7249.9,
+    -5249.9
    ]
   ],
   "hide": [],
@@ -55961,33 +55961,33 @@
   "k": "nd_st_m16_m11",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7516.14,
-  "z": -5087.97,
+  "x": -7750,
+  "z": -5250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m11.glb",
   "lod": {
    "hi": "nd_st_m16_m11_lod0",
    "lo": "nd_st_m16_m11_lod1",
-   "switch_m": 636
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m11_lod0": 7219,
+   "nd_st_m16_m11_lod0": 8191,
    "nd_st_m16_m11_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7516.2,
-    -5088.1
+    -7750.1,
+    -5250.1
    ],
    [
-    -7516,
-    -5088.1
+    -7749.9,
+    -5250.1
    ],
    [
-    -7516,
-    -5087.9
+    -7749.9,
+    -5249.9
    ]
   ],
   "hide": [],
@@ -56004,33 +56004,33 @@
   "k": "nd_st_m13_m9",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6486.4,
-  "z": -4484.88,
+  "x": -6250,
+  "z": -4250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m9.glb",
   "lod": {
    "hi": "nd_st_m13_m9_lod0",
    "lo": "nd_st_m13_m9_lod1",
-   "switch_m": 778
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m9_lod0": 16315,
+   "nd_st_m13_m9_lod0": 19519,
    "nd_st_m13_m9_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6486.5,
-    -4485
+    -6250.1,
+    -4250.1
    ],
    [
-    -6486.3,
-    -4485
+    -6249.9,
+    -4250.1
    ],
    [
-    -6486.3,
-    -4484.8
+    -6249.9,
+    -4249.9
    ]
   ],
   "hide": [],
@@ -56047,33 +56047,33 @@
   "k": "nd_st_m13_m8",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6480.52,
-  "z": -3931.44,
+  "x": -6250,
+  "z": -3750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m8.glb",
   "lod": {
    "hi": "nd_st_m13_m8_lod0",
    "lo": "nd_st_m13_m8_lod1",
-   "switch_m": 673
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m8_lod0": 6211,
+   "nd_st_m13_m8_lod0": 7255,
    "nd_st_m13_m8_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6480.6,
-    -3931.5
+    -6250.1,
+    -3750.1
    ],
    [
-    -6480.4,
-    -3931.5
+    -6249.9,
+    -3750.1
    ],
    [
-    -6480.4,
-    -3931.3
+    -6249.9,
+    -3749.9
    ]
   ],
   "hide": [],
@@ -56090,33 +56090,33 @@
   "k": "nd_st_m16_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7619.85,
-  "z": -1462.63,
+  "x": -7750,
+  "z": -1250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m3.glb",
   "lod": {
    "hi": "nd_st_m16_m3_lod0",
    "lo": "nd_st_m16_m3_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m3_lod0": 1075,
+   "nd_st_m16_m3_lod0": 1327,
    "nd_st_m16_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7620,
-    -1462.7
+    -7750.1,
+    -1250.1
    ],
    [
-    -7619.8,
-    -1462.7
+    -7749.9,
+    -1250.1
    ],
    [
-    -7619.8,
-    -1462.5
+    -7749.9,
+    -1249.9
    ]
   ],
   "hide": [],
@@ -56133,33 +56133,33 @@
   "k": "nd_st_m15_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7143.87,
-  "z": -1468.47,
+  "x": -7250,
+  "z": -1250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m3.glb",
   "lod": {
    "hi": "nd_st_m15_m3_lod0",
    "lo": "nd_st_m15_m3_lod1",
-   "switch_m": 552
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m3_lod0": 8131,
+   "nd_st_m15_m3_lod0": 7939,
    "nd_st_m15_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7144,
-    -1468.6
+    -7250.1,
+    -1250.1
    ],
    [
-    -7143.8,
-    -1468.6
+    -7249.9,
+    -1250.1
    ],
    [
-    -7143.8,
-    -1468.4
+    -7249.9,
+    -1249.9
    ]
   ],
   "hide": [],
@@ -56176,33 +56176,33 @@
   "k": "nd_st_m14_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6865.17,
-  "z": -1459.98,
+  "x": -6750,
+  "z": -1250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m3.glb",
   "lod": {
    "hi": "nd_st_m14_m3_lod0",
    "lo": "nd_st_m14_m3_lod1",
-   "switch_m": 566
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m3_lod0": 3991,
+   "nd_st_m14_m3_lod0": 4339,
    "nd_st_m14_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6865.3,
-    -1460.1
+    -6750.1,
+    -1250.1
    ],
    [
-    -6865.1,
-    -1460.1
+    -6749.9,
+    -1250.1
    ],
    [
-    -6865.1,
-    -1459.9
+    -6749.9,
+    -1249.9
    ]
   ],
   "hide": [],
@@ -56219,33 +56219,33 @@
   "k": "nd_st_m15_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7126.66,
-  "z": -3487.09,
+  "x": -7250,
+  "z": -3250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m15_m7.glb",
   "lod": {
    "hi": "nd_st_m15_m7_lod0",
    "lo": "nd_st_m15_m7_lod1",
-   "switch_m": 730
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m15_m7_lod0": 3235,
+   "nd_st_m15_m7_lod0": 3751,
    "nd_st_m15_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7126.8,
-    -3487.2
+    -7250.1,
+    -3250.1
    ],
    [
-    -7126.6,
-    -3487.2
+    -7249.9,
+    -3250.1
    ],
    [
-    -7126.6,
-    -3487
+    -7249.9,
+    -3249.9
    ]
   ],
   "hide": [],
@@ -56262,33 +56262,33 @@
   "k": "nd_st_m14_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6873.38,
-  "z": -3121.85,
+  "x": -6750,
+  "z": -3250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m14_m7.glb",
   "lod": {
    "hi": "nd_st_m14_m7_lod0",
    "lo": "nd_st_m14_m7_lod1",
-   "switch_m": 641
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m14_m7_lod0": 8359,
+   "nd_st_m14_m7_lod0": 8779,
    "nd_st_m14_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6873.5,
-    -3121.9
+    -6750.1,
+    -3250.1
    ],
    [
-    -6873.3,
-    -3121.9
+    -6749.9,
+    -3250.1
    ],
    [
-    -6873.3,
-    -3121.8
+    -6749.9,
+    -3249.9
    ]
   ],
   "hide": [],
@@ -56305,33 +56305,33 @@
   "k": "nd_st_m16_m6",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7636.53,
-  "z": -2869.68,
+  "x": -7750,
+  "z": -2750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m6.glb",
   "lod": {
    "hi": "nd_st_m16_m6_lod0",
    "lo": "nd_st_m16_m6_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m6_lod0": 535,
+   "nd_st_m16_m6_lod0": 475,
    "nd_st_m16_m6_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7636.6,
-    -2869.8
+    -7750.1,
+    -2750.1
    ],
    [
-    -7636.4,
-    -2869.8
+    -7749.9,
+    -2750.1
    ],
    [
-    -7636.4,
-    -2869.6
+    -7749.9,
+    -2749.9
    ]
   ],
   "hide": [],
@@ -56348,33 +56348,33 @@
   "k": "nd_st_m16_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -7693.16,
-  "z": -3067,
+  "x": -7750,
+  "z": -3250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m16_m7.glb",
   "lod": {
    "hi": "nd_st_m16_m7_lod0",
    "lo": "nd_st_m16_m7_lod1",
-   "switch_m": 638
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m16_m7_lod0": 2275,
+   "nd_st_m16_m7_lod0": 2779,
    "nd_st_m16_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -7693.3,
-    -3067.1
+    -7750.1,
+    -3250.1
    ],
    [
-    -7693.1,
-    -3067.1
+    -7749.9,
+    -3250.1
    ],
    [
-    -7693.1,
-    -3066.9
+    -7749.9,
+    -3249.9
    ]
   ],
   "hide": [],
@@ -56391,33 +56391,33 @@
   "k": "nd_st_m13_m3",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6445.12,
-  "z": -1497.62,
+  "x": -6250,
+  "z": -1250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m3.glb",
   "lod": {
    "hi": "nd_st_m13_m3_lod0",
    "lo": "nd_st_m13_m3_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m3_lod0": 331,
+   "nd_st_m13_m3_lod0": 295,
    "nd_st_m13_m3_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6445.2,
-    -1497.7
+    -6250.1,
+    -1250.1
    ],
    [
-    -6445,
-    -1497.7
+    -6249.9,
+    -1250.1
    ],
    [
-    -6445,
-    -1497.5
+    -6249.9,
+    -1249.9
    ]
   ],
   "hide": [],
@@ -56434,33 +56434,33 @@
   "k": "nd_st_m13_m7",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -6317.33,
-  "z": -3094.77,
+  "x": -6250,
+  "z": -3250,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m13_m7.glb",
   "lod": {
    "hi": "nd_st_m13_m7_lod0",
    "lo": "nd_st_m13_m7_lod1",
-   "switch_m": 627
+   "switch_m": 330
   },
   "tris": {
-   "nd_st_m13_m7_lod0": 8503,
+   "nd_st_m13_m7_lod0": 10915,
    "nd_st_m13_m7_lod1": 7
   },
   "textures": 0,
   "hide_footprint": [
    [
-    -6317.4,
-    -3094.9
+    -6250.1,
+    -3250.1
    ],
    [
-    -6317.2,
-    -3094.9
+    -6249.9,
+    -3250.1
    ],
    [
-    -6317.2,
-    -3094.7
+    -6249.9,
+    -3249.9
    ]
   ],
   "hide": [],
@@ -56477,15 +56477,15 @@
   "k": "nd_st_m17_m10",
   "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
   "status": "v4-mall-detail",
-  "x": -8138.82,
-  "z": -4612.94,
+  "x": -8250,
+  "z": -4750,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/nd_st_m17_m10.glb",
   "lod": {
    "hi": "nd_st_m17_m10_lod0",
    "lo": "nd_st_m17_m10_lod1",
-   "switch_m": 400
+   "switch_m": 330
   },
   "tris": {
    "nd_st_m17_m10_lod0": 1567,
@@ -56494,16 +56494,102 @@
   "textures": 0,
   "hide_footprint": [
    [
-    -8138.9,
-    -4613
+    -8250.1,
+    -4750.1
    ],
    [
-    -8138.7,
-    -4613
+    -8249.9,
+    -4750.1
    ],
    [
-    -8138.7,
-    -4612.8
+    -8249.9,
+    -4749.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "nd_st_m12_m5",
+  "k": "nd_st_m12_m5",
+  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
+  "status": "v4-mall-detail",
+  "x": -5750,
+  "z": -2250,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/nd_st_m12_m5.glb",
+  "lod": {
+   "hi": "nd_st_m12_m5_lod0",
+   "lo": "nd_st_m12_m5_lod1",
+   "switch_m": 330
+  },
+  "tris": {
+   "nd_st_m12_m5_lod0": 103,
+   "nd_st_m12_m5_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -5750.1,
+    -2250.1
+   ],
+   [
+    -5749.9,
+    -2250.1
+   ],
+   [
+    -5749.9,
+    -2249.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM building footprint (data/real region extract)",
+  "ref_sources": "n2.mp4 08:06-09:10 (low plastered front walls, chain-link fences, metal gates along residential Noord streets); house footprints + residential road centrelines (front-lot placement, colours/heights hashed); OSM barrier=wall ways, highway=give_way/bus_stop, traffic_calming=bump/table nodes (Overpass 2026-10-15)",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by /workspace/landmarks/gen.mjs",
+  "cat": "landmark"
+ },
+ {
+  "id": "nd_st_m12_m8",
+  "k": "nd_st_m12_m8",
+  "name": "Noord residential street furniture: front-lot walls, chain-link fences, gates, give-way/bus-stop signs, speed bumps",
+  "status": "v4-mall-detail",
+  "x": -5750,
+  "z": -3750,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/nd_st_m12_m8.glb",
+  "lod": {
+   "hi": "nd_st_m12_m8_lod0",
+   "lo": "nd_st_m12_m8_lod1",
+   "switch_m": 330
+  },
+  "tris": {
+   "nd_st_m12_m8_lod0": 55,
+   "nd_st_m12_m8_lod1": 7
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -5750.1,
+    -3750.1
+   ],
+   [
+    -5749.9,
+    -3750.1
+   ],
+   [
+    -5749.9,
+    -3749.9
    ]
   ],
   "hide": [],
