@@ -33,20 +33,23 @@ const IDENT = new Matrix4(), _m = new Matrix4(), _fr = new Frustum(), _c = new V
 const KIND_BLD = 0, KIND_TRIM = 1, KIND_CONTACT = 2;
 
 // per pass (main + shadow): frustum-test the candidate instances, write three's multi-draw lists directly
-// (BatchedMesh's own version reads + transforms every instance matrix; ours are identity)
+// (BatchedMesh's own version reads + transforms every instance matrix; ours are identity).
+// The indirect texture (draw -> instance, used only to fetch the instance matrix / colour) is uploaded
+// once and never rewritten: every instance matrix is identity and there are no instance colours, so any
+// index gives the same result, and rewriting it was a texture upload per batch per pass.
 export function multiDrawCull(this: BM, _r: unknown, _s: unknown, camera: Camera, geometry: BufferGeometry) {
   const b = this.userData.awb as CullSet;
   _m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
   _fr.setFromProjectionMatrix(_m, camera.coordinateSystem, (camera as unknown as { reversedDepth?: boolean }).reversedDepth);
   const P = _fr.planes, bpe = geometry.index ? geometry.index.array.BYTES_PER_ELEMENT : 1;
-  const starts = this._multiDrawStarts, counts = this._multiDrawCounts, ind = this._indirectTexture.image.data, info = this._geometryInfo;
+  const starts = this._multiDrawStarts, counts = this._multiDrawCounts, info = this._geometryInfo;
   let n = 0;
   outer: for (let k = 0; k < b.nVis; k++) {
     const i = b.vis[k], x = b.cx[i], y = b.cy[i], z = b.cz[i], nr = -b.r[i];
     for (let p = 0; p < 6; p++) { const pl = P[p], nn = pl.normal; if (nn.x * x + nn.y * y + nn.z * z + pl.constant < nr) continue outer; }
-    const gi = info[i]; starts[n] = gi.start * bpe; counts[n] = gi.count; ind[n] = i; n++;
+    const gi = info[i]; starts[n] = gi.start * bpe; counts[n] = gi.count; n++;
   }
-  this._indirectTexture.needsUpdate = true;
+  if (!this.userData.awInd) { this._indirectTexture.needsUpdate = true; this.userData.awInd = 1; }
   this._multiDrawCount = n; this._multiDrawBytesPerElement = bpe; this._visibilityChanged = false;
 }
 
