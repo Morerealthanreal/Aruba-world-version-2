@@ -60,7 +60,7 @@ async function main() {
   const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch) : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
   const ctxg = new ContextGuard(g, perf ? perf.mobile : touch);
-  const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low") : null;
+  const far = params.get("far") !== "0" ? new FarCity(g, (g.real as unknown as { q: { name: string } }).q.name !== "low", params.get("farbatch") !== "0") : null;
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
