@@ -26,7 +26,7 @@ type O = Object3D & {
 export class MobilePerf {
   on: boolean; private n = 0; private t = 1; private busy = false;
   private seen = new WeakSet<object>(); private keys = new Set<string>(); private lightKey = "";
-  private seenTex = new WeakSet<object>(); private texQ: Tex[] = []; private pend: O[] = [];
+  private seenTex = new WeakSet<object>(); private texQ: Tex[] = []; private pend: O[] = []; private inflight = 0;
   stats = { compiles: 0, objs: 0, reps: 0, uploads: 0 };
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = false) { this.on = mobile; }
   frame(dt: number) {
@@ -35,20 +35,23 @@ export class MobilePerf {
     r.shadowMap.autoUpdate = false;
     if ((this.n++ & 1) === 0) r.shadowMap.needsUpdate = true;
     if (this.texQ.length) this.upload();
-    if (((this.t -= dt) > 0 && !this.pend.length) || this.busy || !r.compileAsync) return;
+    if (((this.t -= dt) > 0 && !this.pend.length) || !r.compileAsync) return;
     if (!this.incremental) {
+      if (this.busy) return;
       this.t = 4; this.busy = true;
       r.compileAsync(this.g.scene, this.g.camera).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
       return;
     }
-    // a new region can bring 10+ new programs; building them is main-thread work, so at most 4 per batch
+    // a new region can bring 10+ new programs; creating them is main-thread work, so at most 4 per
+    // frame (batches overlap: each one's parallel compile finishes on its own)
     if (!this.pend.length) { this.t = 0.5; this.pend = this.scan(); }
     const reps = this.pend.splice(0, 4).filter((o) => o.parent);
     if (!reps.length) return;
-    this.busy = true; this.stats.reps += reps.length;
+    this.inflight++; this.stats.reps += reps.length;
     const root = { traverse: (cb: (o: O) => void) => { for (const o of reps) cb(o); }, traverseVisible: () => {} };
-    r.compileAsync(root, this.g.camera, this.g.scene).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
+    r.compileAsync(root, this.g.camera, this.g.scene).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.inflight--; });
   }
+  pending() { return this.pend.length + this.inflight; }
   // upload textures of newly streamed objects before they are first drawn, ~2 per frame
   private upload() {
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
