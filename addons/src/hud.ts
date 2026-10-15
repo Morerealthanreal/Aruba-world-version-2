@@ -61,6 +61,8 @@ body.touch #actions .grp[data-for=plane] [data-act=up]{grid-area:up}
 body.touch #actions .grp[data-for=plane] [data-act=down]{grid-area:dn}
 body.touch #actions .grp[data-for=plane] button.awturbo{grid-area:tb}
 
+body.touch #settings{top:calc(var(--aw-t) + 4px);max-height:calc(100dvh - var(--aw-t) - var(--aw-b) - 16px)}
+body.touch #settings button{min-height:44px}
 body.touch #bmtop{top:calc(var(--aw-t) + 2px);left:var(--aw-l);right:var(--aw-r)}
 body.touch #bmtop button,body.touch #bmbar button{min-height:44px;min-width:44px}
 body.touch #bmbar{left:var(--aw-l);right:var(--aw-r);bottom:calc(var(--aw-b) + 12px)}
