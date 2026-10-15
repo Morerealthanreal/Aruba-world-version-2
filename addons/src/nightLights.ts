@@ -224,7 +224,7 @@ export class NightLights {
     }
     if (this.bump.length) { for (const m of this.bump) m.needsUpdate = true; this.bump.length = 0; }
     // hero signs: dim by day (reads as paint), bright at night
-    for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 0.95) : i0 < 0 ? -i0 * (1 + k * 0.55) : k * 0.16; // r202 1.8 / 1.2 / 0.3
+    for (const m of this.heroGlow.keys()) { const i0 = this.heroGlow.get(m)!; m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 0.95) : i0 < 0 ? -i0 * (1 + k * 0.55) : k * 0.16; } // r202 1.8 / 1.2 / 0.3
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
