@@ -190,6 +190,9 @@ function mergedMesh(parts, materials, name) {
   const byMaterial = [];
   for (let i = 0; i < parts.length; i++) {
     if (!parts[i].length) continue;
+    // All materials are procedural/PBR with no textures; UVs only waste GLB and
+    // vertex-upload bytes on phones.
+    for (const geometry of parts[i]) geometry.deleteAttribute("uv");
     byMaterial.push(mergeGeometries(parts[i], false));
     usedMaterials.push(materials[i]);
   }
