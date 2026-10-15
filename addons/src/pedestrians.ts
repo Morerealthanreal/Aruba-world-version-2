@@ -117,7 +117,8 @@ export class PedestrianCrowds {
     const inner = skClone(source.gl.scene);
     inner.rotation.y = Math.PI;
     const phase = slot * 1.61803398875;
-    const palette = CHARACTER_PALETTES[(slot * 2 + source.kind) % CHARACTER_PALETTES.length];
+    const selected = CHARACTER_PALETTES[(slot * 2 + source.kind) % CHARACTER_PALETTES.length];
+    const palette = source.kind === 1 ? { ...selected, top: selected.dress } : selected;
     const paints = styleCharacter(inner, palette, phase);
     const root = new Group();
     root.name = `aw:pedestrians:${source.level}:${source.kind}`;
