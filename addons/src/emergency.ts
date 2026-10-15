@@ -13,7 +13,7 @@
 import { Box3, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Mesh, MeshBasicMaterial, Raycaster, Vector3, type Material, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
-import { buildEv, evNight, evReady, flashBar, loadEv, type EvModel } from "./evModels";
+import { buildEv, disposeTree, evNight, evReady, flashBar, loadEv, type EvModel } from "./evModels";
 import { uNight } from "./uniforms";
 
 type Role = "police" | "amb" | "fire";
@@ -116,7 +116,7 @@ export class Emergency {
 
   private useModel(c: Car, s: St, role: Role | null) {
     if (!s.orig) s.orig = c.g.children.filter((ch) => !ch.name.startsWith("aw:"));
-    if (s.model) { c.g.remove(s.model.g); s.model = undefined; }
+    if (s.model) { c.g.remove(s.model.g); disposeTree(s.model.g); s.model = undefined; }
     const want = (role === "police" || role === "amb") && evReady();
     for (const o of s.orig) o.visible = !want;
     if (!want) return;
