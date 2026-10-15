@@ -8,7 +8,7 @@ import {
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, characterLoader, prepareCharacterSource, styleCharacter,
+  CHARACTER_PALETTES, loadCharacterSource, styleCharacter,
   updateCharacterPaint, type CharacterMetrics, type CharacterPaint,
 } from "./characters";
 import type { AGame } from "./env";
@@ -93,10 +93,11 @@ export class PedestrianCrowds {
   }
 
   private loadRigs() {
-    const loader = characterLoader(this.g.renderer);
     Promise.all(MODEL_SPECS.map(async (spec): Promise<CharacterSource> => {
-      const gl = await loader.loadAsync(`./models/${spec.file}`);
-      return { gl, kind: spec.kind, level: spec.level, metrics: prepareCharacterSource(gl) };
+      const source = await loadCharacterSource(this.g.renderer, spec.file);
+      return {
+        gl: source.gl, kind: spec.kind, level: spec.level, metrics: source.metrics,
+      };
     })).then((sources) => {
       for (let i = 0; i < this.nearCap; i++) {
         const kind = i % 3;
