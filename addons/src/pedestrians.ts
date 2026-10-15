@@ -51,8 +51,8 @@ export class PedestrianCrowds {
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
-    const cap = tier === "low" ? 12 : tier === "med" ? 24 : 36;
-    const lod = tier === "low" ? 170 : 240;
+    const cap = tier === "low" ? 18 : tier === "med" ? 32 : 48;
+    const lod = tier === "low" ? 190 : 250;
     this.lod2 = lod * lod;
 
     this.group.name = "aw:pedestrians";
