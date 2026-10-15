@@ -71,7 +71,8 @@ function auditHud({ insets, minTap, minMinimap }) {
     return r.width > 0 && r.height > 0;
   };
   const name = (el, sel) => {
-    const tag = el.dataset.act || el.dataset.mode || el.title || el.textContent.trim().slice(0, 12);
+    if (el.tagName !== "BUTTON") return sel;
+    const tag = el.dataset.act || el.dataset.mode || el.title || el.textContent.trim().replace(/\s+/g, " ").slice(0, 16);
     return tag ? `${sel} "${tag}"` : sel;
   };
   const items = [];
