@@ -8,7 +8,7 @@
 // Siren (WebAudio, nearest active vehicle within 160 m) is OFF by default: A has no audio, so it is
 // opt-in from Settings ("Siren sound", stored aw_siren=1). ?emerg=0 disables everything,
 // ?emerg=force makes every car an emergency vehicle (screenshots/tests).
-import { Box3, BoxGeometry, Color, Mesh, MeshBasicMaterial, type Material, type Object3D } from "three";
+import { Box3, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Mesh, MeshBasicMaterial, Raycaster, Vector3, type Material, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
 import { buildEv, flashBar, type EvModel } from "./evModels";
@@ -26,6 +26,42 @@ const LIVERY: Record<Role, { body: string; stripe: string; a: Color; b: Color }>
   amb: { body: "#f6f6f2", stripe: "#d0121b", a: RED, b: WHITE },
   fire: { body: "#b5141c", stripe: "#f3f3f3", a: RED, b: RED },
 };
+
+/** livery stripe (0.16 m tall at height ys) projected onto the car's painted sides, broken at the wheel arches */
+function stripeGeo(car: Object3D, paint: Material, box: Box3, ys: number): BufferGeometry | null {
+  const body = car.children.filter((ch) => (ch as Mesh).isMesh && (ch as Mesh).material === paint);
+  if (!body.length) return null;
+  car.updateMatrixWorld(true);
+  const inv = car.matrixWorld.clone().invert(), ray = new Raycaster(), o = new Vector3(), d = new Vector3();
+  const N = 24, z0 = box.min.z + (box.max.z - box.min.z) * 0.07, z1 = box.max.z - (box.max.z - box.min.z) * 0.07;
+  const at = (side: number, y: number, z: number): Vector3 | null => {
+    o.set(side * (box.max.x + 1), y, z).applyMatrix4(car.matrixWorld);
+    d.set(-side, 0, 0).transformDirection(car.matrixWorld);
+    ray.set(o, d);
+    const h = ray.intersectObjects(body, false)[0];
+    if (!h) return null;
+    const p = h.point.applyMatrix4(inv);
+    p.x += side * 0.012;
+    return p;
+  };
+  const pos: number[] = [];
+  for (const side of [-1, 1]) {
+    let prev: [Vector3, Vector3] | null = null;
+    for (let i = 0; i <= N; i++) {
+      const z = z0 + ((z1 - z0) * i) / N, lo = at(side, ys - 0.08, z), hi = at(side, ys + 0.08, z);
+      const cur: [Vector3, Vector3] | null = lo && hi ? [lo, hi] : null;
+      if (prev && cur) {
+        const [a, b] = side > 0 ? [cur, prev] : [prev, cur];
+        pos.push(a[0].x, a[0].y, a[0].z, b[0].x, b[0].y, b[0].z, b[1].x, b[1].y, b[1].z, a[0].x, a[0].y, a[0].z, b[1].x, b[1].y, b[1].z, a[1].x, a[1].y, a[1].z);
+      }
+      prev = cur;
+    }
+  }
+  if (!pos.length) return null;
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(pos, 3));
+  return g;
+}
 
 export class Emergency {
   stats = { police: 0, amb: 0, fire: 0, active: 0, rolls: 0 };
@@ -66,8 +102,10 @@ export class Emergency {
       b.scale.set(sx * 0.3, 0.12, 0.28); b.position.set(side * sx * 0.16, top + 0.06, cz);
       b.name = "aw:ebar"; b.visible = false; c.g.add(b); return b;
     });
-    const st = new Mesh(BAR, new MeshBasicMaterial({ color: 0xffffff }));
-    st.scale.set(sx + 0.03, 0.16, sz * 0.86); st.position.set(0, box.min.y + (top - box.min.y) * 0.42, (box.min.z + box.max.z) / 2);
+    const ys = box.min.y + (top - box.min.y) * 0.42;
+    const hug = s.paint ? stripeGeo(c.g, s.paint, box, ys) : null;
+    const st = new Mesh(hug || BAR, new MeshBasicMaterial({ color: 0xffffff }));
+    if (!hug) { st.scale.set(sx + 0.03, 0.16, sz * 0.86); st.position.set(0, ys, (box.min.z + box.max.z) / 2); }
     st.name = "aw:estripe"; st.visible = false; c.g.add(st); s.stripe = st;
   }
 
