@@ -167,16 +167,16 @@ test("runs every travel mode and captures fixed locations", async ({
     .toBe(quality);
   assertNoRuntimeErrors(runtimeErrors);
 
-  for (const mode of MODES) {
-    await test.step(`exercise ${mode.label} for 30 seconds`, async () => {
-      await exerciseMode(page, mode);
+  for (const spot of SPOTS) {
+    await test.step(`capture ${spot.name}`, async () => {
+      await captureFixedSpot(page, quality, spot, screenshotDir);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
 
-  for (const spot of SPOTS) {
-    await test.step(`capture ${spot.name}`, async () => {
-      await captureFixedSpot(page, quality, spot, screenshotDir);
+  for (const mode of MODES) {
+    await test.step(`exercise ${mode.label} for 30 seconds`, async () => {
+      await exerciseMode(page, mode);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
