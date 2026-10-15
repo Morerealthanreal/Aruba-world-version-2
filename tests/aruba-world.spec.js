@@ -64,7 +64,27 @@ function distance(a, b) {
 }
 
 async function exerciseMode(page, mode) {
-  await page.locator(`#modes button[data-mode="${mode.id}"]`).click();
+  await page
+    .locator(`#modes button[data-mode="${mode.id}"]`)
+    .click({ force: true });
+  await page.evaluate((activeMode) => {
+    const game = window.game;
+    const target = game.fromLL(12.535, -70.02);
+    const road = game.nearestRoad(target.x, target.z);
+
+    // The public teleport helper stores motorcycle state in the shared car
+    // entity, so position it as a car before switching back to motorcycle.
+    if (activeMode === "moto") {
+      game.teleport("car", road.x, road.z, road.h);
+      game.setMode("moto");
+    } else {
+      const extra =
+        activeMode === "plane"
+          ? { y: 250, p: 0.05, r: 0, s: 65, thr: 0.65 }
+          : {};
+      game.teleport(activeMode, road.x, road.z, road.h, extra);
+    }
+  }, mode.id);
   await expect(page.locator("#hudmode")).toContainText(mode.label);
   await expect
     .poll(() => page.evaluate(() => window.game.S.mode))

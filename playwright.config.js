@@ -10,7 +10,9 @@ export default defineConfig({
   },
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: 2,
+  // SwiftShader is CPU-heavy; run projects sequentially on one machine.
+  // GitHub Actions parallelizes low/high as separate matrix jobs.
+  workers: 1,
   reporter: process.env.CI
     ? [
         ["line"],
