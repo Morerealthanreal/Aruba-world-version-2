@@ -26,7 +26,7 @@ type O = Object3D & {
 export class MobilePerf {
   on: boolean; private n = 0; private t = 1; private busy = false;
   private seen = new WeakSet<object>(); private keys = new Set<string>(); private lightKey = "";
-  private seenTex = new WeakSet<object>(); private texQ: Tex[] = [];
+  private seenTex = new WeakSet<object>(); private texQ: Tex[] = []; private pend: O[] = [];
   stats = { compiles: 0, objs: 0, reps: 0, uploads: 0 };
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = false) { this.on = mobile; }
   frame(dt: number) {
@@ -35,14 +35,15 @@ export class MobilePerf {
     r.shadowMap.autoUpdate = false;
     if ((this.n++ & 1) === 0) r.shadowMap.needsUpdate = true;
     if (this.texQ.length) this.upload();
-    if ((this.t -= dt) > 0 || this.busy || !r.compileAsync) return;
+    if (((this.t -= dt) > 0 && !this.pend.length) || this.busy || !r.compileAsync) return;
     if (!this.incremental) {
       this.t = 4; this.busy = true;
       r.compileAsync(this.g.scene, this.g.camera).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
       return;
     }
-    this.t = 0.5;
-    const reps = this.scan();
+    // a new region can bring 10+ new programs; building them is main-thread work, so at most 4 per batch
+    if (!this.pend.length) { this.t = 0.5; this.pend = this.scan(); }
+    const reps = this.pend.splice(0, 4).filter((o) => o.parent);
     if (!reps.length) return;
     this.busy = true; this.stats.reps += reps.length;
     const root = { traverse: (cb: (o: O) => void) => { for (const o of reps) cb(o); }, traverseVisible: () => {} };
