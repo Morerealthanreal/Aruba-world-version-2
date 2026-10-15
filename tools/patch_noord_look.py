@@ -8,7 +8,7 @@ f=glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../game/ass
 if '/*awnoordlook*/' in s: print('noord look: already'); raise SystemExit
 a='Jm={house:Gm(['
 assert s.count(a)==1
-s=s.replace(a,'Jm={/*awnoordlook*/noord:Gm([`#efe3c8`,`#f3e9d2`,`#e8d6b4`,`#f5efe2`,`#e6cfa6`,`#f2e2c0`,`#ece4d4`,`#dcc7a1`,`#f4ead8`,`#e9dcc4`,`#f2c9a0`,`#cfe0c4`,`#c9dbe8`,`#f3d18a`,`#f2bfb4`]),house:Gm([')
+s=s.replace(a,'Jm={/*awnoordlook*/noord:Gm([`#f3ead7`,`#f6eedd`,`#efe2ca`,`#f7f2e8`,`#edddc1`,`#f5ead2`,`#f1ebde`,`#e7d8bd`,`#f6efe1`,`#efe6d4`,`#f6dec5`,`#e3ebd9`,`#e0e8ec`,`#f7e3b9`,`#f6d9d0`]),house:Gm([')
 a='j=this.w.brands&&this.w.brands.wallFor(l)||A[Math.floor(jm(l.i,2)*A.length)]'
 assert s.count(a)==1
 s=s.replace(a,'j=this.w.brands&&this.w.brands.wallFor(l)||(A===Jm.house&&jm(l.i,7)<Math.min(1,Math.max(0,Math.min(l.p[0][0]+7900,-6000-l.p[0][0],-1400-l.p[0][1],l.p[0][1]+7000)/300))?Jm.noord[Math.floor(jm(l.i,2)*Jm.noord.length)]:A[Math.floor(jm(l.i,2)*A.length)])')
