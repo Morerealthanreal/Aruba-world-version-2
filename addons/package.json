@@ -6,7 +6,8 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --format=esm --minify --target=es2020 --outfile=../game/addons/aw-addons.js --legal-comments=none",
     "typecheck": "tsc -p .",
-    "dev": "npm run build -- --watch"
+    "dev": "npm run build -- --watch",
+    "model:moto": "node ../tools/generate_moto.mjs"
   },
   "keywords": [],
   "author": "",
