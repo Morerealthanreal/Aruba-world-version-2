@@ -41,3 +41,8 @@
 - spaans_water2: water under the arch bridge (aerial-traced, hfield, 267 tris); old spaans_water stays (lagoon under the pipe bridge is real water).
 - spaans_pedbridge: OSM footway 35043372 + cycleway 628177161 bridge beside Route 1 -> yellow steel railings both sides (r26 12:59-13:01 yellow railings/stairs at the bridge end). Railings only; the path surface is the game's own.
 - Bollards: dt_bollards0 (downtown) and sc_bollards0 (Santa Cruz) already exist (master_list line 316 [x]); line 281 "todo" was stale.
+
+## Checks after r197 (no build changes)
+- Arch placement: Google aerial crop (landmarks/shots/tb_crop.png) shows ONE 4-lane deck carrying both carriageways; the two arch ribs spring from the outer deck edges, hangers drop to the outer edges, cross beams over the deck. r5 11:22 shows hangers on both sides of the car. Our model (ribs from u=+-7.6 about the centreline between the two OSM carriageways, leaning to +-1.2) = spans both carriageways. Correct, no change.
+- Roundabouts: island-wide OSM junction=roundabout pulled via API tiles -> landmarks/osm_rbs.json (59 rings). My lon/lat->game formula drifts ~1.7 m per km east (dx ~ -16 -0.0017x), so 5-40 m "offsets" east are projection drift, not misplacement. After correction every rb_* incl. rb_pyramid sits on an OSM ring, except rb_peachwall (no OSM ring; n1 00:27 frames show a small residential circle with peach scalloped wall + dark-blue columns, and the aerial at its spot shows a residential turning circle, so plausibly right) and rb_n2mound_n (134 m from any ring; free mini-rb with a mound island at Catiri (-4285,-4751) is a candidate, unconfirmed).
+- Arashi stone walls/palapas: no specific location -> skipped.
