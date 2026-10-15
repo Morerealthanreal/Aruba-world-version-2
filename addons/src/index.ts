@@ -13,7 +13,9 @@ import { BldMerge } from "./bldMerge";
 import { OvMerge } from "./ovMerge";
 import { TerrMerge } from "./terrMerge";
 import { LampGlow } from "./lampGlow";
-import { TrafficLights } from "./traffic";
+import { TrafficSystem } from "./trafficLife";
+import { PedestrianCrowds } from "./pedestrians";
+import { WorldAudio } from "./audio";
 import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
@@ -52,7 +54,9 @@ async function main() {
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
-  const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
+  const useLife = params.get("life") !== "0";
+  const peds = useLife && params.get("peds") !== "0" ? new PedestrianCrowds(g) : null;
+  const kids = !peds && params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
@@ -60,7 +64,8 @@ async function main() {
   const sun = useDN && params.get("sun") !== "0" ? new Sun(g) : null;
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
-  const traffic = useDN ? new TrafficLights(g) : null;
+  const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
+  const audio = params.get("audio") !== "0" ? new WorldAudio(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
@@ -80,7 +85,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, version: "0.10.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -93,6 +98,8 @@ async function main() {
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
+    if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
+    if (audio) audio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
