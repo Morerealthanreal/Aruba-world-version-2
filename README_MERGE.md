@@ -11,9 +11,9 @@ URL switches: `?addons=0` pure A · `?daynight=0` · `?fpsguard=0` · `?t=21.5` 
 
 | add-on file | ported from B | does |
 | --- | --- | --- |
-| day.ts | look/day.ts | day model (Aruba sun: rise 06:30 / set 18:30), sky colours |
-| sky.ts | look/sky.ts | gradient + stars + moon dome, fades in over A's HDR sky at dusk/night |
-| daynight.ts | runGame.applyDay | moves A's sun (rotates HDR+IBL with it), sunset tint, bright-night rules (high moon y=.78, blue hemi / warm ground, cool ambient, exposure up), fog follows horizon |
+| day.ts | look/day.ts | solar model for Aruba (12.5 N, equinox: rise 06:30 due east, noon 77.5 deg south, set 18:30 due west), sky / cloud / sun-disc / key-light palettes keyed by sun elevation |
+| sky.ts | look/sky.ts | the sky all day, 1 draw: elevation-keyed gradient (warm sun side, Belt of Venus opposite), Mie glow, sun disc, drifting trade-wind cumulus (noise baked once at start), moon + stars. Replaces A's HDR backdrop (`?sun=0` hides the disc) |
+| daynight.ts | runGame.applyDay | real sun path for the key light (HDR kept as IBL, rotated to the sun's bearing), colour/strength from air mass, sun -> moon handover while both are dark, blue-hour fill, bright-night rules (high moon y=.78, blue hemi / warm ground, cool ambient, exposure up), fog follows horizon |
 | nightLights.ts | materials.ts / townLights.ts / headlight | lit windows (patched into A's wall shader `gMask`), glowing street-lamp bulbs, car/moto headlight spot (all tiers), 4 warm pools on HIGH snapped to real lamps |
 | fpsGuard.ts | new (neither had one) | holds target fps: render scale 90→60 %, then lazy shadows, then post-FX off; steps back up with headroom |
 | clock.ts / ui.ts | new | saved clock, clock chip in A's top bar, Time-of-day + FPS-guard rows in A's Settings (also styles that sheet — A ships no CSS for it) |

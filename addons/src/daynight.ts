@@ -1,56 +1,86 @@
-// Day/night cycle for A's scene, driven by B's day model (day.ts) and B's
-// "bright night" lighting rules (README §3):
-//  - at night the light vector is forced HIGH (sunY 0.78) so ground NdotL is
-//    not ~0 and streets never go black on phones;
-//  - a cool moon directional + blue hemi sky / warm ground + cool ambient;
-//  - exposure nudged up at night instead of crushing contrast.
-// By day the scene is left exactly as A built it (HDR sky, sun 3.2, exposure .95);
-// only the sun's elevation/azimuth and color move through the day. The HDR
-// background/environment are rotated together with the light so the baked sun
-// in A's sky stays on the same bearing as the shadow-casting light.
+// Day/night cycle for A's scene, driven by the solar model in day.ts.
+//  - sky: the procedural dome (sky.ts) is the backdrop all day; A's HDR stays loaded as the
+//    image-based light only, rotated so its bright side follows the sun's bearing;
+//  - sun: real bearing/elevation, colour and strength from air mass (deep orange and weak at
+//    the horizon, A's own white-gold above ~40 deg); the key light is floored at 4 deg so
+//    shadows never stretch across the whole shadow map;
+//  - dusk: the sun light fades out before it hands over to the moon (both are ~0 at the
+//    switch, so shadows do not jump); a sky-coloured fill carries the blue hour;
+//  - night keeps B's "bright night" rules (README §3): moon light forced HIGH (y >= 0.78) so
+//    streets never go black on phones, blue hemi / warm ground, cool ambient, exposure up.
+// Everything is a continuous function of sun elevation and nothing allocates per frame.
 import { AmbientLight, Color, Vector3 } from "three";
 import type { AGame } from "./env";
-import { sampleDay, smooth, type DaySample } from "./day";
+import { makeSample, sampleDay, smooth, type DaySample } from "./day";
 import { makeSky, type Sky } from "./sky";
-import { uNight, uStars } from "./uniforms";
+import { uNight, uStars, uTime } from "./uniforms";
 
-const Y = new Vector3(0, 1, 0);
+const MOON = new Color(0xd5e2ff);
+const NIGHT_HEMI_SKY = new Color(0x2a4470);
+const NIGHT_HEMI_GROUND = new Color(0xb08a58);
+const NIGHT_AMB = new Color(0x8ea4cc);
+const DUSK_WARM = new Color(0xffcfa4);
+const DUSK_BLUE = new Color(0x9db0de);
+const CLOUD_NIGHT = new Color(0x3a4a66);
+// trade wind from the ENE: clouds drift WSW at 24 m/s of cloud-deck travel (6000 / 2300 m noise tiles)
+const WIND = 24;
+
 const tmpC = new Color();
+const fract = (x: number) => x - Math.floor(x);
+
+/** Set v's elevation to at least minY (keeping its bearing). */
+function liftTo(v: Vector3, minY: number) {
+  if (v.y >= minY) return v;
+  const hl = Math.hypot(v.x, v.z) || 1, k = Math.sqrt(1 - minY * minY) / hl;
+  return v.set(v.x * k, minY, v.z * k);
+}
 
 export class DayNight {
   g: AGame;
   sky: Sky;
   ambient: AmbientLight;
-  sample!: DaySample;
+  sample: DaySample = makeSample();
+  /** true sun direction (may be below the horizon) */
+  sunW = new Vector3(0, 1, 0);
+  moonW = new Vector3(0, 1, 0);
   // A's original daytime values
   private base: {
-    sunDir: Vector3; theta: number; sunColor: Color; sunI: number; bounceSky: Color; bounceGround: Color; bounceI: number;
-    fog: Color; exposure: number; elev0: number; az0: number; sign: number;
+    theta: number; envAng0: number; sunColor: Color; sunI: number; bounceSky: Color; bounceGround: Color; bounceI: number;
+    fog: Color; exposure: number;
   };
+  /** world vectors of local east / north */
+  private ax = { ex: 1, ez: 0, nx: 0, nz: -1 };
+  private wind = { x: 0, z: 0, qx: 0, qz: 0 };
   private low: boolean;
+  private disc: number;
   private clouds: Array<{ m: { color: Color; opacity: number }; c: Color; o: number }> = [];
 
-  constructor(g: AGame) {
+  constructor(g: AGame, sunDisc = true) {
     this.g = g;
     const sky = g.real!.sky;
     const sd = sky.sunDir.clone().normalize();
-    const elev0 = Math.asin(Math.max(-1, Math.min(1, sd.y)));
-    const az0 = Math.atan2(sd.z, sd.x);
-    // Which way round is "morning = east (+x)"? Test both signs once.
-    const probe = (s: number) => sd.clone().applyAxisAngle(Y, s * 1.2).x;
-    const sign = probe(1) > probe(-1) ? 1 : -1;
     this.base = {
-      sunDir: sd, theta: sky.theta, sunColor: sky.sun.color.clone(), sunI: sky.sun.intensity,
+      theta: sky.theta, envAng0: Math.atan2(-sd.z, sd.x), sunColor: sky.sun.color.clone(), sunI: sky.sun.intensity,
       bounceSky: sky.bounce.color.clone(), bounceGround: sky.bounce.groundColor.clone(), bounceI: sky.bounce.intensity,
-      fog: sky.fog.color.clone(), exposure: g.renderer.toneMappingExposure, elev0, az0, sign,
+      fog: sky.fog.color.clone(), exposure: g.renderer.toneMappingExposure,
     };
+    const fromLL = (g as unknown as { fromLL?: (lat: number, lon: number) => { x: number; z: number } }).fromLL;
+    if (fromLL) {
+      const o = fromLL(12.52, -70.0), e = fromLL(12.52, -69.99), n = fromLL(12.53, -70.0);
+      const el = Math.hypot(e.x - o.x, e.z - o.z) || 1, nl = Math.hypot(n.x - o.x, n.z - o.z) || 1;
+      this.ax = { ex: (e.x - o.x) / el, ez: (e.z - o.z) / el, nx: (n.x - o.x) / nl, nz: (n.z - o.z) / nl };
+    }
+    const a = this.ax;
+    const wx = -(0.924 * a.ex + 0.383 * a.nx) * WIND, wz = -(0.924 * a.ez + 0.383 * a.nz) * WIND;
+    this.wind = { x: wx / 6000, z: wz / 6000, qx: (0.8 * wx + 0.6 * wz) / 2300, qz: (-0.6 * wx + 0.8 * wz) / 2300 };
     this.low = g.real!.q?.name === "low";
+    this.disc = sunDisc ? 1 : 0;
     this.ambient = new AmbientLight(0x8ea4cc, 0);
     this.ambient.name = "aw:nightAmbient";
     g.scene.add(this.ambient);
     this.sky = makeSky();
     g.scene.add(this.sky.mesh);
-    // A's clouds are top-level sprites high above the island.
+    // older A builds had cloud sprites high above the island
     for (const o of g.scene.children) {
       const sp = o as unknown as { isSprite?: boolean; material: { color: Color; opacity: number }; position: Vector3; scale: Vector3 };
       if (sp.isSprite && sp.material && sp.position.y > 25 && sp.scale.x > 60)
@@ -61,77 +91,75 @@ export class DayNight {
   apply(t: number) {
     const g = this.g;
     const sky = g.real!.sky;
-    const s = (this.sample = sampleDay(t));
-    const b = this.base;
-    const night = s.night;
+    const s = sampleDay(t, this.sample);
+    const b = this.base, a = this.ax, low = this.low;
+    const night = s.night, e = s.elevDeg;
     uNight.value = night;
-    uStars.value = 1 - smooth(-0.2, -0.08, s.elev); // full dusk only (night is already 1 at -0.08)
-    // LOW has no bloom/AO/grade pass, so the bright-night fill reads milky there:
-    // pull ambient/bounce/exposure down a notch (moon stays high - B: never go black).
-    const low = this.low;
+    uStars.value = s.stars;
 
-    // --- sun path: sweep the bearing across the sky through the day, keep A's noon elevation as the max
-    const p = ((s.t - 0.25 - 0.5 / 24) / 0.5) * 2 - 1; // -1 sunrise .. 0 noon .. +1 sunset (outside = night)
-    const sweep = Math.max(-1.25, Math.min(1.25, p)) * 1.15 * b.sign; // radians around Y
-    const isNightLight = night > 0.42;
-    const dir = new Vector3();
-    if (!isNightLight) {
-      const e = Math.min(Math.asin(Math.max(0.07, s.elev)), b.elev0);
-      dir.set(Math.cos(b.az0) * Math.cos(e), Math.sin(e), Math.sin(b.az0) * Math.cos(e)).applyAxisAngle(Y, sweep);
-    } else {
-      // moon: high light vector (B: sunY forced to 0.78) on A's bearing, opposite side of the sun
-      dir.set(-Math.cos(b.az0) * 0.62, 0.78, -Math.sin(b.az0) * 0.62).normalize();
-    }
-    sky.sunDir.copy(dir);
-    const rot = b.theta + (isNightLight ? 0 : sweep);
-    g.scene.backgroundRotation.set(0, rot, 0);
+    // --- sun / moon directions in world space
+    const sun = this.sunW.set(s.east * a.ex + s.north * a.nx, s.up, s.east * a.ez + s.north * a.nz).normalize();
+    const moon = liftTo(this.moonW.copy(sun).negate(), 0.62);
+    const useSun = e > -2;
+    const dir = sky.sunDir;
+    if (useSun) liftTo(dir.copy(sun), 0.07);
+    else liftTo(dir.copy(moon), 0.78);
+    const rot = b.theta + Math.atan2(-dir.z, dir.x) - b.envAng0;
     g.scene.environmentRotation.set(0, rot, 0);
+    g.scene.backgroundRotation.set(0, rot, 0);
+    // A re-attaches its HDR backdrop when its sky is (re)applied; the dome replaces it
+    if (g.scene.background) g.scene.background = null;
 
-    // --- light colors / intensities
-    if (isNightLight) {
-      const k = smooth(0.42, 0.75, night);
-      sky.sun.color.setHex(0xd5e2ff);
-      sky.sun.intensity = b.sunI * (0.32 + 0.16 * k);
-      sky.bounce.color.setHex(0x2a4470);
-      sky.bounce.groundColor.setHex(0xb08a58);
-      sky.bounce.intensity = (0.55 + 0.35 * k) * (low ? 0.72 : 1);
-      this.ambient.color.setHex(0x8ea4cc);
-      this.ambient.intensity = (0.55 + 0.45 * k) * (low ? 0.5 : 1);
-      if (low) sky.sun.intensity *= 1.1; // keep key light so faces still separate
+    // --- key light
+    const k = smooth(0.42, 0.75, night);
+    if (useSun) {
+      sky.sun.color.copy(s.light).lerp(b.sunColor, smooth(30, 45, e));
+      sky.sun.intensity = b.sunI * s.sunK;
     } else {
-      const warm = s.sunset;
-      tmpC.setRGB(1, 0.55, 0.3);
-      sky.sun.color.copy(b.sunColor).lerp(tmpC, Math.min(1, warm * 1.1));
-      sky.sun.intensity = b.sunI * (0.18 + 0.82 * s.day);
-      sky.bounce.color.copy(b.bounceSky).lerp(tmpC.setHex(0x2a4470), night);
-      sky.bounce.groundColor.copy(b.bounceGround);
-      sky.bounce.intensity = b.bounceI;
-      this.ambient.color.setHex(0xffd2a8);
-      this.ambient.intensity = 0.25 * night;
+      sky.sun.color.copy(MOON);
+      sky.sun.intensity = b.sunI * (0.32 + 0.16 * k) * s.moonK * (low ? 1.1 : 1);
     }
-    // HDR background + IBL fade out toward night (dome takes over)
-    g.scene.environmentIntensity = (low ? 0.12 : 0.22) + (low ? 0.88 : 0.78) * s.day;
-    g.scene.backgroundIntensity = Math.max(0.02, s.day);
-    g.renderer.toneMappingExposure = b.exposure * (1 + (low ? 0.02 : 0.14) * night);
+    // --- fill: A's hemi by day -> blue sky / warm ground at night (LOW has no grade pass: a notch less)
+    sky.bounce.color.copy(b.bounceSky).lerp(NIGHT_HEMI_SKY, night);
+    sky.bounce.groundColor.copy(b.bounceGround).lerp(NIGHT_HEMI_GROUND, night);
+    sky.bounce.intensity = b.bounceI + ((0.55 + 0.35 * k) * (low ? 0.72 : 1) - b.bounceI) * night;
+    const twi = s.dusk * (1 - s.moonK);
+    this.ambient.color.copy(DUSK_WARM).lerp(DUSK_BLUE, 1 - smooth(-6, 2, e)).lerp(NIGHT_AMB, s.moonK);
+    this.ambient.intensity = 0.32 * twi * (low ? 0.75 : 1) + (0.55 + 0.45 * k) * (low ? 0.5 : 1) * s.moonK;
+    const envNight = low ? 0.12 : 0.22;
+    g.scene.environmentIntensity = envNight + (1 - envNight) * s.skyK;
+    // eye adaptation: open up a little through golden/blue hour, B's bright-night lift after
+    g.renderer.toneMappingExposure = b.exposure * (1 + (low ? 0.02 : 0.14) * night) * (1 + 0.1 * s.dusk);
 
-    // --- overlay sky dome (B's gradient + stars + moon) fades in for dusk/night
+    // --- fog melts far terrain into the horizon; by day stay close to A's measured HDR horizon
+    sky.fog.color.copy(s.fog).lerp(b.fog, 0.45 * smooth(12, 30, e));
+
+    // --- dome
     const cam = g.camera;
+    const u = this.sky.u;
     this.sky.mesh.position.copy(cam.position);
     this.sky.mesh.scale.setScalar(cam.far * 0.9);
-    this.sky.opacity.value = Math.min(1, Math.max(0, night * 1.25 + s.sunset * 0.35));
-    this.sky.mesh.visible = this.sky.opacity.value > 0.002;
-    const realSun = new Vector3(Math.cos(b.az0), s.elev, Math.sin(b.az0)).applyAxisAngle(Y, sweep).normalize();
-    this.sky.sun.copy(realSun);
-    this.sky.zenith.set(...s.zenith);
-    this.sky.horizon.set(...s.horizon);
+    u.uSun.value.copy(sun);
+    const hl = Math.hypot(sun.x, sun.z);
+    if (hl > 1e-4) u.uSunXZ.value.set(sun.x / hl, sun.z / hl);
+    u.uMoon.value.copy(moon);
+    u.uMoonI.value = s.moonK;
+    u.uCam.value.copy(cam.position);
+    u.uZen.value.copy(s.zenith);
+    u.uHorS.value.copy(s.horSun);
+    u.uHorA.value.copy(s.horAnti);
+    u.uGlow.value.copy(s.glow);
+    u.uBelt.value.copy(s.belt);
+    u.uDisc.value.copy(s.disc).multiplyScalar(this.disc);
+    u.uCLit.value.copy(s.cloudLit);
+    u.uCShade.value.copy(s.cloudShade);
+    u.uFog.value.copy(sky.fog.color);
+    const tw = uTime.value, wd = this.wind;
+    u.uWind.value.set(fract(wd.x * tw), fract(wd.z * tw), fract(wd.qx * tw), fract(wd.qz * tw));
+    u.uCloudAmt.value = 1 - 0.35 * night;
 
-    // --- fog follows the horizon so far buildings melt into the right sky colour
-    tmpC.setRGB(s.horizon[0], s.horizon[1], s.horizon[2]);
-    sky.fog.color.copy(b.fog).lerp(tmpC, Math.min(1, night * 1.2 + s.sunset * 0.6));
-
-    // --- clouds dim at night (B: 0x243044, opacity .22)
     for (const c of this.clouds) {
-      c.m.color.copy(c.c).lerp(tmpC.setHex(0x3a4a66), night);
+      c.m.color.copy(c.c).lerp(tmpC.copy(CLOUD_NIGHT), night);
       c.m.opacity = c.o * (1 - 0.6 * night);
     }
   }

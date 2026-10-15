@@ -20,7 +20,6 @@ import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
 import { Flora } from "./flora";
-import { Sun } from "./sun";
 import { JobPump } from "./jobPump";
 import { FarCity } from "./farCity";
 import { ContextGuard } from "./contextGuard";
@@ -66,8 +65,7 @@ async function main() {
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
-  const dn = useDN ? new DayNight(g) : null;
-  const sun = useDN && params.get("sun") !== "0" ? new Sun(g) : null;
+  const dn = useDN ? new DayNight(g, params.get("sun") !== "0") : null;
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
@@ -90,7 +88,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.11.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, version: "0.11.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -99,7 +97,6 @@ async function main() {
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);
-    if (sun && dn) sun.update(dn.sample.elev, dn.sample.day);
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
