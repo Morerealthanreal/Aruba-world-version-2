@@ -1,7 +1,7 @@
 // Aruba World merge add-ons: B's (SuperGrok) day/night cycle, night lighting
 // and an auto FPS guard, running on top of A's live build without editing its
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
-// Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0.
+// Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0.
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
@@ -31,6 +31,7 @@ import { Emergency } from "./emergency";
 import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
+import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
 import { Wheelie } from "./wheelie";
 import { CamCycle } from "./camCycle";
@@ -63,6 +64,7 @@ async function main() {
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = params.get("gv") !== "0" ? new GvMoto(g) : null;
+  const fly = params.get("fly") !== "0" ? new Fly(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const wheelie = params.get("wheelie") !== "0" ? new Wheelie() : null;
@@ -78,7 +80,7 @@ async function main() {
   const bmerge = params.get("bmerge") !== "0" ? new BldMerge(g) : null;
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, turbo, bmerge, mperf, ovm, tmerge, version: "0.9.1" };
+  window.__aw = { clock, dn, lights, lamps, traffic, guard, perf, look, flora, sun, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, version: "0.9.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -94,6 +96,7 @@ async function main() {
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
+    if (fly) fly.update(Math.min(dt, 0.1));
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
