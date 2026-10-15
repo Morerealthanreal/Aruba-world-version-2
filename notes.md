@@ -69,3 +69,5 @@
 - pbpool_* (8 chunks): 65 resort pools from OSM leisure=swimming_pool within 450 m of J.E. Irausquin (OSM API map tiles, drift-corrected) -> deck rim + turquoise water.
 - palapa_* : 268 thatched palapas auto-detected on Esri (landmarks/palapa_detect.py, brown discs on sand, kept clusters >=3 within 8 m) -> post + thatch cone.
 - msb_fix.py now also clears pbpool_/palapa_ manifest metadata.
+- web_balashi_tanks: 16 W.E.B. Balashi storage tanks (8 x r18 m, 13 m tall; smaller ones 8/4 m) from OSM man_made=storage_tank; Route 1 east Esri comparison showed them missing (balashi_tanks.json).
+- Route 1 east / Noord top-down vs Esri (shots/b3_r1n.jpg): road layout matches at 6 samples; only the Balashi tanks were missing.
