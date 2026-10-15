@@ -216,9 +216,13 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
   const source = npcSources[sourceIndex % npcSources.length];
   const inner = skClone(source.scene);
   inner.rotation.y = Math.PI;
+  const selected = CHARACTER_PALETTES[(sourceIndex * 2 + 1) % CHARACTER_PALETTES.length];
+  const palette = sourceIndex % npcSources.length === 1
+    ? { ...selected, top: selected.dress }
+    : selected;
   const paints = styleCharacter(
     inner,
-    CHARACTER_PALETTES[(sourceIndex * 2 + 1) % CHARACTER_PALETTES.length],
+    palette,
     sourceIndex * 1.37,
   );
   n.rig.visible = false;
