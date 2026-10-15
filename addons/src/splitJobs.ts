@@ -6,18 +6,52 @@
 // - building cells: a 125 m cell can hold 40+ footprints; build them in batches.
 // A slice keeps going while it is under budget, then re-queues itself at the head of A's queue
 // so the region's later jobs (streets, marks, finalize) still run after it, in order.
-// Bundle hooks: window.__awRoadJob / window.__awBldJob (fall back to A's own job). Off: ?split=0
+// - streets (parked cars, street furniture, walls/fences/hedges, signs; ~90 ms avg, 300 ms max
+//   headless in one call): each stage reads only its own list, so it is run on a region view that
+//   holds just that list. Parked cars go in contiguous runs (A's de-overlap grid is cumulative and
+//   order-preserving; the extra InstancedMeshes are folded into tileInst pools).
+// Bundle hooks: window.__awRoadJob / __awBldJob / __awStreetJob (fall back to A's own job). Off: ?split=0
 type O = { traverse(f: (o: O) => void): void; add(o: O): void; children: O[]; name: string; isMesh?: boolean; material?: { name?: string; type: string } };
-type R = { json: { roads: Array<{ p: number[][] }>; junc: unknown[] }; group: O; roadMesh?: O; roadGrid?: Map<number, unknown[]> };
-type A = { queue: Array<{ R: R; f: () => void }>; roads: { build(j: unknown, t: unknown): O }; buildings: { build(j: { b: unknown[] }): O }; roadGrid(m: O): Map<number, unknown[]>; junctionsNear(r: R): unknown };
+type St = { cars: unknown[]; walls: unknown[]; signs: unknown[]; pools?: unknown[] };
+type R = { json: { roads: Array<{ p: number[][] }>; junc: unknown[] }; group: O; roadMesh?: O; roadGrid?: Map<number, unknown[]>; st?: St };
+type A = {
+  queue: Array<{ R: R; f: () => void }>; roads: { build(j: unknown, t: unknown): O }; buildings: { build(j: { b: unknown[] }): O };
+  roadGrid(m: O): Map<number, unknown[]>; junctionsNear(r: R): unknown;
+  streets: { build(r: R): O }; marks: { pools(j: unknown): O };
+};
 
 const now = () => performance.now();
 export class SplitJobs {
-  stats = { roadSlices: 0, bldSlices: 0, maxSlice: 0, msPerM: 0, msPerB: 0 };
+  stats = { roadSlices: 0, bldSlices: 0, streetSlices: 0, maxSlice: 0, msPerM: 0, msPerB: 0 };
   constructor(private budget = 4) {
     const w = window as unknown as Record<string, unknown>;
     w.__awRoadJob = (a: A, r: R) => this.roadJob(a, r);
     w.__awBldJob = (a: A, r: R, list: unknown[]) => this.bldJob(a, r, list);
+    w.__awStreetJob = (a: A, r: R) => this.streetJob(a, r);
+  }
+  private streetJob(A: A, R: R) {
+    const st = R.st, view = (s: Partial<St>, json: R["json"] | null) =>
+      Object.assign(Object.create(R) as R, { st: { cars: [], walls: [], signs: [], ...s }, json });
+    const stages: Array<() => void> = [];
+    if (st) {
+      const cars = st.cars || [], n = Math.max(1, Math.round(this.budget * 12));
+      for (let i = 0; i < cars.length; i += n) { const part = cars.slice(i, i + n); stages.push(() => R.group.add(A.streets.build(view({ cars: part }, null)))); }
+      stages.push(() => R.group.add(A.streets.build(view({}, R.json))));
+      stages.push(() => R.group.add(A.streets.build(view({ walls: st.walls || [] }, null))));
+      stages.push(() => R.group.add(A.streets.build(view({ signs: st.signs || [] }, null))));
+      if (st.pools && st.pools.length) stages.push(() => R.group.add(A.marks.pools({ pools: st.pools })));
+    }
+    let i = 0;
+    const f = () => {
+      const t0 = now();
+      while (i < stages.length) {
+        stages[i++]();
+        if (now() - t0 > this.budget * 0.6) break;
+      }
+      this.stats.streetSlices++; this.note(now() - t0);
+      if (i < stages.length) A.queue.unshift({ R, f });
+    };
+    return f;
   }
   private note(ms: number) { if (ms > this.stats.maxSlice) this.stats.maxSlice = ms; }
   private roadJob(A: A, R: R) {
