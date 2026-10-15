@@ -3,7 +3,7 @@
 // one mesh per material (~11 draws at L0, ~10 at L1 beyond 45 m) plus the flashing bar lenses.
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
-import { BoxGeometry, BufferGeometry, CanvasTexture, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, Vector3, type Material, type Object3D } from "three";
+import { BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, Vector3, type Material, type Object3D } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export type EvKind = "everest" | "isuzu" | "ambY" | "ambP" | "forensys";
@@ -180,28 +180,57 @@ export function buildEv(kind: EvKind, num = 45): EvModel {
   if (evGeo) fill(); else void loadEv().then(fill);
   return model;
 }
-// --- simple low-poly person: legs, torso, head, two arm pivots ---
-export type Npc = { g: Group; armL: Group; armR: Group; legL: Mesh; legR: Mesh; t: number };
-const HEAD = new SphereGeometry(0.12, 10, 8);
+// --- low-poly person: tapered body, correctly pivoted limbs and a small pose rig ---
+export type Npc = {
+  g: Group; rig: Group; torso: Mesh; head: Mesh;
+  armL: Group; armR: Group; legL: Mesh; legR: Mesh; t: number;
+};
+const NPC_HEAD = new SphereGeometry(0.12, 10, 8);
+const NPC_TORSO = new CylinderGeometry(0.5, 0.39, 1, 7, 1);
+const NPC_LIMB = new CylinderGeometry(0.4, 0.5, 1, 6, 1);
+NPC_LIMB.translate(0, -0.5, 0); // rotations now happen at the shoulder / hip
 export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const g = new Group(); g.name = "aw:npc";
+  const rig = new Group(); g.add(rig);
   const sk = std("skin" + ((Math.random() * 3) | 0), ["#8a5a3a", "#b07a52", "#d2a07a"][(Math.random() * 3) | 0], 0.7, 0);
   const sh = std("shirt" + shirt, shirt, 0.8, 0), pa = std("pants" + pants, pants, 0.8, 0);
-  const legL = new Mesh(BOX, pa); legL.scale.set(0.14, 0.82, 0.16); legL.position.set(-0.09, 0.41, 0); legL.geometry = BOX;
-  const legR = legL.clone(); legR.position.x = 0.09; g.add(legL, legR);
-  const torso = new Mesh(BOX, sh); torso.scale.set(0.4, 0.6, 0.22); torso.position.set(0, 1.12, 0); g.add(torso);
-  const head = new Mesh(HEAD, sk); head.position.set(0, 1.56, 0); g.add(head);
-  const arm = (s: number) => { const p = new Group(); p.position.set(s * 0.25, 1.38, 0); const a = new Mesh(BOX, sh); a.scale.set(0.1, 0.62, 0.11); a.position.y = -0.31; p.add(a); g.add(p); return p; };
+  const legL = new Mesh(NPC_LIMB, pa); legL.scale.set(0.14, 0.82, 0.16); legL.position.set(-0.09, 0.82, 0);
+  const legR = legL.clone(); legR.position.x = 0.09; rig.add(legL, legR);
+  const torso = new Mesh(NPC_TORSO, sh); torso.scale.set(0.42, 0.6, 0.24); torso.position.set(0, 1.12, 0); rig.add(torso);
+  const head = new Mesh(NPC_HEAD, sk); head.scale.set(1, 1.08, 0.96); head.position.set(0, 1.56, 0.015); rig.add(head);
+  const arm = (s: number) => { const p = new Group(); p.position.set(s * 0.25, 1.4, 0); const a = new Mesh(NPC_LIMB, sh); a.scale.set(0.1, 0.62, 0.11); p.add(a); rig.add(p); return p; };
   const armL = arm(-1), armR = arm(1);
   if (tablet) { const tb = new Mesh(BOX, std("tablet", "#202326", 0.3, 0.2)); tb.scale.set(0.24, 0.32, 0.02); tb.position.set(0, -0.6, 0.12); armR.add(tb); const sc = new Mesh(BOX, new MeshBasicMaterial({ color: 0x8fc6ff, toneMapped: false })); sc.scale.set(0.2, 0.27, 0.005); sc.position.set(0, -0.6, 0.135); armR.add(sc); armR.rotation.x = -0.9; }
-  return { g, armL, armR, legL, legR, t: Math.random() * 10 };
+  return { g, rig, torso, head, armL, armR, legL, legR, t: Math.random() * 10 };
 }
 export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tablet = false) {
   n.t += dt;
-  if (mode === "walk") { const a = Math.sin(n.t * 7) * 0.5; n.legL.rotation.x = a; n.legR.rotation.x = -a; n.armL.rotation.x = -a * 0.8; if (!tablet) n.armR.rotation.x = a * 0.8; }
-  else { n.legL.rotation.x = n.legR.rotation.x = 0;
-    if (mode === "talk") { const k = Math.sin(n.t * 2.3), k2 = Math.sin(n.t * 3.1 + 1); n.armL.rotation.x = -0.6 - 0.5 * Math.max(0, k); n.armL.rotation.z = -0.25 * k2; if (!tablet) { n.armR.rotation.x = -0.4 - 0.6 * Math.max(0, k2); n.armR.rotation.z = 0.3 * k; } }
-    else { n.armL.rotation.x = 0; if (!tablet) n.armR.rotation.x = 0; } }
+  const breath = Math.sin(n.t * 1.45);
+  n.torso.scale.y = 0.6 + breath * 0.006;
+  n.rig.position.y = 0;
+  n.rig.rotation.z = 0;
+  n.head.rotation.x = 0;
+  n.armL.rotation.z = n.armR.rotation.z = 0;
+  if (mode === "walk") {
+    const a = Math.sin(n.t * 7) * 0.55;
+    n.legL.rotation.x = a; n.legR.rotation.x = -a;
+    n.armL.rotation.x = -a * 0.8; if (!tablet) n.armR.rotation.x = a * 0.8;
+    n.rig.position.y = (1 - Math.abs(Math.sin(n.t * 7))) * 0.025;
+    n.rig.rotation.z = Math.sin(n.t * 3.5) * 0.018;
+    n.head.rotation.y = Math.sin(n.t * 1.1) * 0.04;
+  } else {
+    n.legL.rotation.x = n.legR.rotation.x = 0;
+    n.rig.rotation.z = breath * 0.012;
+    if (mode === "talk") {
+      const k = Math.sin(n.t * 2.3), k2 = Math.sin(n.t * 3.1 + 1);
+      n.armL.rotation.x = -0.6 - 0.5 * Math.max(0, k); n.armL.rotation.z = -0.25 * k2;
+      if (!tablet) { n.armR.rotation.x = -0.4 - 0.6 * Math.max(0, k2); n.armR.rotation.z = 0.3 * k; }
+      n.head.rotation.y = k2 * 0.12; n.head.rotation.x = Math.max(0, k) * 0.05;
+    } else {
+      n.armL.rotation.x = breath * 0.025; if (!tablet) n.armR.rotation.x = -breath * 0.025;
+      n.head.rotation.y = Math.sin(n.t * 0.43) * 0.13;
+    }
+  }
   if (tablet) n.armR.rotation.x = mode === "talk" ? -0.9 - 0.4 * Math.max(0, Math.sin(n.t * 0.7)) : -0.9;
 }
 export function flashBar(m: EvModel, time: number, ph: number, on: boolean) {
