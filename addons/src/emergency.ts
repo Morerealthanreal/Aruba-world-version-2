@@ -1,7 +1,9 @@
 // Emergency vehicles in A's ambient traffic (real.amb.cars: 3 LOW / 6 MED / 9 HIGH cars).
 // Each time a traffic car respawns on a new road it has a 10% chance to become an emergency
-// vehicle: police 6 : ambulance 3 : fire 1. Cost: no new lights, no new passes; per emergency car
-// 3 small boxes (light bar halves + livery stripe) with MeshBasicMaterial, shared geometry.
+// vehicle: police 6 : ambulance 3 : fire 1. Police and ambulances swap in an evModels vehicle
+// (models/ev.glb, ~11 draws, LOD beyond 45 m; until it has loaded they use the repaint below).
+// Fire repaints the kit car: 3 small meshes (light bar halves + livery stripe), MeshBasicMaterial.
+// No new lights, no new passes.
 //  - police (KPA Aruba): white body, blue side stripe, red/blue bar
 //  - ambulance: white body, red stripe, red/white bar; fire: red body, white stripe, red bar
 // Bars switch on for random stretches (15-40 s on, 10-35 s off) and flash (bloom on MED/HIGH).
@@ -11,7 +13,8 @@
 import { Box3, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Mesh, MeshBasicMaterial, Raycaster, Vector3, type Material, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
-import { buildEv, flashBar, type EvModel } from "./evModels";
+import { buildEv, evNight, evReady, flashBar, loadEv, type EvModel } from "./evModels";
+import { uNight } from "./uniforms";
 
 type Role = "police" | "amb" | "fire";
 type Car = { g: Object3D; v: number; rd: unknown; s?: number };
@@ -70,8 +73,10 @@ export class Emergency {
   private audio: { ctx: AudioContext; osc: OscillatorNode; gain: GainNode } | null = null;
   private siren = false;
   private time = 0;
+  private night = -1;
 
   constructor(private g: AGame) {
+    void loadEv();
     try { this.siren = localStorage.getItem("aw_siren") === "1"; } catch { /* private mode */ }
     this.mountToggle(0);
   }
@@ -112,7 +117,7 @@ export class Emergency {
   private useModel(c: Car, s: St, role: Role | null) {
     if (!s.orig) s.orig = c.g.children.filter((ch) => !ch.name.startsWith("aw:"));
     if (s.model) { c.g.remove(s.model.g); s.model = undefined; }
-    const want = role === "police" || role === "amb";
+    const want = (role === "police" || role === "amb") && evReady();
     for (const o of s.orig) o.visible = !want;
     if (!want) return;
     const kind = role === "police" ? (Math.random() < 0.6 ? "everest" : "isuzu") : (Math.random() < 0.5 ? "ambY" : "ambP");
@@ -139,6 +144,8 @@ export class Emergency {
 
   update(dt: number) {
     this.time += dt;
+    const k = Math.round(Math.max(0, Math.min(1, (uNight.value - 0.3) / 0.4)) * 50) / 50;
+    if (k !== this.night) { this.night = k; evNight(k); }
     const A = this.g.real as unknown as { amb?: { cars: Car[] } } | null;
     const cars = A?.amb?.cars; if (!cars) return;
     const cam = this.g.camera.position;
@@ -147,6 +154,7 @@ export class Emergency {
       let s = this.st.get(c.g);
       if (!s) { s = { role: null, rd: null, on: false, t: 0, ph: 0 }; this.st.set(c.g, s); }
       if (c.rd && c.rd !== s.rd) { s.rd = c.rd; this.apply(c, s, this.pickRole()); }
+      else if ((s.role === "police" || s.role === "amb") && !s.model && evReady()) this.apply(c, s, s.role); // rolled before ev.glb loaded
       if (s.role && s.model) { if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; } flashBar(s.model, this.time, s.ph, s.on && c.g.visible); if (s.on && c.g.visible) { active++; const d = c.g.position.distanceTo(cam); if (d < 160 && (!near || d < near.d)) near = { d, s }; } continue; }
       if (!s.role || !s.bar) continue;
       if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; }

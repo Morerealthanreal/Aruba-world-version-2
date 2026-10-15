@@ -1,8 +1,9 @@
-// Minimal glTF 2.0 binary writer (one indexed triangle mesh per node, no materials: A assigns its
-// own by node name), so the car generator runs in plain Node.
+// Minimal glTF 2.0 binary writer (one indexed triangle mesh per node, no materials: the game assigns
+// its own by node name; empty nodes may carry a translation/scale as markers), so the car generator
+// runs in plain Node.
 
 /**
- * nodes: [{ name, prims: [{ pos: Float32Array, nrm: Float32Array, uv?: Float32Array, idx: Uint16Array|Uint32Array }] }]
+ * nodes: [{ name, prims?: [{ pos: Float32Array, nrm: Float32Array, uv?: Float32Array, idx: Uint16Array|Uint32Array }], t?: [x, y, z], s?: [x, y, z] }]
  * root: indices of scene root nodes
  */
 export function writeGLB({ nodes, root }) {
@@ -31,6 +32,8 @@ export function writeGLB({ nodes, root }) {
   const meshes = [], gnodes = [];
   for (const n of nodes) {
     const g = { name: n.name };
+    if (n.t) g.translation = n.t;
+    if (n.s) g.scale = n.s;
     if (n.prims && n.prims.length) {
       const prims = n.prims.map((p) => {
         const attributes = { POSITION: acc(p.pos, "VEC3", 5126, 34962, true), NORMAL: acc(p.nrm, "VEC3", 5126, 34962) };
