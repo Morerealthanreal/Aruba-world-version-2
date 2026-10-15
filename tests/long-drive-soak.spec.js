@@ -2,13 +2,16 @@ import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 
 const STOP_MS = Number(process.env.SOAK_STOP_MS || 7_000);
-const MEASURE_CYCLES = Number(process.env.SOAK_MEASURE_CYCLES || 3);
+const WARMUP_CYCLES = Number(process.env.SOAK_WARMUP_CYCLES || 2);
+const MEASURE_CYCLES = Number(process.env.SOAK_MEASURE_CYCLES || 2);
+const TOTAL_CYCLES = WARMUP_CYCLES + MEASURE_CYCLES;
 const HEAP_GROWTH_LIMIT = Number(process.env.SOAK_HEAP_GROWTH_MB || 24) * 1024 * 1024;
 const GEOMETRY_GROWTH_LIMIT = Number(process.env.SOAK_GEOMETRY_GROWTH || 12);
 const TEXTURE_GROWTH_LIMIT = Number(process.env.SOAK_TEXTURE_GROWTH || 4);
 
 // A full-island loop forces streamed regions to unload and then rebuild when the
-// route repeats. The first loop warms caches; the following loops must stay flat.
+// route repeats. Two loops let asynchronous model/texture loads settle; measured
+// loops after that must stay flat.
 const ROUTE = [
   { name: "oranjestad", lat: 12.5186, lon: -70.0358 },
   { name: "noord", lat: 12.5681, lon: -70.0336 },
@@ -222,7 +225,7 @@ test("long phone drive keeps runtime resources flat", async ({
   const samples = [];
   const distances = [];
   try {
-    for (let cycle = 0; cycle <= MEASURE_CYCLES; cycle++) {
+    for (let cycle = 0; cycle < TOTAL_CYCLES; cycle++) {
       for (let leg = 0; leg < ROUTE.length; leg++) {
         const stop = ROUTE[leg];
         distances.push(await driveLeg(page, stop, leg));
@@ -239,7 +242,17 @@ test("long phone drive keeps runtime resources flat", async ({
     for (const key of ["w", "a", "d"]) await page.keyboard.up(key);
     await writeFile(
       testInfo.outputPath("soak-metrics.json"),
-      JSON.stringify({ route: ROUTE, stopMs: STOP_MS, samples }, null, 2),
+      JSON.stringify(
+        {
+          route: ROUTE,
+          stopMs: STOP_MS,
+          warmupCycles: WARMUP_CYCLES,
+          measureCycles: MEASURE_CYCLES,
+          samples,
+        },
+        null,
+        2,
+      ),
     );
   }
 
@@ -249,8 +262,8 @@ test("long phone drive keeps runtime resources flat", async ({
   ).toBeGreaterThan(0.1);
   expect(samples.every((sample) => Number.isFinite(sample.heap))).toBe(true);
 
-  const first = 1;
-  const last = MEASURE_CYCLES;
+  const first = WARMUP_CYCLES;
+  const last = TOTAL_CYCLES - 1;
   const heapGrowth =
     cycleMedian(samples, last, "heap") - cycleMedian(samples, first, "heap");
   const geometryGrowth =

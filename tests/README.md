@@ -18,7 +18,7 @@ Local runs do not record traces. CI records a trace only on the retry after an
 initial failure, avoiding trace-finalization errors on successful browser close.
 
 The LOW project also runs a Galaxy S24+-sized long-drive soak. It repeatedly
-drives a full-island route after one warm-up loop, forces garbage collection at
+drives a full-island route after two warm-up loops, forces garbage collection at
 each stop, and records the JS heap, `renderer.info` geometry/texture totals, and
 active event-listener count. The test fails on a browser error, crash, WebGL
 context loss, lost controls, or continued resource growth. Its samples are
@@ -39,5 +39,5 @@ a recognizable artifact directory name; otherwise a timestamp and process ID
 are used.
 
 For focused local diagnostics, shorten or lengthen the soak with
-`SOAK_STOP_MS` and `SOAK_MEASURE_CYCLES`. The default is roughly three minutes
-plus game startup.
+`SOAK_STOP_MS`, `SOAK_WARMUP_CYCLES`, and `SOAK_MEASURE_CYCLES`. The default is
+roughly three minutes plus game startup.
