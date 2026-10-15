@@ -149,7 +149,7 @@ async function captureFixedSpot(page, quality, spot) {
   await page.waitForTimeout(4_000);
   await page.screenshot({
     path: path.join(SCREENSHOT_DIR, `${quality}-${spot.name}.png`),
-    fullPage: true,
+    timeout: 60_000,
   });
 }
 
