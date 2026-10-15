@@ -35,3 +35,9 @@
 ## r196
 - Overpass still down; used the OSM editing API /map bbox (0.02 deg tiles, lon -70.03..-69.95, lat 12.44..12.52) -> 13 man_made=pipeline ways (W.E.B. Aruba). Overground ones (Spaans Lagoen -992,5114 -> San Nicolas 6257,9477, ~9.5 km) built as web_pipe_0..11 (pipes_chunks.json): 2 silver pipes r0.24 at 0.75 m on supports every <=16 m, switch 700 m, ~20k tris total, max 3.4k per chunk. Short underground road crossings left out. Green crossing gantry still unseen in r5 -> not built. NB: the user expected Oranjestad-Barcadera; OSM has no pipeline there.
 - spaans_water: new gen.mjs extra type 'hfield' (quads with per-vertex y, quadAuto). Water is now one continuous surface (vertex = max terrain in +-3 m +0.45) -> no step lines, 1743 tris (was 4.9k).
+
+## r197
+- BIG FIX: spaans_bridge sat on OSM 1023428708, a *service* bridge carrying the W.E.B. pipeline (the Google aerial there shows a steel truss pipe bridge). The Route 1 arch bridge is the trunk pair OSM 451805520/463189658, centre ~(-442,5000), ~94 m (matches VINCI 92 m). Wikimedia photo camera (12.473825,-69.975372, heading 53) points at it. Moved; aerial aer_tb_w.png shows the twin arches there.
+- spaans_water2: water under the arch bridge (aerial-traced, hfield, 267 tris); old spaans_water stays (lagoon under the pipe bridge is real water).
+- spaans_pedbridge: OSM footway 35043372 + cycleway 628177161 bridge beside Route 1 -> yellow steel railings both sides (r26 12:59-13:01 yellow railings/stairs at the bridge end). Railings only; the path surface is the game's own.
+- Bollards: dt_bollards0 (downtown) and sc_bollards0 (Santa Cruz) already exist (master_list line 316 [x]); line 281 "todo" was stale.
