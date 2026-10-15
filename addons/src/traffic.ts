@@ -55,7 +55,8 @@ export class TrafficLights {
     const ty = tailBox ? (tailBox.min.y + tailBox.max.y) / 2 : box.min.y + 0.8;
     const fz = box.max.z + 0.04, tz = box.min.z - 0.04;
     const pos = new Float32Array([-hx, fy, fz, hx, fy, fz, -hx, ty, tz, hx, ty, tz]);
-    const col = new Float32Array([1, 0.95, 0.85, 1, 0.95, 0.85, 1, 0.08, 0.04, 1, 0.08, 0.04]);
+    const col = new Float32Array([0.6, 0.57, 0.51, 0.6, 0.57, 0.51, // r252: headlight dots x0.6
+      1, 0.08, 0.04, 1, 0.08, 0.04]);
     const size = new Float32Array([0.55, 0.55, 0.38, 0.38]);
     const geo = new BufferGeometry();
     geo.setAttribute("position", new BufferAttribute(pos, 3));
@@ -77,12 +78,12 @@ export class TrafficLights {
   update(dt: number) {
     const night = uNight.value;
     const k = Math.max(0, Math.min(1, (night - 0.3) / 0.4));
-    this.dotI.value = 2.2 * k;
-    this.beamI.value = 0.45 * k;
+    this.dotI.value = 2.2 * k; // r252: tail dots share this; headlight dots dimmed via vertex colour
+    this.beamI.value = 0.27 * k; // r252: x0.6, was .45
     for (const e of this.extras) e.visible = k > 0.001;
     if (this.light && this.tail && this.base) {
       this.light.emissive.copy(this.base.l).lerp(new Color(0xfff2d8), k);
-      this.light.emissiveIntensity = 1 + k * 5;
+      this.light.emissiveIntensity = (1 + k * 5) * (1 - 0.4 * k); // r252: night headlight emissive x0.6
       this.tail.emissive.copy(this.base.t).lerp(new Color(0xff2010), k);
       this.tail.emissiveIntensity = 1 + k * 3;
     }

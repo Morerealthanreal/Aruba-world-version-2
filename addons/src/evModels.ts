@@ -143,7 +143,7 @@ function evMats(kind: EvKind, num: number): Record<string, Material> {
 /** EV head/tail lights glow at night (k: 0 day .. 1 night); shared by every EV */
 export function evNight(k: number) {
   const l = std("evLight", "#eef2f5", 0.15, 0.3), t = std("evTail", "#a3151a", 0.3, 0.1);
-  l.emissive.setRGB(1, 0.95, 0.85).multiplyScalar(k); l.emissiveIntensity = 1 + 4 * k;
+  l.emissive.setRGB(1, 0.95, 0.85).multiplyScalar(k * 0.6); // r252: headlights x0.6 l.emissiveIntensity = 1 + 4 * k;
   t.emissive.setRGB(1, 0.12, 0.06).multiplyScalar(k); t.emissiveIntensity = 1 + 2 * k;
 }
 
