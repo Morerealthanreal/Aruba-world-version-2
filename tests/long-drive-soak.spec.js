@@ -206,7 +206,11 @@ test("long phone drive keeps runtime resources flat", async ({
   const cdp = await context.newCDPSession(page);
   await cdp.send("HeapProfiler.enable");
 
-  await page.goto("/?q=low", { waitUntil: "domcontentloaded" });
+  // Force the existing test-only emergency/crash modes so repeated route
+  // changes also exercise transient scene teardown during this short soak.
+  await page.goto("/?q=low&emerg=force&crash=force&crashx=10", {
+    waitUntil: "domcontentloaded",
+  });
   await page.waitForFunction(
     () => window.game?.ready && window.__aw,
     undefined,
