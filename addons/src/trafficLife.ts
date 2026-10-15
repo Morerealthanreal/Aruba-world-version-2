@@ -80,12 +80,13 @@ export class TrafficSystem {
     this.amb = amb;
     const tier = this.g.real!.q.name;
     const target = tier === "low" ? 5 : tier === "med" ? 10 : 15;
+    const variants = tier === "low" ? [0, 1, 2] : tier === "med" ? [0, 1, 2, 4] : [0, 1, 2, 3, 4];
     this.stats.quality = tier;
 
     // A owns route simulation; extra cars enter the same long-lived pool.
     while (amb.cars.length < target) {
       const i = amb.cars.length;
-      const v = i % 5;
+      const v = variants[i % variants.length];
       const color = this.paint.setHex(PAINT[(i * 5 + 3) % PAINT.length]);
       const root = amb.carMesh(v, color);
       root.visible = false;
