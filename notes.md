@@ -71,3 +71,8 @@
 - msb_fix.py now also clears pbpool_/palapa_ manifest metadata.
 - web_balashi_tanks: 16 W.E.B. Balashi storage tanks (8 x r18 m, 13 m tall; smaller ones 8/4 m) from OSM man_made=storage_tank; Route 1 east Esri comparison showed them missing (balashi_tanks.json).
 - Route 1 east / Noord top-down vs Esri (shots/b3_r1n.jpg): road layout matches at 6 samples; only the Balashi tanks were missing.
+
+## r201 (Balashi tank roofs, signage survey 1)
+- web_balashi_tanks: tan roofs/shells now on 335599534/538/539 (Esri roof mean R-B >= 33; the rest <= 26 = white). web_balashi now in msb_fix.py prefix list (clears hide).
+- landmarks/mlysurvey.py: Mapillary photos along a named road (newest within 20 m of samples). L.G. Smith: only 6 photos in coverage (no big signs missing in them); J.E. Irausquin: 626 photos.
+- Hotels on JEI without a hero model: Tamarijn, MVC Eagle Beach, Divi Phoenix, Casa Del Mar, Amsterdam Manor. Only Tamarijn had a readable sign photo -> tamarijn_entry (cream porte-cochere + teal "Tamarijn Aruba | all inclusive" fascia, NE facade of OSM bld 4360).
