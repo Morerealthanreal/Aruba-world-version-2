@@ -22,7 +22,7 @@ type A = {
 
 const now = () => performance.now();
 export class SplitJobs {
-  stats = { roadSlices: 0, bldSlices: 0, streetSlices: 0, maxSlice: 0, msPerM: 0, msPerB: 0 };
+  stats = { roadSlices: 0, bldSlices: 0, streetSlices: 0, maxSlice: 0, msPerM: 0, msPerB: 0, stageMax: {} as Record<string, number> };
   constructor(private budget = 4) {
     const w = window as unknown as Record<string, unknown>;
     w.__awRoadJob = (a: A, r: R) => this.roadJob(a, r);
@@ -32,20 +32,21 @@ export class SplitJobs {
   private streetJob(A: A, R: R) {
     const st = R.st, view = (s: Partial<St>, json: R["json"] | null) =>
       Object.assign(Object.create(R) as R, { st: { cars: [], walls: [], signs: [], ...s }, json });
-    const stages: Array<() => void> = [];
+    const stages: Array<() => void> = [], kinds: string[] = [];
     if (st) {
       const cars = st.cars || [], n = Math.max(1, Math.round(this.budget * 12));
-      for (let i = 0; i < cars.length; i += n) { const part = cars.slice(i, i + n); stages.push(() => R.group.add(A.streets.build(view({ cars: part }, null)))); }
-      stages.push(() => R.group.add(A.streets.build(view({}, R.json))));
-      stages.push(() => R.group.add(A.streets.build(view({ walls: st.walls || [] }, null))));
-      stages.push(() => R.group.add(A.streets.build(view({ signs: st.signs || [] }, null))));
-      if (st.pools && st.pools.length) stages.push(() => R.group.add(A.marks.pools({ pools: st.pools })));
+      for (let i = 0; i < cars.length; i += n) { const part = cars.slice(i, i + n); stages.push(() => R.group.add(A.streets.build(view({ cars: part }, null)))); kinds.push("cars"); }
+      stages.push(() => R.group.add(A.streets.build(view({}, R.json)))); kinds.push("furniture");
+      stages.push(() => R.group.add(A.streets.build(view({ walls: st.walls || [] }, null)))); kinds.push("walls");
+      stages.push(() => R.group.add(A.streets.build(view({ signs: st.signs || [] }, null)))); kinds.push("signs");
+      if (st.pools && st.pools.length) { stages.push(() => R.group.add(A.marks.pools({ pools: st.pools }))); kinds.push("pools"); }
     }
     let i = 0;
     const f = () => {
       const t0 = now();
       while (i < stages.length) {
-        stages[i++]();
+        const ts = now(); stages[i](); const d = now() - ts, k = kinds[i++];
+        if (d > (this.stats.stageMax[k] || 0)) this.stats.stageMax[k] = +d.toFixed(1);
         if (now() - t0 > this.budget * 0.6) break;
       }
       this.stats.streetSlices++; this.note(now() - t0);
