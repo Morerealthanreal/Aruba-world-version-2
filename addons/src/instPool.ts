@@ -19,7 +19,10 @@ export class Pool {
   remove(s: Src) { this.srcs.delete(s); }
   private grow(n: number) {
     let cap = 256; while (cap < n) cap *= 2;
-    const old = this.im, im = new InstancedMesh(this.geo, this.mat, cap);
+    // count 0: three's constructor writes an identity matrix into every slot (15 ms at 64k); only the
+    // first `count` rows are ever drawn or uploaded, and fill() writes them
+    const old = this.im, im = new InstancedMesh(this.geo, this.mat, 0);
+    im.instanceMatrix = new InstancedBufferAttribute(new Float32Array(cap * 16), 16);
     im.name = this.o.name; im.castShadow = this.o.castShadow; im.receiveShadow = this.o.receiveShadow;
     im.frustumCulled = false; im.matrixAutoUpdate = false; im.count = 0; im.visible = false;
     if (this.o.colored) im.instanceColor = new InstancedBufferAttribute(new Float32Array(cap * 3), 3);

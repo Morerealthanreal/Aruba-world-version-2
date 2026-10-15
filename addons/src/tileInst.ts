@@ -50,10 +50,10 @@ export class TileInstances {
   }
   private gather(r: Reg) {
     const groups = new Map<string, IM[]>();
-    r.group!.updateMatrixWorld(true);
     r.group!.traverse((o) => {
       const m = o as IM;
       if (!m.isInstancedMesh || !KINDS.has(m.name) || Array.isArray(m.material) || m.count === 0) return;
+      m.updateWorldMatrix(true, false);
       const key = m.name + "|" + m.geometry.uuid + "|" + m.material.uuid + "|" + m.castShadow + "|" + m.receiveShadow + "|" + (m.instanceColor ? 1 : 0);
       let l = groups.get(key);
       if (!l) groups.set(key, (l = []));
