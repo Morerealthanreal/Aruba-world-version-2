@@ -10,6 +10,7 @@ import { uNight } from "./uniforms";
 
 type LampRow = [number, number, number, number, number]; // x, groundY, z, scale, yaw
 const BULB_X = -2.4, BULB_Y = 8.87; // bulb in the lamp model's local space (props.glb slamp)
+const mtx = new Matrix4(), rot = new Quaternion(), poolScale = new Vector3(15, 1, 15), pos = new Vector3();
 
 export class LampGlow {
   g: AGame;
@@ -74,8 +75,8 @@ export class LampGlow {
   update(dt: number) {
     const night = uNight.value;
     const k = Math.max(0, Math.min(1, (night - 0.3) / 0.45));
-    this.dotI.value = 1.6 * k;
-    this.poolI.value = 0.55 * k;
+    this.dotI.value = 0.95 * k; // was 1.6 (owner: city lights too bright)
+    this.poolI.value = 0.34 * k; // was 0.55
     this.points.visible = this.pools.visible = k > 0.001;
     this.t -= dt;
     if (this.t > 0) return;
@@ -94,16 +95,15 @@ export class LampGlow {
       if (d < 160 * 160) near.push([d, i]);
     }
     near.sort((a, c) => a[0] - c[0]);
-    const m = new Matrix4(), q = new Quaternion(), sc = new Vector3(15, 1, 15), p = new Vector3();
     const n = Math.min(this.nPools, near.length);
     for (let j = 0; j < n; j++) {
       const i = near[j][1];
       const x = b[i * 3], z = b[i * 3 + 2];
       const gy = this.g.real && (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt;
       const y = gy ? gy(x, z) : b[i * 3 + 1] - BULB_Y;
-      p.set(x, y + 0.3, z);
-      m.compose(p, q, sc);
-      this.pools.setMatrixAt(j, m);
+      pos.set(x, y + 0.3, z);
+      mtx.compose(pos, rot, poolScale);
+      this.pools.setMatrixAt(j, mtx);
     }
     this.pools.count = n;
     this.pools.instanceMatrix.needsUpdate = true;

@@ -45,9 +45,9 @@ function patchWindows(wall: Material) {
   if (uAwNight > 0.01) {
     float awB = floor(u / 3.6), awF = floor(v / max(fh, 0.5));
     float awR = rwH(vec2(awB * 3.1 + seed * 11.0, awF * 7.3 + 0.37));
-    float awLit = step(0.5, awR); // r202: fewer lit windows (was 0.36)
+    float awLit = step(0.6, awR); // ~40% of windows lit (r202: 50%)
     vec3 awWarm = mix(vec3(1.0, 0.6, 0.28), vec3(1.0, 0.86, 0.62), rwH(vec2(awR, seed + 0.5)));
-    totalEmissiveRadiance += awWarm * gMask * awLit * smoothstep(0.25, 0.7, uAwNight) * 0.9; // r202: was 2.4 (blew out facades with bloom)
+    totalEmissiveRadiance += awWarm * gMask * awLit * smoothstep(0.3, 0.8, uAwNight) * (0.35 + 0.25 * awR); // owner: city too bright (r202 0.9, before 2.4)
   }`,
       );
   });
@@ -71,13 +71,15 @@ function patchHeroWindows(mat: Material) {
     vec2 awCell = floor(vMapUv + 0.001); // u per bay, v per storey -> one cell per window
     awW *= step(0.25, fract(sin(dot(awCell, vec2(12.9898, 78.233))) * 43758.5453));
     #endif
-    totalEmissiveRadiance += vec3(1.0, 0.72, 0.42) * awW * smoothstep(0.25, 0.7, uAwNight) * 0.55; // r202: was 1.2
+    totalEmissiveRadiance += vec3(1.0, 0.72, 0.42) * awW * smoothstep(0.3, 0.8, uAwNight) * 0.32; // r202 0.55, before 1.2
   }`,
       );
   });
 }
 
 type StdMat = Material & { emissive: Color; emissiveIntensity: number; color: Color };
+const BULB = new Color(0xffc985);
+const fwd = new Vector3();
 
 export class NightLights {
   g: AGame;
@@ -217,17 +219,17 @@ export class NightLights {
     const k = Math.max(0, Math.min(1, (night - 0.25) / 0.4));
     for (const m of this.bulbMats) {
       const b = this.bulbBase.get(m)!;
-      m.emissive.copy(b.e).lerp(new Color(0xffc985), k);
-      m.emissiveIntensity = b.i + k * 3.5; // r202: was 7.5
+      m.emissive.copy(b.e).lerp(BULB, k);
+      m.emissiveIntensity = b.i + k * 2; // r202 3.5, before 7.5
     }
     if (this.bump.length) { for (const m of this.bump) m.needsUpdate = true; this.bump.length = 0; }
     // hero signs: dim by day (reads as paint), bright at night
-    for (const [m, i0] of this.heroGlow) m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 1.8) : i0 < 0 ? -i0 * (1 + k * 1.2) : k * 0.3; // r202: was 3.2 / 2.2 / 0.55
+    for (const m of this.heroGlow.keys()) { const i0 = this.heroGlow.get(m)!; m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 0.95) : i0 < 0 ? -i0 * (1 + k * 0.55) : k * 0.16; } // r202 1.8 / 1.2 / 0.3
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
     const drive = (S.mode === "car" || S.mode === "moto") && night > 0.35;
-    const f = new Vector3();
+    const f = fwd;
     if (drive && this.carForward(f)) {
       const c = S.car;
       const y = (c.y || 0) + (S.mode === "moto" ? 0.72 : 0.62);
@@ -267,7 +269,7 @@ export class NightLights {
           l.userData.has = !!b;
         });
       }
-      for (const l of this.pools) { l.intensity = l.userData.has ? night * 6.5 * 3 : 0; l.visible = night > 0.3; }
+      for (const l of this.pools) { l.intensity = l.userData.has ? night * 12 : 0; l.visible = night > 0.3; } // was 19.5
     }
   }
 }
