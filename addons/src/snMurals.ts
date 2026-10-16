@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
-import { bakeMuralAtlas, loadMuralAtlas } from "./muralAtlas";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
 // San Nicolas Art Fair murals as one shared atlas on the real OSM walls.
 // The JPEG is an original painting. Public photos were reference only.
@@ -45,7 +45,7 @@ export class SnMurals {
     const res = await fetch("./data/sn_murals.json");
     if (!res.ok) throw new Error("sn_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
-    const tex = await loadMuralAtlas("./" + doc.atlas, this.g.renderer);
+    const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
     this.atlas = tex;
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
@@ -153,7 +153,6 @@ export class SnMurals {
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;
-    if (this.atlas) bakeMuralAtlas(this.atlas, this.g.renderer);
   }
 
   // Approximate free-standing heroes sit on the wrong walls. The game turns

@@ -38,6 +38,7 @@ import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { Fly } from "./fly";
 import { SnFairMurals } from "./snFairMurals";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
@@ -93,6 +94,8 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+  if (params.get("snmurals") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_mural_atlas.jpg"), g.renderer);
+  if (params.get("snfair") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_fair_atlas.jpg"), g.renderer);
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const snfair = params.get("snfair") !== "0" ? new SnFairMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;

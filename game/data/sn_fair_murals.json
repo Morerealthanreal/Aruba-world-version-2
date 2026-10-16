@@ -2,7 +2,7 @@
  "atlas": "textures/sn_fair_atlas.jpg",
  "atlas_px": [
   2048,
-  1292
+  1088
  ],
  "note": "Second San Nicolas batch. Original paintings. Public photos were visual reference only.",
  "hide_heroes": [],
@@ -40,7 +40,7 @@
    "height": 3.0,
    "uv": [
     0.0,
-    0.814241,
+    0.779412,
     0.442871,
     1.0
    ],
@@ -97,9 +97,9 @@
    "height": 3.3,
    "uv": [
     0.0,
-    0.642415,
+    0.575368,
     0.616699,
-    0.812693
+    0.777574
    ],
    "sources": [
     "Street Art Cities marker 13070 (12.4361745, -69.9124217), Bernhardstraat 126, created 21 Sep 2016"
@@ -133,49 +133,6 @@
    ]
   },
   {
-   "id": "cards_r",
-   "name": "Infinity House of Cards",
-   "artist": "Chemis",
-   "year": 2016,
-   "address": "Winter Garden, Caya Dick Cooper front",
-   "lat": 12.4352902,
-   "lng": -69.909306,
-   "bld": 4153,
-   "bld_name": "Winter Garden",
-   "bld_h": 3.4,
-   "wall_i": 1,
-   "wall_len": 4.91,
-   "center": [
-    6592.25,
-    9369.83
-   ],
-   "p0": [
-    6592.1,
-    9372.26
-   ],
-   "p1": [
-    6592.4,
-    9367.41
-   ],
-   "normal": [
-    0.9981,
-    0.0611
-   ],
-   "width": 4.86,
-   "height": 3.0,
-   "uv": [
-    0.001628,
-    0.150155,
-    0.159811,
-    0.304954
-   ],
-   "sources": [
-    "Street Art Cities marker 13095 (12.4352902, -69.909306), Caya Dick Cooper, Winter Garden, created 23 Sep 2016"
-   ],
-   "base": "ground",
-   "lift": 0.08
-  },
-  {
    "id": "cards",
    "name": "Infinity House of Cards",
    "artist": "Chemis",
@@ -194,23 +151,23 @@
    ],
    "p0": [
     6593.6,
-    9367.51
+    9367.45
    ],
    "p1": [
     6594.2,
-    9359.31
+    9359.37
    ],
    "normal": [
     0.9973,
     0.073
    ],
-   "width": 8.22,
+   "width": 8.1,
    "height": 3.0,
    "uv": [
-    0.159811,
-    0.150155,
-    0.427462,
-    0.304954
+    0.617676,
+    0.575368,
+    0.907715,
+    0.777574
    ],
    "sources": [
     "Street Art Cities marker 13095 (12.4352902, -69.909306), Caya Dick Cooper, Winter Garden, created 23 Sep 2016"
@@ -219,55 +176,12 @@
    "lift": 0.08,
    "holes": [
     [
-     5.33,
+     5.27,
      0.88,
-     6.97,
+     6.91,
      2.42
     ]
    ]
-  },
-  {
-   "id": "cards_l",
-   "name": "Infinity House of Cards",
-   "artist": "Chemis",
-   "year": 2016,
-   "address": "Winter Garden, Caya Dick Cooper front",
-   "lat": 12.4352902,
-   "lng": -69.909306,
-   "bld": 4153,
-   "bld_name": "Winter Garden",
-   "bld_h": 3.4,
-   "wall_i": 5,
-   "wall_len": 6.11,
-   "center": [
-    6593.2,
-    9356.18
-   ],
-   "p0": [
-    6593.0,
-    9359.21
-   ],
-   "p1": [
-    6593.4,
-    9353.16
-   ],
-   "normal": [
-    0.9979,
-    0.0654
-   ],
-   "width": 6.06,
-   "height": 3.0,
-   "uv": [
-    0.427462,
-    0.150155,
-    0.624837,
-    0.304954
-   ],
-   "sources": [
-    "Street Art Cities marker 13095 (12.4352902, -69.909306), Caya Dick Cooper, Winter Garden, created 23 Sep 2016"
-   ],
-   "base": "ground",
-   "lift": 0.08
   },
   {
    "id": "bao",
@@ -302,9 +216,9 @@
    "height": 3.0,
    "uv": [
     0.501465,
-    0.470588,
+    0.371324,
     0.971191,
-    0.640867
+    0.573529
    ],
    "sources": [
     "Street Art Cities marker 13096 (12.4354631, -69.9093811), Caya Dick Cooper, created 23 Sep 2016"
@@ -365,7 +279,7 @@
    "height": 3.0,
    "uv": [
     0.443848,
-    0.814241,
+    0.779412,
     0.859863,
     1.0
    ],
@@ -428,9 +342,9 @@
    "height": 3.0,
    "uv": [
     0.0,
-    0.470588,
+    0.371324,
     0.500488,
-    0.640867
+    0.573529
    ],
    "sources": [
     "Street Art Cities marker 13082 (12.4353062, -69.9102505), pin on the ArtisA corner of Van Renselaerstraat and Zeppenfeldstraat, created 23 Sep 2016"
@@ -491,9 +405,9 @@
    "height": 3.0,
    "uv": [
     0.0,
-    0.001548,
+    0.0,
     0.543945,
-    0.148607
+    0.174632
    ],
    "sources": [
     "Street Art Cities marker 13089 (12.4352308, -69.9097698), Bernard van de Veen Zeppenfeldstraat 9, created 23 Sep 2016. The pin sits at the end of this long street wall."
@@ -534,9 +448,9 @@
    "height": 3.0,
    "uv": [
     0.0,
-    0.306502,
+    0.176471,
     0.456543,
-    0.46904
+    0.369485
    ],
    "sources": [
     "Street Art Cities marker 13094 (12.4350178, -69.909239), Caya Dick Cooper, created 23 Sep 2016"

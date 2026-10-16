@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
-import { bakeMuralAtlas, loadMuralAtlas } from "./muralAtlas";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
 // Second San Nicolas Art Fair batch. One shared JPEG on the OSM walls.
 // Separate from the first mural set so the two can load together.
@@ -45,7 +45,7 @@ export class SnFairMurals {
     const res = await fetch("./data/sn_fair_murals.json");
     if (!res.ok) throw new Error("sn_fair_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
-    const tex = await loadMuralAtlas("./" + doc.atlas, this.g.renderer);
+    const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
     this.atlas = tex;
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
@@ -157,7 +157,6 @@ export class SnFairMurals {
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;
-    if (this.atlas) bakeMuralAtlas(this.atlas, this.g.renderer);
   }
 
   private collectHeroes() {

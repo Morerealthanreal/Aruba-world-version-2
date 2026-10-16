@@ -10,7 +10,7 @@ import json
 import math
 from pathlib import Path
 
-from PIL import Image, ImageFilter
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tools" / "sn_paintings" / "fair"
@@ -24,21 +24,61 @@ V_LIFT = 0.08
 NORM = 0.10
 
 
-def _mirror_fill(im: Image.Image, tw: int) -> Image.Image:
-    """One mirrored copy of the outer field, then a soft colour continuation."""
+def _repeat_strip(canvas: Image.Image, im: Image.Image, x0: int, x1: int, side: str) -> None:
+    """Tile an outer quarter so the continuation is paint, not a flat slab."""
+    th = im.height
+    qw = max(8, im.width // 4)
+    if side == "l":
+        strip = im.crop((0, 0, qw, th))
+        x = x1
+        while x > x0:
+            x -= qw
+            canvas.paste(strip, (x, 0))
+    else:
+        strip = im.crop((im.width - qw, 0, im.width, th))
+        x = x0
+        while x < x1:
+            canvas.paste(strip, (x, 0))
+            x += qw
+
+
+def _smear_strip(canvas: Image.Image, im: Image.Image, x0: int, x1: int, side: str) -> None:
+    """Stretch one outer band across the gap so a hillside stays a hillside."""
+    span = x1 - x0
+    if span <= 0:
+        return
+    th = im.height
+    sw = max(16, im.width // 5)
+    if side == "l":
+        strip = im.crop((0, 0, sw, th))
+    else:
+        strip = im.crop((im.width - sw, 0, im.width, th))
+    canvas.paste(strip.resize((span, th), Image.Resampling.LANCZOS), (x0, 0))
+
+
+def _place(im: Image.Image, tw: int, align: float, field=None, repeat_left: bool = False, repeat_right: bool = False, smear_left: bool = False, smear_right: bool = False) -> Image.Image:
     th = im.height
     nw = im.width
-    if nw >= tw:
-        x = (nw - tw) // 2
-        return im.crop((x, 0, x + tw, th))
     canvas = Image.new("RGB", (tw, th))
-    x0 = (tw - nw) // 2
-    # Field is the wall colour beside the painting, sampled inside the edge so a
-    # figure is not mirrored onto the rest of the facade.
+    x0 = int(round(align * tw - nw / 2))
+    x0 = max(0, min(tw - nw, x0))
     if x0 > 0:
-        canvas.paste(_field(_side_sample(im, "l"), x0, th, 1), (0, 0))
-    if x0 + nw < tw:
-        canvas.paste(_field(_side_sample(im, "r"), tw - (x0 + nw), th, 2), (x0 + nw, 0))
+        if smear_left:
+            _smear_strip(canvas, im, 0, x0, "l")
+        elif repeat_left:
+            _repeat_strip(canvas, im, 0, x0, "l")
+        else:
+            sample = field if field is not None else _side_sample(im, "l")
+            canvas.paste(_field(sample, x0, th, 1), (0, 0))
+    right = tw - (x0 + nw)
+    if right > 0:
+        if smear_right:
+            _smear_strip(canvas, im, x0 + nw, tw, "r")
+        elif repeat_right:
+            _repeat_strip(canvas, im, x0 + nw, tw, "r")
+        else:
+            sample = field if field is not None else _side_sample(im, "r")
+            canvas.paste(_field(sample, right, th, 2), (x0 + nw, 0))
     canvas.paste(im, (x0, 0))
     return canvas
 
@@ -55,37 +95,39 @@ def _side_sample(im: Image.Image, side: str):
 
 def _field(sample, w: int, h: int, seed: int) -> Image.Image:
     import numpy as np
-    med = np.median(sample, axis=0)
+    if isinstance(sample, tuple):
+        med = np.array(sample, dtype=np.int16)
+    else:
+        med = np.median(sample, axis=0).astype(np.int16)
     rng = np.random.default_rng(seed)
     noise = rng.integers(-10, 11, size=(h, w, 1))
-    a = np.clip(med.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    a = np.clip(med + noise, 0, 255).astype(np.uint8)
     return Image.fromarray(np.broadcast_to(a, (h, w, 3)).copy())
 
 
-def fit(path: Path, tw: int, th: int, flip: bool = False, stretch: float = 1.0, crop=None, cover_white: bool = False) -> Image.Image:
+def fit(path: Path, tw: int, th: int, flip: bool = False, stretch: float = 1.0, crop=None, mode: str = "field", align: float = 0.5, field=None) -> Image.Image:
     im = Image.open(path).convert("RGB")
-    if cover_white:
-        import numpy as np
-        a = np.array(im)
-        white = (a[:, :, 0] > 200) & (a[:, :, 1] > 200) & (a[:, :, 2] > 200) & (np.abs(a[:, :, 0].astype(int) - a[:, :, 1]) < 18)
-        src = np.roll(a, 300, axis=1)
-        a[white] = src[white]
-        im = Image.fromarray(a)
     if crop:
         w, h = im.size
         l, t, r, b = crop
         im = im.crop((int(l * w), int(t * h), int(r * w), int(b * h)))
     if flip:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    if mode == "exact":
+        return im.resize((tw, th), Image.Resampling.LANCZOS)
     scale = th / im.height
     nw = max(1, int(im.width * scale * stretch))
     im = im.resize((nw, th), Image.Resampling.LANCZOS)
-    if nw == tw:
-        return im
-    if nw > tw:
-        x = (nw - tw) // 2
+    if nw >= tw:
+        x = max(0, min(nw - tw, int(nw * align - tw / 2)))
         return im.crop((x, 0, x + tw, th))
-    return _mirror_fill(im, tw)
+    # quarters: the landscape continues. extend-left: only the low-u side
+    # repeats, so a face at the other end is not copied down the wall.
+    if mode == "quarters":
+        return _place(im, tw, align, field, smear_left=True, smear_right=True)
+    if mode == "extend-left":
+        return _place(im, tw, align, field, smear_left=True, repeat_right=False)
+    return _place(im, tw, align, field)
 
 
 def pack(images: list[Image.Image]):
@@ -186,6 +228,9 @@ SPECS = [
         "bld": 9085, "wall": 3,
         "src": "fair-nina.jpg",
         "crop": (0.045, 0.0, 0.955, 1.0),
+        # Outer landscape is stretched once along the upper wall, so the
+        # hillside continues without a copied ridge.
+        "mode": "quarters",
         "world_h": 3.30,
         "y0": 3.40,
         "ph": 220,
@@ -207,17 +252,16 @@ SPECS = [
         "year": 2016,
         "lat": 12.4352902, "lng": -69.909306,
         "address": "Winter Garden, Caya Dick Cooper front",
-        "bld": 4153,
-        # Edge direction runs north→south, so this order plus a flip puts the
-        # left of the painting on the viewer's left.
-        "unwrap": [1, 3, 5],
+        "bld": 4153, "wall": 3,
+        # This face runs north→south. A flip puts the jack on the viewer's left.
+        # The painting fills this front wall. The short returns stay bare.
         "src": "fair-cards.jpg",
-        "crop": (0.0, 0.05, 1.0, 0.97),
+        "crop": (0.02, 0.16, 0.98, 0.98),
         "flip": True,
-        "stretch": 1.18,
+        "mode": "exact",
         "world_h": STOREY_H,
-        "ph": 200,
-        "holes_by_wall": {3: [[5.33, 0.96, 6.97, 2.50]]},
+        "ph": 220,
+        "holes": [[5.33, 0.96, 6.97, 2.50]],
         "sources": [
             "Street Art Cities marker 13095 (12.4352902, -69.909306), Caya Dick Cooper, Winter Garden, created 23 Sep 2016",
         ],
@@ -231,6 +275,7 @@ SPECS = [
         "address": "Caya Dick Cooper, south wall of Winter Garden",
         "bld": 4153, "wall": 6,
         "src": "fair-bao.jpg",
+        "mode": "exact",
         "world_h": STOREY_H,
         "ph": 220,
         "holes": [
@@ -251,6 +296,12 @@ SPECS = [
         "address": "Bernard van de Veen Zeppenfeldstraat",
         "bld": 11551, "wall": 0,
         "src": "fair-bobby.jpg",
+        # Drop the sky and the pavement. The head sits in the gap between
+        # the middle and right windows. The spare wall is the mural blue.
+        "crop": (0.0, 0.22, 0.98, 0.90),
+        "mode": "field",
+        "align": 0.70,
+        "field": (10, 116, 182),
         "world_h": STOREY_H,
         "ph": 240,
         "holes": [
@@ -271,8 +322,13 @@ SPECS = [
         "address": "ArtisA corner, Van Renselaerstraat at Zeppenfeldstraat",
         "bld": 5497, "wall": 2,
         "src": "fair-busca.jpg",
-        "crop": (0.0, 0.06, 0.9, 0.94),
+        "crop": (0.05, 0.07, 0.90, 0.62),
+        # Flip puts the face toward the blank east bay, clear of the door.
+        # The rest of the wall continues in the mural orange.
         "flip": True,
+        "mode": "field",
+        "align": 0.82,
+        "field": (198, 108, 12),
         "world_h": STOREY_H,
         "ph": 220,
         "holes": [
@@ -293,7 +349,7 @@ SPECS = [
         "address": "Zeppenfeldstraat 9 block, Van Renselaerstraat wall of Caribbean Union",
         "bld": 4082, "wall": 5,
         "src": "fair-blue.jpg",
-        "stretch": 1.22,
+        "mode": "exact",
         "world_h": STOREY_H,
         "ph": 190,
         "sources": [
@@ -309,7 +365,7 @@ SPECS = [
         "address": "Caya Dick Cooper",
         "bld": 4152, "wall": 3,
         "src": "fair-stay.jpg",
-        "stretch": 1.15,
+        "mode": "exact",
         "world_h": STOREY_H,
         "ph": 210,
         "sources": [
@@ -424,7 +480,10 @@ def main():
         if spec.get("unwrap"):
             faces, total = place_unwrap(spec)
             tw = int(round(spec["ph"] * total / spec["world_h"]))
-            im = fit(SRC / spec["src"], tw, spec["ph"], spec.get("flip", False), spec.get("stretch", 1.0), spec.get("crop"), spec.get("cover_white"))
+            im = fit(
+                SRC / spec["src"], tw, spec["ph"], spec.get("flip", False), spec.get("stretch", 1.0),
+                spec.get("crop"), spec.get("mode", "field"), spec.get("align", 0.5), spec.get("field"),
+            )
             images.append(im)
             placed.append({
                 "spec": spec, "faces": faces, "bld_h": bld_h,
@@ -436,7 +495,10 @@ def main():
         w = wall(spec)
         face = place_one(spec, w)
         tw = int(round(spec["ph"] * face["width"] / spec["world_h"]))
-        im = fit(SRC / spec["src"], tw, spec["ph"], spec.get("flip", False), spec.get("stretch", 1.0), spec.get("crop"), spec.get("cover_white"))
+        im = fit(
+            SRC / spec["src"], tw, spec["ph"], spec.get("flip", False), spec.get("stretch", 1.0),
+            spec.get("crop"), spec.get("mode", "field"), spec.get("align", 0.5), spec.get("field"),
+        )
         images.append(im)
         placed.append({
             "spec": spec, "face": face, "bld_h": bld_h,
