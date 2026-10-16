@@ -252,9 +252,11 @@ def build_fontein():
     m = G.Model("fontein_cave")
     # Dark enough that the game's lighting still reads as weathered limestone,
     # not a white building. The held review was a black box; this stays grey.
-    rock = m.material("rock", (0.30, 0.28, 0.26), rough=0.94)
-    dark = m.material("strata", (0.16, 0.15, 0.14), rough=0.96)
-    light = m.material("talus", (0.44, 0.40, 0.34), rough=0.9)
+    # Game lighting lifts mid-grey to white. Stay near the Conchi rock value
+    # so the face reads as dark weathered limestone, with lighter broken edges.
+    rock = m.material("rock", (0.17, 0.16, 0.15), rough=0.95)
+    dark = m.material("strata", (0.09, 0.085, 0.08), rough=0.97)
+    light = m.material("talus", (0.32, 0.29, 0.25), rough=0.9)
     cave = m.material("cave", (0.03, 0.028, 0.025), rough=1.0)
     gate = m.material("gate", (0.12, 0.11, 0.10), rough=0.6)
     hi, lo = m.mesh(0, rock), m.mesh(1, rock)
@@ -283,8 +285,8 @@ def build_fontein():
     wedge(hi, 0.3, -6.0, -24.0, -16.5, 5.4, 2.6)
     wedge(hi, 1.1, -5.5, 16.0, 23.0, 4.6, 2.2)
     # Heavy brow, lower at the lip, so it overhangs the mouth.
-    wedge(hi, 2.3, -2.2, -7.2, 7.2, 4.6, 8.4, y0=2.55)
-    wedge(hid, 2.05, -1.6, -6.2, 6.2, 3.15, 4.2, y0=2.45)
+    wedge(hi, 2.6, -2.2, -8.0, 8.0, 5.2, 9.0, y0=2.15)
+    wedge(hid, 2.35, -1.6, -7.0, 7.0, 2.9, 4.0, y0=2.05)
     # Rock closing the upper corners into a rough arch.
     for y0, inset in ((1.35, 0.7), (1.9, 1.45), (2.35, 2.2)):
         _solid(hi, -0.6, 0.7, y0, 2.7, -4.0, -4.0 + inset)
@@ -304,8 +306,20 @@ def build_fontein():
     _solid(hid, 0.2, 0.55, 0.4, 6.2, -12.4, -11.7)
     _solid(hid, 0.3, 0.7, 1.2, 7.4, 11.2, 11.8)
 
-    # Mouth interior, well behind the lip.
-    _solid(hic, -6.8, -0.15, 0.02, 2.55, -3.55, 3.55)
+    # Knobs on the face so it is not one flat wall.
+    for lx, ly, lz, rx, ry, rz in (
+        (0.9, 6.4, -10.5, 2.2, 2.4, 1.8),
+        (1.2, 4.2, -7.0, 1.6, 1.8, 1.5),
+        (1.4, 7.8, 6.5, 2.4, 2.2, 2.0),
+        (1.6, 3.6, 12.5, 1.8, 1.6, 1.7),
+        (0.4, 11.2, -1.5, 2.8, 1.6, 2.2),
+        (-0.5, 9.5, 8.0, 2.0, 1.8, 1.6),
+        (1.8, 1.1, -12.0, 2.4, 1.1, 2.0),
+        (2.0, 1.2, 14.0, 2.2, 1.2, 1.8),
+    ):
+        _ellipsoid(hil if ly < 2 else hi, lx, ly, lz, rx, ry, rz, 3, 7)
+    # Mouth interior, well behind the lip. Wide and low.
+    _solid(hic, -6.8, 0.05, 0.02, 2.15, -4.3, 4.3)
     _solid(hic, -5.2, -1.2, 2.2, 3.6, -2.8, 2.8)
     # Second hollow along the face, and a high crevice.
     _solid(hic, -3.6, 0.15, 0.05, 1.9, 8.2, 11.4)
@@ -459,24 +473,14 @@ def build_conchi():
         sea = lz > 6.0 and g < water_y + 1.2
         if sea and i % 3 == 0:
             continue  # surge gap
-        if sea:
-            top = water_y + 0.55 + (i % 3) * 0.18
-            bot = water_y - 0.85
-            rad = 0.9 + (i % 2) * 0.25
-        else:
-            extra = 0.4 + (i * 5 % 7) * 0.22
-            top = max(g + 0.7, water_y + 1.3) + extra
-            bot = min(g - 0.55, water_y - 0.9)
-            rad = max(1.15, min(2.3, span * 0.55))
+        rad = (0.85 if sea else 1.15) + (i % 5) * 0.18
         mesh = hid if i % 4 == 0 else (hiw if i % 3 == 0 else hi)
-        _ellipsoid(mesh, lx, (top + bot) / 2, lz, rad, (top - bot) / 2, rad * 0.82, 4, 8)
-    # Two larger landward masses, the rocks that close the back of the bowl.
-    land = sorted(outer, key=lambda p: p[1])[:4]
-    for k, (lx, lz) in enumerate(land):
-        g = B.sample_h(cx + lx, cz + lz, cache) - h0
-        top = max(g + 1.6, water_y + 2.4)
-        bot = min(g - 0.6, water_y - 0.9)
-        _ellipsoid(hi if k % 2 == 0 else hiw, lx, (top + bot) / 2, lz, 2.4, (top - bot) / 2, 2.0, 4, 8)
+        # Round rock in the surf. Bottom is below the water line.
+        _ellipsoid(mesh, lx, water_y + rad * 0.2, lz, rad, rad * 0.8, rad * 0.78, 3, 7)
+        if not sea and g > water_y + 0.6:
+            rad2 = rad * 1.2
+            # A second boulder on the shelf, buried into that ground.
+            _ellipsoid(hi if i % 2 == 0 else hiw, lx, g + rad2 * 0.15, lz, rad2, rad2 * 0.65, rad2 * 0.8, 3, 7)
 
     water_ring = [(x * 0.84, z * 0.84) for x, z in ring]
     G.fan(m.mesh(0, water), water_ring, water_y, up=True)
@@ -485,9 +489,8 @@ def build_conchi():
     for i in range(0, n, 4):
         x0, z0 = outer[i]
         g = B.sample_h(cx + x0, cz + z0, cache) - h0
-        top = max(g + 0.8, water_y + 1.4)
-        bot = min(g - 0.4, water_y - 0.6)
-        _ellipsoid(lo if i % 8 == 0 else low, x0, (top + bot) / 2, z0, 1.8, (top - bot) / 2, 1.5, 3, 6)
+        rad = 1.4
+        _ellipsoid(lo if i % 8 == 0 else low, x0, water_y + rad * 0.2, z0, rad, rad * 0.75, rad * 0.7, 2, 6)
 
     info = G.write_glb(m, HERO / "conchi.glb")
     G.check_glb(HERO / "conchi.glb")

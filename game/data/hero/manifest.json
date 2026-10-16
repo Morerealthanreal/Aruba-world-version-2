@@ -60626,7 +60626,7 @@
    "switch_m": 400
   },
   "tris": {
-   "fontein_cave_lod0": 420,
+   "fontein_cave_lod0": 644,
    "fontein_cave_lod1": 36
   },
   "textures": 0,
@@ -60712,8 +60712,8 @@
    "switch_m": 450
   },
   "tris": {
-   "conchi_lod0": 1810,
-   "conchi_lod1": 226
+   "conchi_lod0": 1378,
+   "conchi_lod1": 118
   },
   "textures": 0,
   "hide_footprint": [
