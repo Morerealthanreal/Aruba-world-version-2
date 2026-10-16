@@ -6,7 +6,7 @@
 //    ?warmup=full restores the old whole-scene compileAsync.
 //  - Textures of those new meshes upload one per frame (renderer.initTexture) so the first draw is not
 //    also the upload. Default on; ?preup=0 disables. Only textures of meshes we actually warm.
-import { MeshDepthMaterial, Scene } from "three";
+import { MeshDepthMaterial, Scene, WebGLRenderTarget } from "three";
 import type { Object3D } from "three";
 import type { AGame } from "./env";
 type R = {
@@ -55,6 +55,10 @@ export class MobilePerf {
   private hotMat = new WeakSet<object>();
   private deferRec = new WeakMap<object, { frame: number; n: number }>();
   private noted = new WeakSet<object>();
+  private uploaded = new WeakSet<object>();
+  private gpuQ: O[] = [];
+  private warming = false;
+  private scratch: WebGLRenderTarget | null = null;
   private frameN = 0;
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
@@ -69,9 +73,13 @@ export class MobilePerf {
       const renderer = g.renderer as unknown as { renderBufferDirect: (...a: unknown[]) => unknown };
       const origRBD = renderer.renderBufferDirect.bind(renderer);
       renderer.renderBufferDirect = (...args: unknown[]) => {
+        if (this.warming) return origRBD(...args);
         const material = args[3] as (Mat & { isMeshDepthMaterial?: boolean; isMeshDistanceMaterial?: boolean }) | null | undefined;
-        const object = args[4] as O;
-        if (material && !material.isMeshDepthMaterial && !material.isMeshDistanceMaterial && !this.hotMat.has(material) && this.deferDraw(material, object)) return;
+        const object = args[4] as O | null | undefined;
+        // New geometry uploads inside the draw that first uses it. Skip that draw — the mesh was
+        // not on screen last frame — and upload it from the pump before the next paint.
+        if (object && !this.uploaded.has(object) && this.deferObject(object)) return;
+        if (material && !material.isMeshDepthMaterial && !material.isMeshDistanceMaterial && !this.hotMat.has(material) && this.deferDraw(material, object as O)) return;
         return origRBD(...args);
       };
     }
@@ -101,12 +109,13 @@ export class MobilePerf {
     // First-use texture uploads were a large share of the >50 ms frames. Drain them here,
     // before the next paint, instead of one-at-a-time inside the animation callback.
     if (this.preUpload && this.texQ.length) this.upload(200, 1e9);
+    this.flushGpu();
   }
   /** Programs still waiting to be finalized. The pump keeps going until this is 0 so the next frame does not draw them cold. */
   shaderPending() { return this.syncQ.length + this.holds.length + this.pend.length; }
   /** Scene walk or a texture upload still queued. Incomplete images are not included, so a loading texture cannot spin the pump. */
   backlog() {
-    if (this.stack.length) return 1;
+    if (this.stack.length || this.gpuQ.length) return 1;
     const n = this.texQ.length;
     for (let i = 0; i < n && i < 16; i++) {
       const t = this.texQ[i], img = t.image as { complete?: boolean } | null | undefined;
@@ -213,6 +222,52 @@ export class MobilePerf {
     }
     if (add) this.pend.push(o);
   }
+  private deferObject(o: O): boolean {
+    let rec = this.deferRec.get(o);
+    if (!rec) this.deferRec.set(o, (rec = { frame: this.frameN, n: 1 }));
+    else if (rec.frame !== this.frameN) { rec.frame = this.frameN; rec.n++; }
+    // A variant we never manage to warm still has to appear. Two frames is enough for the pump.
+    if (rec.n > 2) { this.uploaded.add(o); return false; }
+    this.note(o);
+    return true;
+  }
+  private note(o: O) {
+    if (!o || this.noted.has(o)) return;
+    this.noted.add(o);
+    this.gpuQ.push(o);
+    if (!this.seen.has(o)) this.consider(o);
+    else this.pend.push(o);
+  }
+  /** Upload a new mesh's buffers outside the animation callback, into a 4×4 target so the canvas is left alone. */
+  private flushGpu() {
+    if (!this.gpuQ.length) return;
+    const r = this.g.renderer as unknown as {
+      getRenderTarget(): unknown;
+      setRenderTarget(t: unknown): void;
+      renderBufferDirect(camera: unknown, scene: unknown, geometry: unknown, material: unknown, object: unknown, group: unknown): void;
+    };
+    const list = this.gpuQ.splice(0, 240);
+    if (!this.scratch) this.scratch = new WebGLRenderTarget(4, 4);
+    const prev = r.getRenderTarget();
+    this.warming = true;
+    try {
+      r.setRenderTarget(this.scratch);
+      for (const o of list) {
+        const geo = o.geometry;
+        const mats = matsOf(o);
+        if (!geo || !mats.length) { this.uploaded.add(o); continue; }
+        for (const m of mats) {
+          try { r.renderBufferDirect(this.g.camera, null, geo, m, o, null); } catch { /* the real draw reports it */ }
+        }
+        this.uploaded.add(o);
+        if (!this.hotMat.has(mats[0]) && this.ready(mats[0])) this.hotMat.add(mats[0]);
+      }
+    } catch { /* target rejected; the real draw uploads instead */ }
+    finally {
+      this.warming = false;
+      try { r.setRenderTarget(prev); } catch { /* restore best-effort */ }
+    }
+  }
   /**
    * A material with no finalized program is not drawn yet. The pump compiles and uploads it
    * before the next frame. After a couple of frames, draw anyway so a variant we cannot
@@ -227,12 +282,6 @@ export class MobilePerf {
     this.note(o);
     return true;
   }
-  private note(o: O) {
-    if (!o || this.noted.has(o)) return;
-    this.noted.add(o);
-    if (!this.seen.has(o)) this.consider(o);
-    else this.pend.push(o);
-  }
   private pump(max: number) {
     const r = this.g.renderer as unknown as R;
     if (!r.compile || !this.pend.length) return;
@@ -240,7 +289,6 @@ export class MobilePerf {
     const scene = this.g.scene as unknown as O;
     while (this.pend.length && objs.length < max) {
       const o = this.pend.shift()!;
-      this.noted.delete(o);
       if (!o.parent && o !== scene) continue;
       objs.push(o);
     }
