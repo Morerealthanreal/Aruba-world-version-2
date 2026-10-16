@@ -104,7 +104,7 @@ export class MobilePerf {
     if (!pending.length) { onReady?.(); return; }
     if (onReady) this.holds.push({ fn: onReady, mats: pending, tries: 0 });
   }
-  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0); }
+  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + this.texQ.length + (this.busy ? 1 : 0); }
   private full(dt: number) {
     if ((this.t -= dt) > 0) return;
     const r = this.g.renderer as unknown as R;
