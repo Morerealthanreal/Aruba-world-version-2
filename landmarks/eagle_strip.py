@@ -1663,5 +1663,294 @@ def main():
     open(MANIFEST, "w").write(json.dumps(manifest, indent=1) + "\n")
     print("manifest entries", len(manifest))
 
+def _quant_xz(path, ox, oz, want_mats):
+    """World XZ samples from a quantized hero (bark/foliage)."""
+    data = open(path, "rb").read()
+    off = 12
+    js = bin_ = None
+    while off < len(data):
+        clen, ctype = struct.unpack_from("<I4s", data, off)
+        chunk = data[off + 8:off + 8 + clen]
+        if ctype == b"JSON":
+            js = json.loads(chunk)
+        elif ctype == b"BIN\x00":
+            bin_ = chunk
+        off += 8 + clen
+    node = js["nodes"][0]
+    tr = node.get("translation") or [0, 0, 0]
+    sc = node.get("scale") or [1, 1, 1]
+    mats = {i: m.get("name") for i, m in enumerate(js.get("materials") or [])}
+    mesh = js["meshes"][node["mesh"]]
+    pts = []
+    for prim in mesh["primitives"]:
+        if mats.get(prim.get("material")) not in want_mats:
+            continue
+        acc = js["accessors"][prim["attributes"]["POSITION"]]
+        bv = js["bufferViews"][acc["bufferView"]]
+        start = bv.get("byteOffset", 0) + (acc.get("byteOffset") or 0)
+        stride = bv.get("byteStride") or 6
+        n = acc["count"]
+        step = max(1, n // 700)
+        for i in range(0, n, step):
+            qx, qy, qz = struct.unpack_from("<hhh", bin_, start + i * stride)
+            x = ox + tr[0] + (qx / 32767.0) * sc[0]
+            z = oz + tr[2] + (qz / 32767.0) * sc[2]
+            pts.append((x, z))
+    return pts
+
+def _inst_xz(path, ox, oz, mesh=0):
+    """World XZ of EXT_mesh_gpu_instancing translations on one node."""
+    data = open(path, "rb").read()
+    off = 12
+    js = bin_ = None
+    while off < len(data):
+        clen, ctype = struct.unpack_from("<I4s", data, off)
+        chunk = data[off + 8:off + 8 + clen]
+        if ctype == b"JSON":
+            js = json.loads(chunk)
+        elif ctype == b"BIN\x00":
+            bin_ = chunk
+        off += 8 + clen
+    node = None
+    for n in js["nodes"]:
+        ext = (n.get("extensions") or {}).get("EXT_mesh_gpu_instancing")
+        if ext and n.get("mesh") == mesh:
+            node = n
+            break
+    if node is None:
+        return []
+    acc = js["accessors"][node["extensions"]["EXT_mesh_gpu_instancing"]["attributes"]["TRANSLATION"]]
+    bv = js["bufferViews"][acc["bufferView"]]
+    start = bv.get("byteOffset", 0) + (acc.get("byteOffset") or 0)
+    stride = bv.get("byteStride") or 12
+    pts = []
+    for i in range(acc["count"]):
+        x, _y, z = struct.unpack_from("<fff", bin_, start + i * stride)
+        pts.append((ox + x, oz + z))
+    return pts
+
+def north_sand_trees(buildings):
+    """Divi-divi on the open sand north of the eaglebeach_fx / eb_fofoti_10 box.
+
+    The aerial shows dark crowns on that sand. The existing groups already
+    cover the famous cluster and the line further north (eb_fofoti_11), so
+    new trunks only fill the gaps those heroes leave, south of the Palm
+    Beach high-rises.
+    """
+    segs = jei_points()
+    blocked = []
+    man = json.loads(open(MANIFEST).read())
+    by = {e.get("id"): e for e in man}
+    # The box, the line north of it, and the south edge of the next group.
+    for hid in ("eaglebeach_fx", "eb_fofoti_10", "eb_fofoti_11", "eb_fofoti_12"):
+        e = by.get(hid)
+        if not e:
+            continue
+        blocked.extend(_quant_xz(os.path.join(HERO, hid + ".glb"), e["x"], e["z"], {"bark", "fol", "fol2"}))
+    # eb_north already instances a sparse divi-divi line through this sand.
+    # Fill the gaps; do not plant a second trunk on those.
+    north = by.get("eb_north")
+    if north:
+        blocked.extend(_inst_xz(os.path.join(HERO, "eb_north.glb"), north["x"], north["z"], mesh=0))
+    block_cells = defaultdict(list)
+    for x, z in blocked:
+        block_cells[(int(x // 8), int(z // 8))].append((x, z))
+
+    def near_existing(x, z, rad=20.0):
+        ix, iz = int(x // 8), int(z // 8)
+        r2 = rad * rad
+        for dx in (-3, -2, -1, 0, 1, 2, 3):
+            for dz in (-3, -2, -1, 0, 1, 2, 3):
+                for px, pz in block_cells.get((ix + dx, iz + dz), ()):
+                    if (x - px) * (x - px) + (z - pz) * (z - pz) < r2:
+                        return True
+        return False
+
+    houses = [b for b in buildings if b["area"] > 40]
+
+    def on_building(x, z):
+        for b in houses:
+            if abs(b["cx"] - x) > 45 or abs(b["cz"] - z) > 45:
+                continue
+            if pip(x, z, b["poly"]):
+                return True
+        return False
+
+    def sand_y(x, z):
+        dry = []
+        for dx in (0, 5, -5):
+            for dz in (0, 5, -5):
+                h = height_at(x + dx, z + dz)
+                if 0.25 < h < 3.6:
+                    dry.append(h)
+        return min(dry) if dry else None
+
+    spots = []
+    z = -4508.0
+    while z < -3956:
+        shore = shore_x(z, segs)
+        road = None
+        for x1, z1, x2, z2, w in segs:
+            dz = z2 - z1
+            if abs(dz) < 1e-6:
+                continue
+            t = (z - z1) / dz
+            if 0 <= t <= 1:
+                road = x1 + (x2 - x1) * t
+                break
+        if shore and road:
+            x = shore + 10
+            limit = min(road - 18, shore + 78)
+            while x < limit:
+                c = aerial_rgb(x, z)
+                h = height_at(x, z)
+                if c and 0.25 < h < 4.2:
+                    r, g, b = c
+                    if g + 8 >= r and g + 4 >= b and (r + g + b) < 420 and g < 150:
+                        nb = aerial_rgb(x + 10, z)
+                        if nb and (r + g + b) < (nb[0] + nb[1] + nb[2]) - 25:
+                            spots.append((x, z))
+                x += 4
+        z += 4
+    clusters = []
+    for x, z in spots:
+        hit = None
+        for cl in clusters:
+            if (x - cl[0]) ** 2 + (z - cl[1]) ** 2 < 14 ** 2:
+                hit = cl
+                break
+        if hit:
+            hit[2] += 1
+            hit[0] = (hit[0] * (hit[2] - 1) + x) / hit[2]
+            hit[1] = (hit[1] * (hit[2] - 1) + z) / hit[2]
+        else:
+            clusters.append([x, z, 1])
+    trees = []
+    for x, z, n in sorted(clusters, key=lambda t: -t[2]):
+        if n < 4:
+            continue
+        if near_existing(x, z) or on_building(x, z):
+            continue
+        if sand_y(x, z) is None:
+            continue
+        if nearest_jei(x, z, segs) < 16:
+            continue
+        if any(hypot(x - a, z - b) < 18 for a, b, _s, _y in trees):
+            continue
+        # Larger crowns in the aerial are the bent fofoti; smaller dots are divi-divi.
+        scale = 1.55 if n >= 10 else (1.25 if n >= 6 else 0.95)
+        yaw = ((int(abs(x) * 3 + abs(z)) % 17) - 8) * 0.015
+        trees.append((round(x, 1), round(z, 1), yaw, scale))
+        if len(trees) >= 18:
+            break
+    trees.sort(key=lambda t: t[1])
+    return trees
+
+def add_north_sand(manifest):
+    buildings = load_buildings()
+    trees = north_sand_trees(buildings)
+    print("north sand trees", len(trees))
+    for t in trees:
+        print(f"  ({t[0]:.0f},{t[1]:.0f}) scale {t[3]:.2f} h {height_at(t[0], t[1]):.2f}")
+    if len(trees) < 4:
+        print("too few trees, not writing")
+        return manifest
+    ox = sum(t[0] for t in trees) / len(trees)
+    oz = sum(t[1] for t in trees) / len(trees)
+    base = height_at(ox, oz)
+    g = G()
+    bark_m = g.color_mat("bark", (122, 102, 84), 0.9)
+    leaf_m = g.color_mat("fol", (58, 112, 62), 0.85)
+    nodes = []
+    for lod in (0, 1):
+        bark, leaf = build_tree(lod)
+        bm = g.add_mesh(f"eb_fofoti_north_bark{lod}", [(bark.p, bark.n, bark.u, bark.i, bark_m)])
+        lm = g.add_mesh(f"eb_fofoti_north_leaf{lod}", [(leaf.p, leaf.n, leaf.u, leaf.i, leaf_m)])
+        tr, ro, sc = [], [], []
+        for x, z, yaw, scale in trees:
+            # A canopy pixel is a dune in the DSM. Step west onto the sand
+            # beside it when the crown sits more than about half a metre up.
+            y = height_at(x, z)
+            px, pz = x, z
+            if y > 2.6:
+                for dx in range(-2, -18, -2):
+                    h = height_at(x + dx, z)
+                    if 0.3 < h < y - 0.8:
+                        px, pz, y = x + dx, z, h
+                        break
+            else:
+                for dx, dz in ((0, 0), (-6, 0), (6, 0), (0, -6), (0, 6)):
+                    h = height_at(x + dx, z + dz)
+                    if 0.3 < h < y:
+                        y = h
+            tr += [px - ox, y - base, pz - oz]
+            ro += list(yaw_quat(yaw))
+            sc += [scale, scale, scale]
+        for mesh_i in (bm, lm):
+            nodes.append(g.add_inst(mesh_i, tr, ro, sc))
+    # Add order is lod0 bark, lod0 leaf, lod1 bark, lod1 leaf.
+    g.nodes.append({"name": "eb_fofoti_north_lod0", "children": nodes[:2]})
+    hi = len(g.nodes) - 1
+    g.nodes.append({"name": "eb_fofoti_north_lod1", "children": nodes[2:]})
+    lo = len(g.nodes) - 1
+    open(os.path.join(HERO, "eb_fofoti_north.glb"), "wb").write(g.pack([hi, lo]))
+    # tri counts of one prototype, times instances
+    def ntris(lod):
+        bark, leaf = build_tree(lod)
+        return (len(bark.i) + len(leaf.i)) // 3
+    tris = {
+        "eb_fofoti_north_lod0": ntris(0) * len(trees),
+        "eb_fofoti_north_lod1": ntris(1) * len(trees),
+    }
+    entry = {
+        "id": "eb_fofoti_north", "k": "eb_fofoti_north",
+        "name": "Divi-divi on the sand north of the Eagle Beach fofoti",
+        "status": "eagle-strip",
+        "x": round(ox, 2), "z": round(oz, 2), "y": 0, "rotation": 0,
+        "glb": "models/hero/eb_fofoti_north.glb",
+        "lod": {"hi": "eb_fofoti_north_lod0", "lo": "eb_fofoti_north_lod1", "switch_m": 220},
+        "tris": tris, "textures": 0, "hide_footprint": [], "hide": [],
+        "sign": False, "kind": "replace", "new_place": False,
+        "geo_source": "Esri World Imagery crowns on the open sand north of eaglebeach_fx",
+        "ref_sources": (
+            "Dark crowns on the sand north of the Eagle Beach fofoti cluster in Esri World Imagery. "
+            "The bent trunk is the same divi-divi / fofoti shape as the existing beach trees "
+            "(Wikimedia Commons 'Fofoti Tree, Eagle Beach'). Existing eaglebeach_fx, eb_fofoti_10 "
+            "and eb_fofoti_11 are left in place; these only fill the open gaps. Original geometry."
+        ),
+        "frame": "glb origin = centroid of the new trees; generated by landmarks/eagle_strip.py",
+        "cat": "landmark",
+    }
+    manifest = [e for e in manifest if e.get("id") != "eb_fofoti_north"]
+    manifest.append(entry)
+    print("tris", tris, "origin", round(ox, 1), round(oz, 1))
+    return manifest
+
+def write_manifest(manifest):
+    """Append-safe rewrite. indent=1 matches the file; keep a single trailing newline."""
+    text = json.dumps(manifest, indent=1)
+    if not text.endswith("\n"):
+        text += "\n"
+    open(MANIFEST, "w").write(text)
+
 if __name__ == "__main__":
-    main()
+    if os.environ.get("EAGLE_NORTH_SAND") == "1":
+        manifest = json.loads(open(MANIFEST).read())
+        before = json.dumps(manifest, indent=1)
+        # Only the new entry may change. Refuse a rewrite that touches other heroes.
+        manifest = add_north_sand(manifest)
+        old_ids = {e.get("id") for e in json.loads(before)}
+        changed = []
+        old_by = {e.get("id"): e for e in json.loads(before)}
+        for e in manifest:
+            i = e.get("id")
+            if i == "eb_fofoti_north":
+                continue
+            if old_by.get(i) != e:
+                changed.append(i)
+        if changed:
+            raise SystemExit("refusing to rewrite heroes: " + ", ".join(changed[:8]))
+        write_manifest(manifest)
+        print("manifest", len(manifest))
+    else:
+        main()
