@@ -15,13 +15,13 @@ References are visual guides only. Nothing below is a pasted photo.
 
 ## Batch 2 — this change
 
-1. **Hooiberg height.** The summit sample was about 144 m. A raised cosine of +20.73 m, radius 200 m, brings the peak sample to 165 m and dies before the village and before the bottom of the stairs. Blue (urban) channel kept. `hooiberg_summit` still has `y: 0`, so it sits on the new ground. The stair mesh was retied first, then seated so the green tread tops stay about 0.22 m above the new slope. Path and green paint kept (dashcam note; the 2013 cone photo does not show the step colour).
+1. **Hooiberg height and stairs.** The summit sample was about 144 m. A raised cosine of +20.73 m, radius 200 m, brings the peak sample to 165 m and dies before the village and before the bottom of the stairs. Blue (urban) channel kept. `hooiberg_summit` still has `y: 0`, so it sits on the new ground. The old mesh was scattered tilted green slabs with sand gaps. It is now one continuous flight on the same line: horizontal green treads, white risers, white side stringers, and a pipe rail on both sides, following the 165 m slope. Ground photo: Commons “Hooiberg hill staircase”.
 2. **Church of Holy Mary, Santa Cruz** (OSM way 297003468). White walls, blue plinth and trim, blue gable cross, square tower with vertical blue grooves and a red tile cap, wood doors, stone steps. The tower is on the left of the east front, as in the 2021 ground photo (Commons “Church of Holy Mary (Aruba)”). The old OSM mass is on the hide list.
 3. **Sagrado Curason, Savaneta** (OSM way 376320397). Peach walls, maroon stripes and pointed window hoods, red gable roof, square tower, white cross, one palm with a whitewashed base. Ground photos: Commons “Church of the Holy Heart (Aruba)”, 2017. The historical RCE chapel is the older building; this is the standing church.
 4. **Seroe Colorado Community Church** (OSM way 97566669). White walls, steep red gables, stone buttresses, round window, side chapel, columnar cacti. Modelled as the standing 1939 church. Ground photos: Commons “Community Church Seroe Colorado”, 2018.
-5. **Fontein Cave** (OSM node 540167863). Dark charcoal cliff with an overhang and one gated mouth, facing the road. A pale box read as a garage, so the rock was darkened. Ground photo: Commons “Limestone cliffs near Fontein Cave”.
+5. **Fontein Cave** (OSM node 540167863). The held mesh was a dark box on the sand. It is now a weathered limestone face with an overhang, a mouth cut into the base, a second hollow, and a gate, facing the road. Ground photo: Commons “Limestone cliffs near Fontein Cave”.
 6. **Quadirikiri Cave** (OSM node 540982491, spelled Guadirikiri there). Two mouths under a dark overhang, plus two roof openings. The available ground photo is the interior looking out; the exterior is a reconstruction, not a texture.
-7. **Conchi / Natural Pool** (OSM way 796907733). Dark rock rim around the existing water polygon, lower on the ocean side, plus a turquoise disc because the engine water sits at sea level and the DEM here is under a metre. Ground photo: Commons “Aruba-Natural-Pool-2013”.
+7. **Conchi / Natural Pool** (OSM way 796907733). The held rim was uneven grey blocks and the pool disc sat above the surf. The floor inside the OSM water ring is lowered to just below sea level, the disc is at world Y 0.06 (in the surf), and the rim is rounded volcanic rock with a lower gap on the ocean side. Ground photo: Commons “Aruba-Natural-Pool-2013”.
 8. **Owned highway lane dashes.** The road shader already paints edge lines on class 2+ and a centre dash on two-way roads. Wide one-way carriageways (class ≥ 3, width 6.5–12 m) had no lane line. White dashes, 3.2 m long on a 9 m period, were added along about 17 km of the south highway and the airport end of Watty Vos Boulevard (`-5600 < x < -4000`, `-300 < z < 2000`). Roundabout aprons skipped. The named Sasakiweg, the Sasaki fuel stop, and the Sasaki station are in Noord and were not edited. L.G. Smith Boulevard through Noord, Palm Beach and Oranjestad was not edited. The hotel-strip end of Watty Vos was not edited.
 
 ## Owned, still wrong (next batches)
@@ -31,7 +31,7 @@ References are visual guides only. Nothing below is a pasted photo.
 3. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
 4. **Sidewalks, curbs and roundabout aprons** on the owned highways were not rebuilt. Two-way town streets in Savaneta, Santa Cruz and Pos Chiquito already get edge lines and a centre dash from the shader.
 5. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
-6. **Hooiberg stair colour** is still the dashcam green. A close ground photo of the treads was not found.
+6. **Hooiberg summit building.** The stair flight is fixed. The pink utility building and the two telecom towers are still the older hero.
 
 ## Off limits — for their owners
 
