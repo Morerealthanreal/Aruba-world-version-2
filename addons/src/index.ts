@@ -41,6 +41,7 @@ import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
 import { TierraResort } from "./tdsResort";
+import { CoastSites } from "./coastSites";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
@@ -91,12 +92,17 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+  const coast = params.get("north") !== "0" ? new CoastSites(g) : null;
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } if (!ul.querySelector(".aw-loco")) { const li3 = document.createElement("li"); li3.className = "aw-loco"; li3.innerHTML = 'On-foot walk and run: <a href="https://quaternius.com/packs/universalanimationlibrary.html" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> (CC0)'; ul.appendChild(li3); } if (!ul.querySelector(".aw-tds")) { const li4 = document.createElement("li"); li4.className = "aw-tds"; li4.innerHTML = 'Tierra del Sol gate: <a href="https://commons.wikimedia.org/wiki/File:GCV_Aruba_way_to_arribe_to_the_villas_-_panoramio.jpg" target="_blank" rel="noopener">Kallistoaua</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>'; ul.appendChild(li4); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
+  }
+  { // north-coast ground photos. Not used as textures.
+    const addCoast = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (ul.querySelector(".aw-coast")) return true; const li = document.createElement("li"); li.className = "aw-coast"; li.innerHTML = 'North-coast references: <a href="https://commons.wikimedia.org/wiki/File:Alto_Vista_Chapel_A.jpg" target="_blank" rel="noopener">Alto Vista Chapel</a> by Musicfan1077 (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>), <a href="https://commons.wikimedia.org/wiki/File:On_the_road_to_AltoVista_Church_Aruba_(2891521166).jpg" target="_blank" rel="noopener">pilgrim crosses</a> by Serge Melki (<a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a>), <a href="https://commons.wikimedia.org/wiki/File:Bushiribana_Gold_Mill_Ruins_Aruba.jpg" target="_blank" rel="noopener">Bushiribana</a> by Paulhaberstroh (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>), <a href="https://commons.wikimedia.org/wiki/File:Collapsed_portion_of_natural_bridge,_Aruba.JPG" target="_blank" rel="noopener">collapsed Natural Bridge</a> by Sunnya343 (<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>), <a href="https://commons.wikimedia.org/wiki/File:ArubaNaturalBabyBridge.JPG" target="_blank" rel="noopener">Baby Bridge</a> by PrasadGondi (<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>)'; ul.appendChild(li); return true; };
+    if (!addCoast()) { let n = 0; const t = setInterval(() => { if (addCoast() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
   if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
@@ -109,7 +115,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, coast, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -133,6 +139,7 @@ async function main() {
     if (golf) golf.frame();
     if (sn) sn.update();
     if (resort) resort.frame();
+    if (coast) coast.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
