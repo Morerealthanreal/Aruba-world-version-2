@@ -1,7 +1,7 @@
 import {
   BufferGeometry, Color, DoubleSide, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
-  Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader,
-  Vector3, Vector4,
+  Matrix4, Mesh, MeshStandardMaterial, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader,
+  Vector2, Vector3, Vector4,
   type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
   type WebGLRenderer,
 } from "three";
@@ -127,7 +127,12 @@ export function setCharacterPortrait(
 }
 
 let faceCardGeo: BufferGeometry | null = null;
-const faceCardMaterials: MeshBasicMaterial[] = [];
+// Card-space cheek used to scale the painting onto the neck. Same crop for the shell.
+const CHEEK_UV = [
+  new Vector2(0.72, 0.50),
+  new Vector2(0.40, 0.50),
+  new Vector2(0.45, 0.48),
+];
 
 function faceCardGeometry(): BufferGeometry {
   if (faceCardGeo) return faceCardGeo;
@@ -165,19 +170,30 @@ function faceCardGeometry(): BufferGeometry {
   return geo;
 }
 
-function faceCardMaterial(kind: number): MeshBasicMaterial {
-  const existing = faceCardMaterials[kind];
-  if (existing) return existing;
+function faceCardMaterial(
+  kind: number,
+  skin: number,
+  skinMap: Texture | null,
+  skinUv: Vector2,
+): MeshStandardMaterial {
   const crop = FACE_CROP[kind];
-  const material = new MeshBasicMaterial({
+  const material = new MeshStandardMaterial({
     map: faceTextures[kind],
-    toneMapped: true,
+    roughness: 0.72,
+    metalness: 0,
     polygonOffset: true,
     polygonOffsetFactor: -3,
     polygonOffsetUnits: -3,
   });
+  const skinColor = new Color(skin);
+  const cheek = CHEEK_UV[kind];
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uAwCrop = { value: crop };
+    shader.uniforms.uAwPedSkin = { value: skinColor };
+    shader.uniforms.uAwSkinMap = { value: skinMap || faceTextures[kind] };
+    shader.uniforms.uAwSkinUv = { value: skinUv };
+    shader.uniforms.uAwCheekUv = { value: cheek };
+    shader.uniforms.uAwSunDir = { value: sunDir };
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -194,6 +210,11 @@ vAwCard = normalize(mat3(modelViewMatrix) * vec3(0.0, 0.0, 1.0)).z;`,
         "#include <common>",
         `#include <common>
 uniform vec4 uAwCrop;
+uniform vec3 uAwPedSkin;
+uniform sampler2D uAwSkinMap;
+uniform vec2 uAwSkinUv;
+uniform vec2 uAwCheekUv;
+uniform vec3 uAwSunDir;
 varying float vAwCard;`,
       )
       .replace(
@@ -202,21 +223,36 @@ varying float vAwCard;`,
 vec2 awC = vMapUv - vec2(0.5, 0.46);
 if (vAwCard < 0.4) discard;
 if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
-diffuseColor = vec4(texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb, 1.0);`,
+vec3 awNeck = mix(texture2D(uAwSkinMap, uAwSkinUv).rgb * uAwPedSkin, uAwPedSkin, 0.16);
+vec3 awPaint = texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb;
+vec3 awCheek = texture2D(map, uAwCrop.xy + uAwCheekUv * uAwCrop.zw).rgb;
+diffuseColor = vec4(awPaint * (awNeck / max(awCheek, vec3(0.045))), 1.0);`,
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+float awNdL = dot(normalize(normal), normalize(uAwSunDir));
+float awWrap = clamp(awNdL * 0.5 + 0.55, 0.0, 1.0);
+diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * (0.78 + 0.28 * awWrap);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v5";
+  material.customProgramCacheKey = () => "aw-face-card-v6";
   material.alphaTest = 0;
   material.alphaHash = false;
   material.transparent = false;
   material.depthWrite = true;
-  faceCardMaterials[kind] = material;
   return material;
 }
 
-export function attachFacePortrait(head: Object3D, faceKind: number): Mesh {
+export function attachFacePortrait(
+  head: Object3D,
+  faceKind: number,
+  skin = 0xe7b894,
+  skinMap: Texture | null = null,
+  skinUv: Vector2 = new Vector2(0.375, 0.375),
+): Mesh {
   const kind = ((faceKind % 3) + 3) % 3;
-  const card = new Mesh(faceCardGeometry(), faceCardMaterial(kind));
+  const card = new Mesh(faceCardGeometry(), faceCardMaterial(kind, skin, skinMap, skinUv));
   card.name = "aw:face-portrait";
   card.frustumCulled = false;
   card.renderOrder = 2;
@@ -413,6 +449,7 @@ function paintMaterial(
       const kind = ((faceKind % 3) + 3) % 3;
       s.uniforms.uAwFaceMap = { value: faceTextures[kind] };
       s.uniforms.uAwFaceCrop = { value: FACE_CROP[kind] };
+      s.uniforms.uAwCheekUv = { value: CHEEK_UV[kind] };
     }
     s.vertexShader = s.vertexShader
       .replace(
@@ -464,7 +501,7 @@ uniform vec3 uAwSunDir;
 uniform float uAwPortrait;
 varying vec3 vAwHead;
 varying float vAwFaceDot;
-${solidSkin ? "uniform sampler2D uAwFaceMap;\nuniform vec4 uAwFaceCrop;\nvarying vec3 vAwShellP;\nvarying vec3 vAwShellN;\nvec3 awShellPaint = vec3(0.0);\nfloat awShellMask = 0.0;" : ""}`,
+${solidSkin ? "uniform sampler2D uAwFaceMap;\nuniform vec4 uAwFaceCrop;\nuniform vec2 uAwCheekUv;\nvarying vec3 vAwShellP;\nvarying vec3 vAwShellN;\nvec3 awShellPaint = vec3(0.0);\nfloat awShellMask = 0.0;" : ""}`,
       )
       .replace(
         "#include <map_fragment>",
@@ -477,13 +514,16 @@ if (uAwPortrait > 0.5) {
   awFace = smoothstep(0.015, 0.06, vAwHead.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
 }
 ${solidSkin ? `if (true) {
+  vec3 awNeck = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
   float awU = clamp(vAwShellP.x / 0.150 + 0.50, 0.0, 1.0);
   float awV = clamp((vAwShellP.y + 0.062) / 0.188, 0.0, 1.0);
   vec2 awC = vec2(awU, awV) - vec2(0.50, 0.48);
   float awOval = (awC.x * awC.x) / 0.30 + (awC.y * awC.y) / 0.34;
   awShellMask = smoothstep(0.01, 0.055, vAwShellP.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
   awShellPaint = texture2D(uAwFaceMap, uAwFaceCrop.xy + vec2(awU, awV) * uAwFaceCrop.zw).rgb;
-  diffuseColor.rgb = mix(uAwPedSkin, awShellPaint, awShellMask);
+  vec3 awCheek = texture2D(uAwFaceMap, uAwFaceCrop.xy + uAwCheekUv * uAwFaceCrop.zw).rgb;
+  awShellPaint *= awNeck / max(awCheek, vec3(0.045));
+  diffuseColor.rgb = mix(awNeck, awShellPaint, awShellMask);
   diffuseColor.a = 1.0;
 } else ` : ""}if (${skinFragment}) {
   vec3 awSkinLit = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
@@ -530,18 +570,18 @@ float awRim = pow(1.0 - clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0), 2.0
 float awBack = clamp(-awNdL, 0.0, 1.0);
 vec3 awGold = vec3(1.0, 0.58, 0.22);
 float awGrade = mix(0.78 + 0.28 * awWrap, 0.98 + 0.06 * awWrap, clamp(awFace, 0.0, 1.0));
+${solidSkin ? "awGrade = 0.78 + 0.28 * awWrap;" : ""}
 diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * awGrade;
 float awRimAmt = mix(0.16 + 0.95 * awBack, 0.05 + 0.12 * awBack, clamp(awFace, 0.0, 1.0));
 totalEmissiveRadiance += awGold * awRim * awRimAmt;
-if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 0.28;
-${solidSkin ? "totalEmissiveRadiance += awShellPaint * awShellMask * 0.2;" : ""}`,
+if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 0.28;`,
       );
   };
   const shaderVariant = [
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v12:${part}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v13:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -569,7 +609,21 @@ export function styleCharacter(
   if (withPortrait) {
     const face = findCharacterFace(root);
     if (face.head && !face.head.children.some((child) => child.name === "aw:face-portrait")) {
-      attachFacePortrait(face.head, faceKind);
+      let atlas: Texture | null = null;
+      let skinUv = new Vector2(0.375, 0.375);
+      root.traverse((object) => {
+        if (atlas) return;
+        const mesh = object as Mesh;
+        if (!mesh.isMesh) return;
+        const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
+        if (!source.map) return;
+        atlas = source.map;
+        const meta = source.userData.awPainterly as { grid?: number; tiles?: { skin?: number[] } } | undefined;
+        const grid = meta?.grid || 4;
+        const skinTile = meta?.tiles?.skin?.[0] ?? 5;
+        skinUv = new Vector2(((skinTile % grid) + 0.5) / grid, (Math.floor(skinTile / grid) + 0.5) / grid);
+      });
+      attachFacePortrait(face.head, faceKind, palette.skin, atlas, skinUv);
     }
   }
   return paints;
