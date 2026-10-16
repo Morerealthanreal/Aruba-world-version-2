@@ -1403,16 +1403,18 @@ def add_lh_grounds(b, dunes):
     # No gravel sheet on the slope: a flat pad reads as a floating slab. The
     # overlook is a low stone wall and two benches west of the existing rail.
     cells = 0
-    for zz in range(-10334, -10314, 4):
+    # Short pieces so the top follows the slope instead of stepping up off the hill.
+    for zz in range(-10334, -10314, 2):
         wx = -8968.0
-        if lot_blocked(wx, zz + 2) or any_hit(dunes, wx, zz + 2):
+        if lot_blocked(wx, zz + 1) or any_hit(dunes, wx, zz + 1):
             continue
-        h0, h1 = mesh_height(wx, zz), mesh_height(wx, zz + 4)
-        if not (16.0 < h0 < 28.0 and 16.0 < h1 < 28.0):
+        hm = mesh_height(wx, zz + 1)
+        if not (16.0 < hm < 28.0):
             continue
-        base = min(h0, h1) - 0.02
-        b.box(0, "stonep", wx - 0.22, base, zz, wx + 0.22, max(h0, h1) + 0.78, zz + 4)
-        b.box(1, "stonep", wx - 0.24, base, zz, wx + 0.24, max(h0, h1) + 0.55, zz + 4)
+        base = hm - 0.08
+        b.box(0, "stonep", wx - 0.2, base, zz, wx + 0.2, hm + 0.58, zz + 2.15)
+        if cells % 2 == 0:
+            b.box(1, "stonep", wx - 0.22, base, zz, wx + 0.22, hm + 0.42, zz + 2.1)
         cells += 1
     for bx, bz in ((-8962.5, -10328.0), (-8961.5, -10318.0)):
         if lot_blocked(bx, bz) or any_hit(dunes, bx, bz):
@@ -1468,17 +1470,20 @@ def add_snorkel_notch(b, z, label):
             top = min(top, prev - 0.14)
         if top < 0.22:
             break
-        bot = max(top - 0.24, min(mesh_height(x0, z), back) - 0.06)
-        if top - bot < 0.12:
-            bot = top - 0.12
-        b.box(0, "conc", x0, bot, z - 1.15, x1, top, z + 1.15)
-        b.box(1, "conc", x0, bot, z - 1.05, x1, top, z + 1.05)
+        # Keep a real riser on a gentle shelf, where the DEM barely drops.
+        front = mesh_height(x0 + 0.2, z)
+        top = max(top, front + 0.26)
+        bot = max(top - 0.28, min(front, back) - 0.05)
+        if top - bot < 0.16:
+            bot = top - 0.16
+        b.box(0, "conc", x0, bot, z - 1.25, x1, top, z + 1.25)
+        b.box(1, "conc", x0, bot, z - 1.15, x1, top, z + 1.15)
         for side in (-1, 1):
-            zs = z + side * 1.55
+            zs = z + side * 1.7
             # Dark ironshore cheeks, tall enough to read against the pale sand.
-            b.box(0, "boulder", x0 - 0.15, bot - 0.08, zs - 0.38, x1 + 0.1, top + 0.62, zs + 0.38)
+            b.box(0, "boulder", x0 - 0.2, min(bot, front) - 0.05, zs - 0.42, x1 + 0.15, top + 0.85, zs + 0.42)
             if i == 0:
-                b.box(1, "boulder", x0, bot, zs - 0.32, x1, top + 0.45, zs + 0.32)
+                b.box(1, "boulder", x0, bot, zs - 0.36, x1, top + 0.6, zs + 0.36)
         prev = top
         placed += 1
     sx = found - placed * run - 0.3
