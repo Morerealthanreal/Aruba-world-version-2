@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
 // San Nicolas Art Fair murals as one shared atlas on the real OSM walls.
 // The JPEG is an original painting. Public photos were reference only.
@@ -42,10 +43,7 @@ export class SnMurals {
     const res = await fetch("./data/sn_murals.json");
     if (!res.ok) throw new Error("sn_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
-    const tex = await new THREE.TextureLoader().loadAsync("./" + doc.atlas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = Math.min(4, this.g.renderer.capabilities.getMaxAnisotropy());
-    tex.generateMipmaps = true;
+    const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       polygonOffset: true,
