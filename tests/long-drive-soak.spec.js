@@ -180,16 +180,24 @@ async function uploadSceneGeometries(page) {
     const game = window.game;
     let blank = null;
     const meshes = [];
+    const shader = (material) => material.isShaderMaterial || material.isRawShaderMaterial;
     game.scene.traverse((object) => {
-      if (!object.isMesh || object.isInstancedMesh || object.isBatchedMesh || object.isSkinnedMesh) return;
-      if (!object.geometry || !/^terrain|^ovTerrain/.test(object.name || "")) return;
-      if (!blank && object.material && !Array.isArray(object.material) && object.material.clone) {
-        blank = object.material.clone();
+      const material = object.material;
+      if (
+        !blank &&
+        material &&
+        !Array.isArray(material) &&
+        material.clone &&
+        !shader(material)
+      ) {
+        blank = material.clone();
         for (const key of [
           "map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap",
           "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap",
         ]) blank[key] = null;
       }
+      if (!object.isMesh || object.isInstancedMesh || object.isBatchedMesh || object.isSkinnedMesh) return;
+      if (!object.geometry || !/^terrain|^ovTerrain/.test(object.name || "")) return;
       meshes.push(object);
     });
     const seen = (window.__awUploadedGeos ||= new WeakSet());
@@ -209,12 +217,15 @@ async function uploadSceneGeometries(page) {
     }
     const sceneBefore = game.scene.onBeforeRender;
     const sceneAfter = game.scene.onAfterRender;
+    const shadows = game.renderer.shadowMap.enabled;
     const nop = () => {};
     try {
       game.scene.onBeforeRender = nop;
       game.scene.onAfterRender = nop;
+      game.renderer.shadowMap.enabled = false;
       game.renderer.render(scratch, game.camera);
     } finally {
+      game.renderer.shadowMap.enabled = shadows;
       game.scene.onBeforeRender = sceneBefore;
       game.scene.onAfterRender = sceneAfter;
       for (const proxy of proxies) {
