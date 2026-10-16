@@ -82,6 +82,15 @@ export class BldBatch {
     for (const R of (this.g.real as unknown as A).regions.values()) if (!R.__awSeal && R.group) n++;
     return n;
   }
+  /** A copy the pump has not finished, or a built region that still needs its first pass.
+   *  The animation callback no longer walks these, so the pump has to stay scheduled until they are sealed. */
+  busy() {
+    for (const R of (this.g.real as unknown as A).regions.values()) {
+      if (R.__awSeal || !R.group) continue;
+      if (R.__awHot || (R.__awStack && R.__awStack.length) || R.state === "built") return 1;
+    }
+    return 0;
+  }
   frame() { this.sweep(); }
   /** A region job just added meshes. Hide individual building cells so the next paint
    *  doesn't draw them one by one; afterJobs copies them into batches before that paint. */
@@ -93,10 +102,20 @@ export class BldBatch {
     R.__awHideStack = [R.group];
     this.conceal(R);
   }
-  /** Drain regions touched since the last pump tick. Runs outside the animation callback. */
+  /** Copy regions a job just touched, and catch up regions that were already built when batching
+   *  started. Runs outside the animation callback. */
   afterJobs() {
     const hot = new Set<Reg>();
-    for (const R of (this.g.real as unknown as A).regions.values()) if (R.__awHot) { this.conceal(R); hot.add(R); }
+    const rest: Reg[] = [];
+    for (const R of (this.g.real as unknown as A).regions.values()) {
+      if (R.__awSeal || !R.group?.parent) continue;
+      const leftover = !!(R.__awStack && R.__awStack.length);
+      if (R.__awHot || leftover) { if (R.__awHot) this.conceal(R); hot.add(R); }
+      else if (R.state === "built") rest.push(R);
+    }
+    // Streaming regions first. Already-built regions are only walked once nothing new is waiting,
+    // so a catch-up pass cannot starve the block the player is about to enter.
+    if (!hot.size) for (const R of rest) hot.add(R);
     if (!hot.size) return;
     this.focus = hot;
     const prev = this.budget;
@@ -118,6 +137,9 @@ export class BldBatch {
   private ingest() {
     this.sweep();
     const A = this.g.real as unknown as A, t0 = performance.now();
+    // Copying runs in the pump. Rebuilding this walk inside the animation callback was a
+    // steady couple of milliseconds on every streaming frame (__awWait stayed 0).
+    if (!this.focus) return;
     for (const R of A.regions.values()) {
       if (this.focus && !this.focus.has(R)) continue;
       if (R.__awSeal || !R.group || !R.group.parent) continue;
@@ -133,8 +155,15 @@ export class BldBatch {
         if (foreign) { R.__awConfirm = false; R.__awWait = 0; }
       }
       if (ch.length !== nc) R.__awNC = ch.length;
-      // a region still streaming and unchanged since the last full pass can wait; new children above restart it
-      if ((!R.__awStack || !R.__awStack.length) && (R.__awWait || 0) > 0 && R.state !== "built") { R.__awWait = (R.__awWait || 1) - 1; continue; }
+      // a region still streaming and unchanged since the last full pass can wait; new children above restart it.
+      // Only a pump pass (focus + hot) starts a fresh walk. An empty stack in the frame is not work.
+      if (!R.__awStack || !R.__awStack.length) {
+        const restart = !!this.focus && ((R.__awHot || 0) > 0 || (R.state === "built" && !R.__awConfirm));
+        if (!restart) {
+          if ((R.__awWait || 0) > 0 && R.state !== "built") R.__awWait = (R.__awWait || 1) - 1;
+          continue;
+        }
+      }
       const stack = R.__awStack || (R.__awStack = [R.group]);
       let guard = 0;
       while (stack.length && performance.now() - t0 < this.budget && guard++ < 6000) {

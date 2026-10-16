@@ -134,6 +134,13 @@ export class Turbo {
     this.pressOn = false;
   }
   private set(v: boolean) { this.on = v; this.btn.classList.toggle("lit", v); }
+  /** Link the plume shaders at boot. The first full-turbo frame otherwise compiles them on the draw. */
+  primeShaders(mperf: { prime: (o: THREE.Object3D) => void }) {
+    const nozzle = this.fx.children[0];
+    for (const o of [this.core, this.outer, this.glow, this.parts, nozzle]) {
+      if (o) try { mperf.prime(o); } catch { /* warm-up is best-effort */ }
+    }
+  }
   private findPlane(): THREE.Object3D | null {
     if (this.plane && this.plane.parent) return this.plane;
     const p = this.g.S.plane;

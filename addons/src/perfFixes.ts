@@ -259,9 +259,7 @@ export class PerfFixes {
     const cap = this.heroCap;
     // The game starts every hero inside 1.5 km in one update. Those parses then
     // run as one long task and the audio test's canvas click never lands.
-    // Keep two loads in flight. Nearby models go first; a spare slot reaches
-    // the next town (3.5 km) so a later lap does not upload it on arrival.
-    // Walking the whole island keeps adding meshes through the measured laps.
+    // Keep two of those nearby loads in flight.
     h.update = (x: number, z: number) => {
       let inflight = 0;
       for (const n of h.list) if (n._loading && !n._g) inflight++;
@@ -273,13 +271,6 @@ export class PerfFixes {
         if (Math.hypot(n.x - x, n.z - z) < 1500) allow.push(n);
       }
       const list = h.list;
-      if (allow.length < room) {
-        for (const n of list) {
-          if (allow.length >= room) break;
-          if (n._g || n._loading || allow.includes(n)) continue;
-          if (Math.hypot(n.x - x, n.z - z) < 3500) allow.push(n);
-        }
-      }
       if (allow.length) {
         const block: Array<(typeof h.list)[number]> = [];
         for (const n of list) {
@@ -303,7 +294,9 @@ export class PerfFixes {
         if (!n._g) continue;
         const far = Math.hypot(n.x - x, n.z - z) > cap;
         const u = n._g.userData as { awSeen?: number; awTex?: number; awTexDone?: number };
-        const warm = !waitTex || (u.awSeen === 1 && (u.awTexDone || 0) >= (u.awTex || 0));
+        // awTex stays 0 unless a warm-up counted this model's textures. An uncounted
+        // model is shown; a counted one waits until those uploads finish.
+        const warm = !waitTex || (u.awSeen !== 0 && ((u.awTex || 0) === 0 || (u.awTexDone || 0) >= (u.awTex || 0)));
         // Newly warmed models are shown a few at a time so the first draw does not
         // upload every remaining texture in one click-blocking frame.
         const show = !holdGpu && !far && warm && (n._g.visible || shown < 3);

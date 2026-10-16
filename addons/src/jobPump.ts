@@ -61,20 +61,28 @@ export class JobPump {
     this.stats.ticks++; if (ms > this.stats.maxMs) this.stats.maxMs = ms;
     const aw = (window as unknown as { __aw?: Aw }).__aw;
     // copy concealed cells / kits into batches before the next paint, then finalize programs
-    aw?.bbatch?.afterJobs?.();
-    aw?.perf?.inst?.afterJobs?.(A.regions);
-    aw?.mperf?.afterJobs?.();
+    // Stay in this turn until new shader programs are finalized. The next animation frame
+    // would otherwise draw them cold (getProgramInfoLog inside the frame, hundreds of ms).
+    let pass = 0;
+    do {
+      aw?.bbatch?.afterJobs?.();
+      aw?.perf?.inst?.afterJobs?.(A.regions);
+      aw?.mperf?.afterJobs?.();
+      // Stay in this turn until new programs are finalized and the textures the walk just
+      // found are uploaded. The next animation frame would otherwise draw them cold.
+    } while (++pass < 8 && ((aw?.mperf?.shaderPending?.() || 0) > 0 || (aw?.mperf?.backlog?.() || 0) > 0));
   }
   private followUp() {
     const aw = (window as unknown as { __aw?: Aw }).__aw;
     if (!aw) return false;
     if ((aw.mperf?.pending?.() || 0) > 0) return true;
     if ((aw.perf?.inst?.pending?.() || 0) > 0) return true;
+    if ((aw.bbatch?.busy?.() || 0) > 0) return true;
     return false;
   }
 }
 type Aw = {
-  mperf?: { afterJobs?: () => void; pending?: () => number };
-  bbatch?: { touch?: (r: object) => void; afterJobs?: () => void };
+  mperf?: { afterJobs?: () => void; pending?: () => number; shaderPending?: () => number; backlog?: () => number };
+  bbatch?: { touch?: (r: object) => void; afterJobs?: () => void; busy?: () => number };
   perf?: { inst?: { touch?: (r: object) => void; afterJobs?: (regions: Map<string, unknown>) => void; pending?: () => number } };
 };
