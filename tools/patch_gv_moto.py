@@ -151,10 +151,26 @@ swap(
 )
 swap(
     "motorcycle model cache",
-    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=3`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=9`)",
     "Uh.loadAsync(`./models/moto.glb`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=8`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=7`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=6`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=5`)",
     "Uh.loadAsync(`./models/moto.glb?v=2`)",
     "Uh.loadAsync(`./models/moto.glb?v=3`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=3`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=4`)",
+)
+swap(
+    "motorcycle distance lod",
+    "e.scene.traverse(e=>{/_far$/.test(e.name)&&(e.visible=!1);if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})",
+    # A short material-line match used to be replaced with this whole traverse, which
+    # nested `e.scene` inside a mesh and stopped the bike from loading. Match only
+    # complete traverses.
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);e.scene.traverse(e=>{/_far$/.test(e.name)&&(e.visible=!1);if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})}})",
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0,/_far$/.test(e.name)&&(e.visible=!1)}})",
+    "e.scene.traverse(e=>{if(e.isMesh){let n=e.name.replace(/^moto_/,``).replace(/[._]\\d+$/,``);t[n]&&(e.material=t[n]),e.castShadow=!0,e.receiveShadow=!0}})",
 )
 
 wheelie_hook = ",window.__awWh&&window.__awWh(ev,a,e)"

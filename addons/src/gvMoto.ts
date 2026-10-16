@@ -32,6 +32,10 @@ export class GvMoto {
   private p = new THREE.Vector3(); private sc = new THREE.Vector3(1, 1, 1);
   private up = new THREE.Vector3(0, 1, 0);
   private mode = "";
+  private nearLod: THREE.Object3D[] = [];
+  private farLod: THREE.Object3D[] = [];
+  private lodBound = false;
+  private lodFar = false;
   constructor(g: AGame) {
     this.g = g;
     const geo = new THREE.PlaneGeometry(0.28, 1.0).rotateX(-Math.PI / 2);
@@ -122,7 +126,39 @@ body.touch.drive:not(.awmoto) #actions .grp[data-for=car] button[data-act=brake]
     (this.smoke.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
   }
 
+  // Visual only. The near and far shells share the leaning group, so this never
+  // touches speed, steering, lean or the skid marks.
+  private updateLod() {
+    if (!this.lodBound) {
+      const near: THREE.Object3D[] = [];
+      const far: THREE.Object3D[] = [];
+      this.g.scene.traverse((o) => {
+        if (o.name === "sport_bike" || o.name === "sport_rider") near.push(o);
+        else if (o.name === "sport_bike_far" || o.name === "sport_rider_far") far.push(o);
+      });
+      if (!near.length || !far.length) return;
+      this.nearLod = near;
+      this.farLod = far;
+      this.lodBound = true;
+      for (const o of far) {
+        o.visible = false;
+        o.castShadow = false;
+      }
+    }
+    const S = this.g.S as unknown as { mode: string; car: CarState };
+    if (S.mode !== "moto") return;
+    const cam = this.g.camera.position;
+    const car = S.car;
+    const dist = Math.hypot(cam.x - car.x, cam.y - (car.y || 0), cam.z - car.z);
+    const far = this.lodFar ? dist > 14 : dist > 18;
+    if (far === this.lodFar) return;
+    this.lodFar = far;
+    for (const o of this.nearLod) o.visible = !far;
+    for (const o of this.farLod) o.visible = far;
+  }
+
   update(dt: number) {
+    this.updateLod();
     const g = this.g, S = g.S as unknown as { mode: string; car: CarState };
     const drive = S.mode === "car" || S.mode === "moto";
     const moto = S.mode === "moto";
