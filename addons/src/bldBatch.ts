@@ -82,9 +82,13 @@ export class BldBatch {
     for (const R of (this.g.real as unknown as A).regions.values()) if (!R.__awSeal && R.group) n++;
     return n;
   }
-  /** A copy the pump has not finished. Keeps the pump scheduled so concealed cells are not stuck hidden. */
+  /** A copy the pump has not finished, or a built region that still needs its first pass.
+   *  The animation callback no longer walks these, so the pump has to stay scheduled until they are sealed. */
   busy() {
-    for (const R of (this.g.real as unknown as A).regions.values()) if (R.__awHot || (R.__awStack && R.__awStack.length)) return 1;
+    for (const R of (this.g.real as unknown as A).regions.values()) {
+      if (R.__awSeal || !R.group) continue;
+      if (R.__awHot || (R.__awStack && R.__awStack.length) || R.state === "built") return 1;
+    }
     return 0;
   }
   frame() { this.sweep(); }
@@ -98,10 +102,20 @@ export class BldBatch {
     R.__awHideStack = [R.group];
     this.conceal(R);
   }
-  /** Drain regions touched since the last pump tick. Runs outside the animation callback. */
+  /** Copy regions a job just touched, and catch up regions that were already built when batching
+   *  started. Runs outside the animation callback. */
   afterJobs() {
     const hot = new Set<Reg>();
-    for (const R of (this.g.real as unknown as A).regions.values()) if (R.__awHot) { this.conceal(R); hot.add(R); }
+    const rest: Reg[] = [];
+    for (const R of (this.g.real as unknown as A).regions.values()) {
+      if (R.__awSeal || !R.group?.parent) continue;
+      const leftover = !!(R.__awStack && R.__awStack.length);
+      if (R.__awHot || leftover) { if (R.__awHot) this.conceal(R); hot.add(R); }
+      else if (R.state === "built") rest.push(R);
+    }
+    // Streaming regions first. Already-built regions are only walked once nothing new is waiting,
+    // so a catch-up pass cannot starve the block the player is about to enter.
+    if (!hot.size) for (const R of rest) hot.add(R);
     if (!hot.size) return;
     this.focus = hot;
     const prev = this.budget;

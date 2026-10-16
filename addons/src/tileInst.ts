@@ -36,6 +36,8 @@ export class TileInstances {
   constructor(private q: Q, private poolParent: Object3D | null = null) {}
 
   private job: { r: Reg; stack: Object3D[]; groups: Map<string, IM[]>; seen: Set<Object3D>; lists: IM[][] | null; i: number; out: Bucket[] } | null = null;
+  /** Built regions the frame used to fold itself. The pump stays scheduled until this is 0. */
+  private need = 1;
   /** A region job just added kits / parked cars / props. Hide them until this fold copies them,
    *  so a freshly streamed block never draws thousands of individual instanced meshes. */
   touch(r: Reg) {
@@ -54,13 +56,15 @@ export class TileInstances {
       if (fr && (fr.__awFoldDone || !fr.group?.parent)) { this.job = null; fr = undefined; }
       if (!fr) for (const r of regions.values()) {
         if (r.__awFoldDone || !r.group?.parent) continue;
-        if (r.__awFold || r.__awHideStack) { fr = r; break; }
+        // built regions too, not only ones a job just touched: the frame no longer starts those folds
+        if (r.state === "built" || r.__awFold || r.__awHideStack) { fr = r; break; }
       }
       if (!fr) break;
       this.conceal(fr);
       const before = fr.__awFold || 0;
       this.fold(fr, Math.max(0.5, 8 - (performance.now() - t0)));
       if (this.job?.r === fr) break; // still walking this region; the budget is spent
+      if (fr.__awFoldDone) continue;
       if ((fr.__awFold || 0) === before && !fr.__awHideStack) break;
     }
     // Distance refill used to run inside the animation callback. At full turbo that was
@@ -225,7 +229,7 @@ export class TileInstances {
     }
   }
 
-  pending() { return this.open.size + (this.job ? 1 : 0) + (this.dirty.size || this.dirtyPools.size ? 1 : 0); }
+  pending() { return this.need; }
   private live = new Set<Reg>();
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
@@ -244,6 +248,12 @@ export class TileInstances {
     // threshold rebuilt every pool on every frame. Cull radii are hundreds of metres.
     const moved = (x - this.lastX) ** 2 + (z - this.lastZ) ** 2 > 144;
     if (moved) { this.lastX = x; this.lastZ = z; for (const r of this.live) this.dirty.add(r); for (const p of this.pools.values()) this.dirtyPools.add(p); }
+    let need = this.open.size + (this.job ? 1 : 0) + (this.dirty.size || this.dirtyPools.size ? 1 : 0);
+    if (!need) for (const r of regions.values()) {
+      if (r.__awFoldDone || !r.group?.parent) continue;
+      if (r.state === "built" || r.__awFold || r.__awHideStack) { need = 1; break; }
+    }
+    this.need = need;
   }
   /** Pack visible instances. Runs in the pump, after the frame that noticed the player moved. */
   private refresh() {
