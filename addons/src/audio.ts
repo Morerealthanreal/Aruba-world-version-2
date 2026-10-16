@@ -668,7 +668,10 @@ export class WorldAudio {
     const crash = aw?.crash?.stats;
     const phase = crash?.phase ?? 0;
     const cam = this.g.camera.position;
-    if (this.prevPhase === 0 && phase >= 1) {
+    // prevPhase stays -1 until the context is running. A forced crash can
+    // finish its approach before the first click, so count that impact once
+    // if the listener is already close enough to hear it.
+    if (phase >= 1 && (this.prevPhase === 0 || (this.prevPhase < 0 && crash?.active))) {
       const dx = (crash?.x || cam.x) - cam.x;
       const dz = (crash?.z || cam.z) - cam.z;
       this.boom(now, Math.hypot(dx, dz));
