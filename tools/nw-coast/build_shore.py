@@ -17,10 +17,10 @@ Tierra del Sol's streets and the golf resort are not touched.
 
 Houses and shelters whose footprints land on the villa mesh or the Arashi
 hut mesh already in the hero set are left out, so those buildings are not
-drawn twice. This pass also adds the north walk and west terrace at the
-California Lighthouse and Faro Blanco, and a snorkel notch each at Arashi
-and Malmok. The existing tower, restaurant shell, stone sign, and coconut
-stand stay where they are.
+drawn twice. The lighthouse walk and the Faro Blanco parapet are their own
+hero on the hill, and the Malmok snorkel entry sits with the house row, so
+both stay near the spot a player is standing. The existing tower, restaurant
+shell, stone sign, and coconut stand stay where they are.
 """
 
 from __future__ import annotations
@@ -514,6 +514,7 @@ STONE_P = (0.40, 0.37, 0.32)
 CONC = (0.82, 0.80, 0.74)
 BUOY_Y = (0.90, 0.70, 0.10)
 BUOY_W = (0.93, 0.93, 0.90)
+IRON = (0.18, 0.17, 0.16)
 
 # World XZ of heroes this pass must not rebuild. Measured from lod0.
 # (xmin, xmax, zmin, zmax), zmin is the north edge.
@@ -1184,6 +1185,7 @@ def register(b: B):
     b.mat("conc", CONC, 0.82)
     b.mat("buoyy", BUOY_Y, 0.45)
     b.mat("buoyw", BUOY_W, 0.4)
+    b.mat("iron", IRON, 0.9)
 
 
 def _glb_lod0_tris(path, ox, oz):
@@ -1353,6 +1355,47 @@ def lot_blocked(x, z):
     return False
 
 
+def _sloped_parapet(b, dunes, x, z0, z1):
+    """Dark stone wall with a limestone crown. Each 2 m run slopes with the hill."""
+    spans = []
+    z = z0
+    while z < z1 - 0.01:
+        z2 = min(z + 2.0, z1)
+        spans.append((z, z2))
+        z = z2
+    thick = 0.42
+    bury = 0.36
+    crown = 0.64
+    cells = 0
+    drawn = []
+    for za, zb in spans:
+        mid = (za + zb) * 0.5
+        if lot_blocked(x, mid) or any_hit(dunes, x, mid):
+            continue
+        ha, hbh = mesh_height(x, za), mesh_height(x, zb)
+        if not (16.0 < ha < 28.0 and 16.0 < hbh < 28.0):
+            continue
+        xw, xe = x - thick * 0.5, x + thick * 0.5
+        ya0, yb0 = ha - bury, hbh - bury
+        ya1, yb1 = ha + crown, hbh + crown
+        b.quad(0, "stonep", [(xw, ya0, za), (xw, yb0, zb), (xw, yb1, zb), (xw, ya1, za)], (-1, 0, 0))
+        b.quad(0, "stonep", [(xe, yb0, zb), (xe, ya0, za), (xe, ya1, za), (xe, yb1, zb)], (1, 0, 0))
+        b.quad(0, "lime", [(xw, ya1, za), (xw, yb1, zb), (xe, yb1, zb), (xe, ya1, za)], (0, 1, 0))
+        b.quad(0, "stonep", [(xw, ya0, za), (xe, ya0, za), (xe, yb0, zb), (xw, yb0, zb)], (0, -1, 0))
+        drawn.append((za, zb, ya0, yb0, ya1, yb1, xw, xe))
+        cells += 1
+    for i, (za, zb, ya0, yb0, ya1, yb1, xw, xe) in enumerate(drawn):
+        prev = drawn[i - 1] if i else None
+        nxt = drawn[i + 1] if i + 1 < len(drawn) else None
+        if prev is None or abs(prev[1] - za) > 0.05:
+            b.quad(0, "stonep", [(xe, ya0, za), (xw, ya0, za), (xw, ya1, za), (xe, ya1, za)], (0, 0, -1))
+        if nxt is None or abs(nxt[0] - zb) > 0.05:
+            b.quad(0, "stonep", [(xw, yb0, zb), (xe, yb0, zb), (xe, yb1, zb), (xw, yb1, zb)], (0, 0, 1))
+        if i % 2 == 0:
+            b.box(1, "stonep", xw, min(ya0, yb0), za, xe, max(ya1, yb1) - 0.08, zb)
+    return cells
+
+
 def add_lh_grounds(b, dunes):
     """Gravel walk up the north side of the hill, and the west viewing terrace.
 
@@ -1401,30 +1444,17 @@ def add_lh_grounds(b, dunes):
         n += 1
         z = z1
     # No gravel sheet on the slope: a flat pad reads as a floating slab. The
-    # overlook is a low stone wall and two benches west of the existing rail.
-    cells = 0
-    # Short pieces so the top follows the slope instead of stepping up off the hill.
-    for zz in range(-10334, -10314, 2):
-        wx = -8968.0
-        if lot_blocked(wx, zz + 1) or any_hit(dunes, wx, zz + 1):
-            continue
-        hm = mesh_height(wx, zz + 1)
-        if not (16.0 < hm < 28.0):
-            continue
-        base = hm - 0.08
-        b.box(0, "stonep", wx - 0.2, base, zz, wx + 0.2, hm + 0.58, zz + 2.15)
-        if cells % 2 == 0:
-            b.box(1, "stonep", wx - 0.22, base, zz, wx + 0.22, hm + 0.42, zz + 2.1)
-        cells += 1
+    # overlook is a parapet whose crown follows the hill, plus two benches.
+    cells = _sloped_parapet(b, dunes, -8968.0, -10334.0, -10314.0)
     for bx, bz in ((-8962.5, -10328.0), (-8961.5, -10318.0)):
         if lot_blocked(bx, bz) or any_hit(dunes, bx, bz):
             continue
         g = mesh_height(bx, bz)
         if 16.0 < g < 28.0:
-            b.box(0, "postw", bx - 0.85, g, bz - 0.28, bx + 0.85, g + 0.42, bz + 0.28)
-            b.box(1, "postw", bx - 0.8, g, bz - 0.26, bx + 0.8, g + 0.34, bz + 0.26)
+            b.box(0, "postw", bx - 0.85, g - 0.08, bz - 0.28, bx + 0.85, g + 0.38, bz + 0.28)
+            b.box(1, "postw", bx - 0.8, g - 0.06, bz - 0.26, bx + 0.8, g + 0.32, bz + 0.26)
             for legx in (-0.65, 0.65):
-                b.box(0, "postw", bx + legx - 0.06, g, bz - 0.16, bx + legx + 0.06, g + 0.42, bz + 0.16)
+                b.box(0, "postw", bx + legx - 0.06, g - 0.12, bz - 0.16, bx + legx + 0.06, g + 0.38, bz + 0.16)
     print("grounds walk", n, "at x", round(x, 1), "terrace wall", cells)
 
 
@@ -1459,35 +1489,38 @@ def add_snorkel_notch(b, z, label):
         print("notch blocked", label)
         return
     prev = None
-    run = 1.15
+    run = 1.35
     placed = 0
     for i in range(2):
         x1 = found - i * run
         x0 = x1 - run
         back = mesh_height(x1, z)
-        top = back + 0.05
+        front = mesh_height(x0 + 0.15, z)
+        # A proud riser even where the shelf only falls a few centimetres.
+        top = max(back, front) + 0.42
         if prev is not None:
-            top = min(top, prev - 0.14)
-        if top < 0.22:
+            top = min(top, prev - 0.16)
+        if top < 0.3:
             break
-        # Keep a real riser on a gentle shelf, where the DEM barely drops.
-        front = mesh_height(x0 + 0.2, z)
-        top = max(top, front + 0.26)
-        bot = max(top - 0.28, min(front, back) - 0.05)
-        if top - bot < 0.16:
-            bot = top - 0.16
-        b.box(0, "conc", x0, bot, z - 1.25, x1, top, z + 1.25)
-        b.box(1, "conc", x0, bot, z - 1.15, x1, top, z + 1.15)
+        bot = min(front, back, top - 0.24) - 0.1
+        b.box(0, "conc", x0, bot, z - 1.35, x1, top, z + 1.35)
+        b.box(1, "conc", x0, bot, z - 1.2, x1, top - 0.04, z + 1.2)
         for side in (-1, 1):
-            zs = z + side * 1.7
-            # Dark ironshore cheeks, tall enough to read against the pale sand.
-            b.box(0, "boulder", x0 - 0.2, min(bot, front) - 0.05, zs - 0.42, x1 + 0.15, top + 0.85, zs + 0.42)
+            zs = z + side * 1.55
+            b.box(0, "iron", x0 - 0.15, min(bot, front) - 0.12, zs - 0.55, x1 + 0.25, top + 1.05, zs + 0.55)
             if i == 0:
-                b.box(1, "boulder", x0, bot, zs - 0.36, x1, top + 0.6, zs + 0.36)
+                b.box(1, "iron", x0, bot, zs - 0.42, x1, top + 0.8, zs + 0.42)
         prev = top
         placed += 1
+    # Two limestone posts at the inland end, so the entry reads from the path.
+    px = found + 0.7
+    for side in (-1, 1):
+        pz = z + side * 1.4
+        g = mesh_height(px, pz)
+        b.box(0, "lime", px - 0.16, g - 0.1, pz - 0.16, px + 0.16, g + 0.9, pz + 0.16)
+        b.box(1, "lime", px - 0.14, g - 0.06, pz - 0.14, px + 0.14, g + 0.75, pz + 0.14)
     sx = found - placed * run - 0.3
-    stop = 0.2
+    stop = 0.22
     sbot = min(mesh_height(sx, z), 0.0) - 0.06
     if stop - sbot >= 0.12:
         b.box(0, "wet", sx - 1.2, sbot, z - 0.95, sx + 0.15, stop, z + 0.95)
@@ -1495,8 +1528,8 @@ def add_snorkel_notch(b, z, label):
     bx = cx - 1.0
     while bx > cx - 28.0 and mesh_height(bx, z) > 0.02:
         bx -= 1.0
-    add_swim_buoy(b, bx - 1.4, z - 1.8, 1.55)
-    add_swim_buoy(b, bx - 0.6, z + 2.2, 1.25)
+    add_swim_buoy(b, bx - 1.2, z - 1.6, 1.7)
+    add_swim_buoy(b, bx - 0.4, z + 2.0, 1.35)
     print("notch", label, round(found, 1), z, "treads", placed, "buoy x", round(bx, 1))
 
 
@@ -1564,6 +1597,9 @@ def build():
         yaw = face_yaw(-inn[0], -inn[1])
         add_sign(hb, ["MALMOK"], sx, sz, yaw, "signb", "signi")
         print("malmok sign", round(sx, 1), round(sz, 1))
+    # The house row's origin is a few hundred metres from this shelf, inside the
+    # distance the low view keeps a hero drawn. The south-shore origin is not.
+    add_snorkel_notch(hb, -9012.0, "malmok")
     htris = hb.save(os.path.join(HERO, "nw_shore_houses.glb"), "nw_shore_houses")
     print("house tris", htris, "kept", kept)
 
@@ -1601,12 +1637,20 @@ def build():
         yaw = face_yaw(inn[0], inn[1])
         add_sign(nb, ["LIGHTHOUSE"], sx, sz, yaw, "signu", "signw", chevron=True)
         print("lighthouse sign", round(sx, 1), round(sz, 1), rf[2])
-    dunes = indexes_for(("nw_lh_dunes",))
-    add_lh_grounds(nb, dunes)
     # North of the Arashi palapa field. Tres Trapi, Boca, and the Malmok cove already have their own stairs.
     add_snorkel_notch(nb, -10072.0, "arashi")
     ntris = nb.save(os.path.join(HERO, "nw_shore_north.glb"), "nw_shore_north")
     print("north tris", ntris)
+
+    # Own origin on the hill. The north-shore origin is past the low-view hero
+    # distance from the walk, so the path and the parapet would never draw there.
+    lx, lz = -8910.0, -10390.0
+    lb = B(lx, lz, height(lx, lz))
+    register(lb)
+    dunes = indexes_for(("nw_lh_dunes",))
+    add_lh_grounds(lb, dunes)
+    ltris = lb.save(os.path.join(HERO, "nw_shore_lh.glb"), "nw_shore_lh")
+    print("lighthouse tris", ltris, "origin h", round(height(lx, lz), 2))
 
     # South shore: Malmok rock shelf and the Fisherman's Huts beach.
     sx0, sz0 = -8450.0, -7900.0
@@ -1649,8 +1693,6 @@ def build():
         else:
             add_bar(sb, bx, cz, byaw)
             print("huts bar", round(bx, 1), cz, "h", round(mesh_height(bx, cz), 2))
-    # South of the villa band, north of the Malmok cove stair.
-    add_snorkel_notch(sb, -9012.0, "malmok")
     rf = road_frame(roads_hold, -7288)
     if rf:
         inn = inland_normal(rf[3], rf[4])
@@ -1664,15 +1706,15 @@ def build():
     refs_h = (
         "OSM house footprints on L.G. Smith Boulevard from Arashi to Malmok; "
         "Arashi villa row in File:Arashi, Aruba - panoramio.jpg (white walls, terracotta hips); "
-        "skips the Arashi Beach Shack, the glass villa, and the lion gate"
+        "skips the Arashi Beach Shack, the glass villa, and the lion gate. "
+        "Malmok snorkel notch: two concrete treads, dark ironshore cheeks, and yellow swim buoys "
+        "on the shelf south of the villa row and north of the cove stair"
     )
     refs_n = (
         "Western shoreline Arashi to the California Lighthouse road. "
         "White dune sand from File:California lighthouse Aruba Arashi beach 2.jpg; "
         "wet limestone and cliff rock at Boca Catalina; "
         "Bugaloe-style open thatch bar on the Arashi sand, not the De Palm Pier bar. "
-        "California Lighthouse grounds: a gravel walk with low limestone walls up the north side of the hill, "
-        "stopping short of the existing lot, monument, and Faro Blanco shell; a stone overlook west of the restaurant rail. "
         "Arashi snorkel notch: two concrete treads and yellow swim buoys on the shelf north of the palapas. "
         "The golf course is not touched"
     )
@@ -1680,13 +1722,23 @@ def build():
         "Malmok rocky shelf (Visit Aruba: narrow ironshore, sand pockets) and "
         "Fisherman's Huts / Hadicurari. Pale sand, dark inshore boulders and a low "
         "limestone wall from File:Hadicurari Beach Palm Beach View Noord Aruba.jpg; "
-        "painted timber huts and a thatch beach bar on the sand seaward of the sail rack. "
-        "Malmok snorkel notch: two treads and swim buoys on the shelf south of the villa row and north of the cove stair"
+        "painted timber huts and a thatch beach bar on the sand seaward of the sail rack"
     )
     entries = [
         entry("nw_shore_houses", hx, hz, htris, 750, refs_h, hides),
         entry("nw_shore_north", nx, nz, ntris, 1100, refs_n),
         entry("nw_shore_south", sx0, sz0, stris, 1400, refs_s),
+        entry(
+            "nw_shore_lh",
+            lx,
+            lz,
+            ltris,
+            500,
+            "California Lighthouse grounds: a gravel walk with low limestone walls up the north side of the hill, "
+            "stopping short of the existing lot, monument, and Faro Blanco shell. "
+            "Faro Blanco overlook: a stone parapet with a limestone crown and two benches west of the restaurant rail, "
+            "off the golf course. The tower, restaurant shell, stone sign, and coconut stand stay",
+        ),
     ]
     append_manifest(entries)
     print("manifest appended", [e["id"] for e in entries])
