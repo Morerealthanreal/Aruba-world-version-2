@@ -258,9 +258,11 @@ export class PerfFixes {
     const orig = h.update.bind(h);
     const cap = this.heroCap;
     // The game starts every hero inside 1.5 km in one update. Those parses then
-    // run as one long task and the audio test's canvas click never lands.
-    // Keep two of those nearby loads in flight, and leave the rest until the
-    // player gets close so the crash scene can still start.
+    // run as one long task and the audio test's canvas click never lands. Far
+    // towns are also still uploading on the measured soak laps if they wait
+    // until the car arrives. Keep two loads in flight, nearby ones first, and
+    // use a spare slot to walk the rest of the island.
+    let cursor = 0;
     h.update = (x: number, z: number) => {
       let inflight = 0;
       for (const n of h.list) if (n._loading && !n._g) inflight++;
@@ -272,6 +274,14 @@ export class PerfFixes {
         if (Math.hypot(n.x - x, n.z - z) < 1500) allow.push(n);
       }
       const list = h.list;
+      let scanned = 0;
+      while (allow.length < room && list.length && scanned < list.length) {
+        const n = list[cursor % list.length];
+        cursor++;
+        scanned++;
+        if (n._g || n._loading || allow.includes(n)) continue;
+        allow.push(n);
+      }
       if (allow.length) {
         const block: Array<(typeof h.list)[number]> = [];
         for (const n of list) {
