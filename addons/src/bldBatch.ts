@@ -20,6 +20,7 @@ type M = Mesh & { isInstancedMesh?: boolean };
 type Reg = {
   state: string; group?: Object3D; __awBB?: Batch[]; __awSeal?: boolean;
   __awStack?: Object3D[]; __awConfirm?: boolean; __awOpen?: Map<string, Batch>; __awNC?: number; __awWait?: number;
+  __awHot?: number; __awHideStack?: Object3D[];
 };
 type Q = { bldR: number; detailR: number; contactR: number };
 type A = { q: Q; regions: Map<string, Reg>; update: (...a: number[]) => unknown; cullT?: number };
@@ -58,9 +59,10 @@ export function multiDrawCull(this: BM, _r: unknown, _s: unknown, camera: Camera
 }
 
 export class BldBatch {
-  stats = { regions: 0, batches: 0, cells: 0, visCells: 0, maxSlice: 0, failed: 0 };
+  stats = { regions: 0, batches: 0, cells: 0, visCells: 0, maxSlice: 0, failed: 0, concealed: 0 };
   private live = new Set<Reg>();
   private taken = new WeakSet<Object3D>();
+  private focus: Set<Reg> | null = null;
   private fx = NaN; private fz = NaN;
   constructor(private g: AGame, private budget: number, private shellR = Infinity) {
     const A = g.real as unknown as A, orig = A.update.bind(A);
@@ -81,6 +83,28 @@ export class BldBatch {
     return n;
   }
   frame() { this.sweep(); }
+  /** A region job just added meshes. Hide individual building cells so the next paint
+   *  doesn't draw them one by one; afterJobs copies them into batches before that paint. */
+  touch(R: Reg) {
+    if (!R?.group) return;
+    R.__awHot = (R.__awHot || 0) + 1;
+    R.__awWait = 0;
+    R.__awConfirm = false;
+    R.__awHideStack = [R.group];
+    this.conceal(R);
+  }
+  /** Drain regions touched since the last pump tick. Runs outside the animation callback. */
+  afterJobs() {
+    const hot = new Set<Reg>();
+    for (const R of (this.g.real as unknown as A).regions.values()) if (R.__awHot) { this.conceal(R); hot.add(R); }
+    if (!hot.size) return;
+    this.focus = hot;
+    const prev = this.budget;
+    this.budget = 8;
+    this.ingest();
+    this.budget = prev;
+    this.focus = null;
+  }
 
   private sweep() {
     if (!this.live.size) return;
@@ -95,6 +119,7 @@ export class BldBatch {
     this.sweep();
     const A = this.g.real as unknown as A, t0 = performance.now();
     for (const R of A.regions.values()) {
+      if (this.focus && !this.focus.has(R)) continue;
       if (R.__awSeal || !R.group || !R.group.parent) continue;
       if (R.state === "failed") { R.__awSeal = true; continue; }
       const ch = R.group.children, nc = R.__awNC || 0;
@@ -120,9 +145,9 @@ export class BldBatch {
       }
       if (stack.length) break;
       if (R.state === "built") {
-        if (R.__awConfirm) { R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; this.stats.regions++; }
+        if (R.__awConfirm) { R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; R.__awHot = 0; this.stats.regions++; }
         else { R.__awConfirm = true; R.__awStack = [R.group]; }
-      } else { R.__awStack = undefined; R.__awWait = 8; }
+      } else { R.__awStack = undefined; R.__awWait = 0; if (!R.__awHideStack) R.__awHot = 0; }
       if (performance.now() - t0 >= this.budget) break;
     }
     const dt = performance.now() - t0; if (dt > this.stats.maxSlice) this.stats.maxSlice = dt;
@@ -133,10 +158,10 @@ export class BldBatch {
     if (!m.isMesh || m.isInstancedMesh || !m.name || !m.name.startsWith("bld:") || m.name === "bld:kit" || Array.isArray(m.material)) return;
     if (this.taken.has(m)) return;
     const root = R.group!;
-    for (let p: Object3D | null = m; p && p !== root; p = p.parent) if (!p.matrix.equals(IDENT)) { this.taken.add(m); return; }
+    for (let p: Object3D | null = m; p && p !== root; p = p.parent) if (!p.matrix.equals(IDENT)) { this.release(m); return; }
     const geo = m.geometry as BufferGeometry;
     if (!geo || !geo.attributes.position || !geo.attributes.position.count || Object.keys(geo.morphAttributes).length || geo.groups.length) {
-      this.taken.add(m); return;
+      this.release(m); return;
     }
     const key = this.keyOf(m, geo);
     const vcount = geo.attributes.position.count;
@@ -146,7 +171,7 @@ export class BldBatch {
     if (!b || !this.addGeo(b, geo)) {
       if (b && b.n === 0) { b.bm.dispose(); if (R.__awOpen?.get(key) === b) R.__awOpen.delete(key); }
       if (this.stats.failed < 3) console.warn("[aw-bb] skip", m.name, "v", vcount, "i", icount);
-      this.taken.add(m); this.stats.failed++; return;
+      this.release(m); this.stats.failed++; return;
     }
     b.usedV += vcount; b.usedI += icount;
     this.place(R, b, m, geo);
@@ -207,7 +232,14 @@ export class BldBatch {
       if (!R.__awBB) R.__awBB = [];
       R.__awBB.push(b); this.stats.batches++;
     }
-    if (!b.bm.parent) R.group!.add(b.bm);
+    if (!b.bm.parent) {
+      // stay off the camera until the batched program has been finalized (see MobilePerf.prime)
+      b.bm.layers.disable(0);
+      const prime = (window as unknown as { __aw?: { mperf?: { prime?: (o: Object3D, fn?: () => void) => void } } }).__aw?.mperf?.prime;
+      if (prime) prime(b.bm, () => b.bm.layers.enable(0));
+      else b.bm.layers.enable(0);
+      R.group!.add(b.bm);
+    }
     this.live.add(R);
     this.stats.cells++;
     this.taken.add(m);
@@ -215,6 +247,29 @@ export class BldBatch {
     geo.dispose();
     R.__awNC = R.group!.children.length;
     this.cull(b);
+  }
+
+  /** Cells that can't be batched go back to drawing on their own. */
+  private release(m: M) {
+    this.taken.add(m);
+    if (m.userData.__awHid) { m.visible = true; m.userData.__awHid = 0; }
+  }
+  private conceal(R: Reg) {
+    const stack = R.__awHideStack;
+    if (!stack || !stack.length) { R.__awHideStack = undefined; return; }
+    const t0 = performance.now();
+    let n = 0;
+    while (stack.length && n < 8000 && performance.now() - t0 < 3) {
+      const o = stack.pop()!;
+      const ch = o.children;
+      for (let i = ch.length - 1; i >= 0; i--) stack.push(ch[i]);
+      const m = o as M;
+      n++;
+      if (!m.isMesh || m.isInstancedMesh || this.taken.has(m) || !m.visible) continue;
+      if (!m.name || !m.name.startsWith("bld:") || m.name === "bld:kit") continue;
+      m.visible = false; m.userData.__awHid = 1; this.stats.concealed++;
+    }
+    if (!stack.length) R.__awHideStack = undefined;
   }
 
   private cullAll() {
