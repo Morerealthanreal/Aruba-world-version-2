@@ -59,24 +59,32 @@ const WATER = `
 #else
   float fn = 0.5 + (awN1.x - awN1.y) * 0.17 + awN3.x * 0.22;   // ~ same spread as A's fbm (mean .5, sd ~.12)
 #endif
-  // breaking waves: crests follow the depth contours and travel shoreward; a small shore break on the
-  // leeward beaches, a wide surf zone on the windward coast
-  float awSurf = smoothstep(mix(0.3, 2.8, awW), 0.0, dd);
-  float awCr = 0.5 + 0.5 * sin(dd * mix(14.0, 5.0, awW) + uTime * mix(1.1, 1.5, awW) + fn * 3.0);
-  float band = awSurf * smoothstep(mix(0.72, 0.55, awW), 1.0, awCr);
-  float awEdge = smoothstep(mix(0.05, 0.12, awW), 0.0, dd);
-  float foam = clamp((band * 1.4 + awEdge) * smoothstep(mix(0.42, 0.25, awW), mix(0.7, 0.6, awW), fn), 0.0, 1.0) * (1.0 - smoothstep(150.0, 600.0, camD));
+  // breaking waves: a small shore break on the leeward beaches. On the windward north shore the
+  // shelf is shallow for a long way, so one thin crest disappears from the cliff: a solid spray
+  // band in the last couple of metres, then two breaker lines, still blue water outside that.
+  float awNear = smoothstep(mix(0.22, 2.4, awW), 0.0, dd);
+  float awSurf = smoothstep(mix(0.4, 5.5, awW), 0.0, dd);
+  float awPhase = dd * mix(14.0, 2.6, awW) + uTime * mix(1.1, 1.8, awW);
+  float awCr = 0.5 + 0.5 * sin(awPhase + fn * 2.2);
+  float awCr2 = 0.5 + 0.5 * sin(awPhase * 0.47 + 1.7);
+  float band = awSurf * max(smoothstep(mix(0.72, 0.38, awW), 1.0, awCr), smoothstep(mix(0.82, 0.5, awW), 1.0, awCr2) * 0.75);
+  float awEdge = smoothstep(mix(0.05, 0.35, awW), 0.0, dd);
+  // The near band stays solid so it still reads from the cliff. The crests further out stay broken.
+  float awSpray = awW * awNear * (0.38 + 0.62 * smoothstep(0.28, 0.72, fn + 0.18 * sin(uTime * 2.1 + dd * 1.5)));
+  float awGate = smoothstep(mix(0.42, 0.22, awW), mix(0.7, 0.5, awW), fn);
+  float foam = clamp(band * mix(1.3, 1.45, awW) * awGate + awEdge + awSpray, 0.0, 1.0);
+  foam *= 1.0 - smoothstep(mix(150.0, 420.0, awW), mix(600.0, 1600.0, awW), camD);
 #ifdef AW_SEA_HQ
   float awCap = smoothstep(0.74, 0.9, rwN(awP * 0.045 + vec2(-uTime * 0.05, uTime * 0.02))) * smoothstep(0.45, 0.75, fn);
   foam = max(foam, awW * awCap * smoothstep(2.0, 6.0, depth) * 0.75 * (1.0 - smoothstep(250.0, 1400.0, camD)));
 #endif
-  wc = mix(wc, vec3(0.92), foam);
+  wc = mix(wc, vec3(0.96, 0.97, 0.98), foam);
   a = max(a, foam * 0.95);
   // trade-wind swell from the ENE plus a cross swell (normal tilt only: the sea is one quad per region)
   float awS1 = dot(awP, vec2(-0.93, 0.37)) * 0.11 - uTime * 1.0 + awN3.x * 2.5;   // crests warped by the 120 m ripple sample
   float awS2 = dot(awP, vec2(-0.55, 0.83)) * 0.2 - uTime * 1.35 + awN3.y * 2.5;
-  vec2 awSwell = -(vec2(-0.93, 0.37) * cos(awS1) * mix(0.05, 0.14, awW) + vec2(-0.55, 0.83) * cos(awS2) * mix(0.025, 0.06, awW))
-    * smoothstep(0.4, 4.0, depth) * (1.0 - smoothstep(200.0, 2500.0, camD) * 0.8);
+  vec2 awSwell = -(vec2(-0.93, 0.37) * cos(awS1) * mix(0.05, 0.22, awW) + vec2(-0.55, 0.83) * cos(awS2) * mix(0.025, 0.09, awW))
+    * smoothstep(mix(0.4, 0.05, awW), mix(4.0, 0.6, awW), depth) * (1.0 - smoothstep(200.0, 2500.0, camD) * 0.8);
   // A flattens far normals and calms the shallows, so both mirrored the white horizon haze: damp that
   // sheen over distant deep water, and over the shallows so the sand shows through
   float awSpec = (1.0 - 0.45 * smoothstep(150.0, 1500.0, camD) * smoothstep(4.0, 14.0, awD)) * mix(0.65, 1.0, smoothstep(0.5, 4.0, depth));`;
