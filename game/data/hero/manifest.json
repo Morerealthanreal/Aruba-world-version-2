@@ -60671,7 +60671,7 @@
    "switch_m": 180
   },
   "tris": {
-   "snmain_west_lod0": 120,
+   "snmain_west_lod0": 140,
    "snmain_west_lod1": 90
   },
   "textures": 0,
@@ -60734,7 +60734,7 @@
    "switch_m": 180
   },
   "tris": {
-   "snmain_east_lod0": 72,
+   "snmain_east_lod0": 84,
    "snmain_east_lod1": 54
   },
   "textures": 0,

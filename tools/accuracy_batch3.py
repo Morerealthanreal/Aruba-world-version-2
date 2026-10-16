@@ -402,14 +402,14 @@ def build_shop_row(id_, poly, buildings, roads):
             if lod == 1:
                 continue
             Am, Gm = M.mesh(lod, awn), M.mesh(lod, glass)
-            depth = 1.05
-            y0, y1 = 2.45, 2.75
+            depth = 1.7
+            y0, y1 = 2.15, 2.7
             a0 = (a[0], y0, a[1])
             b0 = (c[0], y0, c[1])
             a1 = (a[0] + oxn * depth, y1, a[1] + ozn * depth)
             b1 = (c[0] + oxn * depth, y1, c[1] + ozn * depth)
             Am.quad(a0, b0, b1, a1)
-            Am.quad(a1, b1, (c[0] + oxn * depth, y0 - 0.08, c[1] + ozn * depth), (a[0] + oxn * depth, y0 - 0.08, a[1] + ozn * depth))
+            Am.quad(a1, b1, (c[0] + oxn * depth, y0 - 0.55, c[1] + ozn * depth), (a[0] + oxn * depth, y0 - 0.55, a[1] + ozn * depth))
             # door, centred on the front edge, pushed just outside the wall
             mx, mz = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
             px, pz = -dz / L, dx / L
@@ -420,6 +420,14 @@ def build_shop_row(id_, poly, buildings, roads):
                 (mx - px * 0.55 + oxn * 0.08, 2.35, mz - pz * 0.55 + ozn * 0.08),
             ]
             Gm.quad(door[0], door[1], door[2], door[3])
+            for side in (-1.7, 1.7):
+                wx, wz = mx + px * side, mz + pz * side
+                Gm.quad(
+                    (wx - px * 0.38 + oxn * 0.08, 1.15, wz - pz * 0.38 + ozn * 0.08),
+                    (wx + px * 0.38 + oxn * 0.08, 1.15, wz + pz * 0.38 + ozn * 0.08),
+                    (wx + px * 0.38 + oxn * 0.08, 2.05, wz + pz * 0.38 + ozn * 0.08),
+                    (wx - px * 0.38 + oxn * 0.08, 2.05, wz - pz * 0.38 + ozn * 0.08),
+                )
     info = write_glb(M, HERO / f"{id_}.glb")
     check_glb(HERO / f"{id_}.glb")
     print(id_, "shops", len(chosen), [b.get("n") for b in chosen], "at", round(ox, 1), round(oz, 1), info)
@@ -526,22 +534,20 @@ def build_balashi(roads):
         if lod == 0:
             Sm, Gm, St = M.mesh(lod, sign), M.mesh(lod, garden), M.mesh(lod, steel)
             fan(Wm, ring, 0.1, up=False)
-            # fermenters on the side opposite the road
-            mx = sum(p[0] for p in ring) / len(ring)
-            mz = sum(p[1] for p in ring) / len(ring)
-            for i, (fx, fz) in enumerate(((-10, -6), (-4, -9), (3, -7), (9, -10))):
-                # push away from the road
-                px = mx + fx - oxn * 16
-                pz = mz + fz - ozn * 16
+            # fermenters behind the hall, clear of the footprint
+            tx, tz = dx / L, dz / L
+            for i, s in enumerate((-14, -5, 5, 14)):
+                px = -oxn * 36 + tx * s
+                pz = -ozn * 36 + tz * s
                 cyl(St, px, pz, 2.1, 0.1, 7.4 + (i % 2), n=8)
                 cyl(Bm, px, pz, 2.18, 4.2, 4.55, n=8)
-            # sign on the road face
+            # sign on the road face. +tangent is left when looking at the wall,
+            # so the top-left corner is the +tangent end.
             depth = 0.35
             mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
             half = min(8.0, L * 0.32)
-            tx, tz = dx / L, dz / L
-            s0 = (mid[0] - tx * half + oxn * depth, mid[1] - tz * half + ozn * depth)
-            s1 = (mid[0] + tx * half + oxn * depth, mid[1] + tz * half + ozn * depth)
+            s0 = (mid[0] + tx * half + oxn * depth, mid[1] + tz * half + ozn * depth)
+            s1 = (mid[0] - tx * half + oxn * depth, mid[1] - tz * half + ozn * depth)
             sign_quad(Sm, (s0[0], 6.3, s0[1]), (s1[0], 6.3, s1[1]), (s1[0], 4.5, s1[1]), (s0[0], 4.5, s0[1]))
             # beer-garden canopy in front of the sign
             for s in (-6, 6):
@@ -549,8 +555,7 @@ def build_balashi(roads):
             box(Bm, mid[0] + oxn * 6, 4.35, mid[1] + ozn * 6, L * 0.55, 0.18, 5.5)
             box(Gm, mid[0] + oxn * 8, 0.08, mid[1] + ozn * 8, L * 0.5, 0.12, 7)
         else:
-            cyl(M.mesh(lod, steel), sum(p[0] for p in ring) / len(ring) - oxn * 18,
-                sum(p[1] for p in ring) / len(ring) - ozn * 18, 3.2, 0.1, 8.0, n=6)
+            cyl(M.mesh(lod, steel), -oxn * 36, -ozn * 36, 3.2, 0.1, 8.0, n=6)
     info = write_glb(M, HERO / "balashi.glb", images=[png])
     check_glb(HERO / "balashi.glb")
     print("balashi", info, "road", [round(v, 1) for v in road])
@@ -675,7 +680,9 @@ def build_beaches():
     # Rodgers Beach sand is the low strip just west of Baby Beach (terrain +0.4 to +2.5 m).
     # The lagoon polygon's eastern edge is open water, so palapas are not hung on it.
     spots = [(9385, 11495), (9435, 11525), (9475, 11555), (9368, 11540), (9455, 11490)]
-    boats = [(9300, 11510, 1, 0), (9285, 11470, 1, 0), (9260, 11530, 0, 1)]
+    # Pulled up on the sand. The same height as the hero origin, so they do not
+    # hover where the lagoon drops below the beach.
+    boats = [(9388, 11478, 1, 0), (9388, 11510, 1, 0), (9444, 11478, 0, 1)]
     rx = sum(p[0] for p in spots) / len(spots)
     rz = sum(p[1] for p in spots) / len(spots)
     R = Model("rodgers_beach")
