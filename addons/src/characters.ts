@@ -1,5 +1,5 @@
 import {
-  Color, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, SkinnedMesh,
+  Color, Float32BufferAttribute, Matrix4, Mesh, MeshStandardMaterial, SkinnedMesh, Vector3,
   type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
   type WebGLRenderer,
 } from "three";
@@ -42,6 +42,8 @@ export const CHARACTER_PALETTES: readonly CharacterPalette[] = [
 
 let loader: GLTFLoader | null = null;
 const sourceCache = new Map<string, Promise<PreparedCharacterSource>>();
+// Shared across every painted character. Afternoon fallback until the live sun is copied in.
+const sunDir = new Vector3(0.2, 0.78, 0.55).normalize();
 
 export function characterLoader(renderer: WebGLRenderer): GLTFLoader {
   if (loader) return loader;
@@ -172,7 +174,7 @@ function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, 
     time: { value: 0 },
     phase: { value: phase },
     skin: { value: new Color(palette.skin) },
-    hair: { value: new Color(palette.hair).multiplyScalar(1.5) },
+    hair: { value: new Color(palette.hair).multiplyScalar(1.05) },
     top: { value: new Color(palette.top).multiplyScalar(1.35) },
     bottom: { value: new Color(palette.bottom).multiplyScalar(1.3) },
     dress: { value: new Color(palette.dress).multiplyScalar(1.35) },
@@ -198,24 +200,30 @@ function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, 
     s.uniforms.uAwPedTop = uniforms.top;
     s.uniforms.uAwPedBottom = uniforms.bottom;
     s.uniforms.uAwPedDress = uniforms.dress;
+    s.uniforms.uAwSunDir = { value: sunDir };
     s.vertexShader = s.vertexShader
       .replace(
         "#include <common>",
         `#include <common>
 uniform float uAwPedTime;
-uniform float uAwPedPhase;`,
+uniform float uAwPedPhase;
+uniform vec3 uAwSunDir;`,
       )
       .replace(
         "#include <begin_vertex>",
         `#include <begin_vertex>
 float awVertexTile = floor(uv.x * ${grid.toFixed(1)}) + ${grid.toFixed(1)} * floor(uv.y * ${grid.toFixed(1)});
 if (${hairVertex}) {
-  float awHairFlex = 1.0 - smoothstep(1.05, 1.55, position.y);
-  transformed.x += sin(uAwPedTime * 1.65 + uAwPedPhase + position.y * 7.0) * 0.015 * awHairFlex;
+  float awHairAlong = fract(uv.y * ${grid.toFixed(1)});
+  float awHairFlex = smoothstep(0.12, 0.92, awHairAlong);
+  transformed.x += sin(uAwPedTime * 1.45 + uAwPedPhase + uv.y * 48.0) * 0.016 * awHairFlex;
+  transformed.z += cos(uAwPedTime * 1.05 + uAwPedPhase * 0.8) * 0.007 * awHairFlex;
 }
 if (${dressVertex}) {
-  float awDressFlex = 1.0 - smoothstep(0.2, 1.02, position.y);
-  transformed.x += sin(uAwPedTime * 1.35 + uAwPedPhase + position.y * 5.0) * 0.024 * awDressFlex;
+  float awDressAlong = fract(uv.y * ${grid.toFixed(1)});
+  float awDressFlex = smoothstep(0.18, 0.88, awDressAlong);
+  transformed.x += sin(uAwPedTime * 1.25 + uAwPedPhase + position.y * 9.0) * 0.02 * awDressFlex;
+  transformed.z += cos(uAwPedTime * 0.85 + uAwPedPhase) * 0.008 * awDressFlex;
 }`,
       );
     s.fragmentShader = s.fragmentShader
@@ -226,14 +234,18 @@ uniform vec3 uAwPedSkin;
 uniform vec3 uAwPedHair;
 uniform vec3 uAwPedTop;
 uniform vec3 uAwPedBottom;
-uniform vec3 uAwPedDress;`,
+uniform vec3 uAwPedDress;
+uniform vec3 uAwSunDir;`,
       )
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
 float awTile = floor(vMapUv.x * ${grid.toFixed(1)}) + ${grid.toFixed(1)} * floor(vMapUv.y * ${grid.toFixed(1)});
-if (${skinFragment}) diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.42);
-else if (${hairFragment}) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.62) * 1.12;
+if (${skinFragment}) diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
+else if (${hairFragment}) {
+  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.84);
+  diffuseColor.a = 1.0;
+}
 else if (${topFragment}) diffuseColor.rgb *= uAwPedTop;
 else if (${bottomFragment}) diffuseColor.rgb *= uAwPedBottom;
 else if (${dressFragment}) diffuseColor.rgb *= uAwPedDress;`,
@@ -241,15 +253,23 @@ else if (${dressFragment}) diffuseColor.rgb *= uAwPedDress;`,
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-float awGoldenRim = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0);
-totalEmissiveRadiance += vec3(1.0, 0.42, 0.12) * awGoldenRim * 0.13;`,
+vec3 awN = normalize(normal);
+vec3 awSun = normalize(uAwSunDir);
+float awNdL = dot(awN, awSun);
+float awWrap = clamp(awNdL * 0.5 + 0.55, 0.0, 1.0);
+float awRim = pow(1.0 - clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0), 2.05);
+float awBack = clamp(-awNdL, 0.0, 1.0);
+vec3 awGold = vec3(1.0, 0.58, 0.22);
+diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * (0.78 + 0.28 * awWrap);
+totalEmissiveRadiance += awGold * awRim * (0.16 + 0.95 * awBack);
+if (${hairFragment}) totalEmissiveRadiance += awGold * awRim * 0.28;`,
       );
   };
   const shaderVariant = [
     grid, hairVertex, dressVertex, skinFragment, hairFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v3:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v4:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -274,6 +294,13 @@ export function styleCharacter(
   return paints;
 }
 
-export function updateCharacterPaint(paints: CharacterPaint[], time: number) {
+export function updateCharacterPaint(
+  paints: CharacterPaint[],
+  time: number,
+  sun?: { x: number; y: number; z: number },
+) {
+  if (sun) sunDir.set(sun.x, sun.y, sun.z);
+  if (sunDir.lengthSq() < 1e-4) sunDir.set(0.2, 0.78, 0.55);
+  else sunDir.normalize();
   for (const paint of paints) paint.time.value = time;
 }
