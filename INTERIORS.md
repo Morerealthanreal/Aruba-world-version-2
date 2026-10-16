@@ -7,9 +7,10 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **The Pastechi House** (Oranjestad, Caya G.F. Betico Croes 42). Open front under the green PASTECHI HOUSE sign, wood counter with a pastry warmer, menu board (cheese, ham & cheese, beef, chicken, tuna, keri keri, lobster, croquette and the other house snacks), small red chairs and tables, cream interior with the green band and red base from the street facade.
 - **McDonald's Palm Beach** (J.E. Irausquin Boulevard). Storefront opens on the clear stretch beside the sign. The yellow arch blade and the roadside sign stay. Grey tile dining room, wood order counter with a red fascia and yellow pickup strip, menu boards, two order kiosks, red chairs and grey tables.
 - **Starbucks Palm Beach** (Paseo Herencia, J.E. Irausquin Boulevard 382A). Entrance under the siren sign on the south face. Wood bar with a green front, pastry case, drink menu, cafe tables and dark green chairs. The sign, green band and roof stay.
+- **Palm Beach Plaza** (east rotunda, J.E. Irausquin Boulevard). The blue glass under the PALM BEACH PLAZA canopy opens. Inside: a tiled hall, Skechers and Niel's shopfronts, a Caribbean Cinemas counter, benches, and a hanging directory. The canopy, rotunda, and shop signs on the outside stay.
 
 ## Next
 
-- Palm Beach Plaza shops
 - Popular restaurants with strong photo references
 - Hotel lobbies (Radisson Blu and others)
+- More Palm Beach Plaza shopfronts if a single hall is not enough
