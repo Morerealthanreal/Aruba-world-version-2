@@ -24,9 +24,10 @@ The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
 - The LOD files retain Idle_Standing and Walk_Relaxed as a fallback.
   The live walk, run, and idle cycles are the separate locomotion.glb clips.
 - The long hair cards are replaced at load with hair parented to the head bone.
-  A crown covers the skull, with bangs over the forehead. Thick locks fall
-  behind and over the shoulders. The broken scalp cards are replaced with a
-  solid head that has a brow, nose, and chin in profile. The front of that
+  A rounded crown covers the skull, with bangs over the forehead. Layered
+  strands follow the skull, then fall behind and over the shoulders. The
+  broken scalp cards are replaced with a solid head whose brow, nose, lips,
+  and chin are one continuous profile. The front of that
   head samples the oil portrait, toned to the neck, so the eyes, nose, and
   mouth stay on the mesh.
   A neck weighted to the neck bone joins the head to the shoulders.
