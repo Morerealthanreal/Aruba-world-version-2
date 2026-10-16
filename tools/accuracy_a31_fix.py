@@ -505,6 +505,7 @@ def _replace(text, old, new, label):
 
 
 def patch_manifest(stair, fontein, conchi):
+    import re
     text = MANIFEST.read_text()
     text = _replace(
         text,
@@ -512,7 +513,16 @@ def patch_manifest(stair, fontein, conchi):
         '"name": "Hooiberg concrete stair"',
         "stair name",
     )
-    import re
+    # y:0 is falsy, so the loader samples height once. A coarse overview
+    # sample sinks the flight under the hill. Pin the origin to the DEM
+    # height the treads were built against.
+    text2, n = re.subn(
+        r'("id": "hooiberg_steps",\n  "k": "hooiberg_steps",\n  "name": "Hooiberg concrete stair",\n  "status": "v4-mall-detail",\n  "x": -2709.78,\n  "z": 333.95,\n  "y": )0,',
+        r'\g<1>164.57,',
+        text, count=1,
+    )
+    if n:
+        text = text2
     text, n = re.subn(
         r'"hooiberg_steps_lod0": \d+,\n   "hooiberg_steps_lod1": \d+',
         f'"hooiberg_steps_lod0": {stair["lod0"]},\n   "hooiberg_steps_lod1": {stair["lod1"]}',
