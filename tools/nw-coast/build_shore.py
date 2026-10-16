@@ -14,6 +14,13 @@ Tres Trapi is the narrow rocky shelf with sand pockets. Beach bars follow the
 open-timber, thick-thatch, turquoise-and-yellow build of a Bugaloe-style bar.
 The Palm Beach Bugaloe itself stays where it is. Geometry is original.
 Tierra del Sol's streets and the golf resort are not touched.
+
+Houses and shelters whose footprints land on the villa mesh or the Arashi
+hut mesh already in the hero set are left out, so those buildings are not
+drawn twice. This pass also adds the north walk and west terrace at the
+California Lighthouse and Faro Blanco, and a snorkel notch each at Arashi
+and Malmok. The existing tower, restaurant shell, stone sign, and coconut
+stand stay where they are.
 """
 
 from __future__ import annotations
@@ -500,6 +507,22 @@ SIGN_INK = (0.10, 0.26, 0.42)
 SIGN_BLUE = (0.10, 0.32, 0.55)
 SIGN_WHITE = (0.95, 0.95, 0.93)
 POST_W = (0.42, 0.30, 0.18)
+# Lighthouse walk and Faro Blanco terrace. Dirt, not the white dune sand.
+GRAVEL = (0.68, 0.64, 0.56)
+CONC = (0.76, 0.74, 0.68)
+BUOY_Y = (0.90, 0.70, 0.10)
+BUOY_W = (0.93, 0.93, 0.90)
+
+# World XZ of heroes this pass must not rebuild. Measured from lod0.
+# (xmin, xmax, zmin, zmax), zmin is the north edge.
+LOT_BOXES = (
+    (-8898.0, -8818.0, -10386.0, -10325.0),  # lhsite lot, vehicles, tower base
+    (-8954.0, -8892.0, -10372.0, -10298.0),  # farob restaurant and its terrace
+    (-8868.0, -8856.0, -10392.0, -10372.0),  # Faro Blanco stone sign
+    (-8809.0, -8801.0, -10474.0, -10466.0),  # lattice mast
+    (-8864.0, -8852.0, -10354.0, -10344.0),  # coconut stand
+)
+MONUMENT = (-8840.0, -10365.0, 14.0)
 
 COAST = {
     "L.G. Smith Boulevard",
@@ -1154,6 +1177,343 @@ def register(b: B):
     b.mat("signi", SIGN_INK, 0.6)
     b.mat("signu", SIGN_BLUE, 0.5)
     b.mat("signw", SIGN_WHITE, 0.45)
+    b.mat("gravel", GRAVEL, 0.96)
+    b.mat("conc", CONC, 0.84)
+    b.mat("buoyy", BUOY_Y, 0.45)
+    b.mat("buoyw", BUOY_W, 0.4)
+
+
+def _glb_lod0_tris(path, ox, oz):
+    """World XZ triangles from a Class-B lod0 mesh. Positions are origin-relative floats."""
+    data = open(path, "rb").read()
+    if data[:4] != b"glTF":
+        return []
+    ln = struct.unpack_from("<I", data, 12)[0]
+    js = json.loads(data[20 : 20 + ln].decode("utf-8").rstrip())
+    boff = 20 + ln
+    bln = struct.unpack_from("<I", data, boff)[0]
+    blob = data[boff + 8 : boff + 8 + bln]
+    mesh = None
+    for m in js["meshes"]:
+        if str(m.get("name", "")).endswith("_lod0"):
+            mesh = m
+            break
+    if mesh is None:
+        return []
+    tris = []
+    for prim in mesh["primitives"]:
+        pa = js["accessors"][prim["attributes"]["POSITION"]]
+        ia = js["accessors"][prim["indices"]]
+        if pa.get("componentType") != 5126 or ia.get("componentType") not in (5123, 5125):
+            continue
+        pv = js["bufferViews"][pa["bufferView"]]
+        iv = js["bufferViews"][ia["bufferView"]]
+        stride = pv.get("byteStride") or 12
+        p0 = pv.get("byteOffset", 0) + pa.get("byteOffset", 0)
+        i0 = iv.get("byteOffset", 0) + ia.get("byteOffset", 0)
+        pos = []
+        for i in range(pa["count"]):
+            x, _y, z = struct.unpack_from("<fff", blob, p0 + i * stride)
+            pos.append((x + ox, z + oz))
+        ic = ia["count"]
+        fmt = "<" + ("H" if ia["componentType"] == 5123 else "I") * ic
+        idx = struct.unpack_from(fmt, blob, i0)
+        for t in range(0, ic, 3):
+            a, bp, c = pos[idx[t]], pos[idx[t + 1]], pos[idx[t + 2]]
+            span = max(
+                abs(a[0] - bp[0]),
+                abs(a[0] - c[0]),
+                abs(bp[0] - c[0]),
+                abs(a[1] - bp[1]),
+                abs(a[1] - c[1]),
+                abs(bp[1] - c[1]),
+            )
+            if span > 80:
+                continue
+            tris.append((a[0], a[1], bp[0], bp[1], c[0], c[1]))
+    return tris
+
+
+class XZIndex:
+    """Point-in-triangle on the horizontal projection. A small negative epsilon counts a graze."""
+
+    def __init__(self, tris, cell=4.0):
+        self.cell = cell
+        self.g = defaultdict(list)
+        for t in tris:
+            xs = (t[0], t[2], t[4])
+            zs = (t[1], t[3], t[5])
+            ix0 = math.floor((min(xs) - 0.3) / cell)
+            ix1 = math.floor((max(xs) + 0.3) / cell)
+            iz0 = math.floor((min(zs) - 0.3) / cell)
+            iz1 = math.floor((max(zs) + 0.3) / cell)
+            if (ix1 - ix0 + 1) * (iz1 - iz0 + 1) > 48:
+                continue
+            for ix in range(ix0, ix1 + 1):
+                for iz in range(iz0, iz1 + 1):
+                    self.g[(ix, iz)].append(t)
+
+    def hits(self, x, z, eps=-0.02):
+        cell = self.cell
+        for t in self.g.get((math.floor(x / cell), math.floor(z / cell)), ()):
+            ax, az, bx, bz, cx, cz = t
+            v0x, v0z = cx - ax, cz - az
+            v1x, v1z = bx - ax, bz - az
+            v2x, v2z = x - ax, z - az
+            d00 = v0x * v0x + v0z * v0z
+            d01 = v0x * v1x + v0z * v1z
+            d02 = v0x * v2x + v0z * v2z
+            d11 = v1x * v1x + v1z * v1z
+            d12 = v1x * v2x + v1z * v2z
+            den = d00 * d11 - d01 * d01
+            if abs(den) < 1e-10:
+                continue
+            inv = 1.0 / den
+            u = (d11 * d02 - d01 * d12) * inv
+            v = (d00 * d12 - d01 * d02) * inv
+            if u >= eps and v >= eps and u + v <= 1.0 - eps:
+                return True
+        return False
+
+
+def indexes_for(ids):
+    data = json.loads(open(MANIFEST, encoding="utf-8").read())
+    by = {e["id"]: e for e in data}
+    out = []
+    for hid in ids:
+        ent = by.get(hid)
+        path = os.path.join(HERO, f"{hid}.glb")
+        if not ent or not os.path.exists(path):
+            continue
+        tris = _glb_lod0_tris(path, ent["x"], ent["z"])
+        if tris:
+            out.append(XZIndex(tris))
+            print(f"overlap {hid} tris {len(tris)}")
+    return out
+
+
+def any_hit(indexes, x, z):
+    return any(g.hits(x, z) for g in indexes)
+
+
+def poly_hits(indexes, poly):
+    if not indexes:
+        return False
+    pts = [(p[0], p[1]) for p in poly]
+    ip = interior_point(poly)
+    if ip:
+        pts.append(ip)
+    n = len(poly)
+    for i in range(n):
+        a, bp = poly[i], poly[(i + 1) % n]
+        pts.append(((a[0] + bp[0]) * 0.5, (a[1] + bp[1]) * 0.5))
+    return any(any_hit(indexes, x, z) for x, z in pts)
+
+
+def rect_hits(indexes, x, z, hx, hz, yaw):
+    if not indexes:
+        return False
+    c, s = math.cos(yaw), math.sin(yaw)
+    pts = [(x, z)]
+    for lx in (-hx, 0.0, hx):
+        for lz in (-hz, 0.0, hz):
+            pts.append((x + lx * c - lz * s, z + lx * s + lz * c))
+    return any(any_hit(indexes, px, pz) for px, pz in pts)
+
+
+_GOLF = None
+
+
+def on_golf(x, z):
+    """Fairways stay east and south of the lighthouse hill. The coast shelves are clear."""
+    global _GOLF
+    if x < -8900.0 or z < -10280.0:
+        return False
+    if _GOLF is None:
+        data = json.load(open(os.path.join(REAL, "tds_golf.json")))
+        polys = []
+        for key in ("fairways", "greens", "tees", "bunkers", "water"):
+            for item in data.get(key) or []:
+                polys.append(item["o"])
+        _GOLF = polys
+    return any(inside(p, x, z) for p in _GOLF)
+
+
+def lot_blocked(x, z):
+    if on_golf(x, z):
+        return True
+    if math.hypot(x - MONUMENT[0], z - MONUMENT[1]) < MONUMENT[2]:
+        return True
+    for x0, x1, z0, z1 in LOT_BOXES:
+        if x0 <= x <= x1 and z0 <= z <= z1:
+            return True
+    return False
+
+
+def drape_pad(b, mat, x, z, step, lod, lo, hi):
+    hs = (
+        mesh_height(x, z),
+        mesh_height(x + step, z),
+        mesh_height(x + step, z + step),
+        mesh_height(x, z + step),
+    )
+    if min(hs) < lo or max(hs) > hi or max(hs) - min(hs) > 1.2:
+        return False
+    lift = 0.035 if lod == 0 else 0.05
+    b.quad(
+        lod,
+        mat,
+        [
+            (x, hs[0] + lift, z),
+            (x + step, hs[1] + lift, z),
+            (x + step, hs[2] + lift, z + step),
+            (x, hs[3] + lift, z + step),
+        ],
+        (0, 1, 0),
+    )
+    return True
+
+
+def add_lh_grounds(b, dunes):
+    """Gravel walk up the north side of the hill, and the west viewing terrace.
+
+    Stops short of the lot, the monument, the restaurant shell, and the golf course.
+    """
+    x = -8846.0
+    best = None
+    for shift in (0.0, -2.5, 2.5, -4.5, 4.5):
+        cx = x + shift
+        hits = 0
+        for z in range(-10446, -10388, 8):
+            if any_hit(dunes, cx, z) or lot_blocked(cx, z):
+                hits += 1
+        if best is None or hits < best[0]:
+            best = (hits, cx)
+        if hits == 0:
+            break
+    x = best[1]
+    n = 0
+    z = -10448.0
+    while z < -10388.0:
+        z1 = min(z + 4.0, -10388.0)
+        mid = (z + z1) * 0.5
+        if lot_blocked(x, mid) or any_hit(dunes, x, mid):
+            z = z1
+            continue
+        h0, h1 = mesh_height(x, z), mesh_height(x, z1)
+        if not (16.0 < h0 < 32.0 and 16.0 < h1 < 32.0):
+            z = z1
+            continue
+        # Flat tread: top at the uphill ground, nose standing above the downhill ground.
+        top = max(h0, h1) + 0.04
+        bot = min(h0, h1) - 0.02
+        if top - bot > 0.55:
+            bot = top - 0.55
+        b.box(0, "gravel", x - 0.95, bot, z, x + 0.95, top, z1)
+        if n % 2 == 0:
+            b.box(1, "gravel", x - 0.9, bot, z, x + 0.9, top, z1)
+        for side in (-1, 1):
+            wx = x + side * 1.25
+            base = min(h0, h1) - 0.04
+            crown = max(h0, h1) + 0.46
+            b.box(0, "lime", wx - 0.14, base, z, wx + 0.14, crown, z1)
+            if n % 2 == 0:
+                b.box(1, "lime", wx - 0.16, base, z, wx + 0.16, max(base + 0.2, crown - 0.12), z1)
+        n += 1
+        z = z1
+    cells = 0
+    # West of Faro Blanco's rail (rail reaches x=-8942). This pad is the lower overlook.
+    for zz in range(-10336, -10312, 4):
+        for xx in range(-8972, -8956, 4):
+            if lot_blocked(xx + 2, zz + 2) or any_hit(dunes, xx + 2, zz + 2):
+                continue
+            if drape_pad(b, "gravel", xx, zz, 4.0, 0, 16.0, 28.0):
+                drape_pad(b, "gravel", xx, zz, 4.0, 1, 16.0, 28.0)
+                cells += 1
+    for zz in range(-10336, -10312, 4):
+        wx = -8972.4
+        if lot_blocked(wx, zz + 2) or any_hit(dunes, wx, zz + 2):
+            continue
+        h0, h1 = mesh_height(wx, zz), mesh_height(wx, zz + 4)
+        if not (16.0 < h0 < 28.0 and 16.0 < h1 < 28.0):
+            continue
+        base = min(h0, h1) - 0.02
+        b.box(0, "lime", wx - 0.16, base, zz, wx + 0.16, max(h0, h1) + 0.52, zz + 4)
+        b.box(1, "lime", wx - 0.18, base, zz, wx + 0.18, max(h0, h1) + 0.38, zz + 4)
+    for bx, bz in ((-8964.0, -10330.0), (-8962.0, -10318.0)):
+        if lot_blocked(bx, bz) or any_hit(dunes, bx, bz):
+            continue
+        g = mesh_height(bx, bz)
+        if 16.0 < g < 28.0:
+            b.box(0, "plinth", bx - 0.7, g, bz - 0.26, bx + 0.7, g + 0.42, bz + 0.26)
+            b.box(1, "plinth", bx - 0.65, g, bz - 0.24, bx + 0.65, g + 0.36, bz + 0.24)
+    print("grounds walk", n, "at x", round(x, 1), "terrace", cells)
+
+
+def add_swim_buoy(b, x, z, scale=1.0):
+    b.cyl(0, "postw", x, -0.5 * scale, z, 0.045 * scale, 0.85 * scale, 0.04 * scale, 6)
+    b.cyl(0, "buoyy", x, 0.1 * scale, z, 0.24 * scale, 0.58 * scale, 0.24 * scale, 8)
+    b.cyl(0, "buoyw", x, 0.28 * scale, z, 0.26 * scale, 0.4 * scale, 0.26 * scale, 8)
+    b.box(1, "buoyy", x - 0.2 * scale, 0.08, z - 0.2 * scale, x + 0.2 * scale, 0.62 * scale, z + 0.2 * scale)
+
+
+def add_snorkel_notch(b, z, label):
+    """Two concrete treads, limestone cheeks, and a pair of swim buoys. Not a second cove stair."""
+    cx = coast_x(z)
+    if cx is None:
+        return
+    rf = road_frame(roads_hold, z)
+    found = None
+    x = cx + 3.0
+    while x < cx + 22.0:
+        h = mesh_height(x, z)
+        if 0.82 <= h <= 1.25:
+            found = x
+            break
+        x += 0.5
+    if found is None:
+        print("no notch", label)
+        return
+    if rf and found > rf[0] - rf[1] * 0.5 - 8.0:
+        print("notch too close to road", label)
+        return
+    if on_golf(found, z) or lot_blocked(found, z):
+        print("notch blocked", label)
+        return
+    prev = None
+    run = 1.15
+    placed = 0
+    for i in range(2):
+        x1 = found - i * run
+        x0 = x1 - run
+        back = mesh_height(x1, z)
+        top = back + 0.05
+        if prev is not None:
+            top = min(top, prev - 0.14)
+        if top < 0.22:
+            break
+        bot = max(top - 0.24, min(mesh_height(x0, z), back) - 0.06)
+        if top - bot < 0.12:
+            bot = top - 0.12
+        b.box(0, "conc", x0, bot, z - 1.15, x1, top, z + 1.15)
+        b.box(1, "conc", x0, bot, z - 1.05, x1, top, z + 1.05)
+        for side in (-1, 1):
+            zs = z + side * 1.38
+            b.box(0, "lime" if side < 0 else "limed", x0, bot, zs - 0.2, x1, top + 0.26, zs + 0.2)
+        prev = top
+        placed += 1
+    sx = found - placed * run - 0.3
+    stop = 0.2
+    sbot = min(mesh_height(sx, z), 0.0) - 0.06
+    if stop - sbot >= 0.12:
+        b.box(0, "wet", sx - 1.2, sbot, z - 0.95, sx + 0.15, stop, z + 0.95)
+        b.box(1, "wet", sx - 0.9, sbot, z - 0.75, sx, stop, z + 0.75)
+    bx = cx - 1.0
+    while bx > cx - 28.0 and mesh_height(bx, z) > 0.02:
+        bx -= 1.0
+    add_swim_buoy(b, bx - 2.5, z - 2.0)
+    add_swim_buoy(b, bx - 1.2, z + 2.4, 0.85)
+    print("notch", label, round(found, 1), z, "treads", placed, "buoy x", round(bx, 1))
 
 
 def build():
@@ -1185,7 +1545,20 @@ def build():
             continue
         bld["p"] = poly
         houses.append(bld)
-    print("houses", len(houses))
+    # #38 already built the villa row and the Arashi huts. A footprint that
+    # lands on either mesh would draw a second building in the same place.
+    overlap = indexes_for(("nw_villas", "nw_arashi"))
+    dropped = []
+    kept_houses = []
+    for h in houses:
+        if poly_hits(overlap, h["p"]):
+            dropped.append(h["i"])
+            continue
+        kept_houses.append(h)
+    houses = kept_houses
+    print("houses", len(houses), "dropped overlap", len(dropped), dropped)
+    if not houses:
+        raise SystemExit("every house overlapped an existing hero")
 
     hx = sum(h["cx"] for h in houses) / len(houses)
     hz = sum(h["cz"] for h in houses) / len(houses)
@@ -1222,8 +1595,12 @@ def build():
         bx, bz = cx + 16.0, cz
         # Face the open side toward the sea (local -z ~ west, -x).
         # Local -z is the open side. Point it west, at the water.
-        add_bar(nb, bx, bz, yaw=math.atan2(-1.0, -0.08))
-        print("arashi bar", round(bx, 1), round(bz, 1), "h", round(mesh_height(bx, bz), 2))
+        byaw = math.atan2(-1.0, -0.08)
+        if rect_hits(overlap, bx, bz, 4.8, 3.4, byaw):
+            print(" skip arashi bar overlap", round(bx, 1), round(bz, 1))
+        else:
+            add_bar(nb, bx, bz, yaw=byaw)
+            print("arashi bar", round(bx, 1), round(bz, 1), "h", round(mesh_height(bx, bz), 2))
     rf = road_frame(roads_hold, -9888)
     if rf:
         inn = inland_normal(rf[3], rf[4])
@@ -1240,6 +1617,10 @@ def build():
         yaw = face_yaw(inn[0], inn[1])
         add_sign(nb, ["LIGHTHOUSE"], sx, sz, yaw, "signu", "signw", chevron=True)
         print("lighthouse sign", round(sx, 1), round(sz, 1), rf[2])
+    dunes = indexes_for(("nw_lh_dunes",))
+    add_lh_grounds(nb, dunes)
+    # North of the Arashi palapa field. Tres Trapi, Boca, and the Malmok cove already have their own stairs.
+    add_snorkel_notch(nb, -10072.0, "arashi")
     ntris = nb.save(os.path.join(HERO, "nw_shore_north.glb"), "nw_shore_north")
     print("north tris", ntris)
 
@@ -1267,6 +1648,9 @@ def build():
         # Open side is local -z. atan2(-1, -0.08) aims that side west, toward the sea.
         roofs = ("thatch", "tin", "rust", "thatch")
         yaw = math.atan2(-1.0, -0.08) + ((i % 3) - 1) * 0.05
+        if rect_hits(overlap, x, z, 2.6, 2.2, yaw):
+            print(" skip hut overlap", round(x, 1), z)
+            continue
         add_hut(sb, x, z, yaw, f"hut{i % len(HUT_C)}", roofs[i % 4])
         hut_n += 1
         print(" hut", round(x, 1), z, "h", round(h, 2))
@@ -1275,8 +1659,14 @@ def build():
     cx = coast_x(cz)
     if cx:
         bx = cx + 14
-        add_bar(sb, bx, cz, math.atan2(-1.0, -0.08))
-        print("huts bar", round(bx, 1), cz, "h", round(mesh_height(bx, cz), 2))
+        byaw = math.atan2(-1.0, -0.08)
+        if rect_hits(overlap, bx, cz, 4.8, 3.4, byaw):
+            print(" skip huts bar overlap", round(bx, 1), cz)
+        else:
+            add_bar(sb, bx, cz, byaw)
+            print("huts bar", round(bx, 1), cz, "h", round(mesh_height(bx, cz), 2))
+    # South of the villa band, north of the Malmok cove stair.
+    add_snorkel_notch(sb, -9012.0, "malmok")
     rf = road_frame(roads_hold, -7288)
     if rf:
         inn = inland_normal(rf[3], rf[4])
@@ -1296,13 +1686,18 @@ def build():
         "Western shoreline Arashi to the California Lighthouse road. "
         "White dune sand from File:California lighthouse Aruba Arashi beach 2.jpg; "
         "wet limestone and cliff rock at Boca Catalina; "
-        "Bugaloe-style open thatch bar on the Arashi sand, not the De Palm Pier bar"
+        "Bugaloe-style open thatch bar on the Arashi sand, not the De Palm Pier bar. "
+        "California Lighthouse grounds: a gravel walk with low limestone walls up the north side of the hill, "
+        "stopping short of the existing lot, monument, and Faro Blanco shell; a stone overlook west of the restaurant rail. "
+        "Arashi snorkel notch: two concrete treads and yellow swim buoys on the shelf north of the palapas. "
+        "The golf course is not touched"
     )
     refs_s = (
         "Malmok rocky shelf (Visit Aruba: narrow ironshore, sand pockets) and "
         "Fisherman's Huts / Hadicurari. Pale sand, dark inshore boulders and a low "
         "limestone wall from File:Hadicurari Beach Palm Beach View Noord Aruba.jpg; "
-        "painted timber huts and a thatch beach bar on the sand seaward of the sail rack"
+        "painted timber huts and a thatch beach bar on the sand seaward of the sail rack. "
+        "Malmok snorkel notch: two treads and swim buoys on the shelf south of the villa row and north of the cove stair"
     )
     entries = [
         entry("nw_shore_houses", hx, hz, htris, 750, refs_h, hides),
