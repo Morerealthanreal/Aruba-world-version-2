@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import math
 import struct
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -37,13 +38,13 @@ FONT_REG = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 PASTELS = [
     (0.97, 0.62, 0.74),  # pink
     (0.98, 0.84, 0.38),  # yellow
-    (0.96, 0.93, 0.84),  # cream
+    (0.62, 0.42, 0.20),  # warm cream — sand plaster, not a white slab
     (0.50, 0.80, 0.72),  # mint
     (0.98, 0.70, 0.46),  # peach
     (0.52, 0.74, 0.90),  # sky
     (0.90, 0.50, 0.58),  # rose
     (0.78, 0.70, 0.92),  # lilac
-    (0.98, 0.90, 0.62),  # butter
+    (0.74, 0.52, 0.18),  # butter, deep enough to stay yellow in the sun
     (0.64, 0.84, 0.55),  # leaf
 ]
 WHITE = (0.96, 0.95, 0.92)
@@ -1720,11 +1721,13 @@ def build_skyline(road_smith):
     paint = Prim()
     pieces = []
     specs = [
-        ("royalplaza", (0.98, 0.62, 0.76), 1, 9.2),
-        ("renmall", (0.95, 0.78, 0.32), 2, 8.4),
+        # Stepped gables clear the pink roof so the street face matches the
+        # harbour photo: tall white-trimmed peaks, not a flat parapet.
+        ("royalplaza", (0.93, 0.52, 0.68), 0, 11.8, 1.45),
+        ("renmall", (0.95, 0.78, 0.32), 2, 8.4, 0.72),
     ]
     ox = oz = None
-    for hid, color, kind, eave_h in specs:
+    for hid, color, kind, eave_h, gscale in specs:
         hero = next(e for e in manifest if e["id"] == hid)
         fp = hero.get("hide_footprint")
         if not fp or len(fp) < 3:
@@ -1743,7 +1746,7 @@ def build_skyline(road_smith):
         for k in range(n):
             aa = (a[0] + dx * L * k / n, a[1] + dz * L * k / n)
             bb = (a[0] + dx * L * (k + 1) / n, a[1] + dz * L * (k + 1) / n)
-            parapet(paint, aa, bb, outward, eave, color, WHITE, (ox, oz), height_at(ox, oz), kind, scale=0.72)
+            parapet(paint, aa, bb, outward, eave, color, WHITE, (ox, oz), height_at(ox, oz), kind, scale=gscale)
         # teal awning band under the gables (Royal Plaza) / orange roof lip
         if hid == "royalplaza":
             nx, nz = outward
@@ -1839,6 +1842,11 @@ def manifest_entry(gid, name, x, z, tris, textures, hide, switch):
 
 
 def main():
+    only = {a for a in sys.argv[1:] if not a.startswith("-")}
+
+    def want(name):
+        return not only or name in only
+
     ped_lines, smith_lines = load_roads()
     # Use only the pedestrian-tagged ways for the shop wall. The named road
     # continues for kilometres; the tourist street is the paved pedestrian part.
@@ -1856,11 +1864,13 @@ def main():
     buildings = load_buildings()
     blockers = hero_blockers()
     landmarks = json.loads(LANDMARKS.read_text())
-    picked = select_mainstreet(buildings, ped, blockers, landmarks)
-    print("shops:", ", ".join(b["sign_name"] or "(facade)" for b in picked))
-    print(f"main street facades: {len(picked)}")
-    groups = chunk_buildings(picked)
     entries = []
+    picked = []
+    if want("gables"):
+        picked = select_mainstreet(buildings, ped, blockers, landmarks)
+        print("shops:", ", ".join(b["sign_name"] or "(facade)" for b in picked))
+        print(f"main street facades: {len(picked)}")
+    groups = chunk_buildings(picked) if picked else []
     # one atlas shared logically but each glb embeds its own copy (phone: 1 image each)
     for i, group in enumerate(groups):
         atlas = Atlas()
@@ -1892,24 +1902,27 @@ def main():
     # Fort Zoutman, Penha and the cruise terminal stay as already shipped.
     # Rebuilding them would need a bundle cache bump; the review left the fort as-is.
 
-    park, (px, pz) = build_park()
-    data, tris = park.pack()
-    (HERO / "wilhelmina_plaza.glb").write_bytes(data)
-    print("park", tris)
-    entries.append(
-        manifest_entry(
-            "wilhelmina_plaza",
-            "Wilhelmina Park",
-            px,
-            pz,
-            tris,
-            1,
-            [],
-            420,
+    if want("park"):
+        park, (px, pz) = build_park()
+        data, tris = park.pack()
+        (HERO / "wilhelmina_plaza.glb").write_bytes(data)
+        print("park", tris)
+        entries.append(
+            manifest_entry(
+                "wilhelmina_plaza",
+                "Wilhelmina Park",
+                px,
+                pz,
+                tris,
+                1,
+                [],
+                420,
+            )
         )
-    )
 
-    sky, origin = build_skyline(smith)
+    sky, origin = (None, None)
+    if want("crowns"):
+        sky, origin = build_skyline(smith)
     if sky:
         sky.name = "ora_crowns"
         data, tris = sky.pack()
@@ -1944,8 +1957,9 @@ def main():
         else:
             manifest.append(ent)
             by_id[ent["id"]] = ent
-    MANIFEST.write_text(json.dumps(manifest, indent=1))
-    cleared = clear_shop_signs(picked)
+    if real_entries:
+        MANIFEST.write_text(json.dumps(manifest, indent=1))
+    cleared = clear_shop_signs(picked) if picked else 0
     print(f"manifest heroes written, shop billboards cleared: {cleared}")
 
 
