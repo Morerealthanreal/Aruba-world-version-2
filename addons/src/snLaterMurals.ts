@@ -44,8 +44,8 @@ export class SnLaterMurals {
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       polygonOffset: true,
-      polygonOffsetFactor: -4,
-      polygonOffsetUnits: -4,
+      polygonOffsetFactor: -8,
+      polygonOffsetUnits: -8,
     });
     const mesh = new THREE.Mesh(this.geometry(doc.murals, null), mat);
     mesh.name = "aw:sn-later-murals";

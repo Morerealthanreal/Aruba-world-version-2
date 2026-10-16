@@ -17,7 +17,7 @@ OUT_IMG = ROOT / "game" / "textures" / "sn_later_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_later_murals.json"
 
 V_LIFT = 0.08
-NORM = 0.10
+NORM = 0.18
 
 
 def _smear(canvas: Image.Image, im: Image.Image, x0: int, x1: int, side: str) -> None:
@@ -38,7 +38,30 @@ def _field(rgb, w: int, h: int, seed: int) -> Image.Image:
     return Image.fromarray(np.broadcast_to(a, (h, w, 3)).copy())
 
 
-def fit(path: Path, tw: int, th: int, flip: bool = False, crop=None, mode: str = "exact", field=None) -> Image.Image:
+def _edge_field(im: Image.Image, side: str, w: int, h: int) -> Image.Image:
+    """A soft continuation of the painting's own edge, with no repeated detail."""
+    sw = max(8, im.width // 24)
+    strip = im.crop((0, 0, sw, im.height) if side == "l" else (im.width - sw, 0, im.width, im.height))
+    col = strip.resize((1, h), Image.Resampling.BOX)
+    return col.resize((w, h), Image.Resampling.BILINEAR)
+
+
+def _paste_fade(canvas: Image.Image, im: Image.Image, x: int, fade: int) -> None:
+    if fade <= 0 or im.width < fade * 2:
+        canvas.paste(im, (x, 0))
+        return
+    overlay = im.convert("RGBA")
+    mask = Image.new("L", im.size, 255)
+    px = mask.load()
+    for i in range(fade):
+        a = int(255 * (i + 1) / fade)
+        for y in range(im.height):
+            px[i, y] = a
+            px[im.width - 1 - i, y] = a
+    canvas.paste(overlay, (x, 0), mask)
+
+
+def fit(path: Path, tw: int, th: int, flip: bool = False, crop=None, mode: str = "exact", field=None, panels=None) -> Image.Image:
     im = Image.open(path).convert("RGB")
     if crop:
         w, h = im.size
@@ -61,13 +84,33 @@ def fit(path: Path, tw: int, th: int, flip: bool = False, crop=None, mode: str =
             _smear(canvas, im, 0, x0, "l")
         if x0 + nw < tw:
             _smear(canvas, im, x0 + nw, tw, "r")
+    elif mode == "edge":
+        if x0 > 0:
+            canvas.paste(_edge_field(im, "l", x0, th), (0, 0))
+        if x0 + nw < tw:
+            canvas.paste(_edge_field(im, "r", tw - (x0 + nw), th), (x0 + nw, 0))
+    elif mode == "panels" and panels:
+        def panel(slot, span, crop):
+            pic = Image.open(SRC / slot).convert("RGB")
+            if crop:
+                pw, ph = pic.size
+                l, t, r, b = crop
+                pic = pic.crop((int(l * pw), int(t * ph), int(r * pw), int(b * ph)))
+            return pic.resize((span, th), Image.Resampling.LANCZOS)
+        if x0 > 0:
+            canvas.paste(panel(panels["left"], x0, panels.get("left_crop")), (0, 0))
+        if x0 + nw < tw:
+            canvas.paste(panel(panels["right"], tw - (x0 + nw), panels.get("right_crop")), (x0 + nw, 0))
     else:
         rgb = field or (40, 40, 40)
         if x0 > 0:
             canvas.paste(_field(rgb, x0, th, 1), (0, 0))
         if x0 + nw < tw:
             canvas.paste(_field(rgb, tw - (x0 + nw), th, 2), (x0 + nw, 0))
-    canvas.paste(im, (x0, 0))
+    if mode == "panels":
+        _paste_fade(canvas, im, x0, 36)
+    else:
+        canvas.paste(im, (x0, 0))
     return canvas
 
 
@@ -139,9 +182,13 @@ def walls_of(b):
 
 
 def viewer_right_flip(w) -> bool:
-    """True when image-right would otherwise land on the viewer's left."""
+    """True when image-right would land on the viewer's left.
+
+    The viewer stands on the street side, facing against the outward normal.
+    Their right is the clockwise perpendicular of that normal.
+    """
     dx, dz = w["bx"] - w["ax"], w["bz"] - w["az"]
-    rx, rz = -w["oz"], w["ox"]
+    rx, rz = w["oz"], -w["ox"]
     return dx * rx + dz * rz < 0
 
 
@@ -196,8 +243,13 @@ SPECS = [
         "address": "Doormanstraat face, pin across the street from Piet Heinstraat corner",
         "bld": 9075, "wall": 0,
         "src": "later-defender.jpg",
-        "mode": "field",
-        "field": (18, 10, 28),
+        "mode": "panels",
+        "panels": {
+            "left": "later-defender-left.jpg",
+            "right": "later-defender-right.jpg",
+            "left_crop": (0.42, 0.0, 1.0, 1.0),
+            "right_crop": (0.0, 0.05, 0.72, 0.95),
+        },
         "viewer_right": True,
         "world_h": 3.00,
         "ph": 250,
@@ -216,7 +268,7 @@ SPECS = [
         "src": "later-grace.jpg",
         "mode": "exact",
         "viewer_right": True,
-        "world_h": 6.40,
+        "world_h": 6.77,
         "ph": 320,
         "sources": [
             "Street Art Cities marker 81b840ae-c952-4c2b-8829-51537a3d2a7c (12.4358275, -69.9109539), Arubus stop at the San Nicolas police station, Kazernestraat, created 21 Sep 2024",
@@ -286,7 +338,10 @@ def main():
         face = place(spec, w)
         flip = viewer_right_flip(w) if spec.get("viewer_right") else spec.get("flip", False)
         tw = int(round(spec["ph"] * face["width"] / spec["world_h"]))
-        im = fit(SRC / spec["src"], tw, spec["ph"], flip, spec.get("crop"), spec.get("mode", "exact"), spec.get("field"))
+        im = fit(
+            SRC / spec["src"], tw, spec["ph"], flip, spec.get("crop"),
+            spec.get("mode", "exact"), spec.get("field"), spec.get("panels"),
+        )
         images.append(im)
         placed.append({
             "spec": spec, "face": face, "bld_h": float(b.get("h") or 3.4),
