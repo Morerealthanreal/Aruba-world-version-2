@@ -17,8 +17,14 @@ print("| metric | before | after |\n|---|---|---|")
 row("frames", lambda d: d["frames"])
 for k in ["p50", "p95", "p99", "max", "over33", "over50"]:
     row("CPU frame task " + k + (" (ms)" if k[0] in "pm" else " (frames)"), lambda d, k=k: d["nonGl"][k])
-for k in ["p50", "p95", "p99", "max", "over50"]:
+for k in ["p50", "p95", "p99", "max", "over33", "over50"]:
     row("raw frame task incl. GL " + k, lambda d, k=k: d["cbt"][k])
+if "gap" in b or "gap" in n:
+    for k in ["p50", "p95", "p99", "max", "over33", "over50"]:
+        row("frame gap " + k, lambda d, k=k: d.get("gap", {}).get(k, "-"))
+row("shader compile total / max ms", lambda d: f"{d.get('glc', {}).get('total', '-')} / {d.get('glc', {}).get('max', '-')}")
+row("texture upload total / max ms", lambda d: f"{d.get('glu', {}).get('total', '-')} / {d.get('glu', {}).get('max', '-')}")
+row("draw spikes (calls>1500)", lambda d: d.get("drawSpikes", "-"))
 row("draw calls avg / max", lambda d: f"{d['calls']['avg']} / {d['calls']['max']}")
 row("triangles avg", lambda d: d["tris"]["avg"])
 row("alloc MB/frame", lambda d: d.get("allocMBperFrame", d.get("alloc", "-")))

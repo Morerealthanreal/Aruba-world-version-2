@@ -22,7 +22,9 @@ export class JobPump {
   /** call once per animation frame */
   frame() {
     const A = this.g.real as unknown as A;
-    if (this.pending || !A.queue.length) return;
+    // shader finalization and a half-finished fold have to run even after the tile queue drains,
+    // still outside the animation callback
+    if (this.pending || (!A.queue.length && !this.followUp())) return;
     this.pending = true;
     this.ch.port2.postMessage(0);
   }
@@ -43,7 +45,13 @@ export class JobPump {
       A.queue.shift();
       this.ord.set(e.R, slot + 1);
       const tj = performance.now();
-      if (A.regions.get(e.R.rx + "," + e.R.rz) === e.R) { try { e.f(); } catch (err) { console.error("[aw-jobs]", err); } }
+      if (A.regions.get(e.R.rx + "," + e.R.rz) === e.R) {
+        try { e.f(); } catch (err) { console.error("[aw-jobs]", err); }
+        // hide the meshes this job just added; afterJobs copies them before the next paint
+        const aw = (window as unknown as { __aw?: Aw }).__aw;
+        aw?.bbatch?.touch?.(e.R);
+        aw?.perf?.inst?.touch?.(e.R);
+      }
       const dtj = performance.now() - tj;
       this.cost[slot] = this.cost[slot] ? this.cost[slot] * 0.7 + dtj * 0.3 : dtj;
       if (dtj > this.stats.maxJob) this.stats.maxJob = dtj;
@@ -51,5 +59,22 @@ export class JobPump {
     }
     const ms = performance.now() - t0;
     this.stats.ticks++; if (ms > this.stats.maxMs) this.stats.maxMs = ms;
+    const aw = (window as unknown as { __aw?: Aw }).__aw;
+    // copy concealed cells / kits into batches before the next paint, then finalize programs
+    aw?.bbatch?.afterJobs?.();
+    aw?.perf?.inst?.afterJobs?.(A.regions);
+    aw?.mperf?.afterJobs?.();
+  }
+  private followUp() {
+    const aw = (window as unknown as { __aw?: Aw }).__aw;
+    if (!aw) return false;
+    if ((aw.mperf?.pending?.() || 0) > 0) return true;
+    if ((aw.perf?.inst?.pending?.() || 0) > 0) return true;
+    return false;
   }
 }
+type Aw = {
+  mperf?: { afterJobs?: () => void; pending?: () => number };
+  bbatch?: { touch?: (r: object) => void; afterJobs?: () => void };
+  perf?: { inst?: { touch?: (r: object) => void; afterJobs?: (regions: Map<string, unknown>) => void; pending?: () => number } };
+};

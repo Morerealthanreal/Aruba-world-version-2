@@ -13,12 +13,15 @@
 // r192: with pools (instPool.ts, default on, ?ipool=0 off) the buckets of every region that share a
 // (kind, geometry, material) draw from one InstancedMesh instead of one per region.
 import { InstancedBufferAttribute, InstancedMesh, Matrix4, type BufferGeometry, type Material, type Object3D } from "three";
-import { Pool } from "./instPool";
+import { Pool, touchRange } from "./instPool";
 
 type IM = Object3D & { isInstancedMesh: true; count: number; geometry: BufferGeometry; material: Material; instanceMatrix: { array: Float32Array }; instanceColor: { array: Float32Array } | null };
 type Q = Record<string, unknown>;
 type Bucket = { kind: string; im: InstancedMesh | null; pool?: Pool; mats: Float32Array; cols: Float32Array | null; cx: Float32Array; cz: Float32Array; n: number; box: [number, number, number, number] };
-type Reg = { state: string; group?: Object3D; __awInst?: Bucket[] };
+type Reg = {
+  state: string; group?: Object3D; __awInst?: Bucket[];
+  __awFold?: number; __awFoldDone?: boolean; __awHid?: Object3D[]; __awHideStack?: Object3D[];
+};
 
 const KINDS = new Set(["bld:kit", "parked", "parkedHi", "props"]);
 
@@ -29,14 +32,44 @@ export class TileInstances {
   private dirty = new Set<Reg>();
   private pools = new Map<string, Pool>();
   private dirtyPools = new Set<Pool>();
+  private open = new Set<Reg>();
   constructor(private q: Q, private poolParent: Object3D | null = null) {}
 
   private job: { r: Reg; stack: Object3D[]; groups: Map<string, IM[]>; seen: Set<Object3D>; lists: IM[][] | null; i: number; out: Bucket[] } | null = null;
-  /** Fold one built region: walk its graph, then a few instance groups per call, within `budget` ms. Returns true when the region is done. */
+  /** A region job just added kits / parked cars / props. Hide them until this fold copies them,
+   *  so a freshly streamed block never draws thousands of individual instanced meshes. */
+  touch(r: Reg) {
+    if (!r?.group || r.__awFoldDone) return;
+    this.open.add(r);
+    r.__awFold = (r.__awFold || 0) + 1;
+    r.__awHideStack = [r.group];
+    this.conceal(r);
+  }
+  /** Fold regions a job just touched. Called from the tile pump, before the next paint. */
+  afterJobs(regions: Map<string, Reg>) {
+    const t0 = performance.now();
+    let guard = 0;
+    while (performance.now() - t0 < 8 && guard++ < 6) {
+      let fr = this.job?.r;
+      if (fr && (fr.__awFoldDone || !fr.group?.parent)) { this.job = null; fr = undefined; }
+      if (!fr) for (const r of regions.values()) {
+        if (r.__awFoldDone || !r.group?.parent) continue;
+        if (r.__awFold || r.__awHideStack) { fr = r; break; }
+      }
+      if (!fr) break;
+      this.conceal(fr);
+      const before = fr.__awFold || 0;
+      this.fold(fr, Math.max(0.5, 8 - (performance.now() - t0)));
+      if (this.job?.r === fr) break; // still walking this region; the budget is spent
+      if ((fr.__awFold || 0) === before && !fr.__awHideStack) break;
+    }
+  }
+  /** Fold one region, including while it is still streaming. Returns true once a built region is fully folded. */
   fold(r: Reg, budget = 1e9): boolean {
-    if (r.__awInst || r.state !== "built" || !r.group) return false;
+    if (r.__awFoldDone || !r.group) return false;
     let j = this.job;
-    if (!j || j.r !== r) j = this.job = { r, stack: [r.group], groups: new Map(), seen: new Set(), lists: null, i: 0, out: [] };
+    const gen = r.__awFold || 0;
+    if (!j || j.r !== r) j = this.job = { r, stack: [r.group], groups: new Map(), seen: new Set(), lists: null, i: 0, out: r.__awInst || [] };
     const t0 = performance.now();
     if (!j.lists) {
       if (!this.gather(j, t0, budget)) return false;
@@ -50,7 +83,38 @@ export class TileInstances {
     this.job = null;
     r.__awInst = j.out;
     if (!this.poolParent) this.dirty.add(r);
+    this.live.add(r);
+    // a job that landed during the walk added meshes this pass did not see
+    if ((r.__awFold || 0) !== gen || r.__awHideStack) return false;
+    this.release(r);
+    r.__awFold = 0;
+    this.open.delete(r);
+    if (r.state !== "built") return false;
+    r.__awFoldDone = true;
     return true;
+  }
+  private conceal(r: Reg) {
+    const stack = r.__awHideStack;
+    if (!stack || !stack.length || !r.group) { r.__awHideStack = undefined; return; }
+    const hid = r.__awHid || (r.__awHid = []);
+    const t0 = performance.now();
+    let n = 0;
+    while (stack.length && n < 8000 && performance.now() - t0 < 3) {
+      const o = stack.pop()!;
+      const ch = o.children;
+      for (let i = ch.length - 1; i >= 0; i--) stack.push(ch[i]);
+      const m = o as IM;
+      n++;
+      if (m.isInstancedMesh && KINDS.has(m.name) && m.visible && m.count !== 0) { m.visible = false; hid.push(m); }
+    }
+    if (!stack.length) r.__awHideStack = undefined;
+  }
+  /** Singletons (nothing to fold) and anything still parented go back to drawing. Folded meshes are already detached. */
+  private release(r: Reg) {
+    const hid = r.__awHid;
+    if (!hid) return;
+    for (const m of hid) if (m.parent) m.visible = true;
+    hid.length = 0;
   }
   /** pre-order walk (traverse's order) of the region graph in budgeted steps; true when complete */
   private gather(j: NonNullable<TileInstances["job"]>, t0: number, budget: number) {
@@ -99,6 +163,7 @@ export class TileInstances {
         if (!pool) this.pools.set(key, (pool = new Pool(f.geometry, f.material, { name: "aw:inst:" + f.name, castShadow: f.castShadow, receiveShadow: f.receiveShadow, colored: !!cols }, this.poolParent)));
         const b: Bucket = { kind: f.name, im: null, pool, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] };
         pool.add(b); this.dirtyPools.add(pool);
+        if (pool.im) primeMesh(pool.im);
         for (const m of list) { m.parent?.remove(m); this.folded++; }
         out.push(b); this.buckets++;
         return;
@@ -111,6 +176,7 @@ export class TileInstances {
       im.count = 0;
       im.visible = false;
       if (cols) im.instanceColor = new InstancedBufferAttribute(new Float32Array(n * 3), 3);
+      primeMesh(im);
       r.group!.add(im as unknown as Object3D);
       for (const m of list) { m.parent?.remove(m); this.folded++; }
       out.push({ kind: f.name, im, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] });
@@ -148,19 +214,26 @@ export class TileInstances {
         b.im.count = c;
         b.im.visible = c > 0;
         if (c > 0) {
-          b.im.instanceMatrix.clearUpdateRanges(); b.im.instanceMatrix.addUpdateRange(0, c * 16); b.im.instanceMatrix.needsUpdate = true;
-          if (b.im.instanceColor) { b.im.instanceColor.clearUpdateRanges(); b.im.instanceColor.addUpdateRange(0, c * 3); b.im.instanceColor.needsUpdate = true; }
+          const mr = (b as unknown as { _mr?: { start: number; count: number }; _cr?: { start: number; count: number } });
+          touchRange(b.im.instanceMatrix as unknown as { updateRanges: { start: number; count: number }[]; needsUpdate: boolean }, mr._mr || (mr._mr = { start: 0, count: 0 }), c * 16);
+          if (b.im.instanceColor) touchRange(b.im.instanceColor as unknown as { updateRanges: { start: number; count: number }[]; needsUpdate: boolean }, mr._cr || (mr._cr = { start: 0, count: 0 }), c * 3);
         }
       }
     }
   }
 
+  pending() { return this.open.size + (this.job ? 1 : 0); }
   private live = new Set<Reg>();
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
     if (this.job && (!this.job.r.group || !this.job.r.group.parent)) { this.live.add(this.job.r); this.job.r.__awInst = this.job.out; this.job = null; }
-    const fr = this.job ? this.job.r : [...regions.values()].find((r) => !r.__awInst && r.state === "built");
-    if (fr && this.fold(fr, 3)) this.live.add(fr); // one region at a time, sliced
+    let fr = this.job ? this.job.r : undefined;
+    if (fr && (fr.__awFoldDone || !fr.group?.parent)) { this.job = null; fr = undefined; }
+    if (!fr) for (const r of regions.values()) {
+      if (r.__awFoldDone || !r.group?.parent) continue;
+      if (r.state === "built" || r.__awFold || r.__awHideStack) { fr = r; break; }
+    }
+    if (fr) this.fold(fr, 3); // one region at a time, sliced; the pump folds a fresh job before the next paint
     // regions A disposed (disposeRegion detaches the group): free our instance buffers / leave the pools
     for (const r of this.live) if (!r.group || !r.group.parent) {
       for (const b of r.__awInst || []) { if (b.im) b.im.dispose(); if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); } }
@@ -174,4 +247,8 @@ export class TileInstances {
     for (const r of this.dirty) this.cull(r, this.lastX, this.lastZ);
     this.dirty.clear();
   }
+}
+function primeMesh(o: Object3D) {
+  const mp = (window as unknown as { __aw?: { mperf?: { prime: (o: Object3D) => void } } }).__aw?.mperf;
+  if (mp) { try { mp.prime(o); } catch { /* warm-up is best-effort */ } }
 }

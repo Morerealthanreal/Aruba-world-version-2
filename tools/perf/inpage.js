@@ -24,13 +24,16 @@
     }
   });
   M.endFrame = (c) => {
+    // wall time from this frame's first callback to the next frame: includes the MessageChannel
+    // tile jobs that run after the rAF callbacks and delay the next paint
+    c.gap = now() - c.t0;
     c.heap1 = performance.memory ? performance.memory.usedJSHeapSize : 0;
     c.calls = R.info.render.calls; c.tris = R.info.render.triangles;
     R.info.reset();
     if (!M.rec) return;
     let cbt = 0; for (const k in c.cb) cbt += c.cb[k];
     c.cbt = cbt;
-    M.frames.push({ f: c.f, cbt, cb: c.cb, fn: c.fn, calls: c.calls, tris: c.tris, dh: c.heap1 - c.heap0, glc: c.glc || 0, glu: c.glu || 0, up: c.up || null, progs: R.info.programs ? R.info.programs.length : 0, x: g.S.car.x, z: g.S.car.z, q: A.queue.length });
+    M.frames.push({ f: c.f, cbt, cb: c.cb, fn: c.fn, calls: c.calls, tris: c.tris, dh: c.heap1 - c.heap0, glc: c.glc || 0, glu: c.glu || 0, up: c.up || null, progs: R.info.programs ? R.info.programs.length : 0, x: g.S.car.x, z: g.S.car.z, q: A.queue.length, gap: c.gap || 0 });
   };
   R.info.autoReset = false;
   // ---- time in texture/buffer uploads (first use of a texture/geometry)

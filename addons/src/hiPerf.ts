@@ -10,6 +10,8 @@
 import type { AGame } from "./env";
 
 type Pass = { setSize(w: number, h: number): void; updateGtaoMaterial(p: object): void; updatePdMaterial(p: object): void };
+type M = { alphaTest: number; transparent: boolean; alphaToCoverage: boolean; needsUpdate: boolean };
+type N = { material?: M | M[]; children: N[] };
 export class HiPerf {
   on = false; private n = 0;
   stats = { aoHalf: false, shadowEvery: 1, a2c: 0 };
@@ -29,23 +31,32 @@ export class HiPerf {
     }
     this.stats.shadowEvery = 2;
   }
-  private a2c = new WeakSet<object>(); private scanT = 0;
+  private a2c = new WeakSet<object>(); private stack: N[] = [];
   // foliage/props use alpha-tested cutouts: at ~1.3x DPR their edges stair-step and shimmer.
   // HIGH already renders into a 4x MSAA target, so alpha-to-coverage turns those edges into
-  // 4-level coverage for free (one recompile per material, new materials picked up every 3 s).
+  // 4-level coverage for free. One material flips per frame (each flip recompiles); the walk
+  // resumes, so a newly streamed cutout is picked up without a full-scene hitch.
   private coverage() {
-    type M = { alphaTest: number; transparent: boolean; alphaToCoverage: boolean; needsUpdate: boolean };
-    (this.g.scene as unknown as { traverse(f: (o: { material?: M | M[] }) => void): void }).traverse((o) => {
-      const ms = o.material; if (!ms) return;
+    if (!this.stack.length) this.stack.push(this.g.scene as unknown as N);
+    const t0 = performance.now();
+    let n = 0;
+    while (this.stack.length && n < 300 && performance.now() - t0 < 0.6) {
+      const o = this.stack.pop()!;
+      const ch = o.children; for (let i = 0; i < ch.length; i++) this.stack.push(ch[i]);
+      const ms = o.material; if (!ms) { n++; continue; }
       for (const m of Array.isArray(ms) ? ms : [ms]) {
         if (this.a2c.has(m)) continue; this.a2c.add(m);
-        if (m.alphaTest > 0 && !m.transparent && !m.alphaToCoverage) { m.alphaToCoverage = true; m.needsUpdate = true; this.stats.a2c++; }
+        if (m.alphaTest > 0 && !m.transparent && !m.alphaToCoverage) {
+          m.alphaToCoverage = true; m.needsUpdate = true; this.stats.a2c++;
+          return; // one recompile this frame; the walk resumes next frame
+        }
       }
-    });
+      n++;
+    }
   }
   frame() {
     if (!this.on) return;
-    if (this.stats.aoHalf && (this.scanT -= 1 / 60) <= 0) { this.scanT = 3; this.coverage(); }
+    if (this.stats.aoHalf) this.coverage();
     const sm = this.g.renderer.shadowMap as unknown as { autoUpdate: boolean; needsUpdate: boolean };
     sm.autoUpdate = false;
     if ((this.n++ & 1) === 0) sm.needsUpdate = true;
