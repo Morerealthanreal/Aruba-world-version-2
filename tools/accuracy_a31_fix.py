@@ -125,7 +125,9 @@ def build_stairs():
             n += 1
         g.append(acc / n)
     # Tread i spans samples[i] -> samples[i+1] at the uphill ground.
-    tread_y = [g[i + 1] + 0.04 for i in range(len(samples) - 1)]
+    # A few centimetres was flush with the sand and disappeared. Keep the
+    # nosing just proud of the slope so the flight reads from the road.
+    tread_y = [g[i + 1] + 0.14 for i in range(len(samples) - 1)]
     for i in range(1, len(tread_y)):
         if tread_y[i] < tread_y[i - 1] + 0.06:
             tread_y[i] = tread_y[i - 1] + 0.06
@@ -248,68 +250,78 @@ def build_fontein():
     print(f"  fontein faces road {road[3]!r} {road[2]:.0f} m ang {ang:.2f}")
 
     m = G.Model("fontein_cave")
-    rock = m.material("rock", (0.46, 0.44, 0.40), rough=0.92)
-    dark = m.material("strata", (0.30, 0.28, 0.26), rough=0.95)
-    light = m.material("talus", (0.64, 0.60, 0.52), rough=0.9)
-    cave = m.material("cave", (0.045, 0.040, 0.036), rough=1.0)
-    gate = m.material("gate", (0.18, 0.17, 0.16), rough=0.6)
+    # Dark enough that the game's lighting still reads as weathered limestone,
+    # not a white building. The held review was a black box; this stays grey.
+    rock = m.material("rock", (0.30, 0.28, 0.26), rough=0.94)
+    dark = m.material("strata", (0.16, 0.15, 0.14), rough=0.96)
+    light = m.material("talus", (0.44, 0.40, 0.34), rough=0.9)
+    cave = m.material("cave", (0.03, 0.028, 0.025), rough=1.0)
+    gate = m.material("gate", (0.12, 0.11, 0.10), rough=0.6)
     hi, lo = m.mesh(0, rock), m.mesh(1, rock)
-    hid, lod = m.mesh(0, dark), m.mesh(1, dark)
+    hid = m.mesh(0, dark)
     hil = m.mesh(0, light)
     hic, loc = m.mesh(0, cave), m.mesh(1, cave)
     hig = m.mesh(0, gate)
 
-    # Irregular cliff: tall centre, lower shoulders, foot buried in the sand.
-    _solid(hi, -9.2, -1.6, -0.55, 12.6, -13.5, 13.5)
-    _solid(hi, -7.4, 0.35, -0.5, 10.2, -17.5, -2.6)
-    _solid(hi, -7.0, 0.55, -0.5, 8.6, 2.6, 16.5)
-    _solid(hi, -6.2, 0.2, -0.45, 6.4, -20.0, -14.0)
-    _solid(hi, -5.4, 0.9, -0.45, 5.2, 13.5, 19.5)
-    _solid(hi, -4.8, -0.4, 11.4, 14.2, -5.0, 4.5)  # broken crest
-    _solid(hi, -3.5, -0.2, 9.6, 12.4, 4.0, 10.0)
-    # Brow projecting over the mouth, toward the road.
-    _solid(hi, -3.2, 1.85, 3.35, 6.8, -6.4, 6.6)
-    _solid(hid, -2.4, 1.55, 3.15, 4.05, -5.6, 5.6)  # dark underside of the brow
-    # Stepped arch: rock fills the upper corners of the opening.
-    for i, (y0, inset) in enumerate(((1.7, 0.55), (2.25, 1.15), (2.75, 1.8))):
-        _solid(hi, -1.2, 0.45, y0, 3.45, -3.15, -3.15 + inset)
-        _solid(hi, -1.2, 0.45, y0, 3.45, 3.15 - inset, 3.15)
-    # Jambs proud of the face, so the cut has a thickness.
-    _solid(hi, -0.4, 0.7, -0.4, 3.5, -4.3, -2.9)
-    _solid(hi, -0.4, 0.7, -0.4, 3.5, 2.9, 4.3)
-    _solid(hil, -0.2, 0.85, -0.55, 1.15, -4.6, -3.2)
-    _solid(hil, -0.2, 0.85, -0.55, 1.15, 3.2, 4.6)
-    # Sill, just under the opening, so the mouth is not a floating hole.
-    _solid(hil, -1.0, 1.1, -0.55, 0.18, -3.3, 3.3)
-    # Talus along the foot.
-    _solid(hil, -2.0, 1.4, -0.6, 0.7, -18.0, -6.0)
-    _solid(hil, -1.6, 1.6, -0.6, 0.85, 6.5, 17.5)
-    # Bedding ledges.
-    _solid(hid, -1.0, 0.7, 5.15, 5.45, -16.0, -4.0)
-    _solid(hid, -0.8, 0.85, 7.55, 7.85, 3.5, 15.5)
-    _solid(hid, -2.5, 0.15, 2.05, 2.28, -15.5, -5.5)
+    def wedge(mesh, x_face, x_back, z0, z1, y_face, y_back, y0=-0.6):
+        fl, fr = (x_face, y_face, z0), (x_face, y_face, z1)
+        bl, br = (x_back, y_back, z0), (x_back, y_back, z1)
+        fl0, fr0 = (x_face, y0, z0), (x_face, y0, z1)
+        bl0, br0 = (x_back, y0, z0), (x_back, y0, z1)
+        quad_facing(mesh, fl0, fr0, fr, fl, (1, 0, 0))
+        quad_facing(mesh, bl, br, br0, bl0, (-1, 0, 0))
+        quad_facing(mesh, fl, fr, br, bl, (0, 1, 0))
+        quad_facing(mesh, fl0, bl0, br0, fr0, (0, -1, 0))
+        quad_facing(mesh, fl, bl, bl0, fl0, (0, 0, -1))
+        quad_facing(mesh, fr0, br0, br, fr, (0, 0, 1))
 
-    # Interior of the main mouth, recessed behind the face.
-    _solid(hic, -6.4, 0.15, 0.05, 3.15, -2.75, 2.75)
-    _solid(hic, -5.6, -1.4, 2.6, 4.4, -2.4, 2.4)
-    # Side hollow, the second scoop in the cliff.
-    _solid(hic, -3.4, 0.25, 0.1, 2.15, 7.4, 10.6)
-    _solid(hi, -0.3, 0.55, 1.7, 2.5, 7.2, 8.0)
-    _solid(hi, -0.3, 0.55, 1.7, 2.5, 10.0, 10.8)
-    # A small high crevice.
-    _solid(hic, -2.2, 0.1, 6.3, 7.6, -8.2, -6.4)
+    # Sloping cliff: tall at the face, falling away behind. Shoulders are lower
+    # and the mouth is a gap between them, not a door cut into a flat wall.
+    wedge(hi, -1.4, -11.0, -15.0, 15.0, 12.4, 6.2)
+    wedge(hi, 0.6, -8.5, -20.0, -3.8, 9.2, 4.4)
+    wedge(hi, 0.9, -8.0, 3.8, 19.5, 8.0, 3.8)
+    wedge(hi, 0.3, -6.0, -24.0, -16.5, 5.4, 2.6)
+    wedge(hi, 1.1, -5.5, 16.0, 23.0, 4.6, 2.2)
+    # Heavy brow, lower at the lip, so it overhangs the mouth.
+    wedge(hi, 2.3, -2.2, -7.2, 7.2, 4.6, 8.4, y0=2.55)
+    wedge(hid, 2.05, -1.6, -6.2, 6.2, 3.15, 4.2, y0=2.45)
+    # Rock closing the upper corners into a rough arch.
+    for y0, inset in ((1.35, 0.7), (1.9, 1.45), (2.35, 2.2)):
+        _solid(hi, -0.6, 0.7, y0, 2.7, -4.0, -4.0 + inset)
+        _solid(hi, -0.6, 0.7, y0, 2.7, 4.0 - inset, 4.0)
+    # Jambs with some depth, so the opening is a cut.
+    _solid(hi, -0.2, 1.15, -0.55, 2.7, -5.1, -3.7)
+    _solid(hi, -0.2, 1.15, -0.55, 2.7, 3.7, 5.1)
+    # Broken crest and a nose on the right.
+    wedge(hi, -0.2, -5.0, -4.0, 3.5, 14.6, 10.5, y0=11.2)
+    wedge(hi, 1.4, -3.5, 8.5, 14.5, 6.4, 4.0, y0=3.2)
+    # Talus so the foot meets the sand, and a few bedding lines.
+    wedge(hil, 1.8, -3.0, -18.0, -6.0, 1.3, 0.5, y0=-0.7)
+    wedge(hil, 2.0, -2.4, 6.0, 18.0, 1.5, 0.55, y0=-0.7)
+    _solid(hil, -0.4, 1.6, -0.6, 0.22, -4.2, 4.2)
+    _solid(hid, -0.4, 0.9, 5.4, 5.75, -16.0, -5.0)
+    _solid(hid, -0.2, 1.15, 6.7, 7.05, 4.5, 16.0)
+    _solid(hid, 0.2, 0.55, 0.4, 6.2, -12.4, -11.7)
+    _solid(hid, 0.3, 0.7, 1.2, 7.4, 11.2, 11.8)
 
-    # Gate across the main mouth, set on the face.
-    for k in range(4):
-        _solid(hig, 0.35, 0.48, 0.45 + k * 0.7, 0.52 + k * 0.7, -2.55, 2.55)
-    _solid(hig, 0.32, 0.5, 0.3, 3.05, -2.55, -2.42)
-    _solid(hig, 0.32, 0.5, 0.3, 3.05, 2.42, 2.55)
+    # Mouth interior, well behind the lip.
+    _solid(hic, -6.8, -0.15, 0.02, 2.55, -3.55, 3.55)
+    _solid(hic, -5.2, -1.2, 2.2, 3.6, -2.8, 2.8)
+    # Second hollow along the face, and a high crevice.
+    _solid(hic, -3.6, 0.15, 0.05, 1.9, 8.2, 11.4)
+    _solid(hi, 0.15, 0.7, 1.45, 2.15, 8.0, 8.7)
+    _solid(hi, 0.15, 0.7, 1.45, 2.15, 10.9, 11.6)
+    _solid(hic, -2.4, 0.05, 7.1, 8.3, -9.4, -7.2)
 
-    # Distant cliff: one mass, the brow, and the dark mouth.
-    _solid(lo, -8.0, 0.2, -0.4, 11.5, -16.0, 16.0)
-    _solid(lo, -2.0, 1.4, 3.4, 6.4, -6.0, 6.0)
-    _solid(loc, -2.0, 0.3, 0.15, 2.8, -2.6, 2.6)
-    _solid(lod, -1.5, 0.4, 3.2, 3.7, -5.0, 5.0)
+    # Gate set inside the shadow, not across a bright doorway.
+    for k in range(3):
+        _solid(hig, -0.15, -0.05, 0.55 + k * 0.65, 0.62 + k * 0.65, -3.2, 3.2)
+    _solid(hig, -0.2, -0.02, 0.4, 2.45, -0.15, 0.0)
+    _solid(hig, -0.2, -0.02, 0.4, 2.45, 2.5, 2.65)
+
+    wedge(lo, 0.4, -9.0, -18.0, 18.0, 11.0, 5.0)
+    wedge(lo, 1.8, -1.5, -6.5, 6.5, 4.4, 7.2, y0=2.6)
+    _solid(loc, -3.0, 0.1, 0.1, 2.3, -3.4, 3.4)
 
     B.rotate_model(m, ang)
     info = G.write_glb(m, HERO / "fontein_cave.glb")
@@ -318,20 +330,25 @@ def build_fontein():
     return info
 
 
-def _ellipsoid(mesh, cx, cy, cz, rx, ry, rz, nlat=3, nlon=8):
+def _ellipsoid(mesh, cx, cy, cz, rx, ry, rz, nlat=4, nlon=8):
+    """UV sphere. Poles are triangle fans: a quad between two copies of the
+    same pole is degenerate and was leaving the rocks floating on a ring."""
     rings = []
     for i in range(nlat + 1):
         v = -math.pi / 2 + math.pi * i / nlat
+        cv, sv = math.cos(v), math.sin(v)
         row = []
         for j in range(nlon):
             u = 2 * math.pi * j / nlon
-            row.append((
-                cx + rx * math.cos(v) * math.cos(u),
-                cy + ry * math.sin(v),
-                cz + rz * math.cos(v) * math.sin(u),
-            ))
+            row.append((cx + rx * cv * math.cos(u), cy + ry * sv, cz + rz * cv * math.sin(u)))
         rings.append(row)
-    for i in range(nlat):
+    bot, top = rings[0][0], rings[-1][0]
+    for j in range(nlon):
+        a, b = rings[1][j], rings[1][(j + 1) % nlon]
+        mesh.tri(bot, b, a)
+        c, d = rings[-2][j], rings[-2][(j + 1) % nlon]
+        mesh.tri(top, c, d)
+    for i in range(1, nlat - 1):
         for j in range(nlon):
             a = rings[i][j]
             b = rings[i][(j + 1) % nlon]
@@ -444,22 +461,22 @@ def build_conchi():
             continue  # surge gap
         if sea:
             top = water_y + 0.55 + (i % 3) * 0.18
-            bot = water_y - 0.45
+            bot = water_y - 0.85
             rad = 0.9 + (i % 2) * 0.25
         else:
             extra = 0.4 + (i * 5 % 7) * 0.22
             top = max(g + 0.7, water_y + 1.3) + extra
-            bot = min(g - 0.35, water_y - 0.4)
+            bot = min(g - 0.55, water_y - 0.9)
             rad = max(1.15, min(2.3, span * 0.55))
         mesh = hid if i % 4 == 0 else (hiw if i % 3 == 0 else hi)
-        _ellipsoid(mesh, lx, (top + bot) / 2, lz, rad, (top - bot) / 2, rad * 0.82, 3, 7)
+        _ellipsoid(mesh, lx, (top + bot) / 2, lz, rad, (top - bot) / 2, rad * 0.82, 4, 8)
     # Two larger landward masses, the rocks that close the back of the bowl.
     land = sorted(outer, key=lambda p: p[1])[:4]
     for k, (lx, lz) in enumerate(land):
         g = B.sample_h(cx + lx, cz + lz, cache) - h0
         top = max(g + 1.6, water_y + 2.4)
-        bot = water_y - 0.5
-        _ellipsoid(hi if k % 2 == 0 else hiw, lx, (top + bot) / 2, lz, 2.4, (top - bot) / 2, 2.0, 3, 8)
+        bot = min(g - 0.6, water_y - 0.9)
+        _ellipsoid(hi if k % 2 == 0 else hiw, lx, (top + bot) / 2, lz, 2.4, (top - bot) / 2, 2.0, 4, 8)
 
     water_ring = [(x * 0.84, z * 0.84) for x, z in ring]
     G.fan(m.mesh(0, water), water_ring, water_y, up=True)
@@ -469,8 +486,8 @@ def build_conchi():
         x0, z0 = outer[i]
         g = B.sample_h(cx + x0, cz + z0, cache) - h0
         top = max(g + 0.8, water_y + 1.4)
-        bot = water_y - 0.3
-        _ellipsoid(lo if i % 8 == 0 else low, x0, (top + bot) / 2, z0, 1.8, (top - bot) / 2, 1.5, 2, 6)
+        bot = min(g - 0.4, water_y - 0.6)
+        _ellipsoid(lo if i % 8 == 0 else low, x0, (top + bot) / 2, z0, 1.8, (top - bot) / 2, 1.5, 3, 6)
 
     info = G.write_glb(m, HERO / "conchi.glb")
     G.check_glb(HERO / "conchi.glb")
