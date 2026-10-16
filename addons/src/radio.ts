@@ -46,6 +46,7 @@ export class Radio {
     const src = SRC(this.st);
     if (!this.a) { this.a = new Audio(); this.a.loop = true; this.a.preload = "auto"; this.a.volume = VOL; (window as unknown as { __awRadio: HTMLAudioElement }).__awRadio = this.a; }
     if (changed || !this.a.src.endsWith(src.slice(1))) { this.a.src = src; }
+    const intro = (window as unknown as { __awIntro?: HTMLAudioElement }).__awIntro; if (intro && !intro.paused) intro.pause(); // cut the loading-screen intro (no overlap)
     if (this.a.paused) this.a.play().catch(() => { /* waits for next gesture */ });
   }
   private t = 0;
