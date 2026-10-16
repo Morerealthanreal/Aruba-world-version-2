@@ -257,43 +257,40 @@ export class PerfFixes {
     if (!h) return;
     const orig = h.update.bind(h);
     const cap = this.heroCap;
-    // Far towns are not visited until late in the island loop, so their textures
-    // were still uploading on the measured laps. Drip the glTF loads out after
-    // the first pointer or key. Starting them during boot stalled the car-mode
-    // click, and starting them two seconds later stalled the canvas click that
-    // starts the engines.
-    const hooked = performance.now();
-    let dripAt = 0;
-    let dripI = 0;
-    // The audio test clicks the car button, then the canvas. Both have to
-    // finish before the glTF parses start, or the second click never lands.
-    const arm = () => { if (!dripAt) dripAt = performance.now() + 16000; };
-    window.addEventListener("pointerdown", arm, true);
-    window.addEventListener("keydown", arm, true);
+    // The game starts every hero inside 1.5 km in one update. Those parses then
+    // run as one long task and the audio test's canvas click never lands. Far
+    // towns are also still uploading on the measured soak laps if they wait
+    // until the car arrives. Start a few per frame, nearby ones first.
+    let cursor = 0;
     h.update = (x: number, z: number) => {
-      orig(x, z);
-      if (!dripAt && h.list.length && performance.now() - hooked > 20000) dripAt = performance.now();
-      if (dripAt && performance.now() >= dripAt && dripI < h.list.length) {
-        const batch: Array<(typeof h.list)[number]> = [];
-        while (dripI < h.list.length && batch.length < 4) {
-          const n = h.list[dripI++];
-          if (!n._g && !n._loading) batch.push(n);
-        }
-        if (batch.length) {
-          // orig() starts every hero within 1.5 km. Hold the rest back so this
-          // frame only parses the batch, then restore the player's visibility.
-          const block: Array<(typeof h.list)[number]> = [];
-          for (const n of h.list) {
-            if (n._g || n._loading || batch.includes(n)) continue;
-            if (!batch.some((b) => Math.hypot(b.x - n.x, b.z - n.z) < 1500)) continue;
-            n._loading = true;
-            block.push(n);
-          }
-          for (const n of batch) orig(n.x, n.z);
-          for (const n of block) if (!n._g) n._loading = false;
-          orig(x, z);
-        }
+      const allow: Array<(typeof h.list)[number]> = [];
+      for (const n of h.list) {
+        if (allow.length >= 4) break;
+        if (n._g || n._loading) continue;
+        if (Math.hypot(n.x - x, n.z - z) < 1500) allow.push(n);
       }
+      const list = h.list;
+      let scanned = 0;
+      while (allow.length < 4 && list.length && scanned < list.length) {
+        const n = list[cursor % list.length];
+        cursor++;
+        scanned++;
+        if (n._g || n._loading || allow.includes(n)) continue;
+        allow.push(n);
+      }
+      if (allow.length) {
+        const block: Array<(typeof h.list)[number]> = [];
+        for (const n of list) {
+          if (n._g || n._loading || allow.includes(n)) continue;
+          const near = Math.hypot(n.x - x, n.z - z) < 1500 || allow.some((b) => Math.hypot(b.x - n.x, b.z - n.z) < 1500);
+          if (!near) continue;
+          n._loading = true;
+          block.push(n);
+        }
+        for (const n of allow) orig(n.x, n.z);
+        for (const n of block) if (!n._g) n._loading = false;
+      }
+      orig(x, z);
       let hidden = 0;
       for (const n of h.list) {
         if (!n._g || !n._g.visible) continue;
