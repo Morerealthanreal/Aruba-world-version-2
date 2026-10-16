@@ -170,25 +170,10 @@ async function driveLeg(page, stop, leg) {
   return Math.hypot(finish.x - start.x, finish.z - start.z);
 }
 
-// Renderer.info only counts geometries and textures that have been uploaded. Region
-// rebuilds swap in new chunk and road geometries while the previous copy was never
-// drawn, so the GPU count climbs even though the live scene does not. Draw the current
-// geometries once, with a map-less material and LOD selection paused, then upload the
-// textures already on the scene so the sample matches the live set.
-const TEXTURE_SLOTS = [
-  "map",
-  "normalMap",
-  "roughnessMap",
-  "metalnessMap",
-  "emissiveMap",
-  "aoMap",
-  "alphaMap",
-  "bumpMap",
-  "lightMap",
-  "envMap",
-  "specularMap",
-  "clearcoatNormalMap",
-];
+// Renderer.info only counts geometries that have been drawn. Region rebuilds swap in
+// new chunk and road geometries while the previous copy was never drawn, so the GPU
+// count climbs even though the live scene does not. Draw the current geometries once,
+// with a map-less material and LOD selection paused, so the count matches the scene.
 async function uploadSceneGeometries(page) {
   await page.evaluate(() => {
     const game = window.game;
@@ -242,41 +227,6 @@ async function uploadSceneGeometries(page) {
       for (const lod of lods) lod.update = lod.userData.awUpdate;
     }
   });
-}
-
-async function uploadSceneTextures(page) {
-  await page.evaluate((slots) => {
-    const renderer = window.game.renderer;
-    if (typeof renderer.initTexture !== "function") return;
-    const seen = new Set();
-    const ready = (tex) => {
-      if (!tex?.isTexture || tex.isRenderTargetTexture || seen.has(tex)) return false;
-      const image = tex.image;
-      if (!image || image.complete === false) return false;
-      const width = image.width || image.videoWidth || 0;
-      const height = image.height || image.videoHeight || 0;
-      return width > 0 && height > 0;
-    };
-    window.game.scene.traverse((object) => {
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : object.material
-          ? [object.material]
-          : [];
-      for (const material of materials) {
-        for (const key of slots) {
-          const tex = material[key];
-          if (!ready(tex)) continue;
-          seen.add(tex);
-          try {
-            renderer.initTexture(tex);
-          } catch {
-            // A texture can be mid-decode. The next sample uploads it.
-          }
-        }
-      }
-    });
-  }, TEXTURE_SLOTS);
 }
 
 async function sampleResources(page, cdp, cycle, stop) {
@@ -359,7 +309,6 @@ test("long phone drive keeps runtime resources flat", async ({
         distances.push(await driveLeg(page, stop, leg));
         await page.waitForTimeout(SETTLE_MS);
         await uploadSceneGeometries(page);
-        await uploadSceneTextures(page);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
         expect(sample.contextLost, "WebGL context was lost").toBe(false);
