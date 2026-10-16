@@ -30,7 +30,7 @@ type BM = BatchedMesh & {
 /** world-space bounding spheres per instance (instance i draws geometry i) + the current candidate list */
 export type CullSet = { cx: Float32Array; cy: Float32Array; cz: Float32Array; r: Float32Array; vis: Uint16Array; nVis: number };
 /** sx/sz/sr: shell sphere used for r186's region-level bldR test */
-type Batch = CullSet & { bm: BM; kind: number; n: number; cap: number; sx: number; sz: number; sr: number; box: Box3; listed: boolean };
+type Batch = CullSet & { bm: BM; kind: number; n: number; cap: number; maxV: number; maxI: number; usedV: number; usedI: number; sx: number; sz: number; sr: number; box: Box3; listed: boolean };
 
 const IDENT = new Matrix4(), _m = new Matrix4(), _fr = new Frustum(), _c = new Vector3(), _sz = new Vector3();
 const KIND_BLD = 0, KIND_TRIM = 1, KIND_CONTACT = 2;
@@ -139,23 +139,22 @@ export class BldBatch {
       this.taken.add(m); return;
     }
     const key = this.keyOf(m, geo);
+    const vcount = geo.attributes.position.count;
+    const icount = geo.index ? geo.index.count : 0;
     let b = R.__awOpen?.get(key);
-    if (!b || b.n >= b.cap) b = this.newBatch(R, m, geo, key, CAP) || undefined;
-    if (!b) { this.taken.add(m); this.stats.failed++; return; }
-    if (!this.addGeo(b, geo)) {
-      if (b.n === 0) b.bm.dispose();
-      const b2 = this.newBatch(R, m, geo, key, 4);
-      if (!b2 || !this.addGeo(b2, geo)) {
-        if (b2 && b2.n === 0) { b2.bm.dispose(); R.__awOpen?.delete(key); }
-        this.taken.add(m); this.stats.failed++; return;
-      }
-      b = b2;
+    if (!b || b.n >= b.cap || b.usedV + vcount > b.maxV || b.usedI + icount > b.maxI) b = this.newBatch(R, m, geo, key) || undefined;
+    if (!b || !this.addGeo(b, geo)) {
+      if (b && b.n === 0) { b.bm.dispose(); if (R.__awOpen?.get(key) === b) R.__awOpen.delete(key); }
+      if (this.stats.failed < 3) console.warn("[aw-bb] skip", m.name, "v", vcount, "i", icount);
+      this.taken.add(m); this.stats.failed++; return;
     }
+    b.usedV += vcount; b.usedI += icount;
     this.place(R, b, m, geo);
   }
 
   private addGeo(b: Batch, geo: BufferGeometry) {
-    try { b.bm.addInstance(b.bm.addGeometry(geo)); return true; } catch (e) { console.warn("[aw-bb]", e); return false; }
+    try { b.bm.addInstance(b.bm.addGeometry(geo)); return true; }
+    catch (e) { if (this.stats.failed < 3) console.warn("[aw-bb]", e); return false; }
   }
 
   private keyOf(m: M, geo: BufferGeometry) {
@@ -165,19 +164,24 @@ export class BldBatch {
     return m.name + "|" + (m.material as Material).uuid + "|" + a + "|" + (geo.index ? 1 : 0) + "|" + (m.castShadow ? 1 : 0) + (m.receiveShadow ? 1 : 0) + "|" + m.renderOrder + "|" + m.frustumCulled + m.visible;
   }
 
-  private newBatch(R: Reg, m: M, geo: BufferGeometry, key: string, cap: number): Batch | null {
-    const nv = geo.attributes.position.count * cap;
-    const ni = geo.index ? geo.index.count * cap : 0;
+  private newBatch(R: Reg, m: M, geo: BufferGeometry, key: string): Batch | null {
+    const vcount = geo.attributes.position.count;
+    const icount = geo.index ? geo.index.count : 0;
+    // a few similar cells per batch, but never past the uint16 index range (three switches
+    // the combined index to uint32 above 65535 vertices). A cell that is already that big
+    // gets a batch of exactly its own size.
+    const cap = vcount * CAP <= 65535 && icount * CAP <= 262144 ? CAP : 1;
+    const nv = vcount * cap, ni = icount * cap;
     let bm: BM;
     try { bm = new BatchedMesh(cap, Math.max(1, nv), ni, m.material as Material) as BM; }
-    catch (e) { console.warn("[aw-bb]", e); return null; }
+    catch (e) { if (this.stats.failed < 3) console.warn("[aw-bb]", e); return null; }
     bm.name = "aw:bb:" + m.name.slice(4);
     bm.castShadow = m.castShadow; bm.receiveShadow = m.receiveShadow; bm.renderOrder = m.renderOrder;
     bm.sortObjects = false; bm.perObjectFrustumCulled = true; bm.matrixAutoUpdate = false;
     const kind = m.name === "bld:MeshBasicMaterial" ? KIND_CONTACT : m.name === "bld:trim" ? KIND_TRIM : KIND_BLD;
     const b: Batch = {
       bm, kind, n: 0, cap, cx: new Float32Array(cap), cy: new Float32Array(cap), cz: new Float32Array(cap), r: new Float32Array(cap),
-      vis: new Uint16Array(cap), nVis: 0, sx: 0, sz: 0, sr: Infinity, box: new Box3(), listed: false,
+      vis: new Uint16Array(cap), nVis: 0, maxV: nv, maxI: ni, usedV: 0, usedI: 0, sx: 0, sz: 0, sr: Infinity, box: new Box3(), listed: false,
     };
     bm.userData.awb = b;
     bm.onBeforeRender = multiDrawCull as unknown as BatchedMesh["onBeforeRender"];
