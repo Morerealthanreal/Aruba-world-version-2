@@ -65526,5 +65526,181 @@
   "ref_sources": "Cunucu house: one storey, coloured walls, red hip roof, porch, low concrete fence with white caps. Guides: Commons 'Cunucu House Sabana Basora 2' (cream walls, porch, red hip) and 'Cunucu Traditional Countryside ... Santa Cruz' (salmon walls, terracotta fence, cactus). Placed on an OSM house lot facing the town road. Not a photo texture. Road: Pos Chikito.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
+ },
+ {
+  "id": "nw_pb_north",
+  "k": "nw_pb_north",
+  "name": "",
+  "status": "v5-accuracy",
+  "x": -8300.17,
+  "z": -7508.0,
+  "y": 0.96,
+  "rotation": 0,
+  "glb": "models/hero/nw_pb_north.glb",
+  "lod": {
+   "hi": "nw_pb_north_lod0",
+   "lo": "nw_pb_north_lod1",
+   "switch_m": 600
+  },
+  "tris": {
+   "nw_pb_north_lod0": 8798,
+   "nw_pb_north_lod1": 3364
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -8300.17,
+    -7508.0
+   ],
+   [
+    -8299.97,
+    -7508.0
+   ],
+   [
+    -8299.97,
+    -7507.8
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM coast-road centreline, J.E. Irausquin north end to L.G. Smith at Arashi",
+  "ref_sources": "Wikimedia Commons 'Windswept Watapana Tree Divi-Divi ... Malmok Beach Noord Aruba': dark trunk, crown streamed west over a pale sandy shoulder. Wikimedia 'Arashi, Aruba - panoramio': open gravel lot and a row of cars between the road and the beach, low roofs, palms. pb_busstops: blue-roofed Arubus shelter. Hook-arm lamps already on J.E. Irausquin (pb_jei) are left in place; these posts fill gaps on the Oduber / L.G. Smith continuation north of the hotels.",
+  "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
+  "cat": "landmark"
+ },
+ {
+  "id": "nw_pb_oduber",
+  "k": "nw_pb_oduber",
+  "name": "",
+  "status": "v5-accuracy",
+  "x": -8592.56,
+  "z": -8420.0,
+  "y": 4.86,
+  "rotation": 0,
+  "glb": "models/hero/nw_pb_oduber.glb",
+  "lod": {
+   "hi": "nw_pb_oduber_lod0",
+   "lo": "nw_pb_oduber_lod1",
+   "switch_m": 600
+  },
+  "tris": {
+   "nw_pb_oduber_lod0": 8742,
+   "nw_pb_oduber_lod1": 3584
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -8592.56,
+    -8420.0
+   ],
+   [
+    -8592.36,
+    -8420.0
+   ],
+   [
+    -8592.36,
+    -8419.8
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM coast-road centreline, J.E. Irausquin north end to L.G. Smith at Arashi",
+  "ref_sources": "Wikimedia Commons 'Windswept Watapana Tree Divi-Divi ... Malmok Beach Noord Aruba': dark trunk, crown streamed west over a pale sandy shoulder. Wikimedia 'Arashi, Aruba - panoramio': open gravel lot and a row of cars between the road and the beach, low roofs, palms. pb_busstops: blue-roofed Arubus shelter. Hook-arm lamps already on J.E. Irausquin (pb_jei) are left in place; these posts fill gaps on the Oduber / L.G. Smith continuation north of the hotels.",
+  "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
+  "cat": "landmark"
+ },
+ {
+  "id": "nw_pb_malmok",
+  "k": "nw_pb_malmok",
+  "name": "",
+  "status": "v5-accuracy",
+  "x": -8817.11,
+  "z": -9268.0,
+  "y": 4.3,
+  "rotation": 0,
+  "glb": "models/hero/nw_pb_malmok.glb",
+  "lod": {
+   "hi": "nw_pb_malmok_lod0",
+   "lo": "nw_pb_malmok_lod1",
+   "switch_m": 600
+  },
+  "tris": {
+   "nw_pb_malmok_lod0": 2234,
+   "nw_pb_malmok_lod1": 560
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -8817.11,
+    -9268.0
+   ],
+   [
+    -8816.91,
+    -9268.0
+   ],
+   [
+    -8816.91,
+    -9267.8
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM coast-road centreline, J.E. Irausquin north end to L.G. Smith at Arashi",
+  "ref_sources": "Wikimedia Commons 'Windswept Watapana Tree Divi-Divi ... Malmok Beach Noord Aruba': dark trunk, crown streamed west over a pale sandy shoulder. Wikimedia 'Arashi, Aruba - panoramio': open gravel lot and a row of cars between the road and the beach, low roofs, palms. pb_busstops: blue-roofed Arubus shelter. Hook-arm lamps already on J.E. Irausquin (pb_jei) are left in place; these posts fill gaps on the Oduber / L.G. Smith continuation north of the hotels.",
+  "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
+  "cat": "landmark"
+ },
+ {
+  "id": "nw_pb_arashi",
+  "k": "nw_pb_arashi",
+  "name": "",
+  "status": "v5-accuracy",
+  "x": -8974.59,
+  "z": -9800.0,
+  "y": 7.02,
+  "rotation": 0,
+  "glb": "models/hero/nw_pb_arashi.glb",
+  "lod": {
+   "hi": "nw_pb_arashi_lod0",
+   "lo": "nw_pb_arashi_lod1",
+   "switch_m": 600
+  },
+  "tris": {
+   "nw_pb_arashi_lod0": 2032,
+   "nw_pb_arashi_lod1": 620
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -9000.5,
+    -9847.7
+   ],
+   [
+    -8989.3,
+    -9847.7
+   ],
+   [
+    -8989.3,
+    -9834.9
+   ],
+   [
+    -9000.5,
+    -9834.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM coast-road centreline, J.E. Irausquin north end to L.G. Smith at Arashi",
+  "ref_sources": "Wikimedia Commons 'Windswept Watapana Tree Divi-Divi ... Malmok Beach Noord Aruba': dark trunk, crown streamed west over a pale sandy shoulder. Wikimedia 'Arashi, Aruba - panoramio': open gravel lot and a row of cars between the road and the beach, low roofs, palms. pb_busstops: blue-roofed Arubus shelter. Hook-arm lamps already on J.E. Irausquin (pb_jei) are left in place; these posts fill gaps on the Oduber / L.G. Smith continuation north of the hotels.",
+  "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
+  "cat": "landmark"
  }
 ]
