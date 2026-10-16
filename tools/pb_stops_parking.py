@@ -122,6 +122,7 @@ GLYPHS = {
     "T": [((0.08, 1.0), (0.92, 1.0)), ((0.5, 1.0), (0.5, 0.0))],
     "U": [((0.14, 1.0), (0.14, 0.2)), ((0.14, 0.2), (0.5, 0.0)), ((0.5, 0.0), (0.86, 0.2)), ((0.86, 0.2), (0.86, 1.0))],
     "Z": [((0.1, 1.0), (0.9, 1.0)), ((0.9, 1.0), (0.1, 0.0)), ((0.1, 0.0), (0.9, 0.0))],
+    "1": [((0.32, 0.72), (0.5, 1.0)), ((0.5, 1.0), (0.5, 0.0)), ((0.22, 0.0), (0.78, 0.0))],
     "4": [((0.62, 0.0), (0.62, 1.0)), ((0.62, 1.0), (0.1, 0.38)), ((0.1, 0.38), (0.88, 0.38))],
     "5": [((0.84, 1.0), (0.16, 1.0)), ((0.16, 1.0), (0.16, 0.52)), ((0.16, 0.52), (0.72, 0.52)),
           ((0.72, 0.52), (0.86, 0.22)), ((0.86, 0.22), (0.16, 0.0))],
@@ -492,6 +493,18 @@ def add_word(mesh, text, origin, right, up, normal, h, thick):
     return cursor * h
 
 
+def readable_right(tx, tz, normal):
+    """Road tangent, flipped so letters run left to right for someone facing the board.
+
+    A viewer looking at the board looks along -normal. Three.js puts screen-right
+    on cross(up, normal), which is (nz, 0, -nx).
+    """
+    dot = tx * normal[2] + tz * (-normal[0])
+    if dot < 0:
+        return (-tx, 0.0, -tz)
+    return (tx, 0.0, tz)
+
+
 def add_shelter(meshes, x, z, tx, tz, label, origin):
     g = mesh_height(x, z)
     if g < 0.35:
@@ -529,24 +542,25 @@ def add_shelter(meshes, x, z, tx, tz, label, origin):
             box(white, (foot[0] + top[0]) / 2, (foot[1] + top[1]) / 2, (foot[2] + top[2]) / 2, 0.08, 2.15, 0.08)
     slab(blue, 2.12, 2.26, 1.9, 0.9, 1.15)
     # Name board facing the road (toward -inland).
-    board = wp(0, 0.42, 1.35)
-    right = (tx, 0.0, tz)
+    board = wp(0, 0.42, 1.45)
     up = (0.0, 1.0, 0.0)
     normal = (-nx, 0.0, -nz)
-    h = 0.2
+    right = readable_right(tx, tz, normal)
+    h = 0.38
     width = len(label) * h * 1.22
-    oriented_box(yellow, board, right, normal, width + 0.28, h + 0.16, 0.06)
+    oriented_box(yellow, board, right, normal, width + 0.36, h + 0.22, 0.06)
     start = (
         board[0] - right[0] * width / 2,
         board[1] - h * 0.5,
         board[2] - right[2] * width / 2,
     )
-    add_word(black, label, start, right, up, normal, h, 0.035)
+    add_word(black, label, start, right, up, normal, h, 0.11)
     # Small L10 plate under the roof lip.
-    plate = wp(0, 0.4, 1.95)
-    oriented_box(blue, plate, right, normal, 0.72, 0.24, 0.04)
-    pstart = (plate[0] - right[0] * 0.28, plate[1] - 0.08, plate[2] - right[2] * 0.28)
-    add_word(white, "L10", pstart, right, up, normal, 0.16, 0.028)
+    plate = wp(0, 0.4, 2.05)
+    oriented_box(blue, plate, right, normal, 1.05, 0.36, 0.04)
+    pwidth = 3 * 0.22 * 1.22
+    pstart = (plate[0] - right[0] * pwidth / 2, plate[1] - 0.11, plate[2] - right[2] * pwidth / 2)
+    add_word(white, "L10", pstart, right, up, normal, 0.22, 0.07)
     return True
 
 
@@ -560,14 +574,14 @@ def add_sign(meshes, x, z, tx, tz, text, fill, ink, origin, tall=1.7):
     post_m, board_m, ink_m = meshes
     p = local(x, g, z, origin)
     box(post_m, p[0], p[1] + tall * 0.5, p[2], 0.08, tall, 0.08)
-    h = 0.28 if len(text) > 2 else 0.36
-    width = max(0.55, len(text) * h * 1.22)
+    h = 0.34 if len(text) > 2 else 0.48
+    width = max(0.7, len(text) * h * 1.22)
     board = (p[0], p[1] + tall, p[2])
-    right = (tx, 0.0, tz)
     normal = (-nx, 0.0, -nz)
-    oriented_box(board_m, board, right, normal, width + 0.22, h + 0.2, 0.06)
+    right = readable_right(tx, tz, normal)
+    oriented_box(board_m, board, right, normal, width + 0.28, h + 0.24, 0.06)
     start = (board[0] - right[0] * (len(text) * h * 1.22) / 2, board[1] - h * 0.5, board[2] - right[2] * (len(text) * h * 1.22) / 2)
-    add_word(ink_m, text, start, right, (0, 1, 0), normal, h, 0.045)
+    add_word(ink_m, text, start, right, (0, 1, 0), normal, h, 0.12)
     return True
 
 

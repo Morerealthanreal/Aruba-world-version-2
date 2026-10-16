@@ -66011,7 +66011,7 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_north_lod0": 7082,
+   "nw_rd_north_lod0": 7100,
    "nw_rd_north_lod1": 3336
   },
   "textures": 0,
@@ -66041,7 +66041,7 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_mid_lod0": 5152,
+   "nw_rd_mid_lod0": 5164,
    "nw_rd_mid_lod1": 2448
   },
   "textures": 0,
@@ -66071,7 +66071,7 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_boca_lod0": 586,
+   "nw_rd_boca_lod0": 592,
    "nw_rd_boca_lod1": 192
   },
   "textures": 0,
@@ -66101,7 +66101,7 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_arashi_lod0": 778,
+   "nw_rd_arashi_lod0": 784,
    "nw_rd_arashi_lod1": 324
   },
   "textures": 0,
