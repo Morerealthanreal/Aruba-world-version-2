@@ -79,6 +79,9 @@ swap(
 )
 swap(
     "drift and turn",
+    # ?fan=0 (or add-ons off) keeps the stock speed washout. Fan downforce adds
+    # yaw that grows with speed, so lateral g climbs instead of flattening.
+    f";a.drift=(a.drift||0)+((window.__awFan?0:o&&{enabled}&&c&&Math.abs(a.st)>.3&&Math.abs(a.s)>9?1:0)-(a.drift||0))*Math.min(1,e*(window.__awFan?18:c?7.5:3.5));window.__awDrift=o&&{enabled}?a.drift:0;let u=a.st*(window.__awFan?(o?1.65:1.8)+Math.abs(a.s)*(o?.032:.036):(o?({enabled}?1.95:1.35):2)/(1+Math.abs(a.s)*(o?({enabled}?.055:.1):.06)))*(1+(window.__awFan?0:o&&{enabled}?a.drift*.55:0))",
     f";a.drift=(a.drift||0)+((o&&{enabled}&&c&&Math.abs(a.st)>.3&&Math.abs(a.s)>9?1:0)-(a.drift||0))*Math.min(1,e*(c?7.5:3.5));window.__awDrift=o&&{enabled}?a.drift:0;let u=a.st*((o?({enabled}?1.95:1.35):2)/(1+Math.abs(a.s)*(o?({enabled}?.055:.1):.06)))*(1+(o&&{enabled}?a.drift*.55:0))",
     ";let u=a.st*((o?1.35:2)/(1+Math.abs(a.s)*(o?.1:.06)))",
     ";a.drift=(a.drift||0)+((c&&Math.abs(a.st)>.35&&Math.abs(a.s)>11?1:0)-(a.drift||0))*Math.min(1,e*(c?5:2.5));window.__awDrift=a.drift;let u=a.st*((o?1.8:2)/(1+Math.abs(a.s)*(o?.065:.06)))*(1+a.drift*.75)",
@@ -142,6 +145,16 @@ swap(
     "camera shake hook",
     "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),window.__awMotoCam&&window.__awMotoCam(zv,a,e,o),X_(Rv,zv),o_.position.lerp",
     "zv.set(a.x+Math.sin(_)*y*Math.cos(v),a.y+1.5+Math.sin(v)*y,a.z+Math.cos(_)*y*Math.cos(v)),X_(Rv,zv),o_.position.lerp",
+)
+swap(
+    "fan surface suction",
+    "a.y+=(v-a.y)*Math.min(1,(window.__awFan?80:14)*e)",
+    "a.y+=(v-a.y)*Math.min(1,14*e)",
+)
+swap(
+    "fan squat and roll",
+    "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03)+(window.__awFan?p(-Math.abs(a.s)*.0016,-.1,0):0),C=p(-b,-.12,.12)+p(u*a.s*(window.__awFan?.007:.0022),window.__awFan?-.2:-.05,window.__awFan?.2:.05)",
+    "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03),C=p(-b,-.12,.12)+p(u*a.s*.0022,-.05,.05)",
 )
 
 swap(

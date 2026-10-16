@@ -159,6 +159,9 @@ async function captureFixedSpot(page, quality, spot, screenshotDir) {
 test("runs every travel mode and captures fixed locations", async ({
   page,
 }, testInfo) => {
+  // High quality on SwiftShader spends most of this budget inside the fixed-spot
+  // renders. The captures were still completing when the 8 minute cap hit.
+  test.setTimeout(15 * 60 * 1000);
   const quality = testInfo.project.name;
   const runtimeErrors = installRuntimeErrorCapture(page);
   const screenshotDir = testInfo.outputPath("screenshots");
@@ -172,7 +175,7 @@ test("runs every travel mode and captures fixed locations", async ({
   );
   await expect(page.locator("#loading")).toBeHidden();
   await expect
-    .poll(() => page.evaluate(() => window.game.real.q.name))
+    .poll(() => page.evaluate(() => window.game.real.q.name), { timeout: 90_000 })
     .toBe(quality);
   assertNoRuntimeErrors(runtimeErrors);
 

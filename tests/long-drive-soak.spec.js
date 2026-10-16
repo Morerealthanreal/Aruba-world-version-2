@@ -286,6 +286,10 @@ test("long phone drive keeps runtime resources flat", async ({
   await installListenerProbe(page);
   const cdp = await context.newCDPSession(page);
   await cdp.send("HeapProfiler.enable");
+  // SwiftShader on the phone viewport can sit in a long frame right after
+  // load. The mode button is already in the document; the click just has to
+  // outlast that hitch.
+  page.setDefaultTimeout(90_000);
 
   // Force the existing test-only emergency/crash modes so repeated route
   // changes also exercise transient scene teardown during this short soak.
