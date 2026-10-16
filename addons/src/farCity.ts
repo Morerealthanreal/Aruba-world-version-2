@@ -158,12 +158,24 @@ export class FarCity {
     this.t -= dt; if (this.t > 0) return; this.t = 0.25;
     const regs = (this.g.real as unknown as { regions: Map<string, Reg> }).regions;
     this.mask.fill(0); let m = 0;
+    const mark = (rx: number, rz: number) => {
+      if (rx < 0 || rz < 0 || rx > 31 || rz > 31) return;
+      const i = (rz * 32 + rx) * 4;
+      if (this.mask[i]) return;
+      this.mask[i] = 255; m++;
+    };
+    // A built region has real buildings. A region whose height tile is already
+    // loaded does too, a moment later: the impostor roofs were baked on the
+    // coarse overview and float as brown blades over that terrain (Ayo).
     for (const r of regs.values()) {
-      if (r.state !== "built") continue;
-      const rx = r.rx, rz = r.rz;
-      if (rx < 0 || rz < 0 || rx > 31 || rz > 31) continue;
-      this.mask[(rz * 32 + rx) * 4] = 255; m++;
+      const height = (r as { H?: unknown }).H;
+      if (r.state !== "built" && !height) continue;
+      mark(r.rx, r.rz);
     }
+    const M = (this.g.real as unknown as { M: { X0: number; Z0: number; RS: number } }).M;
+    const pos = (this.g.camera as unknown as { position: { x: number; z: number } }).position;
+    const crx = Math.floor((pos.x - M.X0) / M.RS), crz = Math.floor((pos.z - M.Z0) / M.RS);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) mark(crx + dx, crz + dz);
     this.stats.masked = m;
     const b = this.batch;
     if (b) { let c = 0; for (let i = 0; i < b.n; i++) { const r = b.reg[i], rx = Math.floor(r / 32), rz = r - rx * 32; if (!this.mask[(rz * 32 + rx) * 4]) b.vis[c++] = i; } b.nVis = c; return; }
