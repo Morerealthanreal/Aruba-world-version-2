@@ -4,7 +4,7 @@
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
 import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
-import { createLoco, loadLocomotion, stepLoco, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
+import { createLoco, loadLocomotion, stepLoco, straightenDress, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -304,7 +304,10 @@ export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tabl
     if (n.detail.loco) {
       // Scenario staff walk at about 1.3 m/s. Talk and idle stay on the idle clip.
       stepLoco(n.detail.loco, mode === "walk" ? 1.3 : 0, dt, 1);
-      if (n.detail.femaleArms) swingFemaleArms(n.detail.inner, n.detail.loco);
+      if (n.detail.femaleArms) {
+        swingFemaleArms(n.detail.inner, n.detail.loco);
+        straightenDress(n.detail.inner, n.detail.loco);
+      }
     } else if (n.detail.walk && n.detail.idle) {
       const walking = mode === "walk";
       n.detail.walk.setEffectiveWeight(walking ? 1 : 0);
