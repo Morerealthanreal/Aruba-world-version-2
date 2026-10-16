@@ -15,7 +15,7 @@ type R = {
   compileAsync?: (s: unknown, c: unknown, t?: unknown) => Promise<unknown>;
   debug?: { checkShaderErrors: boolean };
 };
-type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown };
+type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown; __awGone?: number };
 const TEX = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "specularMap", "clearcoatNormalMap"];
 type Mat = {
   id: number; version: number; type: string; transparent?: boolean; side?: number; visible?: boolean;
@@ -131,6 +131,8 @@ export class MobilePerf {
     // uploaded on first draw. Park those and keep going.
     while (this.texQ.length && n < max && skipped < this.texQ.length && performance.now() - t0 < budget) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
+      // A region unload disposes its street-sign atlas. initTexture would allocate it again.
+      if (t.__awGone) continue;
       if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); skipped++; continue; }
       if (r.properties.get(t).__version === t.version) continue;
       try { r.initTexture(t); } catch { /* image not ready */ }
