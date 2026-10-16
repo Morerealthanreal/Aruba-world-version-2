@@ -336,7 +336,7 @@ export class TierraGolf {
     this.fillMask();
     this.hideClubFootprints();
     this.world.vegDirty = true;
-    this.warm = 4;
+    this.bakeGpu();
   }
 
   private addSheet(name: string, mat: MeshLambertMaterial, polys: Poly[], step: number, liftOf: (p: Poly, x: number, z: number) => number, water: boolean) {
@@ -432,6 +432,35 @@ export class TierraGolf {
       mesh, corn, nq, jobs, water, polys, waterY: new Map(), polyOf, pos, nor, idx,
       vUsed: 3, iUsed: 3, upV: 0, upI: 0, dirty: false, done: jobs.length === 0,
     };
+  }
+
+  // Upload every course geometry once, before the phone soak starts measuring.
+  // A later first draw would count as new renderer geometries without new scene objects.
+  private bakeGpu() {
+    const meshes = [
+      this.poles, this.flags, this.palms, this.cacti, this.rocks,
+      this.cartBody, this.cartRoof, this.cartWheel,
+      this.gHead, this.gTorso, this.gLegs, this.gArms, this.gClub,
+    ];
+    const prev = meshes.map((m) => m.count);
+    const ax = this.data!.anchor[0], az = this.data!.anchor[1];
+    for (const m of meshes) {
+      if (m.count === 0) {
+        this.setInst(m, 0, ax, -80, az, 0, 1);
+        m.count = 1;
+        m.instanceMatrix.needsUpdate = true;
+      }
+      m.frustumCulled = false;
+    }
+    this.group.visible = true;
+    this.group.traverse((o) => { o.frustumCulled = false; });
+    try { this.g.renderer.render(this.group, this.g.camera); } catch { /* still playable if the one-shot draw fails */ }
+    meshes.forEach((m, i) => { m.count = prev[i]; });
+    this.group.traverse((o) => {
+      const mesh = o as InstancedMesh;
+      if (mesh.isMesh) mesh.frustumCulled = !mesh.isInstancedMesh;
+    });
+    this.group.visible = false;
   }
 
   private pump() {
