@@ -3,12 +3,13 @@
 // unchanged; this module only replaces the visible representation.
 // ?peds=0 (or ?life=0) restores A's original pedestrians.
 import {
-  AnimationMixer, Group, type AnimationAction, type Object3D,
+  AnimationMixer, Group, type AnimationAction, type Object3D, type SkinnedMesh,
 } from "three";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, loadCharacterSource, styleCharacter,
+  CHARACTER_PALETTES, FACE_CARD_TRIS, findCharacterFace, loadCharacterSource, loadFacePortraits,
+  setCharacterPortrait, styleCharacter,
   updateCharacterPaint, type CharacterMetrics, type CharacterPaint,
 } from "./characters";
 import type { AGame } from "./env";
@@ -36,6 +37,7 @@ type CharacterRig = {
   walk: AnimationAction; idle: AnimationAction; walker: Walker | null;
   kind: number; level: RigLevel; metrics: CharacterMetrics;
   paints: CharacterPaint[];
+  faceMesh: SkinnedMesh | null; faceHead: Object3D | null;
 };
 type RenderStats = { visible: number; draws: number; triangles: number };
 
@@ -49,6 +51,9 @@ const MODEL_SPECS: ReadonlyArray<{ file: string; kind: number; level: RigLevel }
 ];
 const NEAR2 = 22 * 22;
 const VISIBLE2 = 60 * 60;
+// Painted faces only for the closest people. The projection adds no triangles.
+const FACE2 = 8 * 8;
+const FACE_CAP = 3;
 
 export class PedestrianCrowds {
   stats = {
@@ -67,6 +72,7 @@ export class PedestrianCrowds {
   private midAnimDt = 0;
   private nearStats: RenderStats = { visible: 0, draws: 0, triangles: 0 };
   private midStats: RenderStats = { visible: 0, draws: 0, triangles: 0 };
+  private faceRank: CharacterRig[] = [];
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
@@ -93,6 +99,7 @@ export class PedestrianCrowds {
   }
 
   private loadRigs() {
+    void loadFacePortraits();
     Promise.all(MODEL_SPECS.map(async (spec): Promise<CharacterSource> => {
       const source = await loadCharacterSource(this.g.renderer, spec.file);
       return {
@@ -119,7 +126,8 @@ export class PedestrianCrowds {
     const phase = slot * 1.61803398875;
     const selected = CHARACTER_PALETTES[(slot * 2 + source.kind) % CHARACTER_PALETTES.length];
     const palette = source.kind === 1 ? { ...selected, top: selected.dress } : selected;
-    const paints = styleCharacter(inner, palette, phase);
+    const paints = styleCharacter(inner, palette, phase, source.kind, source.level === "near");
+    const face = findCharacterFace(inner);
     const root = new Group();
     root.name = `aw:pedestrians:${source.level}:${source.kind}`;
     root.add(inner);
@@ -139,6 +147,7 @@ export class PedestrianCrowds {
     return {
       root, inner, mixer, walk, idle, walker: null, kind: source.kind,
       level: source.level, metrics: source.metrics, paints,
+      faceMesh: face.mesh, faceHead: face.head,
     };
   }
 
@@ -311,11 +320,36 @@ export class PedestrianCrowds {
     }
     this.animatePool(this.nearRigs, dt, time, this.nearStats);
     this.animatePool(this.midRigs, midStep, time, this.midStats);
+    this.applyFaceLod();
     this.stats.near = this.nearStats.visible;
     this.stats.mid = this.midStats.visible;
     this.stats.visible = this.stats.detailed = this.nearStats.visible + this.midStats.visible;
     this.stats.draws = this.nearStats.draws + this.midStats.draws;
     this.stats.triangles = this.nearStats.triangles + this.midStats.triangles;
+  }
+
+  /** Turn the painted face on for a placed rig, after its bones have moved. */
+  focusPortrait(rig: CharacterRig, enabled = true) {
+    setCharacterPortrait(rig.paints, enabled, rig.faceMesh, rig.faceHead);
+  }
+
+  private applyFaceLod() {
+    const rank = this.faceRank;
+    rank.length = 0;
+    for (const rig of this.nearRigs) {
+      const walker = rig.walker;
+      if (walker && rig.root.visible && walker.d2 <= FACE2) rank.push(rig);
+    }
+    rank.sort((a, b) => a.walker!.d2 - b.walker!.d2);
+    for (const rig of this.nearRigs) {
+      let on = false;
+      for (let i = 0; i < FACE_CAP && i < rank.length; i++) if (rank[i] === rig) on = true;
+      setCharacterPortrait(rig.paints, on, rig.faceMesh, rig.faceHead);
+      if (on) {
+        this.nearStats.draws += 1;
+        this.nearStats.triangles += FACE_CARD_TRIS;
+      }
+    }
   }
 
   update(dt: number, time: number) {
