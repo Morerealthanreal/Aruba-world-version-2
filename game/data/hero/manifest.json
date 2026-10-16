@@ -8495,7 +8495,7 @@
   "z": 53.6,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/cruise.glb",
+  "glb": "models/hero/ora_cruise.glb",
   "lod": {
    "hi": "cruise_lod0",
    "lo": "cruise_lod1",
@@ -10698,7 +10698,7 @@
   "z": 247.01,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/fortzoutman.glb",
+  "glb": "models/hero/ora_fort.glb",
   "lod": {
    "hi": "fortzoutman_lod0",
    "lo": "fortzoutman_lod1",
@@ -16089,7 +16089,7 @@
   "z": -1.25,
   "y": 0,
   "rotation": 0,
-  "glb": "models/hero/penha.glb",
+  "glb": "models/hero/ora_penha.glb",
   "lod": {
    "hi": "penha_lod0",
    "lo": "penha_lod1",
