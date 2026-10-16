@@ -21,9 +21,8 @@ function tileOf(u: number, v: number, grid: number) {
 
 /**
  * Hair volume parented to the head bone, in that bone's local space
- * (+Y up the skull, +Z out of the face). The shell covers the scalp and
- * falls from the occiput. It stays off the face, so it cannot sit on the
- * shoulders or cross in front of the nose.
+ * (+Y up the skull, +Z out of the face). Two shells make a cap over the
+ * crown. The face stays open so the portrait is not covered.
  */
 function parentHairToHead(
   headBone: SkinnedMesh["skeleton"]["bones"][number],
@@ -34,17 +33,19 @@ function parentHairToHead(
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
-  const sides = 9;
-  const a0 = Math.PI * 0.78;
-  const a1 = Math.PI * 2.22;
-  const rings = 10;
-  const centerAt = (t: number) => {
-    const y = 0.145 - t * 0.52;
-    const settle = Math.sin(Math.min(t, 0.4) / 0.4 * Math.PI * 0.5);
-    const z = 0.01 - settle * 0.07 - Math.max(0, t - 0.4) * 0.05;
-    const radius = t < 0.36 ? 0.09 - t * 0.015 : Math.max(0.03, 0.084 - (t - 0.36) * 0.08);
-    return { y, z, radius };
-  };
+  const cx = 0;
+  const cy = 0.072;
+  const cz = 0.004;
+  const rx = 0.108;
+  const ry = 0.108;
+  const rz = 0.118;
+  const stacks = 10;
+  const slices = 16;
+  const thetaMax = Math.PI * 0.72;
+  const stride = slices + 1;
+  // phi = π/2 is +Z, out of the face. Open the lower front for the portrait.
+  // Bangs cover the forehead. The portrait card sits in front of them.
+  const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.5 && theta > 1.35;
   const push = (x: number, y: number, z: number, along: number, around: number) => {
     const id = positions.length / 3;
     positions.push(x, y, z);
@@ -52,28 +53,88 @@ function parentHairToHead(
     uvs.push(tex[0], tex[1]);
     return id;
   };
-  for (let i = 0; i <= rings; i++) {
-    const t = i / rings;
-    const c = centerAt(t);
-    for (let s = 0; s < sides; s++) {
-      const u = s / (sides - 1);
-      const ang = a0 + u * (a1 - a0);
-      push(Math.cos(ang) * c.radius * 1.02, c.y, c.z + Math.sin(ang) * c.radius, t, u);
+  const shells: { start: number; kept: boolean[][] }[] = [];
+  for (const shell of [
+    { scale: 1, along: 0.02, out: true },
+    { scale: 0.74, along: 0.5, out: false },
+  ]) {
+    const start = positions.length / 3;
+    for (let j = 0; j <= stacks; j++) {
+      const t = j / stacks;
+      const theta = t * thetaMax;
+      const st = Math.sin(theta);
+      const ct = Math.cos(theta);
+      for (let i = 0; i <= slices; i++) {
+        const phi = (i / slices) * Math.PI * 2;
+        push(
+          cx + Math.cos(phi) * st * rx * shell.scale,
+          cy + ct * ry * shell.scale,
+          cz + Math.sin(phi) * st * rz * shell.scale,
+          shell.along + t * 0.42,
+          i / slices,
+        );
+      }
+    }
+    const kept: boolean[][] = [];
+    for (let j = 0; j < stacks; j++) {
+      const theta = ((j + 0.5) / stacks) * thetaMax;
+      const row: boolean[] = [];
+      for (let i = 0; i < slices; i++) {
+        const phi = ((i + 0.5) / slices) * Math.PI * 2;
+        const solid = !faceOpen(theta, phi);
+        row.push(solid);
+        if (!solid) continue;
+        const a = start + j * stride + i;
+        const b = a + 1;
+        const c = a + stride;
+        const d = c + 1;
+        if (shell.out) indices.push(a, c, b, b, c, d);
+        else indices.push(a, b, c, b, d, c);
+      }
+      kept.push(row);
+    }
+    shells.push({ start, kept });
+  }
+  const outer = shells[0];
+  const inner = shells[1];
+  const ov = (j: number, i: number) => outer.start + j * stride + i;
+  const iv = (j: number, i: number) => inner.start + j * stride + i;
+  for (let i = 0; i < slices; i++) {
+    if (!outer.kept[stacks - 1][i]) continue;
+    const a = ov(stacks, i);
+    const b = ov(stacks, i + 1);
+    const c = iv(stacks, i);
+    const d = iv(stacks, i + 1);
+    indices.push(a, b, d, a, d, c);
+  }
+  for (let j = 0; j < stacks; j++) {
+    for (let i = 0; i < slices; i++) {
+      if (!outer.kept[j][i]) continue;
+      const i2 = (i + 1) % slices;
+      if (!outer.kept[j][i2]) {
+        const a = ov(j, i + 1);
+        const b = ov(j + 1, i + 1);
+        const c = iv(j, i + 1);
+        const d = iv(j + 1, i + 1);
+        indices.push(a, c, b, b, c, d);
+      }
+      const i0 = (i + slices - 1) % slices;
+      if (!outer.kept[j][i0]) {
+        const a = ov(j, i);
+        const b = ov(j + 1, i);
+        const c = iv(j, i);
+        const d = iv(j + 1, i);
+        indices.push(a, b, d, a, d, c);
+      }
+      if (j > 0 && !outer.kept[j - 1][i]) {
+        const a = ov(j, i);
+        const b = ov(j, i + 1);
+        const c = iv(j, i);
+        const d = iv(j, i + 1);
+        indices.push(a, d, b, a, c, d);
+      }
     }
   }
-  for (let i = 0; i < rings; i++) {
-    for (let s = 0; s < sides - 1; s++) {
-      const a = i * sides + s;
-      const b = a + 1;
-      const c = a + sides;
-      const d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-  const crown = centerAt(0);
-  const cap = push(0, crown.y + 0.025, crown.z - 0.01, 0, 0.5);
-  for (let s = 0; s < sides - 1; s++) indices.push(cap, s + 1, s);
-
   const geo = new BufferGeometry();
   geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
   geo.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
@@ -87,6 +148,66 @@ function parentHairToHead(
   const previous = headBone.children.find((child) => child.name === "aw:hair");
   if (previous) headBone.remove(previous);
   headBone.add(hair);
+}
+
+/** Solid scalp under the portrait. The source head is a broken card shell. */
+function parentHeadShell(
+  headBone: SkinnedMesh["skeleton"]["bones"][number],
+  material: Material | Material[],
+) {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  // Head-local profile, crown to the neck join. +Z is out of the face.
+  const rings = [
+    { y: 0.148, rx: 0.012, rz: 0.012, z: 0.006 },
+    { y: 0.125, rx: 0.062, rz: 0.07, z: 0.01 },
+    { y: 0.08, rx: 0.078, rz: 0.086, z: 0.012 },
+    { y: 0.035, rx: 0.076, rz: 0.09, z: 0.02 },
+    { y: -0.01, rx: 0.058, rz: 0.072, z: 0.028 },
+    { y: -0.045, rx: 0.042, rz: 0.05, z: 0.03 },
+    { y: -0.075, rx: 0.048, rz: 0.048, z: 0.012 },
+    { y: -0.13, rx: 0.054, rz: 0.052, z: 0.004 },
+    { y: -0.19, rx: 0.06, rz: 0.056, z: -0.004 },
+  ];
+  const slices = 14;
+  const push = (x: number, y: number, z: number) => {
+    const id = positions.length / 3;
+    positions.push(x, y, z);
+    uvs.push(0.375, 0.375);
+    return id;
+  };
+  for (const ring of rings) {
+    for (let s = 0; s < slices; s++) {
+      const ang = (s / slices) * Math.PI * 2;
+      push(Math.cos(ang) * ring.rx, ring.y, ring.z + Math.sin(ang) * ring.rz);
+    }
+  }
+  for (let j = 0; j < rings.length - 1; j++) {
+    for (let s = 0; s < slices; s++) {
+      const s2 = (s + 1) % slices;
+      const a = j * slices + s;
+      const b = j * slices + s2;
+      const c = a + slices;
+      const d = b + slices;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const crown = push(0, rings[0].y + 0.008, rings[0].z);
+  for (let s = 0; s < slices; s++) indices.push(crown, s, (s + 1) % slices);
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const shell = new Mesh(geo, material);
+  shell.name = "aw:head-shell";
+  shell.frustumCulled = false;
+  shell.castShadow = false;
+  shell.receiveShadow = true;
+  const previous = headBone.children.find((child) => child.name === "aw:head-shell");
+  if (previous) headBone.remove(previous);
+  headBone.add(shell);
 }
 
 function tileUV(tile: number, grid: number, around: number, along: number): [number, number] {
@@ -113,6 +234,7 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
   const hairTiles = new Set(tiles.hair || []);
   const dressTiles = new Set(tiles.dress || []);
   if (!hairTiles.size && !dressTiles.size) return;
+  const skinTiles = new Set(tiles.skin || [5]);
   const skinTile = tiles.skin?.[0] ?? 5;
   const dressTile = tiles.dress?.[0] ?? 6;
   const hairTile = tiles.hair?.[tiles.hair.length - 1] ?? 7;
@@ -187,12 +309,49 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
   const dropHair = new Set<number>();
   const dropDress = new Set<number>();
   const dropSliver = new Set<number>();
+  const dropHead = new Set<number>();
+  const neck = names.get("neck_01");
+  const neckWorld = neck !== undefined
+    ? new Vector3().setFromMatrixPosition(mesh.skeleton.bones[neck].matrixWorld)
+    : null;
+  const toWorld = (vertex: number, out: Vector3) => out
+    .set(position.getX(vertex), position.getY(vertex), position.getZ(vertex))
+    .applyMatrix4(mesh.bindMatrix)
+    .applyMatrix4(_boneSkin)
+    .applyMatrix4(mesh.bindMatrixInverse)
+    .applyMatrix4(mesh.matrixWorld);
+  const inNeckColumn = (vertex: number) => {
+    if (!neckWorld) return false;
+    toWorld(vertex, _local);
+    const dx = _local.x - neckWorld.x;
+    const dz = _local.z - neckWorld.z;
+    return _local.y > 1.38 && _local.y < 1.68 && dx * dx + dz * dz < 0.02;
+  };
+  const onSkull = (vertex: number) => {
+    let best = -1;
+    let joint = 0;
+    for (let k = 0; k < 4; k++) {
+      const weight = skinWeight.getComponent(vertex, k);
+      if (weight > best) {
+        best = weight;
+        joint = Math.round(skinIndex.getComponent(vertex, k));
+      }
+    }
+    return joint === head || (neck !== undefined && joint === neck);
+  };
   for (let t = 0; t < triCount; t++) {
     const a = indexAttr.getX(t * 3);
     const tile = tileOf(uv.getX(a), uv.getY(a), grid);
     // Eyebrow and eyelash cards sit just proud of the face and read as a
     // thin sliver from the side. The portrait card carries those features.
     if (tile === 0 || tile === 1) dropSliver.add(t);
+    // The source scalp and neck are alpha cards. A solid shell replaces them.
+    if (skinTiles.has(tile) || tile === 9) {
+      const b = indexAttr.getY(t * 3);
+      const c = indexAttr.getZ(t * 3);
+      if (onSkull(a) && onSkull(b) && onSkull(c)) dropHead.add(t);
+      else if (inNeckColumn(a) || inNeckColumn(b) || inNeckColumn(c)) dropHead.add(t);
+    }
     if (dressTiles.has(tile)) {
       dressTris++;
       dropDress.add(t);
@@ -230,7 +389,7 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     return id;
   };
   for (let t = 0; t < triCount; t++) {
-    if (dropDress.has(t) || dropSliver.has(t)) continue;
+    if (dropDress.has(t) || dropSliver.has(t) || (longHair && dropHead.has(t))) continue;
     if (longHair && dropHair.has(t)) continue;
     indices.push(take(indexAttr.getX(t * 3)), take(indexAttr.getY(t * 3)), take(indexAttr.getZ(t * 3)));
   }
@@ -400,7 +559,7 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     for (let i = 0; i <= rings; i++) {
       const t = i / rings;
       centers.push(neckP.clone().addScaledVector(up, length * (0.02 + t * 0.9)));
-      radii.push(0.046 + t * 0.008);
+      radii.push(0.05 + t * 0.014);
     }
     addTube(
       centers, radii, 10, skinTile,
@@ -409,7 +568,11 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     );
   }
 
-  if (longHair) parentHairToHead(mesh.skeleton.bones[head], mesh.material, hairTile, grid);
+  if (longHair) {
+    const headBone = mesh.skeleton.bones[head];
+    parentHairToHead(headBone, mesh.material, hairTile, grid);
+    parentHeadShell(headBone, mesh.material);
+  }
 
   const offset = pos.length / 3;
   for (const value of acc.pos) pos.push(value);

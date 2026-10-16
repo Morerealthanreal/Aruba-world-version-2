@@ -10,7 +10,10 @@
 import type { AGame } from "./env";
 
 type Pass = { setSize(w: number, h: number): void; updateGtaoMaterial(p: object): void; updatePdMaterial(p: object): void };
-type M = { alphaTest: number; transparent: boolean; alphaToCoverage: boolean; needsUpdate: boolean };
+type M = {
+  alphaTest: number; transparent: boolean; alphaToCoverage: boolean; needsUpdate: boolean;
+  userData?: { awPaint?: unknown };
+};
 type N = { material?: M | M[]; children: N[] };
 export class HiPerf {
   on = false; private n = 0;
@@ -46,6 +49,8 @@ export class HiPerf {
       const ms = o.material; if (!ms) { n++; continue; }
       for (const m of Array.isArray(ms) ? ms : [ms]) {
         if (this.a2c.has(m)) continue; this.a2c.add(m);
+        // Character skin is opaque. Coverage on a masked atlas stipples shoulders and hands.
+        if (m.userData?.awPaint) continue;
         if (m.alphaTest > 0 && !m.transparent && !m.alphaToCoverage) {
           m.alphaToCoverage = true; m.needsUpdate = true; this.stats.a2c++;
           return; // one recompile this frame; the walk resumes next frame

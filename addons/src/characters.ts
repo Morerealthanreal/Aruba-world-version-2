@@ -200,12 +200,16 @@ varying float vAwCard;`,
         "#include <map_fragment>",
         `#include <map_fragment>
 vec2 awC = vMapUv - vec2(0.5, 0.46);
-if (vAwCard > -0.45) discard;
+if (vAwCard < 0.4) discard;
 if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
 diffuseColor = vec4(texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb, 1.0);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v2";
+  material.customProgramCacheKey = () => "aw-face-card-v4";
+  material.alphaTest = 0;
+  material.alphaHash = false;
+  material.transparent = false;
+  material.depthWrite = true;
   faceCardMaterials[kind] = material;
   return material;
 }
@@ -344,7 +348,14 @@ function tileCondition(tiles: unknown, variable: string) {
   return tiles.map((tile) => `abs(${variable} - ${Number(tile).toFixed(1)}) < 0.25`).join(" || ");
 }
 
-function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, phase: number, hairVolume = false) {
+function paintMaterial(
+  source: MeshStandardMaterial,
+  palette: CharacterPalette,
+  phase: number,
+  part: "body" | "hair" | "head" = "body",
+) {
+  const hairVolume = part === "hair";
+  const solidSkin = part === "head";
   const material = source.clone();
   const metadata = source.userData.awPainterly as {
     grid?: number;
@@ -365,7 +376,14 @@ function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, 
   };
   material.roughness = 0.72;
   material.metalness = 0;
-  material.alphaTest = Math.max(material.alphaTest, 0.24);
+  material.transparent = false;
+  material.opacity = 1;
+  material.depthWrite = true;
+  material.alphaToCoverage = false;
+  material.alphaHash = false;
+  // Solid hair and the repaired clothes are opaque. Leftover hair cards on
+  // the short-haired rig still need a cutout; skin is forced opaque below.
+  material.alphaTest = hairVolume || solidSkin ? 0 : Math.max(material.alphaTest, 0.24);
   material.userData.awPaint = uniforms;
   const hairVertex = tileCondition(tiles.hair, "awVertexTile");
   const dressVertex = tileCondition(tiles.dress, "awVertexTile");
@@ -446,21 +464,41 @@ if (uAwPortrait > 0.5) {
   vec2 awP = vAwHead.xy - vec2(0.0, 0.012);
   float awOval = (awP.x * awP.x) / 0.003844 + (awP.y * awP.y) / 0.007744;
   awFace = smoothstep(0.015, 0.06, vAwHead.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
-  float awCut = (awP.x * awP.x) / 0.0036 + (awP.y * awP.y) / 0.0196;
-  if (${hairVolume ? "false" : "awCut < 1.0 && vAwHead.z > -0.04 && vAwHead.y > -0.082 && vAwFaceDot > 0.42"}) discard;
 }
-if (${skinFragment}) {
+if (${solidSkin ? "true" : "false"}) {
+  diffuseColor.rgb = uAwPedSkin;
+  diffuseColor.a = 1.0;
+} else if (${skinFragment}) {
   diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
-  if (awFace > 0.15) {
-    diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, 0.78);
-    diffuseColor.a = 1.0;
-  }
+  if (awFace > 0.15) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, 0.55);
+  float awSkull = 1.0 - smoothstep(0.12, 0.24, length(vAwHead - vec3(0.0, 0.02, 0.01)));
+  if (uAwPortrait > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, awSkull);
+  diffuseColor.a = 1.0;
 } else if (${hairFragment}) {
   diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.84);
+  ${hairVolume ? "diffuseColor.a = 1.0;" : ""}
+} else if (${topFragment}) {
+  diffuseColor.rgb *= uAwPedTop;
   diffuseColor.a = 1.0;
-} else if (${topFragment}) diffuseColor.rgb *= uAwPedTop;
-else if (${bottomFragment}) diffuseColor.rgb *= uAwPedBottom;
-else if (${dressFragment}) diffuseColor.rgb *= uAwPedDress;`,
+} else if (${bottomFragment}) {
+  diffuseColor.rgb *= uAwPedBottom;
+  diffuseColor.a = 1.0;
+} else if (${dressFragment}) {
+  diffuseColor.rgb *= uAwPedDress;
+  diffuseColor.a = 1.0;
+} else if (${detailFragment}) {
+  diffuseColor.a = 1.0;
+}
+${hairVolume ? "diffuseColor.a = 1.0;" : "if (!(" + hairFragment + ")) diffuseColor.a = 1.0;"}
+`
+      )
+      .replace(
+        "#include <alphatest_fragment>",
+        hairVolume
+          ? "#include <alphatest_fragment>"
+          : `#ifdef USE_ALPHATEST
+if ((${hairFragment}) && diffuseColor.a < alphaTest) discard;
+#endif`,
       )
       .replace(
         "#include <emissivemap_fragment>",
@@ -483,7 +521,7 @@ if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v7:${hairVolume ? "hair" : "body"}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v10:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -500,7 +538,8 @@ export function styleCharacter(
     const mesh = object as Mesh;
     if (!mesh.isMesh) return;
     const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
-    const { material, uniforms } = paintMaterial(source, palette, phase, mesh.name === "aw:hair");
+    const part = mesh.name === "aw:hair" ? "hair" : mesh.name === "aw:head-shell" ? "head" : "body";
+    const { material, uniforms } = paintMaterial(source, palette, phase, part);
     mesh.material = material;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
