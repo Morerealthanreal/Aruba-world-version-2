@@ -71,6 +71,7 @@ export class PerfFixes {
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
     this.hookHero();
+    (window as unknown as { __awReleaseFrames?: () => void }).__awReleaseFrames?.();
     this.fixGlass();
   }
 
@@ -260,18 +261,21 @@ export class PerfFixes {
     // The game starts every hero inside 1.5 km in one update. Those parses then
     // run as one long task and the audio test's canvas click never lands. Far
     // towns are also still uploading on the measured soak laps if they wait
-    // until the car arrives. Start a few per frame, nearby ones first.
+    // until the car arrives. Keep two loads in flight, nearby ones first.
     let cursor = 0;
     h.update = (x: number, z: number) => {
+      let inflight = 0;
+      for (const n of h.list) if (n._loading && !n._g) inflight++;
+      const room = Math.max(0, 2 - inflight);
       const allow: Array<(typeof h.list)[number]> = [];
       for (const n of h.list) {
-        if (allow.length >= 4) break;
+        if (allow.length >= room) break;
         if (n._g || n._loading) continue;
         if (Math.hypot(n.x - x, n.z - z) < 1500) allow.push(n);
       }
       const list = h.list;
       let scanned = 0;
-      while (allow.length < 4 && list.length && scanned < list.length) {
+      while (allow.length < room && list.length && scanned < list.length) {
         const n = list[cursor % list.length];
         cursor++;
         scanned++;

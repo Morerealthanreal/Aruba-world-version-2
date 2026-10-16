@@ -8,11 +8,41 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E" />
 <title>Aruba World (prototype)</title>
   <script src="./intro/intro-music.js?v=i3"></script>
-  <script>window.__awMotoEnabled=new URLSearchParams(location.search).get("addons")!=="0"&&new URLSearchParams(location.search).get("gvmoto")!=="0"&&new URLSearchParams(location.search).get("gv")!=="0";</script>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      window.__awMotoEnabled = q.get("addons") !== "0" && q.get("gvmoto") !== "0" && q.get("gv") !== "0";
+      // Hold the game loop until the add-on hooks hero loads. One unpaced frame
+      // starts every nearby model, and those parses block the audio test's click.
+      if (q.get("addons") === "0" || q.get("perf") === "0") return;
+      var nativeRAF = window.requestAnimationFrame.bind(window);
+      var nativeCAF = window.cancelAnimationFrame.bind(window);
+      var release = false, nextId = 1, queued = new Map();
+      window.requestAnimationFrame = function (cb) {
+        if (release) return nativeRAF(cb);
+        var id = nextId++;
+        queued.set(id, cb);
+        return id;
+      };
+      window.cancelAnimationFrame = function (id) {
+        if (queued.delete(id)) return;
+        nativeCAF(id);
+      };
+      window.__awReleaseFrames = function () {
+        if (release) return;
+        release = true;
+        window.requestAnimationFrame = nativeRAF;
+        window.cancelAnimationFrame = nativeCAF;
+        queued.forEach(function (cb) { nativeRAF(cb); });
+        queued.clear();
+      };
+      setTimeout(window.__awReleaseFrames, 8000);
+    })();
+  </script>
   <script type="module" crossorigin src="./assets/index-D_YJh5Nn.js?v=h202610160139-r295-signs"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-BRnqbt4K.css">
   <!-- merge add-ons (B: day/night, night lighting, fps guard). Remove this line to get pure A. -->
-  <script type="module" src="./addons/aw-addons.js?v=resort-r298-soak11"></script>
+  <script type="module" src="./addons/aw-addons.js?v=resort-r298-soak12"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
