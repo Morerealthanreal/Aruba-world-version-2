@@ -594,9 +594,11 @@ export class WorldAudio {
     const wallDt = this.prevWall > 0 ? wall - this.prevWall : 0.016;
     this.prevT = now;
     this.prevWall = wall;
-    // Headless and background tabs can stall the audio clock. Keep the drivetrain
-    // on wall time in that case so a stalled context does not freeze the mix.
-    let dt = audioDt > 0.001 ? audioDt : wallDt;
+    // Headless Chromium often advances AudioContext.currentTime much slower than
+    // the frame clock. The drivetrain follows whichever clock actually moved,
+    // capped so a resume hitch cannot jump the gearbox.
+    let dt = audioDt > wallDt ? audioDt : wallDt;
+    if (!(dt > 0)) dt = 0.016;
     if (dt > 0.05) dt = 0.05;
     if (dt < 0) return;
     if (this.arm > 0) this.arm = this.arm > dt ? this.arm - dt : 0;
