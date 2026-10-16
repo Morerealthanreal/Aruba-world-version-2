@@ -104,3 +104,4 @@
 
 ## perf round 4 (rendering / frame pacing, no content changes)
 - Building BatchedMesh per region + A's far trim/contact LOD, shared instance pools, sliced streets / tileInst / warm-up work, static matrix freeze, allocation-free core hot paths. Flags, numbers and screenshots: PERF.md "Round 4"; harness in tools/perf.
+- r268: headlight SpotLight 54->14*night (addons nightLights.ts; car+moto share it): glare on facades/cars ~-74%, beam still on road. Removed the 📷 Street View/old-engine button + ?ground/sv/hybrid/osm routes (tools/patch_no_sv.py in install.sh). Shots hlB_*/hlA_*, hl_grid.png. Road-107 'tan band' by Botica: not sidewalk (terrain flat 12.7-12.9 m), not core bld 4193, not yard walls/msb/heroes; still unidentified - sw clamp + bld drop tried and reverted.

@@ -236,7 +236,7 @@ export class NightLights {
       this.head.position.set(c.x + f.x * 2.2, y, c.z + f.z * 2.2);
       this.headTarget.position.set(c.x + f.x * 24, (c.y || 0) + 0.2, c.z + f.z * 24);
       this.headTarget.updateMatrixWorld();
-      this.head.intensity = 54 * night; // r252: headlights -40% (Justin 2026-10-15), was 90
+      this.head.intensity = 14 * night; // r268: glare off buildings/cars ~-75% (Justin 2026-10-15), was 54 (r252), 90
     } else {
       this.head.intensity = 0;
     }
