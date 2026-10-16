@@ -554,7 +554,7 @@ export class TierraGolf {
     if (!d.club.length) { this.clubDone = true; return; }
     const c = centroid(d.club[0]);
     this.clubX = c[0]; this.clubZ = c[1];
-    const vMax = 6000, iMax = 18000;
+    const vMax = 9000, iMax = 27000;
     const pos = new Float32Array(vMax * 3), col = new Float32Array(vMax * 3), idx = new Uint32Array(iMax);
     const ax = d.anchor[0], az = d.anchor[1];
     for (let i = 0; i < 3; i++) { pos[i * 3] = ax + (i === 1 ? 0.4 : 0); pos[i * 3 + 1] = -40; pos[i * 3 + 2] = az + (i === 2 ? 0.4 : 0); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = 1; }
@@ -703,7 +703,7 @@ export class TierraGolf {
       const al = Math.hypot(ax, az) || 1, bl = Math.hypot(bx, bz) || 1;
       let nx = az / al + bz / bl, nz = -ax / al + -bz / bl;
       const nl = Math.hypot(nx, nz) || 1;
-      nx = nx / nl * 2.2 * outward; nz = nz / nl * 2.2 * outward;
+      nx = nx / nl * 4.6 * outward; nz = nz / nl * 4.6 * outward;
       outer.push([p1[0] + nx, p1[1] + nz]);
     }
     const fan = (ring: Ring, y: number, hex: number) => {
@@ -714,17 +714,44 @@ export class TierraGolf {
         s.idx.push(ci, this.v3(s, a[0], y, a[1], hex), this.v3(s, b[0], y, b[1], hex));
       }
     };
-    fan(outer, deckY, COL.deck);
+    for (let i = 0; i < n; i++) {
+      const a = ring[i], b = ring[(i + 1) % n], c = outer[i], d = outer[(i + 1) % n];
+      const q = [
+        this.v3(s, a[0], deckY, a[1], COL.deck), this.v3(s, b[0], deckY, b[1], COL.deck),
+        this.v3(s, d[0], deckY, d[1], COL.deck), this.v3(s, c[0], deckY, c[1], COL.deck),
+      ];
+      s.idx.push(q[0], q[1], q[2], q[0], q[2], q[3]);
+    }
     fan(ring, waterY, COL.water);
-    const step = Math.max(1, Math.floor(n / 4));
-    for (let i = 0, placed = 0; i < n && placed < 4; i += step, placed++) {
-      const x = ring[i][0] * 0.35 + outer[i][0] * 0.65;
-      const z = ring[i][1] * 0.35 + outer[i][1] * 0.65;
+    const step = Math.max(1, Math.floor(n / 8));
+    for (let i = 0, placed = 0; i < n && placed < 8; i += step, placed++) {
+      const x = ring[i][0] * 0.42 + outer[i][0] * 0.58;
+      const z = ring[i][1] * 0.42 + outer[i][1] * 0.58;
       const y = deckY + 0.2;
       const hw = 0.35, hd = 0.9, hh = 0.09;
       const a = this.v3(s, x - hw, y, z - hd, COL.cloth), b = this.v3(s, x + hw, y, z - hd, COL.cloth);
       const c = this.v3(s, x + hw, y + hh, z + hd, COL.cloth), d = this.v3(s, x - hw, y + hh, z + hd, COL.cloth);
       s.idx.push(a, b, c, a, c, d);
+    }
+    for (const i of [0, Math.floor(n / 2)]) {
+      const ox = outer[i][0], oz = outer[i][1], ix = ring[i][0], iz = ring[i][1];
+      let dx = ox - ix, dz = oz - iz;
+      const L = Math.hypot(dx, dz) || 1;
+      dx /= L; dz /= L;
+      const cx = ix * 0.35 + ox * 0.65, cz = iz * 0.35 + oz * 0.65;
+      const px = -dz, pz = dx, hw = 1.35, hd = 1.05, top = deckY + 2.2;
+      const posts = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
+      for (const [sx, sz] of posts) {
+        const x = cx + px * sx + dx * sz, z = cz + pz * sx + dz * sz;
+        const q = [
+          this.v3(s, x - 0.05, deckY, z - 0.05, COL.wall), this.v3(s, x + 0.05, deckY, z - 0.05, COL.wall),
+          this.v3(s, x + 0.05, top, z + 0.05, COL.wall), this.v3(s, x - 0.05, top, z + 0.05, COL.wall),
+        ];
+        s.idx.push(q[0], q[1], q[2], q[0], q[2], q[3]);
+      }
+      const y = top + 0.04;
+      const roof = posts.map(([sx, sz]) => this.v3(s, cx + px * sx * 1.15 + dx * sz * 1.15, y, cz + pz * sx * 1.15 + dz * sz * 1.15, COL.cloth));
+      s.idx.push(roof[0], roof[1], roof[2], roof[0], roof[2], roof[3]);
     }
   }
 
