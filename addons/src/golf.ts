@@ -714,7 +714,14 @@ export class TierraGolf {
         s.idx.push(ci, this.v3(s, a[0], y, a[1], hex), this.v3(s, b[0], y, b[1], hex));
       }
     };
-    fan(outer, deckY, COL.deck);
+    for (let i = 0; i < n; i++) {
+      const a = ring[i], b = ring[(i + 1) % n], c = outer[i], d = outer[(i + 1) % n];
+      const q = [
+        this.v3(s, a[0], deckY, a[1], COL.deck), this.v3(s, b[0], deckY, b[1], COL.deck),
+        this.v3(s, d[0], deckY, d[1], COL.deck), this.v3(s, c[0], deckY, c[1], COL.deck),
+      ];
+      s.idx.push(q[0], q[1], q[2], q[0], q[2], q[3]);
+    }
     fan(ring, waterY, COL.water);
     const step = Math.max(1, Math.floor(n / 8));
     for (let i = 0, placed = 0; i < n && placed < 8; i += step, placed++) {

@@ -1,12 +1,13 @@
 // Tierra del Sol resort around the course: cream villas and two-story condos
-// with clay roofs, the entrance gate and sign, the residential streets, and a
-// few palms and columnar cacti at the gate. Footprints and streets are OSM.
+// with clay roofs, the entrance gate and sign, and a few palms and columnar
+// cacti at the gate. Footprints are OSM. The residential streets stay the
+// engine's mapped roads, so this does not lay a second ribbon on them.
 // The California Lighthouse and the Arashi shore are not in the data.
 //
 // One mesh for every building and the gate, one mesh for the streets, and two
 // instanced plants. Allocated once at load. ?golf=0 or ?resort=0 turns it off.
 import {
-  BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute,
+  BoxGeometry, BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute,
   Group, InstancedMesh, Matrix4, Mesh, MeshLambertMaterial, Quaternion, Vector3,
 } from "three";
 import type { AGame } from "./env";
@@ -143,7 +144,6 @@ export class TierraResort {
     if (!this.data) return 1;
     let n = 0;
     for (const job of this.jobs) if (job.at < job.ids.length && this.hasKey(job.key)) n++;
-    for (const job of this.roadJobs) if (job.at < job.ids.length && this.hasKey(job.key)) n++;
     if (!this.gateDone && this.hasH(this.data.gate.x, this.data.gate.z)) n++;
     return n;
   }
@@ -151,7 +151,6 @@ export class TierraResort {
   frame() {
     if (!this.data) return;
     this.pumpVillas();
-    this.pumpRoads();
     this.fillGate();
     this.placePlants();
     const cam = this.g.camera.position;
@@ -179,7 +178,6 @@ export class TierraResort {
       return;
     }
     this.prepVillas();
-    this.prepRoads();
     this.hideFootprints();
     this.fillMask();
     this.world.vegDirty = true;
@@ -386,8 +384,8 @@ export class TierraResort {
     const span = (x0: number, x1: number) => {
       for (let x = x0; x < x1 - 0.2; x += 4.4) {
         const xA = x, xB = Math.min(x + 3.55, x1);
-        this.localBox(xA, -0.22, xB, 0.22, 0, 1.15, WALL);
-        this.localBox(xA - 0.05, -0.32, xA + 0.58, 0.32, 0, 1.62, STONE);
+        this.localBox(xA, -0.28, xB, 0.28, 0, 1.45, WALL);
+        this.localBox(xA - 0.05, -0.38, xA + 0.62, 0.38, 0, 1.85, STONE);
       }
       this.localBox(x1 - 0.58, -0.32, x1 + 0.05, 0.32, 0, 1.62, STONE);
     };
@@ -416,9 +414,9 @@ export class TierraResort {
   }
 
   private hip(x0: number, z0: number, x1: number, z1: number, wallTop: number, rise: number) {
-    const ys = [this.ground(x0, z0), this.ground(x1, z0), this.ground(x1, z1), this.ground(x0, z1)].filter((y) => Number.isFinite(y));
-    if (!ys.length) return;
-    const eave = Math.max(...ys) + wallTop;
+    const gy = this.ground((x0 + x1) / 2, (z0 + z1) / 2);
+    if (!Number.isFinite(gy)) return;
+    const eave = gy + wallTop;
     const [cx, cz] = this.loc((x0 + x1) / 2, (z0 + z1) / 2);
     const peak = this.put(cx, eave + rise, cz, ROOF, 0, 1, 0);
     const rim = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].map(([x, z]) => {
@@ -446,10 +444,10 @@ export class TierraResort {
   }
 
   private localBox(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, hex: number) {
-    const ys = [this.ground(x0, z0), this.ground(x1, z0), this.ground(x1, z1), this.ground(x0, z1)].filter((y) => Number.isFinite(y));
-    if (!ys.length) return;
-    const base = Math.min(...ys) + y0;
-    const top = Math.max(...ys) + y1;
+    const gy = this.ground((x0 + x1) / 2, (z0 + z1) / 2);
+    if (!Number.isFinite(gy)) return;
+    const base = gy + y0;
+    const top = gy + y1;
     const corners: [number, number][] = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
     const world = corners.map(([x, z]) => this.loc(x, z));
     const c = centroid(world);
@@ -468,10 +466,11 @@ export class TierraResort {
   }
 
   private groundQuad(x0: number, z0: number, x1: number, z1: number, hex: number, lift: number) {
+    const gy = this.ground((x0 + x1) / 2, (z0 + z1) / 2);
+    const y = (Number.isFinite(gy) ? gy : 0) + lift;
     const pts = [[x0, z0], [x1, z0], [x0, z1], [x1, z1]].map(([x, z]) => {
       const [wx, wz] = this.loc(x, z);
-      const h = this.hAt(wx, wz);
-      return [wx, Number.isFinite(h) ? h + lift : 0, wz] as [number, number, number];
+      return [wx, y, wz] as [number, number, number];
     });
     const q = pts.map(([x, y, z]) => this.put(x, y, z, hex, 0, 1, 0));
     this.quad(q[0], q[1], q[3], q[2]);
@@ -598,7 +597,11 @@ export class TierraResort {
   private hideFootprints() {
     const hero = this.world.hero;
     if (!hero || !this.data) return;
-    for (const v of this.data.villas) hero.pts.push(v.h);
+    for (const v of this.data.villas) {
+      hero.pts.push(v.h);
+      const ring = v.p[0][0] === v.p[v.p.length - 1][0] && v.p[0][1] === v.p[v.p.length - 1][1] ? v.p : v.p.concat([v.p[0]]);
+      hero.polys.push(ring);
+    }
   }
 
   private fillMask() {
@@ -665,11 +668,11 @@ export class TierraResort {
     parts.push(trunk);
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
-      const fr = new CylinderGeometry(0.04, 0.1, 2.2, 3);
-      fr.translate(0, 1.05, 0);
-      fr.rotateX(1.05);
+      const fr = new BoxGeometry(0.18, 0.05, 2.2);
+      fr.translate(0, 0, 1.0);
+      fr.rotateX(0.65);
       fr.rotateY(a);
-      fr.translate(0, 5.0, 0);
+      fr.translate(0, 5.05, 0);
       this.paint(fr, i % 2 ? 0x218a3a : 0x17662c);
       parts.push(fr);
     }

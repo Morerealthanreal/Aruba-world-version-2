@@ -17,6 +17,12 @@ from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 from shapely.validation import make_valid
 
+# Resort streets. Malmokweg and L.G. Smith stay the public roads.
+STREETS = {
+    "Caya Baranca", "Caya Di Biento", "Caya Di Oro", "Caya Di Sero", "Caya Mesa Bista",
+    "Caya di Campeonan", "Caya di Solo", "Caya Bunita Bista", "Caya Bista Lamar", "Catalina",
+}
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LAT0, LON0 = 12.52, -69.97
 MX = 111320 * math.cos(math.radians(LAT0))
@@ -84,7 +90,14 @@ def main():
     for e in res["elements"]:
         if e["id"] == 378078106 and "geometry" in e:
             gold = make_valid(Polygon([xz(p["lat"], p["lon"]) for p in e["geometry"]]))
-    zone = course.buffer(78).difference(course.buffer(-8))
+    streets = []
+    for e in res["elements"]:
+        t = e.get("tags", {})
+        if t.get("name") in STREETS and t.get("highway") and "geometry" in e:
+            streets.append(LineString([xz(p["lat"], p["lon"]) for p in e["geometry"]]))
+    near = unary_union(streets).buffer(42).intersection(course.buffer(170))
+    band = course.buffer(90).difference(course.buffer(-6))
+    zone = unary_union([near, band])
     if gold is not None:
         zone = zone.difference(gold.buffer(8))
     for (x, z), r in EXCLUSIONS:
