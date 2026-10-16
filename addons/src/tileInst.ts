@@ -164,7 +164,7 @@ export class TileInstances {
         const b: Bucket = { kind: f.name, im: null, pool, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] };
         pool.add(b); this.dirtyPools.add(pool);
         if (pool.im) primeMesh(pool.im);
-        for (const m of list) { m.parent?.remove(m); this.folded++; }
+        for (const m of list) { dropFolded(m); this.folded++; }
         out.push(b); this.buckets++;
         return;
       }
@@ -178,7 +178,7 @@ export class TileInstances {
       if (cols) im.instanceColor = new InstancedBufferAttribute(new Float32Array(n * 3), 3);
       primeMesh(im);
       r.group!.add(im as unknown as Object3D);
-      for (const m of list) { m.parent?.remove(m); this.folded++; }
+      for (const m of list) { dropFolded(m); this.folded++; }
       out.push({ kind: f.name, im, mats, cols, cx, cz, n, box: [x0, z0, x1, z1] });
       this.buckets++;
     }
@@ -247,6 +247,12 @@ export class TileInstances {
     for (const r of this.dirty) this.cull(r, this.lastX, this.lastZ);
     this.dirty.clear();
   }
+}
+/** The originals have already been copied. Removing them without dispose left their
+ *  instance buffers on the GPU after a later draw of those hidden meshes. */
+function dropFolded(m: IM) {
+  m.parent?.remove(m);
+  (m as unknown as { dispose: () => void }).dispose();
 }
 function primeMesh(o: Object3D) {
   const mp = (window as unknown as { __aw?: { mperf?: { prime: (o: Object3D) => void } } }).__aw?.mperf;
