@@ -37,7 +37,7 @@ export class MobilePerf {
   private n = 0; private t = 0.2; private busy = false;
   private seen = new WeakSet<object>(); private keys = new Set<string>(); private lightKey = "";
   private seenTex = new WeakSet<object>(); private texQ: Tex[] = []; private pend: O[] = []; private inflight = 0;
-  private stack: O[] = []; private childN = new WeakMap<object, number>(); private lc = 0;
+  private stack: O[] = []; private onStack = new WeakSet<object>(); private childN = new WeakMap<object, number>(); private lc = 0;
   private depthMat = new MeshDepthMaterial(); private depthMesh = new Mesh(); private empty = new BufferGeometry();
   private depthKeys = new Set<string>();
   stats = { compiles: 0, objs: 0, reps: 0, uploads: 0, depth: 0, synced: 0 };
@@ -170,26 +170,34 @@ export class MobilePerf {
       if (lk !== this.lightKey) {
         const first = this.lightKey === "";
         this.lightKey = lk;
-        if (!first) { this.keys.clear(); this.depthKeys.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; }
+        if (!first) { this.keys.clear(); this.depthKeys.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; this.onStack = new WeakSet(); }
       }
     }
-    const push = (o: O | undefined | null) => {
-      if (!o || this.childN.get(o) === o.children.length) return;
-      this.stack.push(o);
-    };
-    push(this.g.scene as unknown as O);
+    this.enqueue(this.g.scene as unknown as O);
     const regs = (this.g.real as unknown as { regions?: Map<string, Reg> } | null)?.regions;
-    if (regs) for (const R of regs.values()) push(R.group as O | undefined);
+    if (regs) for (const R of regs.values()) this.enqueue(R.group as O | undefined);
+  }
+  /** One queue entry per node. A detached node is dropped so an unloaded region is not kept alive by the walk. */
+  private enqueue(o: O | undefined | null) {
+    const scene = this.g.scene as unknown as O;
+    if (!o || this.onStack.has(o)) return;
+    if (o !== scene && !o.parent) return;
+    if (this.childN.get(o) === o.children.length) return;
+    this.onStack.add(o);
+    this.stack.push(o);
   }
   private walk(budget: number) {
     const t0 = performance.now();
+    const scene = this.g.scene as unknown as O;
     let n = 0;
     while (this.stack.length && n < 800 && performance.now() - t0 < budget) {
       const o = this.stack.pop()!;
+      this.onStack.delete(o);
+      if (o !== scene && !o.parent) continue;
       const ch = o.children, cn = ch.length;
       if (this.childN.get(o) === cn) { n++; continue; } // unchanged node; a new child flips the count and re-walks siblings
       this.childN.set(o, cn);
-      for (let i = 0; i < cn; i++) this.stack.push(ch[i] as O);
+      for (let i = 0; i < cn; i++) this.enqueue(ch[i] as O);
       this.consider(o);
       n++;
     }
