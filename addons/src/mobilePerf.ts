@@ -62,7 +62,7 @@ export class MobilePerf {
       if ((this.n++ & 1) === 0) r.shadowMap.needsUpdate = true;
     }
     if (!this.incremental) return;
-    this.drainTextures();
+    if (this.preUpload && this.texQ.length) this.upload(1);
     this.seed();
     this.walk(0.7);
     this.pump(2);
@@ -83,7 +83,7 @@ export class MobilePerf {
     this.pump(2);
     // getUniforms (the first-draw stall) runs here, outside the animation callback
     this.sync(8);
-    this.drainTextures();
+    if (this.preUpload && this.texQ.length) this.upload(1);
   }
   /**
    * Link `obj`'s program now and run `onReady` once getUniforms has populated it.
@@ -112,18 +112,11 @@ export class MobilePerf {
     this.t = 4; this.busy = true;
     r.compileAsync(this.g.scene, this.g.camera).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
   }
-  /** One texture per frame once the world is warm. A long queue is still the first laps,
-   *  and leaving it on that cadence was still uploading during the measured soak loops. */
-  private drainTextures() {
-    if (!this.preUpload || !this.texQ.length) return;
-    const backlog = this.texQ.length > 12;
-    this.upload(backlog ? 8 : 1, backlog ? 8 : 2);
-  }
-  private upload(max: number, budget = 2) {
+  private upload(max: number) {
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0;
-    while (this.texQ.length && n < max && performance.now() - t0 < budget) {
+    while (this.texQ.length && n < max && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
       if ((t as Tex & { __awDead?: number }).__awDead) continue;
       if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }

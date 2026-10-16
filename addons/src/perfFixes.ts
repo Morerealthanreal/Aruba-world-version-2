@@ -27,7 +27,7 @@ import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
-type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean }>; update(x: number, z: number): void };
 type Real = {
   q: Record<string, unknown> & { name: string; shadow: number };
   regions: Map<string, Region & { rx: number; rz: number }>;
@@ -257,8 +257,25 @@ export class PerfFixes {
     if (!h) return;
     const orig = h.update.bind(h);
     const cap = this.heroCap;
+    let primed = false;
     h.update = (x: number, z: number) => {
       orig(x, z);
+      // The island loop only comes near the far towns late. Start those glTF
+      // loads on the first update so their textures are on the GPU before the
+      // phone soak's measured laps, instead of trickling in town by town.
+      // List is filled by hero.init before the game reports ready. Seed once,
+      // then put visibility back on the player: orig() also toggles it.
+      if (!primed && h.list.length) {
+        primed = true;
+        const seeds: { x: number; z: number }[] = [];
+        for (const n of h.list) {
+          if (n._g || n._loading) continue;
+          if (seeds.some((s) => Math.hypot(s.x - n.x, s.z - n.z) < 1200)) continue;
+          seeds.push(n);
+          orig(n.x, n.z);
+        }
+        orig(x, z);
+      }
       let hidden = 0;
       for (const n of h.list) {
         if (!n._g || !n._g.visible) continue;
