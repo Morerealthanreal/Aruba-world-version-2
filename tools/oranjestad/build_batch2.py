@@ -583,6 +583,18 @@ def build_quay(samples, polys):
         f"quay samples {len(keep)} palms {len(palms)} lamps {len(lamps)} "
         f"planters {len(planters)} posts {len(posts)}"
     )
+    for sample in keep:
+        if not (100.0 < sample["z"] < 190.0):
+            continue
+        dist = sample["inner"] + 1.1
+        sx = sample["x"] + sample["nx"] * dist
+        sz = sample["z"] + sample["nz"] * dist
+        if poly_hit(polys, sx, sz) or height_at(sx, sz) < 1.5:
+            continue
+        lookx = sx + sample["tx"] * 26 + sample["nx"] * 3
+        lookz = sz + sample["tz"] * 26 + sample["nz"] * 3
+        print(f"  cam promenade stand {sx:.0f},{sz:.0f} look {lookx:.0f},{lookz:.0f}")
+        break
     return glb, origin, keep
 
 
@@ -749,6 +761,11 @@ def arcade_on(paint, signs, columns, hero, chain, color, uv, origin, label_h=4.8
         if wrote:
             nrm = Prim._n(loc(s0, origin), loc(s1, origin), loc(s2, origin))
             stamp_uv(signs, before, (u0, v0, u1, v1), bool(nrm and nrm[0] * nx + nrm[2] * nz >= 0))
+        # The sign faces the roadway, so the camera stands further along the outward normal.
+        print(
+            f"  cam mallface stand {cx + nx * 14:.0f},{cz + nz * 14:.0f} "
+            f"look {cx:.0f},{cz:.0f}"
+        )
     return True
 
 
@@ -826,7 +843,14 @@ def build_malls(chain, samples):
         wrote = emit_quad(signs, [loc(p, origin) for p in (s0, s1, s2, s3)], WHITE, (-nx, 0, -nz))
         if wrote:
             nrm = Prim._n(loc(s0, origin), loc(s1, origin), loc(s2, origin))
-            stamp_uv(signs, before, (u0, v0, u1, v1), bool(nrm and nrm[0] * -nx + nrm[2] * -nz >= 0))
+            # This face is seen from inland. The roadway-facing stamp reads
+            # backwards from that side, so the U range is swapped.
+            stamp_uv(signs, before, (u1, v0, u0, v1), bool(nrm and nrm[0] * -nx + nrm[2] * -nz >= 0))
+        # Seaport sign faces inland.
+        print(
+            f"  cam seaport stand {cx - nx * 12:.0f},{cz - nz * 12:.0f} "
+            f"look {cx:.0f},{cz:.0f}"
+        )
     if paint.tris == 0 and not columns:
         return None
     lod = Prim()
@@ -841,6 +865,82 @@ def build_malls(chain, samples):
     glb.lod1_prim = lod
     print(f"mall columns {len(columns)} seaport posts {len(posts)}")
     return glb, origin
+
+
+STREET_IDS = {
+    "Havenstraat": "ora_haven",
+    "Schelpstraat": "ora_schelp",
+    "Wilhelminastraat": "ora_wilhelm",
+    "Klipstraat": "ora_klip",
+}
+STREET_NAMES = {
+    "Havenstraat": "Dutch-colonial shopfronts on Havenstraat",
+    "Schelpstraat": "Dutch-colonial shopfronts on Schelpstraat",
+    "Wilhelminastraat": "Dutch-colonial shopfronts on Wilhelminastraat",
+    "Klipstraat": "Dutch-colonial shopfronts on Klipstraat",
+}
+
+
+def facade_windows(poly, street_a, street_b, ground, origin):
+    """Windows on every wall. The street wall keeps them above the shopfront."""
+    ccw = poly_area(poly) > 0
+    out = []
+    for i in range(len(poly)):
+        p, q = poly[i], poly[(i + 1) % len(poly)]
+        dx, dz = q[0] - p[0], q[1] - p[1]
+        length = hypot(dx, dz)
+        if length < 3.0:
+            continue
+        tx, tz = dx / length, dz / length
+        left = (-tz, tx)
+        nx, nz = left if not ccw else (-left[0], -left[1])
+        same = (
+            hypot(p[0] - street_a[0], p[1] - street_a[1]) < 0.35
+            and hypot(q[0] - street_b[0], q[1] - street_b[1]) < 0.35
+        ) or (
+            hypot(p[0] - street_b[0], p[1] - street_b[1]) < 0.35
+            and hypot(q[0] - street_a[0], q[1] - street_a[1]) < 0.35
+        )
+        if same:
+            nwin = max(1, min(4, int(length / 2.8)))
+            levels = (4.85,)
+        elif length >= 5.5:
+            nwin = max(1, min(3, int(length / 4.2)))
+            levels = (2.25, 4.85)
+        else:
+            continue
+        yaw = face_yaw(nx, nz)
+        for k in range(nwin):
+            t = (k + 1) / (nwin + 1)
+            px = p[0] + dx * t + nx * 0.16
+            pz = p[1] + dz * t + nz * 0.16
+            for lift in levels:
+                out.append(xform(px, ground + lift, pz, origin, yaw))
+    return out
+
+
+def stand_clear(buildings, x, z):
+    if height_at(x, z) < 1.4:
+        return False
+    return not any(point_in(b["poly"], x, z) for b in buildings)
+
+
+def suggest_facade_cam(gid, group, buildings):
+    ranked = sorted(group, key=lambda b: b["edge"][4], reverse=True)
+    for b in ranked:
+        _s, _i, a, bb, _length, outward, _d = b["edge"]
+        mx0 = (a[0] + bb[0]) / 2
+        mz0 = (a[1] + bb[1]) / 2
+        for dist in (12.0, 16.0, 8.0):
+            sx = mx0 + outward[0] * dist
+            sz = mz0 + outward[1] * dist
+            if stand_clear(buildings, sx, sz):
+                print(
+                    f"  cam {gid} stand {sx:.0f},{sz:.0f} look {mx0:.0f},{mz0:.0f} "
+                    f"h={height_at(sx, sz):.2f}"
+                )
+                return
+    print(f"  cam {gid}: no open stand")
 
 
 def build_sides(main_road):
@@ -864,6 +964,16 @@ def build_sides(main_road):
         print(f"  street {name}: {len(lines[name])} pts")
     buildings = load_buildings()
     blockers = hero_blockers()
+    # Hide points from the facades this function rebuilds must not reject
+    # the same footprints on a re-run.
+    retire_block = {
+        "ora_side", "ora_side0", "ora_side1",
+        "ora_haven", "ora_schelp", "ora_wilhelm", "ora_klip",
+    }
+    blockers = (
+        [p for p in blockers[0] if p[2] not in retire_block],
+        [p for p in blockers[1] if p[1] not in retire_block],
+    )
     landmarks = json.loads(LANDMARKS.read_text())
     dress = {
         "tramline", "arutram", "ora_canopies", "dt_bollards0", "ora_promenade",
@@ -871,6 +981,7 @@ def build_sides(main_road):
         "marinasign", "ora_gable0", "ora_gable1", "ora_gable2", "wilhelmina_plaza",
         "ora_crowns", "ora_quay", "ora_marina", "ora_mallface", "ora_tramstop",
         "ora_surfside", "ora_side", "ora_side0", "ora_side1",
+        "ora_haven", "ora_schelp", "ora_wilhelm", "ora_klip",
     }
     occupied = []
     for entry in json.loads(MANIFEST.read_text()):
@@ -891,7 +1002,8 @@ def build_sides(main_road):
             continue
         if blocked(b, *blockers):
             continue
-        if any(point_in(b["poly"], hx, hz) for hx, hz in occupied):
+        ring = b["poly"] + [b["poly"][0]]
+        if any(min_dist_to_poly((hx, hz), ring) < 2.5 for hx, hz in occupied):
             continue
         if min_dist_to_poly(c, main_road) < 13:
             continue
@@ -933,12 +1045,18 @@ def build_sides(main_road):
         print(f"    {b['street']}: {b['sign_name'] or '(facade)'} ({b['c'][0]:.0f},{b['c'][1]:.0f})")
     if len(picked) < 4:
         return None, []
-    # One hero is enough for this compact set; split only if it gets long.
-    groups = [picked]
-    if len(picked) > 26:
-        groups = [picked[: len(picked) // 2], picked[len(picked) // 2 :]]
+    # One hero per street. LOD distance is measured to the hero origin, so a
+    # single origin for all four streets was dropping Schelpstraat to boxes.
+    order = ("Havenstraat", "Schelpstraat", "Klipstraat", "Wilhelminastraat")
+    by_street = {}
+    for b in picked:
+        by_street.setdefault(b["street"], []).append(b)
     built = []
-    for gi, group in enumerate(groups):
+    for street in order:
+        group = by_street.get(street) or []
+        if len(group) < 2:
+            print(f"  {street}: only {len(group)} facades, skipped")
+            continue
         atlas = Atlas(size=1024)
         ox = sum(b["c"][0] for b in group) / len(group)
         oz = sum(b["c"][1] for b in group) / len(group)
@@ -956,16 +1074,9 @@ def build_sides(main_road):
                     signs.quad(s0, s1, s2, s3, WHITE, (u0, u1, u2, u3))
                 else:
                     signs.quad(s1, s0, s3, s2, WHITE, (u1, u0, u3, u2))
-            _s, _i, a, bb, length, outward, _d = b["edge"]
-            nx, nz = outward
-            dx, dz = (bb[0] - a[0]) / (length or 1), (bb[1] - a[1]) / (length or 1)
-            nwin = max(1, min(4, int(length / 2.8)))
+            _s, _i, a, bb, _length, _outward, _d = b["edge"]
             ground = height_at(*b["c"])
-            for k in range(nwin):
-                t = (k + 1) / (nwin + 1)
-                px = a[0] + dx * length * t + nx * 0.14
-                pz = a[1] + dz * length * t + nz * 0.14
-                windows.append(xform(px, ground + 4.85, pz, origin, face_yaw(nx, nz)))
+            windows.extend(facade_windows(b["poly"], a, bb, ground, origin))
             y1 = ground + 7.2
             ccw = poly_area(b["poly"]) > 0
             for i in range(len(b["poly"])):
@@ -980,7 +1091,10 @@ def build_sides(main_road):
                     lod.quad(B, A, D, C, b["color"])
                 else:
                     lod.quad(A, B, C, D, b["color"])
-        gid = "ora_side" if len(groups) == 1 else f"ora_side{gi}"
+        gid = STREET_IDS[street]
+        far = max(hypot(b["c"][0] - ox, b["c"][1] - oz) for b in group)
+        print(f"  {gid} origin {ox:.0f},{oz:.0f} buildings {len(group)} farthest {far:.0f}m windows {len(windows)}")
+        suggest_facade_cam(gid, group, buildings)
         glb = Glb(gid)
         glb.mat("paint", rough=0.86)
         glb.mat("glass", rough=0.2, metal=0.04)
@@ -991,7 +1105,7 @@ def build_sides(main_road):
         glb.add(signs, "sign")
         glb.add_instances(window_proto(), "paint", windows)
         glb.lod1_prim = lod
-        built.append((glb, origin, [b["c"] for b in group], gid))
+        built.append((glb, origin, [b["c"] for b in group], gid, STREET_NAMES[street]))
     return built, picked
 
 
@@ -1037,6 +1151,8 @@ def build_tram(samples, main_road, polys):
             continue
         xforms.append(xform(x, h, z, origin, yaw))
         print(f"  tram stop {x:.0f},{z:.0f} h={h:.2f}")
+        if abs(x + 7000) < 40:
+            print(f"  cam tram-main stand {x + 18:.0f},{z + 6:.0f} look {x:.0f},{z:.0f}")
     if len(xforms) < 2:
         return None
     lod = Prim()
@@ -1134,10 +1250,10 @@ def build_surfside(chain):
             if beach:
                 ribbon(
                     paint,
-                    (x, h + 0.06, z),
-                    (x + step, h2 + 0.06, z),
-                    (x + step, h4 + 0.06, z + step),
-                    (x, h3 + 0.06, z + step),
+                    (x, h + 0.22, z),
+                    (x + step, h2 + 0.22, z),
+                    (x + step, h4 + 0.22, z + step),
+                    (x, h3 + 0.22, z + step),
                     SAND,
                     origin,
                     (0, 1, 0),
@@ -1181,6 +1297,11 @@ def build_surfside(chain):
     glb.add_instances(umbrella_proto(), "paint", umb)
     glb.lod1_prim = lod
     print(f"surfside sand-cells ~{sand_cells} palms {len(palms)} umbrellas {len(umb)}")
+    # A stand on the sand ribbon, looking west along the beach.
+    for x, z, h, _sc in palms:
+        if 1360 < z < 1460 and -6500 < x < -6380 and 0.6 < h < 2.4:
+            print(f"  cam surfside stand {x + 6:.0f},{z:.0f} look {x - 18:.0f},{z + 12:.0f} h={h:.2f}")
+            break
     return glb, origin
 
 
@@ -1271,9 +1392,9 @@ def save_hero(glb, gid, name, origin, tris_hint, hide, switch, textures):
     return entry
 
 
-def save_manifest(entries):
+def save_manifest(entries, retire=()):
     manifest = json.loads(MANIFEST.read_text())
-    ids = {e["id"] for e in entries}
+    ids = {e["id"] for e in entries} | set(retire)
     manifest = [e for e in manifest if e.get("id") not in ids]
     manifest.extend(entries)
     text = json.dumps(manifest, indent=1)
@@ -1372,16 +1493,16 @@ def main():
     if want("sides"):
         built, side_buildings = build_sides(main_road)
         if built and not dry:
-            for glb, origin, hide, gid in built:
+            for glb, origin, hide, gid, label in built:
                 entries.append(
                     save_hero(
                         glb,
                         gid,
-                        "Dutch-colonial shopfronts on Wilhelminastraat, Havenstraat, Schelpstraat and Klipstraat",
+                        label,
                         origin,
                         None,
                         hide,
-                        250,
+                        420,
                         1,
                     )
                 )
@@ -1412,7 +1533,15 @@ def main():
         print("dry run, nothing written")
         return
     if entries:
-        save_manifest(entries)
+        save_manifest(entries, retire=("ora_side0", "ora_side1", "ora_side"))
+        kept = {e["id"] for e in entries}
+        for old in ("ora_side0", "ora_side1", "ora_side"):
+            if old in kept:
+                continue
+            path = HERO / f"{old}.glb"
+            if path.exists():
+                path.unlink()
+                print(f"removed {path.name}")
         cleared = clear_side_signs(side_buildings)
         print(f"manifest +{len(entries)}, side-street billboards cleared {cleared}")
 

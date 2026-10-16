@@ -323,9 +323,16 @@ class Atlas:
         self.draw.rectangle((x, y, x + w - 1, y + h - 1), fill=(245, 240, 226))
         self.draw.rectangle((x, y, x + w - 1, y + h - 1), outline=(40, 28, 20), width=4)
         label = text.upper()[:22]
-        font = self.font if len(label) < 16 else self.font_sm
-        bbox = self.draw.textbbox((0, 0), label, font=font)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        size = 40 if len(label) < 12 else 28
+        font = ImageFont.truetype(FONT, size)
+        tw, th = size, size
+        for _ in range(6):
+            bbox = self.draw.textbbox((0, 0), label, font=font)
+            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            if tw <= w - 20 and th <= h - 12:
+                break
+            size = max(13, int(size * min((w - 20) / max(tw, 1), (h - 12) / max(th, 1))))
+            font = ImageFont.truetype(FONT, size)
         self.draw.text(
             (x + (w - tw) / 2, y + (h - th) / 2 - 2),
             label,
