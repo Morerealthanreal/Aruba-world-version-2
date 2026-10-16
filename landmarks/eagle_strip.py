@@ -2,8 +2,9 @@
 """Eagle Beach / Manchebo / Druif low-rise strip.
 
 Rebuilds resort heroes on their OSM footprints (colours, roofs, gables, signs)
-and replaces the unique fofoti / palapa meshes with EXT_mesh_gpu_instancing
-kits: wind-bent fofoti, thatched palapas, fabric umbrellas, plus the boulevard
+and adds instanced fofoti, palapas and umbrellas beside the heroes already on
+main. Existing models stay: their roofs, colours and signs are not replaced,
+and the Fofoti Trees & Palapas set is not removed. Kits also drape the boulevard
 sidewalk, beach-access paths and roadside parking.
 
 Photos and aerials are reference only. Geometry and textures are drawn here.
@@ -715,10 +716,11 @@ RESORTS = [
          bg="#245c6b", fg="#ffffff", wall=(242, 242, 240), trim=(255, 255, 255), roof=(210, 210, 206),
          dutch=False, arch=False, anchor=(-9468.9, -3107.3), radius=70,
          keys=("oceania",), flat=True),
+    # Kept from main: red roof and the MVC EAGLE BEACH sign.
     dict(id="mvceagle", name="MVC Eagle Beach", sign="MVC EAGLE BEACH",
          bg="#1e3a5f", fg="#ffffff", wall=(240, 230, 212), trim=(255, 250, 242), roof=(184, 90, 56),
          dutch=False, arch=False, anchor=(-9435.8, -3202.7), radius=45,
-         keys=("mcv", "mvc"), flat_big=False),
+         keys=("mcv", "mvc"), flat_big=False, keep_main=True),
     dict(id="divi", name="Divi Aruba All Inclusive", sign="DIVI ARUBA",
          bg="#0e6b6b", fg="#ffffff", wall=(243, 239, 232), trim=(255, 255, 255), roof=(196, 92, 60),
          dutch=False, arch=False, anchor=(-9355.7, -2065.7), radius=75,
@@ -739,10 +741,11 @@ RESORTS = [
          bg="#1c3a28", fg="#ffffff", wall=(247, 247, 245), trim=(255, 255, 255), roof=(63, 107, 69),
          dutch=False, arch=False, anchor=(-9389.6, -3293.9), radius=35,
          keys=("challet", "chalet"), flat_big=False),
+    # Kept from main so the restaurant keeps its sign instead of a plain box.
     dict(id="screamingeagle", name="Screaming Eagle Restaurant", sign="SCREAMING EAGLE",
          bg="#2a241c", fg="#f2e2b0", wall=(236, 232, 224), trim=(90, 70, 50), roof=(90, 62, 48),
          dutch=False, arch=False, anchor=(-9677.5, -2863.1), radius=30,
-         keys=("screaming eagle",), flat_big=False),
+         keys=("screaming eagle",), flat_big=False, keep_main=True),
     dict(id="paradisebeach", name="Paradise Beach Villas", sign="PARADISE BEACH",
          bg="#7a2e24", fg="#fff4e0", wall=(247, 244, 239), trim=(255, 255, 255), roof=(184, 74, 50),
          dutch=False, arch=False, anchor=None, radius=40,
@@ -1215,19 +1218,17 @@ def shore_x(z, segs):
     return None
 
 def detect_trees(segs, existing):
-    """Scattered divi-divi on the open sand. The postcard cluster sits just
-    seaward of Amsterdam Manor; the rest are spaced along Eagle Beach, not a forest."""
+    """Scattered divi-divi on the open sand, in the gaps between the fofoti
+    heroes already on main. Those groups stay; this only fills open beach."""
+    blocked = [(x, z) for x, z in existing if in_strip(x, z)]
     found = []
-    for x, z in existing:
-        if in_strip(x, z) and 0.15 < height_at(x, z) < 4:
-            found.append((x, z))
     # the two (plus one) trees everyone photographs, on the sand in front of the manor
     shore = shore_x(-3848, segs)
     if shore:
         for x, z, yaw, sc in ((shore + 20, -3860, 0.08, 1.65),
                               (shore + 33, -3836, -0.12, 1.4),
                               (shore + 16, -3812, 0.18, 1.25)):
-            if 0.15 < height_at(x, z) < 4:
+            if 0.15 < height_at(x, z) < 4 and all(hypot(x - t[0], z - t[1]) > 18 for t in blocked):
                 found.append((x, z))
     z = -1050
     i = 0
@@ -1238,7 +1239,7 @@ def detect_trees(segs, existing):
             jitter = ((i * 37) % 13) - 6
             x, zz = shore + inset, z + jitter
             if 0.2 < height_at(x, zz) < 3.0 and nearest_jei(x, zz, segs) > 14:
-                if all(hypot(x - t[0], zz - t[1]) > 32 for t in found):
+                if all(hypot(x - t[0], zz - t[1]) > 32 for t in found + blocked):
                     found.append((x, zz))
         z -= 48
         i += 1
@@ -1550,17 +1551,15 @@ def main():
     print(f"  old palapas {len(old_palapas)} trees {len(old_trees)}")
     segs = jei_points()
     trees = detect_trees(segs, old_trees)
-    # palapas: previous pole positions on the sand, plus one line filling the gaps
+    # The thatch heroes on main stay where they are. New palapas only fill gaps.
     palapas = []
-    for x, z in old_palapas:
-        if in_strip(x, z) and 0.15 < height_at(x, z) < 4.5:
-            palapas.append((x, z, (hash((round(x), round(z))) % 7) / 10, 0.92))
+    taken = [(x, z) for x, z in old_palapas if in_strip(x, z)]
     z = -1000.0
     while z > -4500:
         shore = shore_x(z, segs)
         if shore:
             x = shore + 12
-            if 0.2 < height_at(x, z) < 2.8 and all(hypot(x - p[0], z - p[1]) > 11 for p in palapas):
+            if 0.2 < height_at(x, z) < 2.8 and all(hypot(x - p[0], z - p[1]) > 11 for p in palapas + taken):
                 palapas.append((x, z, (hash(int(z)) % 5) / 10, 0.95))
         z -= 14
     palapas = [p for p in palapas if in_strip(p[0], p[1])][:160]
@@ -1616,20 +1615,11 @@ def main():
         cz = sum(p[1] for p in line) / len(line)
         kits[chunk_of(cz)]["paths"].append(line)
 
-    # drop old heavy unique meshes in this strip
-    drop = set()
-    for e in manifest:
-        i = e.get("id") or ""
-        if e.get("x") is None or not in_strip(e["x"], e["z"]):
-            continue
-        if i.startswith("eb_fofoti") or i == "eaglebeach_fx" or i.startswith("palapa_"):
-            drop.add(i)
-    print("dropping", sorted(drop))
-
     for name, bag in kits.items():
-        if not (bag["trees"] or bag["palapas"]):
+        if not (bag["trees"] or bag["palapas"] or bag["brollies"] or bag["sidewalks"] or bag["parking"] or bag["paths"]):
             continue
         pts = [(t[0], t[1]) for t in bag["trees"]] + [(p[0], p[1]) for p in bag["palapas"]]
+        pts += [((s[0] + s[2]) / 2, (s[1] + s[3]) / 2) for s in bag["sidewalks"]]
         ox = sum(p[0] for p in pts) / len(pts)
         oz = sum(p[1] for p in pts) / len(pts)
         print(f"kit {name} trees {len(bag['trees'])} palapas {len(bag['palapas'])} brollies {len(bag['brollies'])} parking {len(bag['parking'])} paths {len(bag['paths'])}")
@@ -1658,13 +1648,18 @@ def main():
         manifest.append(entry)
         print(f"  wrote {name} {os.path.getsize(os.path.join(HERO, name + '.glb'))//1024}kb")
 
-    manifest = [e for e in manifest if e.get("id") not in drop]
-    manifest = restore_main(manifest, [r["id"] for r in RESORTS if r.get("keep_main")])
-    # delete unreferenced glbs
-    for i in drop:
-        p = os.path.join(HERO, i + ".glb")
-        if os.path.exists(p):
-            os.remove(p)
+    # Heroes that already exist on main are put back byte for byte: the
+    # Fofoti Trees & Palapas set, the fofoti groups, and every palapa.
+    raw_main = git_blob("game/data/hero/manifest.json")
+    preserved = []
+    if raw_main:
+        for e in json.loads(raw_main):
+            i = e.get("id") or ""
+            if i == "eaglebeach_fx" or i.startswith("palapa_") or i.startswith("eb_fofoti"):
+                preserved.append(i)
+    print("preserving", len(preserved), "main prop heroes")
+    keep = [r["id"] for r in RESORTS if r.get("keep_main")]
+    manifest = restore_main(manifest, keep + preserved)
     open(MANIFEST, "w").write(json.dumps(manifest, indent=1) + "\n")
     print("manifest entries", len(manifest))
 
