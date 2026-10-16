@@ -3,11 +3,12 @@
 // one mesh per material (~11 draws at L0, ~10 at L1 beyond 45 m) plus the flashing bar lenses.
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
-import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
+import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, loadCharacterSource, styleCharacter,
+  CHARACTER_PALETTES, findCharacterFace, loadCharacterSource, loadFacePortraits,
+  setCharacterPortrait, styleCharacter,
   updateCharacterPaint, type CharacterPaint,
 } from "./characters";
 
@@ -192,6 +193,7 @@ export type Npc = {
   detail?: {
     inner: Object3D; mixer: AnimationMixer; walk: AnimationAction;
     idle: AnimationAction; paints: CharacterPaint[];
+    faceMesh: SkinnedMesh | null; faceHead: Object3D | null;
   };
 };
 const NPC_HEAD = new SphereGeometry(0.12, 10, 8);
@@ -201,12 +203,15 @@ NPC_LIMB.translate(0, -0.5, 0); // rotations now happen at the shoulder / hip
 let npcSources: GLTF[] | null = null;
 let npcLoad: Promise<void> | null = null;
 let npcSerial = 0;
+const _npcPos = new Vector3();
+const _camPos = new Vector3();
 function loadNpcRigs() {
   const renderer = window.game?.renderer;
   if (!renderer) return Promise.reject(new Error("renderer is not ready"));
   return (npcLoad ||= Promise.all(["ped_sam_near.glb", "ped_maya_dress_near.glb"].map((file) =>
     loadCharacterSource(renderer, file)))
-    .then((sources) => {
+    .then(async (sources) => {
+      await loadFacePortraits();
       npcSources = sources.map((source) => source.gl);
     })
     .catch((e) => console.warn("[aw-npc] detailed rigs", e)));
@@ -220,11 +225,15 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
   const palette = sourceIndex % npcSources.length === 1
     ? { ...selected, top: selected.dress }
     : selected;
+  const faceKind = sourceIndex % npcSources.length === 1 ? 1 : 2;
   const paints = styleCharacter(
     inner,
     palette,
     sourceIndex * 1.37,
+    faceKind,
+    true,
   );
+  const face = findCharacterFace(inner);
   n.rig.visible = false;
   n.g.add(inner);
   if (n.tablet) {
@@ -242,7 +251,7 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
   const clip = (name: string) => source.animations.find((a) => a.name === name) || source.animations[0];
   const walk = mixer.clipAction(clip("Walk_Relaxed")), idle = mixer.clipAction(clip("Idle_Standing"));
   walk.play(); idle.play(); walk.setEffectiveWeight(0);
-  n.detail = { inner, mixer, walk, idle, paints };
+  n.detail = { inner, mixer, walk, idle, paints, faceMesh: face.mesh, faceHead: face.head };
 }
 export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const g = new Group(); g.name = "aw:npc";
@@ -273,6 +282,15 @@ export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tabl
     n.detail.mixer.update(dt);
     const sky = (window.game?.real as { sky?: { sunDir?: { x: number; y: number; z: number } } } | undefined)?.sky;
     updateCharacterPaint(n.detail.paints, n.t, sky?.sunDir);
+    const cam = window.game?.camera;
+    let close = false;
+    if (cam) {
+      cam.getWorldPosition(_camPos);
+      n.g.getWorldPosition(_npcPos);
+      const dx = _npcPos.x - _camPos.x, dz = _npcPos.z - _camPos.z;
+      close = dx * dx + dz * dz < 64;
+    }
+    setCharacterPortrait(n.detail.paints, close, n.detail.faceMesh, n.detail.faceHead);
     return;
   }
   const breath = Math.sin(n.t * 1.45);

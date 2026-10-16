@@ -28,4 +28,10 @@ The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
 - Add near and reduced mid-distance mesh LODs.
 - Compress textures as KTX2/ETC1S and geometry/animation with Meshopt.
 
+The near-LOD face paintings in models/faces/ (face-maya.jpg, face-dress.jpg,
+face-sam.jpg) are project-made oil-style portraits. They appear on a curved
+card parented to the head of the two or three closest people, within about
+8 m. Each card is 126 triangles, so a crowd adds at most a few hundred
+triangles. They are not part of the Innerscene or MakeHuman sources.
+
 No Quaternius character assets are used by these files.
