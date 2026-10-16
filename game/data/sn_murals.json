@@ -2,7 +2,7 @@
  "atlas": "textures/sn_mural_atlas.jpg",
  "atlas_px": [
   2048,
-  4004
+  3260
  ],
  "note": "Original paintings. Public photos were visual reference only and are not embedded.",
  "hide_heroes": [
@@ -51,7 +51,7 @@
    "bld_h": 6.9,
    "wall_i": 0,
    "wall_len": 15.74,
-   "gps_dist_m": 0.28,
+   "gps_dist_m": 1.06,
    "center": [
     6369.8,
     9310.35
@@ -72,9 +72,9 @@
    "height": 6.85,
    "uv": [
     0.0,
-    0.536963,
+    0.785276,
     0.78125,
-    0.711788
+    1.0
    ],
    "sources": [
     "Street Art Cities marker 13073 (lat 12.4357777, lng -69.9113945, Bernhardstraat 144)",
@@ -94,7 +94,7 @@
    "bld_h": 3.4,
    "wall_i": 2,
    "wall_len": 15.1,
-   "gps_dist_m": 0.6,
+   "gps_dist_m": 0.7,
    "center": [
     6627.1,
     9408.6
@@ -115,9 +115,9 @@
    "height": 3.04,
    "uv": [
     0.381836,
-    0.104645,
+    0.128528,
     0.801758,
-    0.154096
+    0.189264
    ],
    "sources": [
     "Street Art Cities marker 13093 (lat 12.4348797, lng -69.9090145, Caya Dick Cooper)",
@@ -158,9 +158,9 @@
    "height": 3.01,
    "uv": [
     0.0,
-    0.096653,
+    0.118712,
     0.380859,
-    0.154096
+    0.189264
    ],
    "sources": [
     "Street Art Cities marker 13083 (lat 12.4350338, lng -69.9102934, Stuyvesantstraat)",
@@ -180,7 +180,7 @@
    "bld_h": 3.4,
    "wall_i": 0,
    "wall_len": 10.14,
-   "gps_dist_m": 7.93,
+   "gps_dist_m": 12.73,
    "center": [
     6525.2,
     9405.6
@@ -201,9 +201,9 @@
    "height": 3.35,
    "uv": [
     0.0,
-    0.231269,
+    0.409816,
     0.78125,
-    0.365135
+    0.574233
    ],
    "sources": [
     "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -222,7 +222,7 @@
    "bld_h": 3.7,
    "wall_i": 0,
    "wall_len": 36.11,
-   "gps_dist_m": 13.16,
+   "gps_dist_m": 13.35,
    "center": [
     6524.78,
     9444.38
@@ -243,9 +243,9 @@
    "height": 3.3,
    "uv": [
     0.0,
-    0.046703,
+    0.057362,
     0.46875,
-    0.096154
+    0.118098
    ],
    "sources": [
     "Street Art Cities marker 13085 (lat 12.4346819, lng -69.9099513, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -285,9 +285,9 @@
    "height": 3.04,
    "uv": [
     0.539062,
-    0.165335,
+    0.203067,
     0.841797,
-    0.230769
+    0.283436
    ],
    "sources": [
     "Street Art Cities marker 13080 (lat 12.4356834, lng -69.9099984, Bargestraat). Photo on that page used as visual reference only."
@@ -306,7 +306,7 @@
    "bld_h": 3.4,
    "wall_i": 5,
    "wall_len": 12.29,
-   "gps_dist_m": 6.71,
+   "gps_dist_m": 7.25,
    "center": [
     6500.83,
     9316.55
@@ -327,20 +327,64 @@
    "height": 3.05,
    "uv": [
     0.225586,
-    0.164835,
+    0.202454,
     0.538086,
-    0.230769
+    0.283436
    ],
    "sources": [
     "Street Art Cities marker 13079 (lat 12.4357751, lng -69.9101472, Bargestraat). Photo on that page used as visual reference only."
    ]
   },
   {
+   "id": "boss_return",
+   "name": "The Boss (blue iguana)",
+   "artist": "WD (Wild Drawing)",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, both street faces of La Aruba #2",
+   "lat": 12.4355315,
+   "lng": -69.9100037,
+   "bld": 4079,
+   "bld_name": "La Aruba #2",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 3.79,
+   "gps_dist_m": 16.21,
+   "center": [
+    6510.27,
+    9350.13
+   ],
+   "p0": [
+    6509.67,
+    9348.35
+   ],
+   "p1": [
+    6510.86,
+    9351.91
+   ],
+   "normal": [
+    -0.9487,
+    0.3162
+   ],
+   "width": 3.75,
+   "height": 3.88,
+   "uv": [
+    0.002052,
+    0.284049,
+    0.194651,
+    0.409202
+   ],
+   "sources": [
+    "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
+   ],
+   "base": "ground",
+   "lift": 0.04
+  },
+  {
    "id": "boss",
    "name": "The Boss (blue iguana)",
    "artist": "WD (Wild Drawing)",
    "year": 2017,
-   "address": "Bernard van de Veen Zeppenfeldstraat 9, street wall of La Aruba (pin falls inside the block)",
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, both street faces of La Aruba #2",
    "lat": 12.4355315,
    "lng": -69.9100037,
    "bld": 4079,
@@ -348,33 +392,49 @@
    "bld_h": 3.4,
    "wall_i": 1,
    "wall_len": 15.7,
-   "gps_dist_m": 17.32,
+   "gps_dist_m": 20.74,
    "center": [
-    6516.35,
-    9357.55
+    6516.31,
+    9357.56
    ],
    "p0": [
-    6514.2,
-    9355.67
+    6510.87,
+    9351.93
    ],
    "p1": [
-    6518.15,
-    9359.76
+    6521.74,
+    9363.2
    ],
    "normal": [
     -0.7197,
     0.6943
    ],
-   "width": 5.69,
-   "height": 3.2,
+   "width": 15.66,
+   "height": 3.88,
    "uv": [
-    0.0,
-    0.712288,
-    1.0,
-    1.0
+    0.194651,
+    0.284049,
+    0.997948,
+    0.409202
    ],
    "sources": [
     "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
+   ],
+   "base": "ground",
+   "lift": 0.04,
+   "holes": [
+    [
+     4.1,
+     0.75,
+     7.68,
+     2.65
+    ],
+    [
+     11.95,
+     0.75,
+     15.53,
+     2.65
+    ]
    ]
   },
   {
@@ -390,7 +450,7 @@
    "bld_h": 3.4,
    "wall_i": 1,
    "wall_len": 15.37,
-   "gps_dist_m": 8.43,
+   "gps_dist_m": 14.38,
    "center": [
     6574.87,
     9455.64
@@ -411,9 +471,9 @@
    "height": 3.06,
    "uv": [
     0.469727,
-    0.047203,
+    0.057975,
     0.870117,
-    0.096154
+    0.118098
    ],
    "sources": [
     "Street Art Cities marker 13092 (lat 12.4344049, lng -69.9093784, B. v/d Veen Zeppenfeldstraat 21). Photo on that page used as visual reference only."
@@ -432,7 +492,7 @@
    "bld_h": 3.4,
    "wall_i": 0,
    "wall_len": 16.22,
-   "gps_dist_m": 12.43,
+   "gps_dist_m": 16.79,
    "center": [
     6397.54,
     9256.6
@@ -453,9 +513,9 @@
    "height": 3.05,
    "uv": [
     0.0,
-    0.0005,
+    0.000613,
     0.427734,
-    0.046204
+    0.056748
    ],
    "sources": [
     "Wikimedia Commons File:San Nicolas Murals.jpeg (CC BY-SA 4.0). Description: Melting Pot by Armando Goedgedrag, Bernhardstraat opposite the police station. Camera 12.436172, -69.911256."
@@ -474,7 +534,7 @@
    "bld_h": 3.4,
    "wall_i": 0,
    "wall_len": 10.07,
-   "gps_dist_m": 2.34,
+   "gps_dist_m": 4.99,
    "center": [
     6507.0,
     9385.6
@@ -495,9 +555,9 @@
    "height": 3.34,
    "uv": [
     0.0,
-    0.365634,
+    0.574847,
     1.0,
-    0.536464
+    0.784663
    ],
    "sources": [
     "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
@@ -517,7 +577,7 @@
    "bld_h": 3.4,
    "wall_i": 0,
    "wall_len": 10.85,
-   "gps_dist_m": 5.39,
+   "gps_dist_m": 7.27,
    "center": [
     6484.99,
     9310.89
@@ -538,9 +598,9 @@
    "height": 3.05,
    "uv": [
     0.0,
-    0.154595,
+    0.189877,
     0.224609,
-    0.230769
+    0.283436
    ],
    "sources": [
     "Street Art Cities marker 13075 (lat 12.4358289, lng -69.9103532)",

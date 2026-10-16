@@ -11,6 +11,11 @@ type Mural = {
   height: number;
   bld_h: number;
   uv: [number, number, number, number];
+  /** "ground" sits the paint on the street. Omitted murals stay centered on the wall. */
+  base?: "ground" | "mid";
+  lift?: number;
+  /** Rectangles cut out of the quad, in metres along p0→p1 and up from the bottom. */
+  holes?: [number, number, number, number][];
 };
 
 type Doc = {
@@ -60,21 +65,60 @@ export class SnMurals {
     this.tryGround();
   }
 
+  private subtract(rects: number[][], hole: [number, number, number, number]) {
+    const [hx0, hy0, hx1, hy1] = hole;
+    const out: number[][] = [];
+    for (const [x0, y0, x1, y1] of rects) {
+      if (x1 <= hx0 || x0 >= hx1 || y1 <= hy0 || y0 >= hy1) {
+        out.push([x0, y0, x1, y1]);
+        continue;
+      }
+      const top = Math.max(y0, hy0);
+      const bot = Math.min(y1, hy1);
+      if (y0 < hy0) out.push([x0, y0, x1, hy0]);
+      if (y1 > hy1) out.push([x0, hy1, x1, y1]);
+      if (x0 < hx0) out.push([x0, top, hx0, bot]);
+      if (x1 > hx1) out.push([hx1, top, x1, bot]);
+    }
+    return out.filter((r) => r[2] - r[0] > 0.02 && r[3] - r[1] > 0.02);
+  }
+
   private geometry(murals: Mural[], ys: number[] | null) {
     const pos: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
     murals.forEach((m, i) => {
       const ground = ys ? ys[i] : 0;
-      const y = ground + Math.max(0.06, (m.bld_h - m.height) * 0.5);
+      const y = m.base === "ground"
+        ? ground + (m.lift ?? 0.05)
+        : ground + Math.max(0.06, (m.bld_h - m.height) * 0.5);
       const [x0, z0] = m.p0;
       const [x1, z1] = m.p1;
       const h = m.height;
-      const base = pos.length / 3;
-      pos.push(x0, y, z0, x1, y, z1, x1, y + h, z1, x0, y + h, z0);
+      const span = Math.hypot(x1 - x0, z1 - z0) || 1;
+      let rects = [[0, 0, span, h]];
+      for (const hole of m.holes || []) rects = this.subtract(rects, hole);
       const [u0, v0, u1, v1] = m.uv;
-      uv.push(u0, v0, u1, v0, u1, v1, u0, v1);
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      for (const [lx0, ly0, lx1, ly1] of rects) {
+        const f0 = lx0 / span;
+        const f1 = lx1 / span;
+        const g0 = ly0 / h;
+        const g1 = ly1 / h;
+        const base = pos.length / 3;
+        pos.push(
+          x0 + (x1 - x0) * f0, y + ly0, z0 + (z1 - z0) * f0,
+          x0 + (x1 - x0) * f1, y + ly0, z0 + (z1 - z0) * f1,
+          x0 + (x1 - x0) * f1, y + ly1, z0 + (z1 - z0) * f1,
+          x0 + (x1 - x0) * f0, y + ly1, z0 + (z1 - z0) * f0,
+        );
+        uv.push(
+          u0 + (u1 - u0) * f0, v0 + (v1 - v0) * g0,
+          u0 + (u1 - u0) * f1, v0 + (v1 - v0) * g0,
+          u0 + (u1 - u0) * f1, v0 + (v1 - v0) * g1,
+          u0 + (u1 - u0) * f0, v0 + (v1 - v0) * g1,
+        );
+        idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
     });
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));

@@ -12,6 +12,7 @@ import math
 import random
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -219,15 +220,22 @@ SPECS = [
         "artist": "WD (Wild Drawing)",
         "year": 2017,
         "lat": 12.4355315, "lng": -69.9100037,
-        "address": "Bernard van de Veen Zeppenfeldstraat 9, street wall of La Aruba (pin falls inside the block)",
-        "bld": 4079, "wall": 1,
-        # House-kit windows stand 0.13 m off this wall. Sit the paint in front of them.
-        "lift": 0.24,
-        "anchor": "mid",
+        "address": "Bernard van de Veen Zeppenfeldstraat 9, both street faces of La Aruba #2",
+        "bld": 4079,
+        # Short return, then the long Zeppenfeldstraat face, one continuous painting.
+        "unwrap": [0, 1],
+        "base": "ground",
+        # In front of the plaster, behind the 0.06 m shutters and 0.13 m window frames.
+        "lift": 0.04,
+        "end_inset": 0.04,
         "sharp": True,
-        "wm": 14.8, "hm": 3.2,
-        # 16:9 so the seated iguana keeps its painted proportions.
-        "pw": 2048, "ph": 1152,
+        # 19.50 m of facade by 3.88 m (wall plus the flat-roof parapet).
+        "pw": 2048, "ph": 408,
+        # Shutter meshes are wider than the glass. Holes are metres from each wall start, up from the mural bottom.
+        "holes": [
+            {"wall": 1, "rect": [4.10, 0.75, 7.68, 2.65]},
+            {"wall": 1, "rect": [11.95, 0.75, 15.53, 2.65]},
+        ],
         "sources": [
             "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only.",
         ],
@@ -272,7 +280,7 @@ SPECS = [
         "fill": True,
         "sharp": True,
         "wm": 10.0, "hm": 3.3,
-        # Wide tile: the portrait stays 4:3 in the middle, turquoise runs to the wall edges.
+        # Full wall. The figure stays centered; bright cyan runs to the edges.
         "pw": 2048, "ph": 684,
         "sources": [
             "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
@@ -645,9 +653,72 @@ def paint_pelican(w, h):
 
 
 def paint_boss(w, h):
-    """WD iguana, seated, from the original 16:9 painting. Aspect matches the tile."""
-    src = Image.open(PAINT_SRC / "boss.jpg").convert("RGB")
-    return src.resize((w, h), Image.Resampling.LANCZOS)
+    """WD iguana across both street faces: cream swirls, water band, red pillars."""
+    # Facade is ~19.5 m wide and ~3.88 m tall. The ground-floor water is a fixed band.
+    water_m, height_m = 0.96, 19.495 * h / w
+    scale = 2
+    W, H = w * scale, h * scale
+    rng = np.random.default_rng(11)
+    base = np.zeros((H, W, 3), np.int16)
+    base[:] = (234, 212, 174)
+    base += rng.integers(-10, 11, size=base.shape, dtype=np.int16)
+    im = Image.fromarray(np.clip(base, 0, 255).astype(np.uint8), "RGB")
+
+    def ring(box, inset, fill):
+        mask = Image.new("L", im.size, 0)
+        od = ImageDraw.Draw(mask)
+        od.ellipse(box, fill=255)
+        x0, y0, x1, y1 = box
+        od.ellipse([x0 + inset, y0 + inset, x1 - inset, y1 - inset], fill=0)
+        col = Image.new("RGBA", im.size, fill)
+        im.paste(col, mask=mask)
+
+    ring((-400, -700, 1900, 1700), 300, (16, 88, 114, 255))
+    ring((600, -900, 3100, 1800), 340, (22, 108, 136, 255))
+    ring((1500, -500, 4000, 1700), 280, (12, 72, 100, 255))
+    ring((2300, -300, 4700, 1600), 320, (26, 116, 146, 230))
+    ring((100, 80, 2500, 2000), 360, (8, 62, 88, 170))
+    ring((80, -250, 1600, 980), 200, (230, 208, 170, 255))
+
+    water_top = int((height_m - water_m) / height_m * H)
+    d = ImageDraw.Draw(im, "RGBA")
+    span = max(1, H - water_top)
+    for i, y in enumerate(range(water_top, H)):
+        t = i / span
+        d.line([(0, y), (W, y)], fill=(int(18 + 36 * t), int(128 - 48 * t), int(198 - 28 * t), 255))
+    for k, amp, col in ((0, 16, (220, 240, 248, 190)), (36, 11, (150, 205, 228, 150)), (64, 20, (236, 248, 255, 170))):
+        pts = []
+        for x in range(0, W, 8):
+            y = water_top + 28 + k + int(math.sin(x * 0.018 + k) * amp + math.sin(x * 0.006) * amp * 0.35)
+            pts.append((x, min(H - 1, y)))
+        d.line(pts, fill=col, width=4)
+    beam = max(8, int(0.15 / height_m * H))
+    d.rectangle([0, water_top - beam // 2, W, water_top + beam // 2], fill=(176, 32, 40, 255))
+    pillar_w = max(8, int(0.22 / height_m * H))
+    spacing = 1.65 / (19.495) * W
+    x = spacing * 0.4
+    while x < W:
+        d.rectangle([x, water_top, x + pillar_w, H], fill=(166, 26, 34, 255))
+        x += spacing
+
+    bg = im.resize((w, h), Image.Resampling.LANCZOS)
+    raw = np.asarray(Image.open(PAINT_SRC / "boss.jpg").convert("RGB"))
+    crop = raw[:552]
+    r, g, b = [crop[:, :, i].astype(np.int16) for i in range(3)]
+    cream = (r > 165) & (g > 145) & (b > 125) & (r + 12 >= g) & (r + 8 >= b) & (g > 90)
+    alpha = Image.fromarray(np.where(cream, 0, 255).astype(np.uint8), "L")
+    alpha = alpha.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.7))
+    sprite = Image.fromarray(np.dstack([crop, np.asarray(alpha)]), "RGBA")
+    beam_y = water_top // scale
+    ig_h = max(8, beam_y - 6)
+    ig_w = int(ig_h * sprite.size[0] / sprite.size[1] * 1.62)
+    sprite = sprite.resize((ig_w, ig_h), Image.Resampling.LANCZOS)
+    sp = np.array(sprite)
+    fade = min(80, ig_w // 8)
+    ramp = np.linspace(1, 0, fade, dtype=np.float32)
+    sp[:, -fade:, 3] = (sp[:, -fade:, 3].astype(np.float32) * ramp).astype(np.uint8)
+    bg.paste(Image.fromarray(sp, "RGBA"), (6, max(0, beam_y - ig_h + 8)), Image.fromarray(sp, "RGBA"))
+    return bg
 
 
 def paint_alice(w, h):
@@ -723,15 +794,53 @@ def _reflect_pad(fitted, w, band):
     return Image.fromarray(out, "RGB")
 
 
+def _bright_cyan(arr):
+    """Push the wall field toward the sunlit reference cyan. Leave the figure alone."""
+    src = arr.astype(np.float32)
+    corner = src[6, 6]
+    dist = np.linalg.norm(src - corner, axis=2)
+    bg = dist < 54
+    target = np.array([40.0, 232.0, 244.0], np.float32)
+    mix = src * 0.18 + target * 0.82
+    out = src.copy()
+    out[bg] = mix[bg]
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 def paint_mujer(w, h):
-    """Lina Arias portrait at its painted aspect, with the wall and arms continued to the edges."""
+    """Centered portrait. Arms bend down to the lower corners and span about 60% of the wall."""
     src = Image.open(PAINT_SRC / "mujer_azul.jpg").convert("RGB")
-    sw, sh = src.size
-    scale = h / sh
-    nw = max(1, int(round(sw * scale)))
-    fitted = src.resize((nw, h), Image.Resampling.LANCZOS)
-    # Reflect only the outer plaster and forearm, not the face.
-    return _reflect_pad(fitted, w, band=max(24, nw // 8))
+    fitted_w = max(1, int(round(h * src.size[0] / src.size[1])))
+    fitted = np.asarray(src.resize((fitted_w, h), Image.Resampling.LANCZOS))
+    fitted = _bright_cyan(fitted)
+    field = tuple(int(c) for c in _bright_cyan(np.asarray(src.resize((32, 32), Image.Resampling.BOX)))[2, 2])
+    tile = np.empty((h, w, 3), np.uint8)
+    tile[:] = field
+    rng = np.random.default_rng(4)
+    tile = np.clip(tile.astype(np.int16) + rng.integers(-5, 6, size=(h, w, 1)), 0, 255).astype(np.uint8)
+    left = (w - fitted_w) / 2
+    mid = (w - 1) / 2.0
+    # The painting's forearms are the wide part. Open that band so the hands
+    # land near 60% of this wall, and leave the face at its painted width.
+    # 0.693 is the widest content row of the source, as a fraction of the panel.
+    yn = np.linspace(0.0, 1.0, h)
+    t = np.clip((yn - 0.56) / 0.16, 0.0, 1.0)
+    t = t * t * (3.0 - 2.0 * t)
+    base_span = 0.693 * fitted_w / w
+    scale = 1.0 + t * (0.60 / max(base_span, 0.05) - 1.0)
+    xs = np.arange(w, dtype=np.float32)
+    for y in range(h):
+        src_x = (mid + (xs - mid) / scale[y]) - left
+        valid = (src_x >= 0) & (src_x <= fitted_w - 1)
+        sx = np.clip(src_x, 0, fitted_w - 1)
+        x0 = np.floor(sx).astype(np.int32)
+        x1 = np.minimum(x0 + 1, fitted_w - 1)
+        f = (sx - x0)[:, None]
+        samp = fitted[y, x0] * (1 - f) + fitted[y, x1] * f
+        row = tile[y].astype(np.float32)
+        row[valid] = samp[valid]
+        tile[y] = np.clip(row, 0, 255).astype(np.uint8)
+    return Image.fromarray(tile, "RGB")
 
 
 def paint_declare(w, h):
@@ -804,6 +913,53 @@ def pack(images):
     return atlas, boxes
 
 
+def place_unwrap(spec):
+    """One painting split across several walls of the same building, in order."""
+    b = BLD[spec["bld"]]
+    by_i = {w["i"]: w for w in walls_of(b)}
+    order = [by_i[i] for i in spec["unwrap"]]
+    total = sum(w["len"] for w in order)
+    lift = float(spec.get("lift", 0.04))
+    inset = float(spec.get("end_inset", 0.0))
+    holes_by = {}
+    for hole in spec.get("holes") or []:
+        holes_by.setdefault(hole["wall"], []).append(hole["rect"])
+    faces = []
+    cursor = 0.0
+    for idx, w in enumerate(order):
+        L = w["len"]
+        trim0 = inset if idx == 0 else 0.0
+        trim1 = inset if idx == len(order) - 1 else 0.0
+        dx, dz = (w["bx"] - w["ax"]) / L, (w["bz"] - w["az"]) / L
+        x0 = w["ax"] + dx * trim0 + w["ox"] * lift
+        z0 = w["az"] + dz * trim0 + w["oz"] * lift
+        x1 = w["bx"] - dx * trim1 + w["ox"] * lift
+        z1 = w["bz"] - dz * trim1 + w["oz"] * lift
+        span = L - trim0 - trim1
+        local = []
+        for hx0, hy0, hx1, hy1 in holes_by.get(w["i"], []):
+            local.append([round(hx0 - trim0, 3), round(hy0, 3), round(hx1 - trim0, 3), round(hy1, 3)])
+        faces.append({
+            "wall_i": w["i"],
+            "wall_len": L,
+            "width": span,
+            "x0": x0, "z0": z0, "x1": x1, "z1": z1,
+            "ox": w["ox"], "oz": w["oz"],
+            "cx": (x0 + x1) / 2, "cz": (z0 + z1) / 2,
+            "u0": (cursor + trim0) / total,
+            "u1": (cursor + L - trim1) / total,
+            "holes": local,
+            "id": spec["id"] if L == max(x["len"] for x in order) else spec["id"] + "_return",
+        })
+        cursor += L
+        print(f"{faces[-1]['id']:20} bld {spec['bld']} wall {w['i']} L={L:.2f} panel {span:.2f} u={faces[-1]['u0']:.3f}-{faces[-1]['u1']:.3f} holes={len(local)}")
+    return {
+        "spec": spec, "faces": faces,
+        "bld_name": b.get("n") or "", "bld_h": float(b.get("h") or 3.4),
+        "height": total * spec["ph"] / spec["pw"],
+    }
+
+
 def main():
     images = []
     placed = []
@@ -812,6 +968,9 @@ def main():
         if not spec.get("sharp"):
             im = im.filter(ImageFilter.SMOOTH)
         images.append(im)
+        if spec.get("unwrap"):
+            placed.append(place_unwrap(spec))
+            continue
         b, w, dist, facing, t, qx, qz = choose_wall(spec["lat"], spec["lng"], spec["bld"], spec["wall"])
         # Fit the painted aspect inside the real wall.
         aspect = spec["pw"] / spec["ph"]
@@ -859,13 +1018,20 @@ def main():
     atlas.save(OUT_IMG, "JPEG", quality=68, optimize=True)
     aw, ah = atlas.size
     murals = []
-    for rec, (px, py, pw, ph) in zip(placed, boxes):
-        spec = rec["spec"]
+
+    def emit(spec, rec, face, px, py, pw, ph):
         # three.js flipY default: v grows up from the bottom of the image
         u0, u1 = px / aw, (px + pw) / aw
         v0, v1 = 1 - (py + ph) / ah, 1 - py / ah
-        murals.append({
-            "id": spec["id"],
+        if face is not None:
+            span_u = u1 - u0
+            u0 = px / aw + span_u * face["u0"]
+            u1 = px / aw + span_u * face["u1"]
+        pin = xz(spec["lat"], spec["lng"])
+        dist = math.hypot(pin[0] - (face["cx"] if face else rec["cx"]), pin[1] - (face["cz"] if face else rec["cz"]))
+        src = face or rec
+        mural = {
+            "id": src.get("id", spec["id"]),
             "name": spec["name"],
             "artist": spec["artist"],
             "year": spec["year"],
@@ -875,18 +1041,32 @@ def main():
             "bld": spec["bld"],
             "bld_name": rec["bld_name"],
             "bld_h": rec["bld_h"],
-            "wall_i": rec["wall_i"],
-            "wall_len": round(rec["wall_len"], 2),
-            "gps_dist_m": round(rec["dist"], 2),
-            "center": [round(rec["cx"], 2), round(rec["cz"], 2)],
-            "p0": [round(rec["x0"], 2), round(rec["z0"], 2)],
-            "p1": [round(rec["x1"], 2), round(rec["z1"], 2)],
-            "normal": [round(rec["ox"], 4), round(rec["oz"], 4)],
-            "width": round(rec["width"], 2),
-            "height": round(rec["height"], 2),
+            "wall_i": src["wall_i"],
+            "wall_len": round(src["wall_len"], 2),
+            "gps_dist_m": round(dist, 2),
+            "center": [round(src["cx"], 2), round(src["cz"], 2)],
+            "p0": [round(src["x0"], 2), round(src["z0"], 2)],
+            "p1": [round(src["x1"], 2), round(src["z1"], 2)],
+            "normal": [round(src["ox"], 4), round(src["oz"], 4)],
+            "width": round(src["width"], 2),
+            "height": round(rec["height"] if face else rec["height"], 2),
             "uv": [round(u0, 6), round(v0, 6), round(u1, 6), round(v1, 6)],
             "sources": spec["sources"],
-        })
+        }
+        if spec.get("base"):
+            mural["base"] = spec["base"]
+            mural["lift"] = float(spec.get("lift", 0.05))
+        if face and face.get("holes"):
+            mural["holes"] = face["holes"]
+        return mural
+
+    for rec, (px, py, pw, ph) in zip(placed, boxes):
+        spec = rec["spec"]
+        if rec.get("faces"):
+            for face in rec["faces"]:
+                murals.append(emit(spec, rec, face, px, py, pw, ph))
+        else:
+            murals.append(emit(spec, rec, None, px, py, pw, ph))
     doc = {
         "atlas": "textures/sn_mural_atlas.jpg",
         "atlas_px": [aw, ah],
