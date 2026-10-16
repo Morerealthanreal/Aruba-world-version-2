@@ -96,7 +96,11 @@ export class WorldAudio {
     this.syncButtons();
     this.mountSetting(0);
     this.mountCredit(0);
-    addEventListener("pointerdown", () => { if (!this.muted) this.start(); }, { once: true });
+    // Capture, and keep listening until start() succeeds. A control that stops
+    // the event, or a first gesture that throws, used to consume the only chance
+    // and later taps never armed the engine.
+    const arm = () => { if (!this.muted) this.start(); };
+    addEventListener("pointerdown", arm, true);
     addEventListener("keydown", (e) => this.onKey(e, true));
     addEventListener("keyup", (e) => this.onKey(e, false));
     addEventListener("blur", () => { this.keyFwd = false; this.keyBrk = false; });
@@ -668,7 +672,10 @@ export class WorldAudio {
     const crash = aw?.crash?.stats;
     const phase = crash?.phase ?? 0;
     const cam = this.g.camera.position;
-    if (this.prevPhase === 0 && phase >= 1) {
+    // prevPhase stays -1 until the context is running, and a ?crash=force
+    // approach can finish in a few scaled frames before the first click.
+    // Count that impact once if the listener is already in range.
+    if (phase >= 1 && (this.prevPhase === 0 || (this.prevPhase < 0 && crash?.active))) {
       const dx = (crash?.x || cam.x) - cam.x;
       const dz = (crash?.z || cam.z) - cam.z;
       this.boom(now, Math.hypot(dx, dz));

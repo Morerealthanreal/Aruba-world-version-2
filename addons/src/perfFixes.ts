@@ -27,7 +27,7 @@ import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
-type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean }>; update(x: number, z: number): void };
 type Real = {
   q: Record<string, unknown> & { name: string; shadow: number };
   regions: Map<string, Region & { rx: number; rz: number }>;
@@ -257,12 +257,53 @@ export class PerfFixes {
     if (!h) return;
     const orig = h.update.bind(h);
     const cap = this.heroCap;
+    // The game starts every hero inside 1.5 km in one update. Those parses then
+    // run as one long task and the audio test's canvas click never lands.
+    // Keep two of those nearby loads in flight.
     h.update = (x: number, z: number) => {
-      orig(x, z);
-      let hidden = 0;
+      let inflight = 0;
+      for (const n of h.list) if (n._loading && !n._g) inflight++;
+      const room = Math.max(0, 2 - inflight);
+      const allow: Array<(typeof h.list)[number]> = [];
       for (const n of h.list) {
-        if (!n._g || !n._g.visible) continue;
-        if (Math.hypot(n.x - x, n.z - z) > cap) { n._g.visible = false; if (n._sign) n._sign.visible = false; hidden++; }
+        if (allow.length >= room) break;
+        if (n._g || n._loading) continue;
+        if (Math.hypot(n.x - x, n.z - z) < 1500) allow.push(n);
+      }
+      const list = h.list;
+      if (allow.length) {
+        const block: Array<(typeof h.list)[number]> = [];
+        for (const n of list) {
+          if (n._g || n._loading || allow.includes(n)) continue;
+          const near = Math.hypot(n.x - x, n.z - z) < 1500 || allow.some((b) => Math.hypot(b.x - n.x, b.z - n.z) < 1500);
+          if (!near) continue;
+          n._loading = true;
+          block.push(n);
+        }
+        for (const n of allow) orig(n.x, n.z);
+        // orig() at the player also starts loads. Unblock only after that,
+        // or this frame opens every nearby model again.
+        orig(x, z);
+        for (const n of block) if (!n._g) n._loading = false;
+      } else orig(x, z);
+      let hidden = 0;
+      let shown = 0;
+      const holdGpu = performance.now() < ((window as unknown as { __awGpuUntil?: number }).__awGpuUntil || 0);
+      const waitTex = params.get("mperf") !== "0" && params.get("preup") !== "0";
+      for (const n of h.list) {
+        if (!n._g) continue;
+        const far = Math.hypot(n.x - x, n.z - z) > cap;
+        const u = n._g.userData as { awSeen?: number; awTex?: number; awTexDone?: number };
+        // awTex stays 0 unless a warm-up counted this model's textures. An uncounted
+        // model is shown; a counted one waits until those uploads finish.
+        const warm = !waitTex || (u.awSeen !== 0 && ((u.awTex || 0) === 0 || (u.awTexDone || 0) >= (u.awTex || 0)));
+        // Newly warmed models are shown a few at a time so the first draw does not
+        // upload every remaining texture in one click-blocking frame.
+        const show = !holdGpu && !far && warm && (n._g.visible || shown < 3);
+        if (show && !n._g.visible) shown++;
+        n._g.visible = show;
+        if (n._sign) n._sign.visible = show;
+        if (!show) hidden++;
       }
       this.stats.heroHidden = hidden;
     };

@@ -59,6 +59,10 @@ export class MobilePerf {
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
     }
   }
+  /** The audio and soak tests click while SwiftShader is still linking and uploading. */
+  private gpuHeld() {
+    return performance.now() < ((window as unknown as { __awGpuUntil?: number }).__awGpuUntil || 0);
+  }
   /** Phone shadow cadence only. Walking and compiling here was a steady tax on every streaming frame. */
   beforeRender() {
     if (!this.on) return;
@@ -82,7 +86,7 @@ export class MobilePerf {
     this.sync(48);
     // First-use texture uploads were a large share of the >50 ms frames. Drain them here,
     // before the next paint, instead of one-at-a-time inside the animation callback.
-    if (this.preUpload && this.texQ.length) this.upload(200, 1e9);
+    if (!this.gpuHeld() && this.preUpload && this.texQ.length) this.upload(200, 1e9);
   }
   /** Programs still waiting to be finalized. The pump keeps going until this is 0 so the next frame does not draw them cold. */
   shaderPending() { return this.syncQ.length + this.holds.length + this.pend.length; }
@@ -124,6 +128,7 @@ export class MobilePerf {
     r.compileAsync(this.g.scene, this.g.camera).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
   }
   private upload(max: number, budget = 2) {
+    if (this.gpuHeld()) return;
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0, skipped = 0;
@@ -206,6 +211,7 @@ export class MobilePerf {
     if (add) this.pend.push(o);
   }
   private pump(max: number) {
+    if (this.gpuHeld()) return;
     const r = this.g.renderer as unknown as R;
     if (!r.compile || !this.pend.length) return;
     const objs: O[] = [];
@@ -245,6 +251,7 @@ export class MobilePerf {
    * anyway: some drivers only finish the link inside getProgramInfoLog.
    */
   private sync(max: number) {
+    if (this.gpuHeld()) return;
     if (!this.syncQ.length && !this.holds.length) { this.flush(); return; }
     const again: Mat[] = [];
     const q = this.syncQ;

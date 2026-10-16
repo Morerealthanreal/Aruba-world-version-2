@@ -65,9 +65,47 @@ export class Crash {
       const root = new Group(); root.name = "aw:crash"; A.group.add(root);
       this.sc = { rd: c.rd!, dirA: c.dir, lat, sA: c.s, sB, impact: 0, A: c, B, phase: 0, age: 0, tCrash: 0, root, drivers: [], talk: 0 };
       this.stats.scenes++; this.stats.active = true;
+      const mid = this.pt(c.rd!, (c.s + sB) / 2, lat, c.dir);
+      this.stats.x = mid.x; this.stats.z = mid.z; this.stats.phase = 0;
       return true;
     }
-    return false;
+    // Traffic only advances on the one-second resample, so a car rarely sits in the
+    // 50 m approach window during the audio test. Stage the pair on a wide road.
+    return this.force ? this.placeForced() : false;
+  }
+
+  private placeForced(): boolean {
+    const A = this.amb(); if (!A) return false;
+    const pick = (A as unknown as { pick?: (x: number, z: number, f: (e: Rd & { u?: boolean }) => boolean, r: number) => Rd[] }).pick;
+    if (!pick) return false;
+    const cam = this.g.camera.position;
+    const roads = pick.call(A, cam.x, cam.z, (e) => e.c >= 2 && !e.u && e.p.length > 1 && !e.ow && e.w >= 6, 400);
+    const plain = A.cars.filter((c) => c.v !== 4 && !c.g.children.some((ch) => ch.name.startsWith("aw:ev")));
+    if (plain.length < 2) return false;
+    let best: { rd: Rd; sA: number; d: number } | null = null;
+    for (const rd of roads) {
+      const L = this.len(rd);
+      if (L < 130) continue;
+      for (let sA = 55; sA <= L - 75; sA += 10) {
+        const mid = this.pt(rd, sA + 25, 0, 1);
+        const d = Math.hypot(mid.x - cam.x, mid.z - cam.z);
+        if (d < 55 || d > 220) continue;
+        const score = Math.abs(d - 120);
+        if (!best || score < best.d) best = { rd, sA, d: score };
+      }
+    }
+    if (!best) return false;
+    const c = plain[0], B = plain[1], rd = best.rd, sA = best.sA, sB = sA + 50;
+    c.rd = rd; B.rd = rd; c.L = B.L = this.len(rd); c.dir = 1; B.dir = -1; c.s = sA; B.s = sB;
+    c.g.visible = true; B.g.visible = true;
+    for (const car of [c, B]) { const i = A.cars.indexOf(car); if (i >= 0) A.cars.splice(i, 1); }
+    const lat = Math.min(2.2, rd.w / 4);
+    const root = new Group(); root.name = "aw:crash"; A.group.add(root);
+    this.sc = { rd, dirA: 1, lat, sA, sB, impact: 0, A: c, B, phase: 0, age: 0, tCrash: 0, root, drivers: [], talk: 0 };
+    this.stats.scenes++; this.stats.active = true; this.stats.phase = 0;
+    const mid = this.pt(rd, (sA + sB) / 2, lat, 1);
+    this.stats.x = mid.x; this.stats.z = mid.z;
+    return true;
   }
 
   private clear() {

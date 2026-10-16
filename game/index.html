@@ -8,11 +8,108 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E" />
 <title>Aruba World (prototype)</title>
   <script src="./intro/intro-music.js?v=i3"></script>
-  <script>window.__awMotoEnabled=new URLSearchParams(location.search).get("addons")!=="0"&&new URLSearchParams(location.search).get("gvmoto")!=="0"&&new URLSearchParams(location.search).get("gv")!=="0";</script>
-  <script type="module" crossorigin src="./assets/index-D_YJh5Nn.js?v=h202610160909-r294"></script>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      window.__awMotoEnabled = q.get("addons") !== "0" && q.get("gvmoto") !== "0" && q.get("gv") !== "0";
+      // Hold the game loop until the add-on hooks hero loads. One unpaced frame
+      // starts every nearby model, and those parses block the audio test's click.
+      if (q.get("addons") === "0" || q.get("perf") === "0") return;
+      var nativeRAF = window.requestAnimationFrame.bind(window);
+      var nativeCAF = window.cancelAnimationFrame.bind(window);
+      var release = false, nextId = 1, queued = new Map();
+      window.requestAnimationFrame = function (cb) {
+        if (release) return nativeRAF(cb);
+        var id = nextId++;
+        queued.set(id, cb);
+        return id;
+      };
+      window.cancelAnimationFrame = function (id) {
+        if (queued.delete(id)) return;
+        nativeCAF(id);
+      };
+      window.__awReleaseFrames = function () {
+        if (release) return;
+        release = true;
+        window.requestAnimationFrame = nativeRAF;
+        window.cancelAnimationFrame = nativeCAF;
+        queued.forEach(function (cb) { nativeRAF(cb); });
+        queued.clear();
+      };
+      // Boot on the low phone profile takes longer than a few seconds. Releasing
+      // before the hero hook is installed lets the first frames start every model.
+      setTimeout(window.__awReleaseFrames, 120000);
+    })();
+  </script>
+  <script>
+    // The island boot calls hero.update before add-ons exist, and that one call
+    // starts every model inside 1.5 km. Parse them two at a time so the main
+    // thread can still take the audio test's click.
+    (function () {
+      var nativeFetch = window.fetch.bind(window);
+      var cap = 2, active = 0, queue = [];
+      function heroUrl(input) {
+        var url = typeof input === "string" ? input : (input && input.url) || "";
+        return url.indexOf("models/hero/") !== -1;
+      }
+      function pump() {
+        while (active < cap && queue.length) {
+          var job = queue.shift();
+          active++;
+          nativeFetch(job.input, job.init).then(function (res) {
+            var body = res.body;
+            if (!body || !body.getReader) {
+              active--;
+              pump();
+              job.resolve(res);
+              return;
+            }
+            var reader = body.getReader();
+            var stream = new ReadableStream({
+              start: function (controller) {
+                (function read() {
+                  reader.read().then(function (chunk) {
+                    if (chunk.done) {
+                      controller.close();
+                      active--;
+                      pump();
+                      return;
+                    }
+                    controller.enqueue(chunk.value);
+                    read();
+                  }, function (err) {
+                    controller.error(err);
+                    active--;
+                    pump();
+                  });
+                })();
+              }
+            });
+            var headers = new Headers();
+            res.headers.forEach(function (value, key) {
+              try { headers.set(key, value); } catch (e) {}
+            });
+            job.resolve(new Response(stream, { status: res.status, statusText: res.statusText, headers: headers }));
+          }, function (err) {
+            active--;
+            pump();
+            job.reject(err);
+          });
+        }
+      }
+      window.fetch = function (input, init) {
+        if (!heroUrl(input)) return nativeFetch(input, init);
+        return new Promise(function (resolve, reject) {
+          queue.push({ input: input, init: init, resolve: resolve, reject: reject });
+          pump();
+        });
+      };
+    })();
+  </script>
+  <script type="module" crossorigin src="./assets/index-D_YJh5Nn.js?v=h202610160909-r312c-soak"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-BRnqbt4K.css">
   <!-- merge add-ons (B: day/night, night lighting, fps guard). Remove this line to get pure A. -->
-  <script type="module" src="./addons/aw-addons.js?v=nin-r306"></script>
+  <script type="module" src="./addons/aw-addons.js?v=nin-r312b-soak"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
