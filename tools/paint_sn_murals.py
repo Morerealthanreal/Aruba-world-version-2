@@ -225,16 +225,16 @@ SPECS = [
         # Short return, then the long Zeppenfeldstraat face, one continuous painting.
         "unwrap": [0, 1],
         "base": "ground",
-        # In front of the plaster, behind the 0.06 m shutters and 0.13 m window frames.
-        "lift": 0.04,
+        # Clear of the plaster at a street angle, still behind the 0.13 m window frames.
+        "lift": 0.10,
         "end_inset": 0.04,
         "sharp": True,
-        # 19.50 m of facade by 3.88 m (wall plus the flat-roof parapet).
-        "pw": 2048, "ph": 408,
+        # 19.50 m of facade. Stop under the flat roof at 3.4 m so the slab does not cover the painting.
+        "pw": 2048, "ph": 328,
         # Shutter meshes are wider than the glass. Holes are metres from each wall start, up from the mural bottom.
         "holes": [
-            {"wall": 1, "rect": [4.10, 0.75, 7.68, 2.65]},
-            {"wall": 1, "rect": [11.95, 0.75, 15.53, 2.65]},
+            {"wall": 1, "rect": [4.87, 0.68, 6.91, 2.58]},
+            {"wall": 1, "rect": [12.72, 0.68, 14.76, 2.58]},
         ],
         "sources": [
             "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only.",
