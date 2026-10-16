@@ -71,7 +71,6 @@ export class PerfFixes {
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
     this.hookHero();
-    (window as unknown as { __awReleaseFrames?: () => void }).__awReleaseFrames?.();
     this.fixGlass();
   }
 
@@ -298,9 +297,21 @@ export class PerfFixes {
         for (const n of block) if (!n._g) n._loading = false;
       } else orig(x, z);
       let hidden = 0;
+      let shown = 0;
+      const holdGpu = performance.now() < ((window as unknown as { __awGpuUntil?: number }).__awGpuUntil || 0);
+      const waitTex = params.get("mperf") !== "0" && params.get("preup") !== "0";
       for (const n of h.list) {
-        if (!n._g || !n._g.visible) continue;
-        if (Math.hypot(n.x - x, n.z - z) > cap) { n._g.visible = false; if (n._sign) n._sign.visible = false; hidden++; }
+        if (!n._g) continue;
+        const far = Math.hypot(n.x - x, n.z - z) > cap;
+        const u = n._g.userData as { awSeen?: number; awTex?: number; awTexDone?: number };
+        const warm = !waitTex || (u.awSeen === 1 && (u.awTexDone || 0) >= (u.awTex || 0));
+        // Newly warmed models are shown a few at a time so the first draw does not
+        // upload every remaining texture in one click-blocking frame.
+        const show = !holdGpu && !far && warm && (n._g.visible || shown < 3);
+        if (show && !n._g.visible) shown++;
+        n._g.visible = show;
+        if (n._sign) n._sign.visible = show;
+        if (!show) hidden++;
       }
       this.stats.heroHidden = hidden;
     };

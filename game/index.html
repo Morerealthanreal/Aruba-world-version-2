@@ -36,13 +36,80 @@
         queued.forEach(function (cb) { nativeRAF(cb); });
         queued.clear();
       };
-      setTimeout(window.__awReleaseFrames, 8000);
+      // Boot on the low phone profile takes longer than a few seconds. Releasing
+      // before the hero hook is installed lets the first frames start every model.
+      setTimeout(window.__awReleaseFrames, 120000);
+    })();
+  </script>
+  <script>
+    // The island boot calls hero.update before add-ons exist, and that one call
+    // starts every model inside 1.5 km. Parse them two at a time so the main
+    // thread can still take the audio test's click.
+    (function () {
+      var nativeFetch = window.fetch.bind(window);
+      var cap = 2, active = 0, queue = [];
+      function heroUrl(input) {
+        var url = typeof input === "string" ? input : (input && input.url) || "";
+        return url.indexOf("models/hero/") !== -1;
+      }
+      function pump() {
+        while (active < cap && queue.length) {
+          var job = queue.shift();
+          active++;
+          nativeFetch(job.input, job.init).then(function (res) {
+            var body = res.body;
+            if (!body || !body.getReader) {
+              active--;
+              pump();
+              job.resolve(res);
+              return;
+            }
+            var reader = body.getReader();
+            var stream = new ReadableStream({
+              start: function (controller) {
+                (function read() {
+                  reader.read().then(function (chunk) {
+                    if (chunk.done) {
+                      controller.close();
+                      active--;
+                      pump();
+                      return;
+                    }
+                    controller.enqueue(chunk.value);
+                    read();
+                  }, function (err) {
+                    controller.error(err);
+                    active--;
+                    pump();
+                  });
+                })();
+              }
+            });
+            var headers = new Headers();
+            res.headers.forEach(function (value, key) {
+              try { headers.set(key, value); } catch (e) {}
+            });
+            job.resolve(new Response(stream, { status: res.status, statusText: res.statusText, headers: headers }));
+          }, function (err) {
+            active--;
+            pump();
+            job.reject(err);
+          });
+        }
+      }
+      window.fetch = function (input, init) {
+        if (!heroUrl(input)) return nativeFetch(input, init);
+        return new Promise(function (resolve, reject) {
+          queue.push({ input: input, init: init, resolve: resolve, reject: reject });
+          pump();
+        });
+      };
     })();
   </script>
   <script type="module" crossorigin src="./assets/index-D_YJh5Nn.js?v=h202610160139-r295-signs"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-BRnqbt4K.css">
   <!-- merge add-ons (B: day/night, night lighting, fps guard). Remove this line to get pure A. -->
-  <script type="module" src="./addons/aw-addons.js?v=resort-r298-soak13"></script>
+  <script type="module" src="./addons/aw-addons.js?v=resort-r298-soak16"></script>
 </head>
 <body>
 <canvas id="c"></canvas>

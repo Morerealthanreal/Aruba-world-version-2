@@ -55,6 +55,9 @@ export class MobilePerf {
     }
   }
   /** Shadow cadence, a slice of the warm-up walk, and at most two compiles. Runs at the start of A's update, before the render. */
+  private gpuHeld() {
+    return performance.now() < ((window as unknown as { __awGpuUntil?: number }).__awGpuUntil || 0);
+  }
   beforeRender() {
     if (this.on) {
       const r = this.g.renderer as unknown as R;
@@ -62,7 +65,7 @@ export class MobilePerf {
       if ((this.n++ & 1) === 0) r.shadowMap.needsUpdate = true;
     }
     if (!this.incremental) return;
-    if (this.preUpload && this.texQ.length) this.upload(1);
+    if (!this.gpuHeld() && this.preUpload && this.texQ.length) this.upload(1);
     this.seed();
     this.walk(0.7);
     this.pump(2);
@@ -83,7 +86,7 @@ export class MobilePerf {
     this.pump(2);
     // getUniforms (the first-draw stall) runs here, outside the animation callback
     this.sync(8);
-    if (this.preUpload && this.texQ.length) this.upload(1);
+    if (!this.gpuHeld() && this.preUpload && this.texQ.length) this.upload(1);
   }
   /**
    * Link `obj`'s program now and run `onReady` once getUniforms has populated it.
@@ -113,15 +116,17 @@ export class MobilePerf {
     r.compileAsync(this.g.scene, this.g.camera).then(() => { this.stats.compiles++; }, () => {}).finally(() => { this.busy = false; });
   }
   private upload(max: number) {
+    if (this.gpuHeld()) return;
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0;
     while (this.texQ.length && n < max && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
-      if ((t as Tex & { __awDead?: number }).__awDead) continue;
+      if ((t as HeroTex).__awDead) { this.heroTexDone(t); continue; }
       if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }
-      if (r.properties.get(t).__version === t.version) continue;
+      if (r.properties.get(t).__version === t.version) { this.heroTexDone(t); continue; }
       try { r.initTexture(t); } catch { /* image not ready */ }
+      this.heroTexDone(t);
       n++; this.stats.uploads++;
     }
   }
@@ -161,6 +166,22 @@ export class MobilePerf {
       n++;
     }
   }
+  /** The glTF scene under the hero group, so a model can stay hidden until its textures are on the GPU. */
+  private heroRoot(o: O): O | null {
+    let child: O | null = null;
+    for (let p: O | null = o; p; p = p.parent as O | null) {
+      if (p.name === "hero") return child;
+      child = p;
+    }
+    return null;
+  }
+  private heroTexDone(t: Tex) {
+    const root = (t as HeroTex).__awRoot;
+    if (!root) return;
+    (t as HeroTex).__awRoot = undefined;
+    const u = root.userData as { awTexDone?: number };
+    u.awTexDone = (u.awTexDone || 0) + 1;
+  }
   /** True when `o` hangs under the hero GLB group, which stays loaded after it leaves the cull radius. */
   private inHero(o: O): boolean {
     const u = o.userData as { awHero?: number };
@@ -179,20 +200,27 @@ export class MobilePerf {
       (o.isSkinnedMesh ? "s" : "") + (o.receiveShadow ? "r" : "") + (o.castShadow ? "S" : "") + (at.color ? "c" : "") + (at.tangent ? "t" : "") +
       (at.uv ? "u" : "") + (at.uv1 ? "1" : "") + (at.uv2 ? "2" : "") + (geo && Object.keys(geo.morphAttributes).length ? "m" : "") + o.type;
     let add = false;
+    const root = this.inHero(o) ? this.heroRoot(o) : null;
+    if (root) (root.userData as { awSeen?: number }).awSeen = 1;
     for (const m of mats) {
       if (!m || m.visible === false) continue;
       const k = sig(m, f, this.lightKey);
       if (!this.keys.has(k)) { this.keys.add(k); add = true; }
       // Hidden hero LODs are still in the tree. Leaving their textures until the
       // next time that LOD is drawn uploads them on a later lap of the island.
-      if (this.preUpload && (o.visible || this.inHero(o))) for (const slot of TEX) {
+      if (this.preUpload && (o.visible || root)) for (const slot of TEX) {
         const t = (m as unknown as Record<string, Tex | null>)[slot];
         if (t && t.isTexture && !t.isCubeTexture && !this.seenTex.has(t)) {
           this.seenTex.add(t);
-          const tex = t as Tex & { __awDead?: number; addEventListener?: (type: string, fn: () => void) => void };
+          const tex = t as HeroTex;
           // A region dispose can fire while this texture is still queued. Uploading
           // it afterwards creates a WebGL texture that nothing will delete.
           tex.addEventListener?.("dispose", () => { tex.__awDead = 1; });
+          if (root && !tex.__awRoot) {
+            tex.__awRoot = root;
+            const u = root.userData as { awTex?: number };
+            u.awTex = (u.awTex || 0) + 1;
+          }
           this.texQ.push(t);
         }
       }
@@ -200,6 +228,7 @@ export class MobilePerf {
     if (add) this.pend.push(o);
   }
   private pump(max: number) {
+    if (this.gpuHeld()) return;
     const r = this.g.renderer as unknown as R;
     if (!r.compile || !this.pend.length) return;
     const t0 = performance.now();
@@ -227,6 +256,7 @@ export class MobilePerf {
   }
   /** Finalize programs whose link has finished. Skips any that are still compiling — getUniforms would block. */
   private sync(budget: number) {
+    if (this.gpuHeld()) return;
     const props = (this.g.renderer as unknown as { properties?: { get(m: object): { currentProgram?: Prog } } }).properties;
     if (!props || (!this.syncQ.length && !this.holds.length)) { this.flush(props); return; }
     const t0 = performance.now();
@@ -297,6 +327,7 @@ export class MobilePerf {
     mesh.geometry = this.empty;
   }
 }
+type HeroTex = Tex & { __awDead?: number; __awRoot?: O; addEventListener?: (type: string, fn: () => void) => void };
 type Prog = { isReady: () => boolean; getUniforms: () => unknown };
 function matsOf(o: { material?: Mat | Mat[] }) {
   if (!o.material) return [];

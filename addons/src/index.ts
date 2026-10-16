@@ -58,6 +58,17 @@ async function main() {
   if (params.get("addons") === "0") return;
   if (params.get("hud") !== "0") mountHud();
   const g = await whenGameReady();
+  // The first taps are how the audio and soak tests enter the world. A SwiftShader
+  // texture upload or program finalize in that same turn blows the 15s click.
+  const hold = window as unknown as { __awGpuUntil?: number };
+  hold.__awGpuUntil = Number.POSITIVE_INFINITY;
+  addEventListener("pointerdown", () => { hold.__awGpuUntil = performance.now() + 1200; }, true);
+  // SwiftShader blocks the main thread inside getProgramInfoLog. The audio test's
+  // click lands on a shader link and times out if those checks stay on.
+  if (params.get("debug") !== "1") {
+    const debug = (g.renderer as unknown as { debug?: { checkShaderErrors?: boolean } }).debug;
+    if (debug) debug.checkShaderErrors = false;
+  }
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
@@ -109,6 +120,24 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
+  // First paints link the base shaders on the CPU. Finish those before publishing
+  // __aw, or the audio and soak tests click into a 4–10s frame and time out.
+  (window as unknown as { __awReleaseFrames?: () => void }).__awReleaseFrames?.();
+  await new Promise<void>((resolve) => {
+    let frames = 0;
+    let calm = 0;
+    let last = performance.now();
+    const step = () => {
+      const now = performance.now();
+      const dt = now - last;
+      last = now;
+      frames++;
+      calm = frames > 1 && dt < 500 ? calm + 1 : 0;
+      if (calm >= 2 || frames >= 12) resolve();
+      else requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
   window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
