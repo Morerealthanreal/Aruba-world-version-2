@@ -3,7 +3,7 @@
 Inserts <script src="./intro/intro-music.js?v=IV"> right after the viewport/title head block, before the main bundle."""
 import os,re
 D=os.path.join(os.path.dirname(os.path.abspath(__file__)),'../game/'); f=D+'index.html'; s=open(f).read()
-IV='i1'
+IV='i2'
 tag='<script src="./intro/intro-music.js?v=%s"></script>'%IV
 s2=re.sub(r'\s*<script src="\./intro/intro-music\.js[^"]*"></script>','',s)
 s2=s2.replace('</title>','</title>\n  '+tag,1)

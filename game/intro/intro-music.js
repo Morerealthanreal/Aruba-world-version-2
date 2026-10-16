@@ -1,18 +1,20 @@
-/* Aruba World intro music on the loading screen (r276).
+/* Aruba World intro music on the loading screen (r276; r277 track choice).
    Plain script loaded early from <head> (injected by tools/patch_intro.py via landmarks/install.sh).
-   - TRACKS: one is picked at random per load; files are streamed unchanged (no re-encode).
+   - TRACKS: Settings choice Track 1/2/3/Off (default Track 1); files are streamed unchanged (no re-encode).
    - Autoplay first; if the browser blocks it, starts on the first tap/click/key, with a small hint.
    - Fades out over ~1.5 s when #loading is hidden (player enters the game). Never blocks loading.
-   - Mute toggle in Settings (#settings), stored in localStorage 'aw_intro_mute'. Kill switch ?intro=0. */
+   - choice stored in localStorage 'aw_intro_track'. Kill switch ?intro=0. */
 (function(){
-  var TRACKS=['./audio/intro/intro1.mp3'];
-  var KEY='aw_intro_mute', FADE_MS=1500, VOL=1;
+  var TRACKS=['./audio/intro/intro1.mp3','./audio/intro/intro2.mp3','./audio/intro/intro3.mp3'];
+  var KEY='aw_intro_track', FADE_MS=1500, VOL=1; /* '1'|'2'|'3'|'off', default '1' */
+  window.__awTracks=TRACKS;
   var q=new URLSearchParams(location.search);
-  function muted(){ try{return localStorage.getItem(KEY)==='1';}catch(e){return false;} }
+  function choice(){ try{ var v=localStorage.getItem(KEY); if(v==null&&localStorage.getItem('aw_intro_mute')==='1') v='off'; return (v==='off'||v==='1'||v==='2'||v==='3')?v:'1'; }catch(e){return '1';} }
+  function muted(){ return choice()==='off'; }
   var off=q.get('intro')==='0'||q.get('addons')==='0';
   var a=null, done=false, waiting=false, hint=null, fadeT=null;
   function loadingVisible(){ var L=document.getElementById('loading'); return !L||L.style.display!=='none'; }
-  function make(){ if(a) return a; a=new Audio(); a.preload='auto'; a.src=TRACKS[Math.floor(Math.random()*TRACKS.length)]; a.volume=VOL; window.__awIntro=a; return a; }
+  function make(){ if(a) return a; a=new Audio(); a.preload='auto'; a.src=TRACKS[(+choice()||1)-1]; a.volume=VOL; window.__awIntro=a; return a; }
   function removeHint(){ if(hint&&hint.parentNode) hint.parentNode.removeChild(hint); hint=null; }
   function showHint(){ if(hint||done) return; var L=document.getElementById('loading'); if(!L){ document.addEventListener('DOMContentLoaded',showHint,{once:true}); return; }
     hint=document.createElement('div'); hint.id='awIntroHint'; hint.textContent='\uD83D\uDD0A tap to start music';
@@ -28,13 +30,13 @@
   function watch(){ var L=document.getElementById('loading'); if(!L){ document.addEventListener('DOMContentLoaded',watch,{once:true}); return; }
     if(!loadingVisible()){ fadeOut(); return; }
     new MutationObserver(function(){ if(!loadingVisible()) fadeOut(); }).observe(L,{attributes:true,attributeFilter:['style','class']}); }
-  /* Settings toggle */
-  function addToggle(){ var S=document.getElementById('settings'); if(!S||document.getElementById('awIntroMute')) return !!S;
-    var box=document.createElement('div'); box.innerHTML='<div class="lbl">Intro music</div>';
-    var b=document.createElement('button'); b.id='awIntroMute';
-    function lab(){ b.textContent=muted()?'\uD83D\uDD07 Off':'\uD83D\uDD0A On'; }
-    b.onclick=function(){ try{localStorage.setItem(KEY,muted()?'0':'1');}catch(e){} lab(); if(muted()&&a&&!a.paused){ a.pause(); } removeHint(); };
-    lab(); box.appendChild(b); var anchor=document.getElementById('streset'); if(anchor&&anchor.parentNode===S) S.insertBefore(box,anchor); else S.appendChild(box); return true; }
+  /* Settings: Intro music Track 1 / 2 / 3 / Off */
+  function addToggle(){ var S=document.getElementById('settings'); if(!S||document.getElementById('awIntroSel')) return !!S;
+    var box=document.createElement('div'); box.id='awIntroSel'; box.innerHTML='<div class="lbl">Intro music</div>';
+    var row=document.createElement('div'); row.className='tabs'; var opts=[['1','Track 1'],['2','Track 2'],['3','Track 3'],['off','Off']];
+    function paint(){ var c=choice(); Array.prototype.forEach.call(row.children,function(b){ b.classList.toggle('on',b.dataset.v===c); }); }
+    opts.forEach(function(o){ var b=document.createElement('button'); b.dataset.v=o[0]; b.textContent=o[1]; b.onclick=function(){ try{localStorage.setItem(KEY,o[0]);}catch(e){} paint(); if(o[0]==='off'&&a&&!a.paused) a.pause(); removeHint(); }; row.appendChild(b); });
+    paint(); box.appendChild(row); var anchor=document.getElementById('streset'); if(anchor&&anchor.parentNode===S) S.insertBefore(box,anchor); else S.appendChild(box); return true; }
   var tries=0; (function poll(){ if(addToggle()) return; if(tries++<240) setTimeout(poll,500); })();
   if(!off){ start(); watch(); }
 })();
