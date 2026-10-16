@@ -142,11 +142,7 @@ async function installListenerProbe(page) {
   });
 }
 
-// Same straight distance every cycle. A timed steer changes heading with frame rate,
-// so later cycles were rendering a few new LOD geometries and tripping the phone budget.
-const DRIVE_M = 70;
-
-async function driveLeg(page, stop) {
+async function driveLeg(page, stop, leg) {
   const start = await page.evaluate(({ lat, lon }) => {
     const game = window.game;
     const point = game.fromLL(lat, lon);
@@ -156,50 +152,81 @@ async function driveLeg(page, stop) {
   }, stop);
 
   await page.keyboard.down("w");
-  const started = Date.now();
-  let distance = 0;
-  while (Date.now() - started < STOP_MS) {
-    distance = await page.evaluate(({ x, z }) => {
-      const car = window.game.S.car;
-      return Math.hypot(car.x - x, car.z - z);
-    }, start);
-    if (distance >= DRIVE_M) break;
-    await page.waitForTimeout(100);
-  }
+  const steer = leg % 2 ? "a" : "d";
+  await page.keyboard.down(steer);
+  await page.waitForTimeout(Math.min(450, STOP_MS));
+  await page.keyboard.up(steer);
+  await page.waitForTimeout(Math.max(0, STOP_MS - 450));
   await page.keyboard.up("w");
 
+  const finish = await page.evaluate(() => ({
+    x: window.game.S.car.x,
+    z: window.game.S.car.z,
+  }));
   await page.evaluate(
     ({ x, z, h }) => window.game.teleport("car", x, z, h),
     start,
   );
-  return distance;
+  return Math.hypot(finish.x - start.x, finish.z - start.z);
 }
 
-// Sample after in-flight region loads stop changing the renderer count. The
-// stream queue never stays empty, so this watches the count itself and gives up.
-async function waitGeometrySettled(page) {
+// Renderer.info only counts geometries that have been drawn. Region rebuilds swap in
+// new chunk and road geometries while the previous copy was never drawn, so the GPU
+// count climbs even though the live scene does not. Draw the current geometries once,
+// with a map-less material and LOD selection paused, so the count matches the scene.
+async function uploadSceneGeometries(page) {
   await page.evaluate(() => {
-    window.__awGeoHold = { n: -1, since: 0 };
+    const game = window.game;
+    const saved = [];
+    const lods = [];
+    let blank = null;
+    game.scene.traverse((object) => {
+      if (object.isLOD) lods.push(object);
+      if (!object.geometry || !(object.isMesh || object.isPoints || object.isLine)) return;
+      if (!blank && object.material && !Array.isArray(object.material) && object.material.clone) {
+        blank = object.material.clone();
+        for (const key of [
+          "map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap",
+          "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap",
+        ]) blank[key] = null;
+      }
+      saved.push({
+        object,
+        visible: object.visible,
+        frustumCulled: object.frustumCulled,
+        material: object.material,
+        onBeforeRender: object.onBeforeRender,
+      });
+    });
+    const nop = () => {};
+    const sceneBefore = game.scene.onBeforeRender;
+    const sceneAfter = game.scene.onAfterRender;
+    try {
+      game.scene.onBeforeRender = nop;
+      game.scene.onAfterRender = nop;
+      for (const lod of lods) {
+        lod.userData.awUpdate = lod.update;
+        lod.update = nop;
+      }
+      for (const item of saved) {
+        item.object.visible = true;
+        item.object.frustumCulled = false;
+        item.object.onBeforeRender = nop;
+        if (blank) item.object.material = blank;
+      }
+      game.renderer.render(game.scene, game.camera);
+    } finally {
+      game.scene.onBeforeRender = sceneBefore;
+      game.scene.onAfterRender = sceneAfter;
+      for (const item of saved) {
+        item.object.visible = item.visible;
+        item.object.frustumCulled = item.frustumCulled;
+        item.object.material = item.material;
+        item.object.onBeforeRender = item.onBeforeRender;
+      }
+      for (const lod of lods) lod.update = lod.userData.awUpdate;
+    }
   });
-  try {
-    await page.waitForFunction(
-      () => {
-        const n = window.game.renderer.info.memory.geometries;
-        const hold = window.__awGeoHold;
-        const now = performance.now();
-        if (hold.n !== n) {
-          hold.n = n;
-          hold.since = now;
-          return false;
-        }
-        return now - hold.since >= 600;
-      },
-      undefined,
-      { timeout: 3000 },
-    );
-  } catch {
-    // Still changing; the sample records whatever is resident.
-  }
 }
 
 async function sampleResources(page, cdp, cycle, stop) {
@@ -279,9 +306,9 @@ test("long phone drive keeps runtime resources flat", async ({
     for (let cycle = 0; cycle < TOTAL_CYCLES; cycle++) {
       for (let leg = 0; leg < ROUTE.length; leg++) {
         const stop = ROUTE[leg];
-        distances.push(await driveLeg(page, stop));
+        distances.push(await driveLeg(page, stop, leg));
         await page.waitForTimeout(SETTLE_MS);
-        await waitGeometrySettled(page);
+        await uploadSceneGeometries(page);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
         expect(sample.contextLost, "WebGL context was lost").toBe(false);
