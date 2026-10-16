@@ -234,3 +234,14 @@ Phone soak, low, same route (Oranjestad through Baby Beach, 3 warmup loops + 2 m
 | after | −1 | 487–504 |
 
 The official growth was already inside the limit of 4 on this harness; the leak showed up as atlases that never left the GPU after a region unloaded. A teleport check confirmed the dispose: each unloaded region that still had its plate atlas released it, and a region whose only remaining texture was that atlas dropped the count by 1. No console errors. Per-stop movement between the two measured cycles stays inside the resident-set noise (after: Noord +6, California −13, Baby Beach +6) and does not climb on every loop.
+
+The build worker's phone soak on this branch then failed on forced-GC heap growth: 33.5 MB against a 25 MB limit. The in-repo cap is 24 MB. Unloaded regions were staying in the instance folder's open set until a fold finished, so their kit and parked-car matrices never became garbage. A finished flora build also kept one region, and the shader walk re-queued detached nodes. Those three holds are released when the group leaves the world.
+
+Phone soak after that release (`npx playwright test tests/long-drive-soak.spec.js --project=low`, 7.4 min, passed). Growth is the median of the six stops on cycle 4 minus the same median on cycle 3.
+
+| | heap | geometries | scene geometries | scene objects | textures |
+|---|---|---|---|---|---|
+| growth | 19.6 MB | +2.5 | +55.5 | +79 | +3.5 |
+| limit | 24 MB | 67.5 | 100 | 300 | 4 |
+
+Heap medians were 380.2 MB on cycle 3 and 399.9 MB on cycle 4 (20,575,312 bytes). Listeners stayed at 133. No console errors.
