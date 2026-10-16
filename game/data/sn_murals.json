@@ -2,7 +2,7 @@
  "atlas": "textures/sn_mural_atlas.jpg",
  "atlas_px": [
   2048,
-  2752
+  2700
  ],
  "note": "Original paintings. Public photos were visual reference only and are not embedded.",
  "hide_heroes": [
@@ -72,7 +72,7 @@
    "height": 6.85,
    "uv": [
     0.0,
-    0.74564,
+    0.740741,
     0.78125,
     1.0
    ],
@@ -115,9 +115,9 @@
    "height": 3.04,
    "uv": [
     0.0,
-    0.672965,
+    0.666667,
     0.419922,
-    0.744913
+    0.74
    ],
    "sources": [
     "Street Art Cities marker 13093 (lat 12.4348797, lng -69.9090145, Caya Dick Cooper)",
@@ -158,9 +158,9 @@
    "height": 3.01,
    "uv": [
     0.420898,
-    0.661337,
+    0.654815,
     0.801758,
-    0.744913
+    0.74
    ],
    "sources": [
     "Street Art Cities marker 13083 (lat 12.4350338, lng -69.9102934, Stuyvesantstraat)",
@@ -172,38 +172,38 @@
    "name": "Flamingos",
    "artist": "Graff Mapping and Richard Santana",
    "year": 2016,
-   "address": "Stuyvesantstraat, long street wall of the Trilax corner the pin faces",
+   "address": "Stuyvesantstraat, the red street wall in front of the Trilax corner (the pin's own facade is buried behind this house)",
    "lat": 12.4348557,
    "lng": -69.9098535,
-   "bld": 4985,
-   "bld_name": "Trilax Inel Fashion Group",
-   "bld_h": 3.7,
+   "bld": 11591,
+   "bld_name": "",
+   "bld_h": 3.4,
    "wall_i": 0,
-   "wall_len": 20.8,
-   "gps_dist_m": 3.77,
+   "wall_len": 10.14,
+   "gps_dist_m": 7.93,
    "center": [
-    6530.7,
-    9400.8
+    6525.2,
+    9405.6
    ],
    "p0": [
-    6523.58,
-    9393.28
+    6520.35,
+    9404.39
    ],
    "p1": [
-    6537.72,
-    9408.42
+    6530.01,
+    9406.95
    ],
    "normal": [
-    -0.7307,
-    0.6827
+    -0.2564,
+    0.9666
    ],
-   "width": 20.72,
-   "height": 3.64,
+   "width": 10.0,
+   "height": 3.35,
    "uv": [
     0.0,
-    0.529797,
-    1.0,
-    0.66061
+    0.455556,
+    0.78125,
+    0.654074
    ],
    "sources": [
     "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -243,9 +243,9 @@
    "height": 3.3,
    "uv": [
     0.0,
-    0.457122,
+    0.381481,
     0.46875,
-    0.52907
+    0.454815
    ],
    "sources": [
     "Street Art Cities marker 13085 (lat 12.4346819, lng -69.9099513, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -285,9 +285,9 @@
    "height": 3.04,
    "uv": [
     0.469727,
-    0.433866,
+    0.357778,
     0.772461,
-    0.52907
+    0.454815
    ],
    "sources": [
     "Street Art Cities marker 13080 (lat 12.4356834, lng -69.9099984, Bargestraat). Photo on that page used as visual reference only."
@@ -327,9 +327,9 @@
    "height": 3.05,
    "uv": [
     0.0,
-    0.337209,
+    0.259259,
     0.3125,
-    0.43314
+    0.357037
    ],
    "sources": [
     "Street Art Cities marker 13079 (lat 12.4357751, lng -69.9101472, Bargestraat). Photo on that page used as visual reference only."
@@ -369,9 +369,9 @@
    "height": 3.18,
    "uv": [
     0.313477,
-    0.353198,
+    0.275556,
     0.813477,
-    0.43314
+    0.357037
    ],
    "sources": [
     "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
@@ -411,9 +411,9 @@
    "height": 3.06,
    "uv": [
     0.0,
-    0.265262,
+    0.185926,
     0.400391,
-    0.336483
+    0.258519
    ],
    "sources": [
     "Street Art Cities marker 13092 (lat 12.4344049, lng -69.9093784, B. v/d Veen Zeppenfeldstraat 21). Photo on that page used as visual reference only."
@@ -453,9 +453,9 @@
    "height": 3.05,
    "uv": [
     0.401367,
-    0.269985,
+    0.190741,
     0.829102,
-    0.336483
+    0.258519
    ],
    "sources": [
     "Wikimedia Commons File:San Nicolas Murals.jpeg (CC BY-SA 4.0). Description: Melting Pot by Armando Goedgedrag, Bernhardstraat opposite the police station. Camera 12.436172, -69.911256."
@@ -466,38 +466,38 @@
    "name": "Mujer Azul",
    "artist": "Lina Arias",
    "year": 2018,
-   "address": "Van Renselaerstraat 2, street wall of The Emporium",
+   "address": "Van Renselaerstraat 2, the Emporium face the street sees (the address wall is hidden behind Jewelenhuisje)",
    "lat": 12.435077,
    "lng": -69.9100802,
    "bld": 4081,
    "bld_name": "The Emporium",
    "bld_h": 3.4,
-   "wall_i": 5,
-   "wall_len": 13.83,
-   "gps_dist_m": 9.42,
+   "wall_i": 0,
+   "wall_len": 10.07,
+   "gps_dist_m": 2.34,
    "center": [
-    6508.95,
-    9377.3
+    6507.0,
+    9385.6
    ],
    "p0": [
-    6514.12,
-    9372.77
+    6503.67,
+    9381.88
    ],
    "p1": [
-    6503.68,
-    9381.72
+    6510.22,
+    9389.42
    ],
    "normal": [
-    -0.6508,
-    -0.7593
+    -0.755,
+    0.6557
    ],
-   "width": 13.75,
-   "height": 3.34,
+   "width": 9.99,
+   "height": 3.33,
    "uv": [
     0.0,
-    0.111919,
-    0.84375,
-    0.264535
+    0.0,
+    0.732422,
+    0.185185
    ],
    "sources": [
     "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
@@ -537,10 +537,10 @@
    "width": 4.6,
    "height": 3.05,
    "uv": [
-    0.0,
-    0.000363,
-    0.224609,
-    0.111192
+    0.733398,
+    0.072222,
+    0.958008,
+    0.185185
    ],
    "sources": [
     "Street Art Cities marker 13075 (lat 12.4358289, lng -69.9103532)",

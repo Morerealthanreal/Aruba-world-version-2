@@ -158,13 +158,14 @@ SPECS = [
         "artist": "Graff Mapping and Richard Santana",
         "year": 2016,
         "lat": 12.4348557, "lng": -69.9098535,
-        "address": "Stuyvesantstraat, long street wall of the Trilax corner the pin faces",
-        "bld": 4985, "wall": 0,
-        # This face also carries the game's procedural ring. Cover it.
+        "address": "Stuyvesantstraat, the red street wall in front of the Trilax corner (the pin's own facade is buried behind this house)",
+        "bld": 11591, "wall": 0,
+        # This is the red wall the street camera actually sees, and it carries
+        # the game's procedural ring. Cover that face edge to edge.
         "fill": True,
         "sharp": True,
-        "wm": 20.6, "hm": 3.6,
-        "pw": 2048, "ph": 360,
+        "wm": 10.0, "hm": 3.3,
+        "pw": 1600, "ph": 536,
         "sources": [
             "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only.",
         ],
@@ -261,14 +262,13 @@ SPECS = [
         "artist": "Lina Arias",
         "year": 2018,
         "lat": 12.435077, "lng": -69.9100802,
-        "address": "Van Renselaerstraat 2, street wall of The Emporium",
-        "bld": 4081, "wall": 5,
-        # Portrait fills the Van Renselaerstraat wall. The game wall is blue;
-        # the painting's own field is the turquoise of the real mural.
+        "address": "Van Renselaerstraat 2, the Emporium face the street sees (the address wall is hidden behind Jewelenhuisje)",
+        "bld": 4081, "wall": 0,
+        # This face carries the procedural blue ring. The portrait covers it.
         "fill": True,
         "sharp": True,
-        "wm": 13.6, "hm": 3.3,
-        "pw": 1728, "ph": 420,
+        "wm": 10.0, "hm": 3.3,
+        "pw": 1500, "ph": 500,
         "sources": [
             "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
             "Wikimedia Commons File:Mural art in and around Mainstreet, San Nicolas Aruba 07.jpg (CC0, same headdress portrait)",
@@ -430,25 +430,7 @@ def paint_night(w, h):
     d.line([P(-0.16, 0.40), P(0.26, 0.50)], fill=(80, 70, 170), width=max(2, h // 120))
     d.polygon([P(0, 0.46), P(0.04, 0.58), P(-0.02, 0.62), P(-0.05, 0.50)], fill=(90, 60, 160))
     grain(im, 8, 3)
-    # Outer paint soaks into the red station wall instead of ending in a cut line.
-    # A few pixels only, so the cream meets the red wall without a painted frame.
-    feather_sides(im, (216, 85, 63), max(8, int(min(w, h) * 0.018)))
     return im
-
-
-def feather_sides(im, rgb, band):
-    px = im.load()
-    w, h = im.size
-    for y in range(h):
-        top = y / band if y < band else 1.0
-        for x in range(w):
-            e = min(x, w - 1 - x) / band
-            e = min(e, top)
-            if e >= 1:
-                continue
-            t = e * e
-            p = px[x, y]
-            px[x, y] = tuple(int(rgb[k] * (1 - t) + p[k] * t) for k in range(3))
 
 
 def paint_lion(w, h):
