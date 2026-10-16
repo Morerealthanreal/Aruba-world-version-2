@@ -17,6 +17,7 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 OUT_IMG = ROOT / "game" / "textures" / "sn_mural_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_murals.json"
+PAINT_SRC = ROOT / "tools" / "sn_paintings"
 
 ZG, BG = 12.52, -69.97
 XG = 111320 * math.cos(ZG * math.pi / 180)
@@ -225,7 +226,8 @@ SPECS = [
         "anchor": "mid",
         "sharp": True,
         "wm": 14.8, "hm": 3.2,
-        "pw": 1600, "ph": 720,
+        # 16:9 so the seated iguana keeps its painted proportions.
+        "pw": 2048, "ph": 1152,
         "sources": [
             "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only.",
         ],
@@ -270,7 +272,8 @@ SPECS = [
         "fill": True,
         "sharp": True,
         "wm": 10.0, "hm": 3.3,
-        "pw": 1800, "ph": 600,
+        # Wide tile: the portrait stays 4:3 in the middle, turquoise runs to the wall edges.
+        "pw": 2048, "ph": 684,
         "sources": [
             "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
             "Wikimedia Commons File:Mural art in and around Mainstreet, San Nicolas Aruba 07.jpg (CC0, same headdress portrait)",
@@ -641,356 +644,10 @@ def paint_pelican(w, h):
     return im
 
 
-def shade_into(im, mask, light, shadow, mode="linear"):
-    """Replace masked pixels with a light-to-shadow gradient."""
-    bb = mask.getbbox()
-    if not bb:
-        return
-    x0, y0, x1, y1 = bb
-    mp = mask.load()
-    px = im.load()
-    lx = x0 + (x1 - x0) * 0.34
-    ly = y0 + (y1 - y0) * 0.28
-    rx = max(1.0, (x1 - x0) * 0.62)
-    ry = max(1.0, (y1 - y0) * 0.62)
-    span_x = max(1.0, x1 - x0)
-    span_y = max(1.0, y1 - y0)
-    for y in range(y0, y1):
-        for x in range(x0, x1):
-            a = mp[x, y]
-            if a < 16:
-                continue
-            if mode == "sphere":
-                t = math.sqrt(((x - lx) / rx) ** 2 + ((y - ly) / ry) ** 2)
-                t = max(0.0, min(1.0, (t - 0.08) / 1.05))
-            else:
-                t = (x - x0) / span_x * 0.42 + (y - y0) / span_y * 0.85
-                t = max(0.0, min(1.0, t))
-            c = tuple(int(light[k] + (shadow[k] - light[k]) * t) for k in range(3))
-            if a < 250:
-                b = px[x, y]
-                f = a / 255.0
-                c = tuple(int(b[k] * (1 - f) + c[k] * f) for k in range(3))
-            px[x, y] = c
-
-
-def capsule(draw, a, b, ra, rb, fill):
-    ax, ay = a
-    bx, by = b
-    ang = math.atan2(by - ay, bx - ax)
-    px, py = math.cos(ang + math.pi / 2), math.sin(ang + math.pi / 2)
-    draw.polygon([
-        (ax + px * ra, ay + py * ra),
-        (bx + px * rb, by + py * rb),
-        (bx - px * rb, by - py * rb),
-        (ax - px * ra, ay - py * ra),
-    ], fill=fill)
-    draw.ellipse([ax - ra, ay - ra, ax + ra, ay + ra], fill=fill)
-    draw.ellipse([bx - rb, by - rb, bx + rb, by + rb], fill=fill)
-
-
-def feather(draw, root, length, ang, width, color, vein, bend=0.0):
-    """A broad vane with a curved shaft, not a thin spike."""
-    rx, ry = root
-    dx, dy = math.cos(ang), math.sin(ang)
-    ox, oy = -dy, dx
-    tip = (rx + dx * length, ry + dy * length)
-    mx = rx + dx * length * 0.42 + ox * length * bend
-    my = ry + dy * length * 0.42 + oy * length * bend
-    qx = rx + dx * length * 0.78 + ox * length * bend * 0.35
-    qy = ry + dy * length * 0.78 + oy * length * bend * 0.35
-    w1 = width * 0.95
-    w2 = width * 0.42
-    draw.polygon([
-        (rx + ox * width * 0.22, ry + oy * width * 0.22),
-        (mx + ox * w1, my + oy * w1),
-        (qx + ox * w2, qy + oy * w2),
-        tip,
-        (qx - ox * w2 * 0.85, qy - oy * w2 * 0.85),
-        (mx - ox * w1 * 0.8, my - oy * w1 * 0.8),
-        (rx - ox * width * 0.28, ry - oy * width * 0.28),
-    ], fill=color)
-    # shaded side of the vane
-    draw.polygon([
-        (rx, ry),
-        (mx - ox * w1 * 0.15, my - oy * w1 * 0.15),
-        tip,
-        (rx - ox * width * 0.2, ry - oy * width * 0.2),
-    ], fill=tuple(max(0, c - 40) for c in color[:3]))
-    draw.line([(rx, ry), (mx, my), (qx, qy), tip], fill=vein, width=max(2, int(width * 0.12)))
-
-
-def beads_along(draw, pts, count, radius, fill, shine=None):
-    segs = []
-    total = 0.0
-    n = len(pts)
-    for i in range(n):
-        x0, y0 = pts[i]
-        x1, y1 = pts[(i + 1) % n]
-        length = math.hypot(x1 - x0, y1 - y0)
-        segs.append((x0, y0, x1, y1, length))
-        total += length
-    if total < 1:
-        return
-    for i in range(count):
-        dist = total * (i + 0.5) / count
-        acc = 0.0
-        for x0, y0, x1, y1, length in segs:
-            if length > 0 and acc + length >= dist:
-                t = (dist - acc) / length
-                x = x0 + (x1 - x0) * t
-                y = y0 + (y1 - y0) * t
-                draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=fill)
-                if shine:
-                    sr = max(1, radius * 0.35)
-                    draw.ellipse(
-                        [x - sr - radius * 0.22, y - sr - radius * 0.28,
-                         x + sr * 0.4, y + sr * 0.2],
-                        fill=shine,
-                    )
-                break
-            acc += length
-
-
 def paint_boss(w, h):
-    """WD's seated teal iguana: big head, crest, claws, red plinth, water.
-
-    The street wall is long and low, so the tile is only as wide as a seated
-    animal (about 7 m) instead of stretching one silhouette across 15 m.
-    Drawn at 2× in a 1600×720 design so the eye and scales stay round.
-    """
-    W, H = w * 2, h * 2
-    sx, sy = W / 1600.0, H / 720.0
-
-    def X(px):
-        return px * sx
-
-    def Y(py):
-        return py * sy
-
-    def R(px):
-        return px * sx
-
-    def P(pts):
-        return [(X(x), Y(y)) for x, y in pts]
-
-    im = Image.new("RGB", (W, H), (236, 214, 152))
-    d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, W, H), (248, 230, 176), (198, 164, 104))
-    rnd = rng(41)
-    for _ in range(80):
-        x, y = rnd.randint(0, W - 1), rnd.randint(0, H - 1)
-        rad = rnd.randint(10, 46)
-        d.ellipse([x - rad, y - rad, x + rad, y + rad], fill=(255, 246, 214, 26))
-
-    # Dark negative space. Spine tips and the snout break out of it into the plaster.
-    field = []
-    for i in range(36):
-        t = i / 35
-        ang = math.pi * (1 + t)
-        field.append((X(820 + math.cos(ang) * 760), Y(300 + math.sin(ang) * 210)))
-    field += [(X(1560), Y(560)), (X(40), Y(560))]
-    d.polygon([(int(a), int(b)) for a, b in field], fill=(10, 52, 62))
-    field_mask = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(field_mask).polygon([(int(a), int(b)) for a, b in field], fill=255)
-    shade_into(im, field_mask, (36, 108, 118), (4, 28, 36), "linear")
-
-    head = [
-        (48, 318), (100, 230), (180, 145), (290, 78), (410, 52),
-        (510, 108), (545, 190), (500, 280), (430, 360),
-        (300, 455), (170, 430), (80, 370), (36, 320),
-    ]
-    body = [
-        (470, 168), (590, 92), (740, 130), (900, 190), (1060, 255),
-        (1240, 300), (1420, 335), (1555, 385), (1510, 430), (1380, 410),
-        (1260, 455), (1160, 545), (1040, 600), (930, 575), (990, 490),
-        (860, 515), (680, 530), (520, 490), (450, 420), (500, 280),
-    ]
-    outline = (3, 24, 32)
-
-    def fill_shape(pts, light, shadow):
-        xy = P(pts)
-        for ox, oy in ((-8, 0), (8, 0), (0, -8), (0, 8), (-6, -6), (6, -5), (-5, 6), (6, 6)):
-            d.polygon([(a + ox, b + oy) for a, b in xy], fill=outline)
-        d.polygon(xy, fill=light)
-        mask = Image.new("L", (W, H), 0)
-        ImageDraw.Draw(mask).polygon(xy, fill=255)
-        shade_into(im, mask, light, shadow, "linear")
-        return mask
-
-    body_mask = fill_shape(body, (64, 176, 178), (6, 58, 68))
-    head_mask = fill_shape(head, (86, 196, 194), (10, 72, 82))
-
-    # Pale jaw and hanging dewlap, then the belly.
-    d.polygon(P([
-        (70, 300), (160, 270), (250, 300), (230, 370), (120, 400), (55, 345),
-    ]), fill=(150, 214, 204, 170))
-    d.polygon(P([
-        (150, 360), (250, 340), (310, 390), (270, 455), (160, 440),
-    ]), fill=(110, 186, 184, 150))
-    for i, x in enumerate((150, 185, 220, 255)):
-        d.arc([X(x), Y(330), X(x + 48), Y(450)], 60, 140, fill=(4, 48, 56, 200), width=max(2, int(R(2))))
-    d.polygon(P([
-        (500, 430), (700, 470), (980, 490), (1120, 450),
-        (980, 545), (700, 555), (480, 500),
-    ]), fill=(130, 210, 204, 145))
-
-    # Scale rows. Skip the eye so the iris stays clean.
-    mp_b = body_mask.load()
-    mp_h = head_mask.load()
-    step = max(7, int(R(11)))
-    rad = max(5, int(R(7)))
-    eye_box = (X(230 - 70), Y(200 - 70), X(230 + 70), Y(200 + 70))
-    for y in range(rad, H - rad, step):
-        shift = step // 2 if (y // step) % 2 else 0
-        for x in range(rad + shift, W - rad, step):
-            on_body = mp_b[x, y] > 200
-            on_head = mp_h[x, y] > 200
-            if not on_body and not on_head:
-                continue
-            if mp_b[x, min(H - 1, y + rad)] < 160 and mp_h[x, min(H - 1, y + rad)] < 160:
-                continue
-            if eye_box[0] <= x <= eye_box[2] and eye_box[1] <= y <= eye_box[3]:
-                continue
-            col = (8, 52, 60) if ((x // step) + (y // step)) % 2 == 0 else (20, 90, 96)
-            d.arc([x - rad, y - rad // 3, x + rad, y + rad], 15, 165, fill=col, width=max(2, rad // 3))
-
-    # Crest: broad blades, tallest over the neck, tips in the cream plaster.
-    crest = [
-        (330, 70, 70), (410, 62, 108), (500, 78, 130), (590, 100, 118),
-        (690, 128, 92), (800, 162, 70), (910, 200, 52), (1020, 240, 36),
-    ]
-    for bx, by, ht in crest:
-        tip = (X(bx + 10), Y(by) - R(ht))
-        base = (X(bx), Y(by) + R(8))
-        half = R(18 + ht * 0.1)
-        ang = math.atan2(tip[1] - base[1], tip[0] - base[0])
-        ox, oy = math.cos(ang + math.pi / 2) * half, math.sin(ang + math.pi / 2) * half
-        d.polygon([
-            (base[0] + ox, base[1] + oy), tip,
-            (base[0] - ox * 0.55, base[1] - oy * 0.55),
-        ], fill=(4, 40, 50))
-        d.polygon([
-            (base[0] + ox * 0.15, base[1]), tip,
-            (base[0] - ox * 0.05, base[1]),
-        ], fill=(120, 200, 196))
-
-    # Raised forelimb, bent, with the hand in front of the jaw.
-    def shaded_limb(a, b, ra, rb, light, shadow):
-        capsule(d, a, b, ra + R(3), rb + R(2), outline)
-        capsule(d, a, b, ra, rb, light)
-        mask = Image.new("L", (W, H), 0)
-        capsule(ImageDraw.Draw(mask), a, b, ra, rb, 255)
-        shade_into(im, mask, light, shadow, "sphere")
-
-    shoulder, elbow, wrist = (X(470), Y(360)), (X(300), Y(250)), (X(175), Y(285))
-    shaded_limb(shoulder, elbow, R(40), R(26), (70, 180, 184), (8, 60, 70))
-    shaded_limb(elbow, wrist, R(26), R(16), (96, 200, 196), (12, 72, 80))
-    d.ellipse([wrist[0] - R(18), wrist[1] - R(16), wrist[0] + R(20), wrist[1] + R(18)], fill=(20, 90, 100))
-
-    def claws(origin, angs, length):
-        for i, ang in enumerate(angs):
-            ln = R(length + (i % 2) * 10)
-            x0, y0 = origin
-            x1 = x0 + math.cos(ang) * ln
-            y1 = y0 + math.sin(ang) * ln
-            ox, oy = math.cos(ang + math.pi / 2) * R(3.2), math.sin(ang + math.pi / 2) * R(3.2)
-            d.polygon([(x0 + ox, y0 + oy), (x1, y1), (x0 - ox * 0.6, y0 - oy * 0.6)], fill=(16, 14, 14))
-            d.line([(x0, y0), (x1, y1)], fill=(240, 226, 190), width=max(1, int(R(1.4))))
-
-    claws((X(155), Y(270)), (-2.7, -2.25, -1.8, -1.35), 36)
-
-    # Planted foreleg and a heavy hind leg.
-    shaded_limb((X(430), Y(470)), (X(300), Y(575)), R(34), R(20), (48, 150, 156), (6, 52, 60))
-    shaded_limb((X(1040), Y(380)), (X(990), Y(575)), R(58), R(32), (40, 140, 150), (4, 48, 58))
-    claws((X(250), Y(590)), (1.05, 1.4, 1.75, 2.1), 30)
-    claws((X(960), Y(590)), (1.2, 1.55, 1.95, 2.3), 34)
-
-    # Mouth, nostril, tympanum.
-    d.line([(X(46), Y(312)), (X(90), Y(292)), (X(170), Y(278))], fill=(6, 22, 28), width=max(2, int(R(3))))
-    d.line([(X(52), Y(304)), (X(150), Y(270))], fill=(190, 224, 210), width=max(2, int(R(1.6))))
-    d.ellipse([X(92), Y(248), X(118), Y(272)], fill=(6, 30, 36))
-    d.ellipse([X(96), Y(252), X(108), Y(264)], fill=(180, 210, 200))
-    d.ellipse([X(390), Y(230), X(455), Y(300)], fill=(18, 86, 96))
-    d.ellipse([X(400), Y(242), X(444), Y(288)], outline=(4, 32, 40), width=max(2, int(R(2))))
-    d.ellipse([X(412), Y(255), X(432), Y(276)], fill=(8, 40, 48))
-
-    # Eye.
-    ex, ey, er = X(236), Y(196), R(52)
-    d.ellipse([ex - er * 1.35, ey - er * 1.15, ex + er * 1.2, ey + er * 1.3], fill=(4, 32, 40))
-    d.ellipse([ex - er, ey - er, ex + er, ey + er], fill=(242, 204, 74))
-    d.ellipse([ex - er * 0.72, ey - er * 0.72, ex + er * 0.72, ey + er * 0.72], fill=(168, 112, 28))
-    for k in range(10):
-        a0 = k * 18
-        d.arc([ex - er * 0.62, ey - er * 0.62, ex + er * 0.62, ey + er * 0.62], a0, a0 + 8, fill=(110, 64, 12), width=max(1, int(er * 0.07)))
-    d.ellipse([ex - er * 0.34, ey - er * 0.34, ex + er * 0.34, ey + er * 0.34], fill=(250, 226, 120))
-    d.polygon([
-        (ex, ey - er * 0.82), (ex + er * 0.13, ey),
-        (ex, ey + er * 0.82), (ex - er * 0.13, ey),
-    ], fill=(8, 6, 6))
-    d.ellipse([ex - er * 0.42, ey - er * 0.55, ex - er * 0.12, ey - er * 0.22], fill=(255, 252, 236))
-    d.arc([ex - er, ey - er * 0.9, ex + er * 0.9, ey + er * 0.2], 210, 340, fill=(6, 24, 30), width=max(2, int(er * 0.12)))
-
-    # Red plinth, water, fleshy tentacles.
-    d.rectangle([0, Y(575), W, Y(655)], fill=(164, 32, 38))
-    d.rectangle([0, Y(575), W, Y(586)], fill=(214, 92, 82))
-    d.rectangle([0, Y(646), W, Y(655)], fill=(90, 14, 20))
-    for vx in (120, 520, 980, 1380):
-        d.rectangle([X(vx), Y(582), X(vx + 22), Y(650)], fill=(112, 18, 24))
-    # toes sit on the plinth; keep the legs heavy so they are not sticks
-    shaded_limb((X(430), Y(490)), (X(290), Y(590)), R(36), R(24), (36, 130, 140), (4, 44, 52))
-    shaded_limb((X(1040), Y(460)), (X(980), Y(598)), R(62), R(36), (28, 120, 132), (4, 40, 50))
-    d.ellipse([X(250), Y(575), X(330), Y(625)], fill=(20, 100, 110))
-    d.ellipse([X(900), Y(575), X(1020), Y(635)], fill=(16, 84, 96))
-    claws((X(245), Y(600)), (1.05, 1.4, 1.75, 2.1), 34)
-    claws((X(940), Y(608)), (1.15, 1.5, 1.9, 2.25), 38)
-
-    def wave(y0, amp, phase, col):
-        pts = []
-        steps = 56
-        for i in range(steps + 1):
-            pts.append((W * i / steps, Y(y0) + math.sin(i * 0.5 + phase) * R(amp)))
-        pts += [(W, H), (0, H)]
-        d.polygon(pts, fill=col)
-
-    wave(640, 10, 0.3, (14, 86, 124))
-    wave(662, 8, 1.5, (28, 140, 168))
-    wave(688, 6, 2.8, (150, 214, 216))
-
-    def tentacle(ctrl, w0, w1):
-        p0, p1, p2 = ctrl
-        left, right, mid = [], [], []
-        prev = None
-        for i in range(20):
-            t = i / 19
-            u = 1 - t
-            x = u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0]
-            y = u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]
-            dx = 2 * u * (p1[0] - p0[0]) + 2 * t * (p2[0] - p1[0])
-            dy = 2 * u * (p1[1] - p0[1]) + 2 * t * (p2[1] - p1[1])
-            ln = math.hypot(dx, dy) or 1
-            ox, oy = -dy / ln, dx / ln
-            width = w0 + (w1 - w0) * t
-            left.append((X(x + ox * width), Y(y + oy * width)))
-            right.append((X(x - ox * width), Y(y - oy * width)))
-            mid.append((X(x), Y(y), width))
-            prev = (x, y)
-        d.polygon(left + right[::-1], fill=(10, 36, 72))
-        core = [(x, y) for x, y, _width in mid]
-        d.line(core, fill=(70, 140, 168), width=max(3, int(R(w1 * 0.45))))
-        for i, (x, y, width) in enumerate(mid):
-            if i % 3 != 1:
-                continue
-            rr = R(max(4, width * 0.28))
-            d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=(232, 204, 164))
-            d.ellipse([x - rr * 0.45, y - rr * 0.45, x + rr * 0.45, y + rr * 0.45], fill=(150, 64, 68))
-
-    tentacle([(70, 700), (200, 655), (360, 615)], 26, 12)
-    tentacle([(600, 710), (760, 660), (940, 625)], 24, 11)
-    tentacle([(1180, 708), (1340, 655), (1500, 630)], 22, 10)
-
-    grain(im, 6, 2)
-    return im.resize((w, h), Image.Resampling.LANCZOS)
+    """WD iguana, seated, from the original 16:9 painting. Aspect matches the tile."""
+    src = Image.open(PAINT_SRC / "boss.jpg").convert("RGB")
+    return src.resize((w, h), Image.Resampling.LANCZOS)
 
 
 def paint_alice(w, h):
@@ -1035,240 +692,46 @@ def paint_flowers(w, h):
     return im
 
 
+def _reflect_pad(fitted, w, band):
+    """Continue the painting past its edges by reflecting a narrow strip, so arms and plaster meet with no seam."""
+    import numpy as np
+    arr = np.asarray(fitted)
+    h, nw, _ = arr.shape
+    if nw >= w:
+        return fitted.resize((w, h), Image.Resampling.LANCZOS)
+    left = (w - nw) // 2
+    right = w - nw - left
+
+    def pad(edge, need, touch_on_right):
+        parts = []
+        flip = True
+        while need > 0:
+            piece = edge[:, ::-1] if flip else edge
+            if piece.shape[1] > need:
+                piece = piece[:, -need:] if touch_on_right else piece[:, :need]
+            parts.append(piece)
+            need -= piece.shape[1]
+            flip = not flip
+        if touch_on_right:
+            parts.reverse()
+        return np.concatenate(parts, axis=1)
+
+    band = max(8, min(band, nw // 3))
+    left_pad = pad(arr[:, :band], left, True)
+    right_pad = pad(arr[:, nw - band:], right, False)
+    out = np.concatenate([left_pad, arr, right_pad], axis=1)
+    return Image.fromarray(out, "RGB")
+
+
 def paint_mujer(w, h):
-    """Lina Arias portrait: shaded face, beaded mask, feather headdress.
-
-    Turquoise runs to both ends of the street wall. Drawn at 2× in an
-    1800×600 design so the face is round, then scaled into the atlas tile.
-    """
-    W, H = w * 2, h * 2
-    sx, sy = W / 1800.0, H / 600.0
-
-    def X(px):
-        return px * sx
-
-    def Y(py):
-        return py * sy
-
-    def R(px):
-        return px * sx
-
-    im = Image.new("RGB", (W, H), (8, 148, 160))
-    d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, W, H), (32, 184, 190), (4, 112, 132))
-    r = rng(33)
-    for i in range(48):
-        x = int(W * i / 48 + r.randint(-8, 8))
-        d.line([(x, 0), (x + r.randint(-14, 14), H)], fill=(255, 255, 255, 22), width=max(2, int(R(2))))
-        if i % 3 == 0:
-            d.line([(x + 6, 0), (x - 4, H)], fill=(0, 60, 70, 28), width=max(2, int(R(3))))
-
-    cx, cy = X(900), Y(292)
-
-    # Soft shadow so the figure sits on the wall.
-    d.ellipse([cx - R(280), Y(360), cx + R(280), Y(620)], fill=(0, 50, 60, 70))
-
-    # Headdress. Broad black vanes behind, broad red vanes in front.
-    root_y = Y(268)
-    for i in range(13):
-        t = (i - 6) / 6
-        ang = -math.pi / 2 + t * 1.15
-        bend = 0.18 if i % 2 == 0 else -0.14
-        root = (cx + math.cos(ang) * R(70), root_y + math.sin(ang) * R(70))
-        feather(d, root, R(175 + (i % 3) * 16), ang, R(20), (22, 16, 18), (86, 74, 64), bend)
-    for i in range(11):
-        t = (i - 5) / 5
-        ang = -math.pi / 2 + t * 0.95
-        bend = -0.12 if i % 2 == 0 else 0.16
-        root = (cx + math.cos(ang) * R(58), root_y + math.sin(ang) * R(58))
-        col = (186, 32, 44) if i % 2 == 0 else (140, 18, 30)
-        feather(d, root, R(142 + (i % 2) * 14), ang, R(28), col, (96, 18, 26), bend)
-    for side in (-1, 1):
-        root = (cx + side * R(130), Y(310))
-        angs = (-2.55, -2.15, -1.75) if side < 0 else (-1.4, -1.0, -0.6)
-        for k, ang in enumerate(angs):
-            feather(d, root, R(110 - k * 10), ang, R(24), (176, 28, 40), (80, 14, 22), 0.2 * side)
-
-    def limb_mask(a, b, ra, rb):
-        mask = Image.new("L", (W, H), 0)
-        capsule(ImageDraw.Draw(mask), a, b, ra, rb, 255)
-        return mask
-
-    def shaded_arm(a, b, ra, rb):
-        capsule(d, a, b, ra + R(5), rb + R(4), (62, 36, 28))
-        capsule(d, a, b, ra, rb, (168, 114, 82))
-        shade_into(im, limb_mask(a, b, ra, rb), (228, 176, 136), (96, 54, 38), "sphere")
-
-    # Bent arms: upper arm, then a forearm that reaches out. Thick enough to read as limbs.
-    l_sh, l_el, l_hd = (cx - R(90), Y(455)), (X(520), Y(530)), (X(130), Y(470))
-    r_sh, r_el, r_hd = (cx + R(100), Y(460)), (X(1280), Y(545)), (X(1620), Y(490))
-    shaded_arm(l_sh, l_el, R(52), R(36))
-    shaded_arm(l_el, l_hd, R(36), R(22))
-    shaded_arm(r_sh, r_el, R(50), R(34))
-    shaded_arm(r_el, r_hd, R(34), R(22))
-    # hands
-    for hx, hy in (l_hd, r_hd):
-        d.ellipse([hx - R(26), hy - R(18), hx + R(28), hy + R(20)], fill=(196, 140, 104))
-        d.ellipse([hx - R(26), hy - R(18), hx + R(8), hy + R(4)], fill=(230, 186, 150, 140))
-    for ex, ey in (l_el, r_el):
-        d.ellipse([ex - R(18), ey - R(16), ex + R(18), ey + R(16)], fill=(186, 128, 92))
-
-    # Shoulders and torso. Round shoulder masses, not a trapezoid.
-    d.ellipse([cx - R(190), Y(400), cx - R(20), Y(530)], fill=(120, 74, 52))
-    d.ellipse([cx + R(10), Y(405), cx + R(185), Y(535)], fill=(120, 74, 52))
-    torso = [
-        (cx - R(160), Y(455)), (cx - R(30), Y(400)), (cx + R(40), Y(398)),
-        (cx + R(165), Y(460)), (cx + R(130), Y(590)), (cx - R(120), Y(592)),
-    ]
-    d.polygon(torso, fill=(150, 102, 74))
-    torso_mask = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(torso_mask).polygon(torso, fill=255)
-    ImageDraw.Draw(torso_mask).ellipse([cx - R(190), Y(400), cx - R(20), Y(530)], fill=255)
-    ImageDraw.Draw(torso_mask).ellipse([cx + R(10), Y(405), cx + R(185), Y(535)], fill=255)
-    shade_into(im, torso_mask, (214, 160, 120), (86, 48, 36), "sphere")
-    neck = [
-        (cx - R(28), Y(360)), (cx + R(28), Y(358)),
-        (cx + R(24), Y(430)), (cx - R(24), Y(432)),
-    ]
-    d.polygon(neck, fill=(176, 126, 96))
-    neck_mask = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(neck_mask).polygon(neck, fill=255)
-    shade_into(im, neck_mask, (220, 170, 136), (130, 84, 64), "sphere")
-
-    # Chest paint: a V of neckline and short diagonals, not a stack of bars.
-    d.line([(cx - R(70), Y(455)), (cx, Y(530)), (cx + R(74), Y(458))], fill=(36, 22, 18), width=max(2, int(R(3))))
-    d.line([(cx - R(48), Y(470)), (cx - R(8), Y(530))], fill=(36, 22, 18), width=max(2, int(R(2))))
-    d.line([(cx + R(52), Y(472)), (cx + R(12), Y(528))], fill=(36, 22, 18), width=max(2, int(R(2))))
-    for i, yy in enumerate((500, 530, 560)):
-        d.arc([cx - R(70 - i * 8), Y(yy), cx + R(70 - i * 8), Y(yy + 36)], 20, 160, fill=(48, 28, 22), width=max(2, int(R(2))))
-
-    # Geometric cuff on the left forearm.
-    ax, ay = l_el
-    bx, by = l_hd
-    ang = math.atan2(by - ay, bx - ax)
-    ox, oy = math.cos(ang + math.pi / 2), math.sin(ang + math.pi / 2)
-    for i in range(6):
-        t = 0.42 + i * 0.07
-        px = ax + (bx - ax) * t
-        py = ay + (by - ay) * t
-        d.polygon([
-            (px - math.cos(ang) * R(8), py - math.sin(ang) * R(8)),
-            (px + ox * R(16), py + oy * R(16)),
-            (px + math.cos(ang) * R(8), py + math.sin(ang) * R(8)),
-        ], fill=(22, 18, 16))
-        d.line([
-            (px - math.cos(ang) * R(8), py - math.sin(ang) * R(8)),
-            (px + ox * R(16), py + oy * R(16)),
-        ], fill=(214, 176, 64), width=max(1, int(R(1.4))))
-
-    # Face, shaded as a volume. Cheeks, nose and lips are modelled on top.
-    face_box = [cx - R(92), cy - R(108), cx + R(92), cy + R(118)]
-    d.ellipse([face_box[0] - R(6), face_box[1] - R(4), face_box[2] + R(6), face_box[3] + R(4)], fill=(90, 52, 40))
-    d.ellipse(face_box, fill=(186, 136, 104))
-    face_mask = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(face_mask).ellipse(face_box, fill=255)
-    shade_into(im, face_mask, (236, 196, 162), (122, 74, 56), "sphere")
-    # cheek and chin shadows
-    d.ellipse([cx - R(78), cy + R(10), cx - R(28), cy + R(70)], fill=(150, 86, 66, 90))
-    d.ellipse([cx + R(30), cy + R(12), cx + R(78), cy + R(72)], fill=(150, 86, 66, 90))
-    d.ellipse([cx - R(36), cy + R(78), cx + R(36), cy + R(118)], fill=(110, 64, 50, 80))
-    # brow highlight
-    d.ellipse([cx - R(40), cy - R(90), cx + R(36), cy - R(48)], fill=(236, 206, 176, 70))
-
-    # Nose.
-    d.polygon([
-        (cx, cy - R(8)), (cx + R(7), cy + R(36)), (cx - R(7), cy + R(36)),
-    ], fill=(168, 110, 86, 160))
-    d.ellipse([cx - R(16), cy + R(28), cx - R(2), cy + R(42)], fill=(96, 52, 44))
-    d.ellipse([cx + R(2), cy + R(28), cx + R(16), cy + R(42)], fill=(96, 52, 44))
-    d.ellipse([cx - R(4), cy + R(8), cx + R(5), cy + R(22)], fill=(236, 200, 170, 140))
-
-    # Lips.
-    d.polygon([
-        (cx - R(28), cy + R(52)), (cx, cy + R(44)), (cx + R(28), cy + R(52)),
-        (cx + R(8), cy + R(60)), (cx - R(8), cy + R(60)),
-    ], fill=(132, 62, 64))
-    d.ellipse([cx - R(24), cy + R(54), cx + R(24), cy + R(78)], fill=(186, 96, 96))
-    d.ellipse([cx - R(12), cy + R(58), cx + R(6), cy + R(70)], fill=(220, 150, 140, 160))
-    d.arc([cx - R(20), cy + R(48), cx + R(20), cy + R(66)], 10, 170, fill=(90, 36, 42), width=max(2, int(R(1.5))))
-
-    # Blue mask, then a border of separate yellow beads.
-    mask_pts = [
-        (cx - R(118), cy + R(6)),
-        (cx - R(86), cy - R(48)),
-        (cx - R(24), cy - R(62)),
-        (cx, cy - R(36)),
-        (cx + R(24), cy - R(62)),
-        (cx + R(86), cy - R(48)),
-        (cx + R(118), cy + R(6)),
-        (cx + R(90), cy + R(52)),
-        (cx, cy + R(66)),
-        (cx - R(90), cy + R(52)),
-    ]
-    d.polygon(mask_pts, fill=(10, 58, 102))
-    mask_m = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(mask_m).polygon(mask_pts, fill=255)
-    shade_into(im, mask_m, (48, 130, 176), (6, 32, 64), "sphere")
-    beads_along(d, mask_pts, 46, R(6.5), (232, 188, 42), (255, 236, 170))
-
-    # Diamond eyes with catchlights.
-    for sign in (-1, 1):
-        ex = cx + sign * R(42)
-        ey = cy + R(2)
-        s = R(20)
-        d.polygon([(ex, ey - s * 1.15), (ex + s, ey), (ex, ey + s * 1.15), (ex - s, ey)], fill=(248, 244, 236))
-        d.polygon([
-            (ex, ey - s * 1.15), (ex + s, ey), (ex, ey + s * 0.1), (ex - s * 0.15, ey - s * 0.2),
-        ], outline=(20, 28, 36))
-        inn = s * 0.48
-        d.polygon([(ex, ey - inn), (ex + inn * 0.7, ey), (ex, ey + inn), (ex - inn * 0.7, ey)], fill=(16, 14, 18))
-        d.ellipse([ex - s * 0.28, ey - s * 0.45, ex - s * 0.02, ey - s * 0.16], fill=(255, 255, 250))
-
-    # Yellow pom-poms in an arc, each with a shaded side and a highlight.
-    for i in range(9):
-        t = (i - 4) / 4
-        ang = -math.pi / 2 + t * 0.95
-        px = cx + math.cos(ang) * R(128)
-        py = Y(236) + math.sin(ang) * R(128)
-        rad = R(20 - abs(t) * 2)
-        d.ellipse([px - rad, py - rad * 0.2, px + rad * 0.3, py + rad], fill=(150, 110, 24))
-        d.ellipse([px - rad, py - rad, px + rad, py + rad], fill=(236, 198, 64))
-        d.ellipse([px - rad * 0.45, py - rad * 0.62, px + rad * 0.05, py - rad * 0.05], fill=(255, 236, 160))
-
-    # Brow jewel and the gold drop onto the mask.
-    jx, jy, jr = cx, Y(188), R(16)
-    d.ellipse([jx - jr * 1.35, jy - jr * 1.35, jx + jr * 1.35, jy + jr * 1.35], fill=(212, 170, 48))
-    d.ellipse([jx - jr, jy - jr, jx + jr, jy + jr], fill=(186, 24, 36))
-    d.ellipse([jx - jr * 0.45, jy - jr * 0.55, jx + jr * 0.05, jy - jr * 0.05], fill=(255, 180, 160))
-    d.polygon([
-        (jx, jy + jr), (jx + R(8), jy + jr + R(22)), (jx, jy + jr + R(36)), (jx - R(8), jy + jr + R(22)),
-    ], fill=(214, 170, 52))
-    d.polygon([
-        (jx, jy + jr + R(6)), (jx + R(3), jy + jr + R(18)), (jx, jy + jr + R(28)), (jx - R(3), jy + jr + R(18)),
-    ], fill=(255, 220, 120))
-
-    # Necklace: a curve of beads and hanging strands.
-    neck_pts = []
-    for i in range(16):
-        t = i / 15
-        neck_pts.append((cx + (t - 0.5) * R(150), Y(400) + math.sin(t * math.pi) * R(18)))
-    beads_along(d, neck_pts, 15, R(5.5), (12, 36, 52), (80, 140, 160))
-    for i in range(7):
-        t = (i + 0.5) / 7
-        x = cx + (t - 0.5) * R(120)
-        y0 = Y(412) + abs(t - 0.5) * R(10)
-        y1 = Y(500) + abs(t - 0.5) * R(30)
-        d.line([(x, y0), (x, y1)], fill=(16, 40, 56), width=max(1, int(R(1.5))))
-        for k in range(4):
-            by = y0 + (y1 - y0) * (k + 1) / 4
-            rr = R(3.2)
-            d.ellipse([x - rr, by - rr, x + rr, by + rr], fill=(20, 48, 64))
-    d.polygon([
-        (cx, Y(498)), (cx + R(10), Y(528)), (cx, Y(548)), (cx - R(10), Y(528)),
-    ], fill=(214, 170, 52))
-
-    grain(im, 5, 14)
-    return im.resize((w, h), Image.Resampling.LANCZOS)
+    """Lina Arias portrait at its painted aspect, with the wall and arms continued to the edges."""
+    src = Image.open(PAINT_SRC / "mujer_azul.jpg").convert("RGB")
+    sw, sh = src.size
+    scale = h / sh
+    nw = max(1, int(round(sw * scale)))
+    fitted = src.resize((nw, h), Image.Resampling.LANCZOS)
+    # Reflect only the outer plaster and forearm, not the face.
+    return _reflect_pad(fitted, w, band=max(24, nw // 8))
 
 
 def paint_declare(w, h):
