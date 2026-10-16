@@ -12,6 +12,7 @@ import { MR_DOOR_HALF, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "../addons/sr
 import { SF_DOOR_HALF, SF_OBS, SF_POLY, SF_X, SF_Z, sfLocal } from "../addons/src/interiors/senorfrogs";
 import { MB_DOOR_HALF, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "../addons/src/interiors/moomba";
 import { GN_DOOR_HALF, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "../addons/src/interiors/giannis";
+import { RN_DOOR_HALF, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "../addons/src/interiors/renmall";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -465,4 +466,46 @@ if (!isOpen(gn, GN_OBS, -8172.8, -5383.5, GN_DOOR_HALF, mWall)) console.log("ok 
 else { console.log("FAIL gn road opened"); bad++; }
 if (!bad) console.log("gn aisle clear");
 console.log("gn door", gn.mx.toFixed(2), gn.mz.toFixed(2), "n", gn.nx.toFixed(3), gn.nz.toFixed(3));
+
+const rn = worldFrame(rnLocal, RN_X, RN_Z, 0);
+rn.poly = RN_POLY;
+function rnAt(a: number, d: number) {
+  const x = rn.mx + rn.ux * a + rn.nx * d;
+  const z = rn.mz + rn.uz * a + rn.nz * d;
+  return isOpen(rn, RN_OBS, x, z, RN_DOOR_HALF, mWall);
+}
+const rnCases: [string, number, number, boolean][] = [
+  ["rn door", 0, 0.3, true],
+  ["rn sidewalk", 0, -0.9, true],
+  ["rn aisle", 0, 4, true],
+  ["rn hall", 0, 8, true],
+  ["rn pier", -3.8, 10.6, false],
+  ["rn hot", 3.8, 10.6, false],
+  ["rn aloe", 0, 12.2, false],
+  ["rn bench", -2.3, 4.9, false],
+  ["rn outside", 0, -4, false],
+  ["rn jamb", 2.9, 0.15, false],
+  ["rn past", 0, 16, false],
+  ["rn side", 6.6, 4, false],
+];
+for (const [name, a, d, want] of rnCases) {
+  const got = rnAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 9.2; d += 0.25) {
+  if (!rnAt(0, d)) {
+    console.log("FAIL rn aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+const roadX = rn.mx + rn.nx * -12;
+const roadZ = rn.mz + rn.nz * -12;
+if (!isOpen(rn, RN_OBS, roadX, roadZ, RN_DOOR_HALF, mWall)) console.log("ok rn road stays shut");
+else { console.log("FAIL rn road opened"); bad++; }
+if (!bad) console.log("rn aisle clear");
+console.log("rn door", rn.mx.toFixed(2), rn.mz.toFixed(2), "n", rn.nx.toFixed(3), rn.nz.toFixed(3));
 process.exit(bad ? 1 : 0);
