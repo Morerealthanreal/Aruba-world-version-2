@@ -796,9 +796,9 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
         yb = y_eave
         top0, top1 = y_eave + h0p, y_eave + h1p
         ribbon(world(t0, yb), world(t1, yb), world(t1, top1), world(t0, top0), color)
-        # white cap, plus a deep back ribbon so the gable reads down the street
-        lift = 0.32
-        out = 0.28
+        # Coloured cap. A white top reads as a pale slab when you look along the street.
+        lift = 0.05
+        out = 0.22
 
         def cap(t, h, push):
             return (
@@ -807,8 +807,9 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
                 a[1] + tz * L * t + nz * (inset + push) - oz,
             )
 
-        ribbon(world(t0, top0), world(t1, top1), cap(t1, h1p, out), cap(t0, h0p, out), trim)
-        back = -1.05
+        # Cap is the wall colour. A white top reads as a pale slab down the street.
+        ribbon(world(t0, top0), world(t1, top1), cap(t1, h1p, out), cap(t0, h0p, out), color)
+        back = -0.55
 
         def backp(t, y):
             return (
@@ -822,12 +823,12 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
             prim.quad(backp(t1, yb), backp(t0, yb), backp(t0, top0), backp(t1, top1), color)
         else:
             prim.quad(backp(t0, yb), backp(t1, yb), backp(t1, top1), backp(t0, top0), color)
-        ribbon(cap(t0, h0p, out), cap(t1, h1p, out), backp(t1, top1), backp(t0, top0), trim)
+        ribbon(cap(t0, h0p, out), cap(t1, h1p, out), backp(t1, top1), backp(t0, top0), color)
     # white finial on the peak, so each gable has a bright marker from the sidewalk
     ti, hi = max(pts, key=lambda p: p[1])
     tip = world(ti, y_eave + hi)
-    box(prim, tip[0], tip[1] + 0.55, tip[2], 0.36, 1.05, 0.36, trim)
-    box(prim, tip[0], tip[1] + 1.15, tip[2], 0.62, 0.18, 0.62, trim)
+    box(prim, tip[0], tip[1] + 0.28, tip[2], 0.18, 0.42, 0.18, color)
+    box(prim, tip[0], tip[1] + 0.52, tip[2], 0.28, 0.08, 0.28, trim)
 
 
 def load_roads():
@@ -945,7 +946,7 @@ def build_facade(prim, glass, b, edge, origin, h0, uv, kind):
     # fan from centroid
     for i2 in range(len(poly)):
         p, q = poly[i2], poly[(i2 + 1) % len(poly)]
-        peak = (c[0] - ox, roof_y - h0 + 0.55, c[1] - oz)
+        peak = (c[0] - ox, roof_y - h0 + 2.85, c[1] - oz)
         e0 = (p[0] - ox, roof_y - h0, p[1] - oz)
         e1 = (q[0] - ox, roof_y - h0, q[1] - oz)
         ux, uy, uz = e1[0] - peak[0], e1[1] - peak[1], e1[2] - peak[2]
@@ -963,14 +964,27 @@ def build_facade(prim, glass, b, edge, origin, h0, uv, kind):
     cornice_y = eave - h0
     p0 = (a[0] + nx * 0.16 - ox, cornice_y, a[1] + nz * 0.16 - oz)
     p1 = (bb[0] + nx * 0.16 - ox, cornice_y, bb[1] + nz * 0.16 - oz)
-    p2 = (bb[0] + nx * 0.16 - ox, cornice_y + 0.22, bb[1] + nz * 0.16 - oz)
-    p3 = (a[0] + nx * 0.16 - ox, cornice_y + 0.22, a[1] + nz * 0.16 - oz)
+    p2 = (bb[0] + nx * 0.16 - ox, cornice_y + 0.10, bb[1] + nz * 0.16 - oz)
+    p3 = (a[0] + nx * 0.16 - ox, cornice_y + 0.10, a[1] + nz * 0.16 - oz)
     # p0->p1->p2 normal is (-tz, tx), the street side of a clockwise footprint.
     face_out = (-tz) * nx + tx * nz >= 0
     if face_out:
         prim.quad(p0, p1, p2, p3, WHITE)
     else:
         prim.quad(p1, p0, p3, p2, WHITE)
+    # Terracotta eave the sidewalk sees under the gable. Ground photos of
+    # Caya G.F. Betico Croes show tile roofs, not a white slab on the skyline.
+    lip, drop = 2.4, 1.05
+    t0 = (a[0] + nx * 0.12 - ox, cornice_y - 0.04, a[1] + nz * 0.12 - oz)
+    t1 = (bb[0] + nx * 0.12 - ox, cornice_y - 0.04, bb[1] + nz * 0.12 - oz)
+    t2 = (bb[0] + nx * lip - ox, cornice_y - drop, bb[1] + nz * lip - oz)
+    t3 = (a[0] + nx * lip - ox, cornice_y - drop, a[1] + nz * lip - oz)
+    ax, az = t1[0] - t0[0], t1[2] - t0[2]
+    bx, bz = t3[0] - t0[0], t3[2] - t0[2]
+    if az * bx - ax * bz < 0:
+        prim.quad(t0, t3, t2, t1, TERRACOTTA)
+    else:
+        prim.quad(t0, t1, t2, t3, TERRACOTTA)
     # shopfront glass, facing the street
     gy0 = ground + 0.35 - h0
     gy1 = ground + 2.75 - h0
@@ -1217,120 +1231,134 @@ def build_fort(atlas):
     extrude_walls(paint, poly, ground, wall_top, OCHRE, (ox, oz), h0)
     # white coping: a thin second extrusion
     extrude_walls(paint, poly, wall_top, wall_top + 0.28, WHITE, (ox, oz), h0)
-    # tower at the grounds centroid
-    c = centroid(poly)
-    tx, tz = c[0] - ox, c[1] - oz
-    base = ground - h0
-    # blue base, maroon middle, white clock stage — the street-facing tower
-    box(paint, tx, base + 2.6, tz, 5.5, 5.2, 5.5, BLUE_BASE)
-    box(paint, tx, base + 5.2 + 3.05, tz, 5.35, 6.1, 5.35, MAROON)
-    box(paint, tx, base + 11.3 + 3.5, tz, 5.7, 7.0, 5.7, WHITE)
-    box(paint, tx, base + 18.45, tz, 6.05, 0.35, 6.05, WHITE)
-    # arched openings on the maroon band, four faces
-    clock_uv = atlas.clock()
-    for face, (nx, nz) in enumerate(((1, 0), (-1, 0), (0, 1), (0, -1))):
-        # two white-trimmed openings
-        for side in (-1.15, 1.15):
-            oxf = tx + nx * 2.72 + nz * side
-            ozf = tz + nz * 2.72 + nx * side
-            # white frame
-            box(paint, oxf, base + 8.15, ozf, 0.18 if nx else 1.15, 2.15, 1.15 if nx else 0.18, WHITE)
-            # dark recess
-            box(paint, oxf + nx * 0.08, base + 8.05, ozf + nz * 0.08, 0.12 if nx else 0.78, 1.55, 0.78 if nx else 0.12, GLASS)
-        # clock on the white stage
-        cu = clock_uv
-        cy = base + 15.15
-        s = 1.35
-        cxp, czp = tx + nx * 2.92, tz + nz * 2.92
-        if abs(nx) > 0.5:
-            a = (cxp, cy - s / 2, czp - s / 2)
-            b = (cxp, cy - s / 2, czp + s / 2 * nx)
-            # orient consistently
-            if nx > 0:
-                corners = [
-                    (cxp, cy - s / 2, czp - s / 2),
-                    (cxp, cy - s / 2, czp + s / 2),
-                    (cxp, cy + s / 2, czp + s / 2),
-                    (cxp, cy + s / 2, czp - s / 2),
-                ]
-            else:
-                corners = [
-                    (cxp, cy - s / 2, czp + s / 2),
-                    (cxp, cy - s / 2, czp - s / 2),
-                    (cxp, cy + s / 2, czp - s / 2),
-                    (cxp, cy + s / 2, czp + s / 2),
-                ]
-        else:
-            if nz > 0:
-                corners = [
-                    (tx - s / 2, cy - s / 2, czp),
-                    (tx + s / 2, cy - s / 2, czp),
-                    (tx + s / 2, cy + s / 2, czp),
-                    (tx - s / 2, cy + s / 2, czp),
-                ]
-            else:
-                corners = [
-                    (tx + s / 2, cy - s / 2, czp),
-                    (tx - s / 2, cy - s / 2, czp),
-                    (tx - s / 2, cy + s / 2, czp),
-                    (tx + s / 2, cy + s / 2, czp),
-                ]
-        u0, v0, u1, v1 = cu
-        signs.quad(*corners, WHITE, ((u0, v0), (u1, v0), (u1, v1), (u0, v1)))
-    # W / III band above the blue base, south face (positive z is south)
-    words = atlas.words("W    III", (250, 250, 248), (90, 150, 185), w=300, h=90, font=ImageFont.truetype(FONT, 54))
-    wy = base + 4.55
-    signs.quad(
-        (tx - 1.3, wy, tz + 2.82),
-        (tx + 1.3, wy, tz + 2.82),
-        (tx + 1.3, wy + 0.7, tz + 2.82),
-        (tx - 1.3, wy + 0.7, tz + 2.82),
-        WHITE,
-        ((words[0], words[1]), (words[2], words[1]), (words[2], words[3]), (words[0], words[3])),
-    )
-    # gate on the southern edge (largest z midpoint of the boundary closest to +z / street)
-    # pick the boundary edge nearest the centroid shifted south
-    target = (c[0], c[1] + 30)
-    edge = street_edge(poly, [target, (c[0], c[1] + 80)])
-    if edge:
-        _, _, a, b, L, outward, _ = edge
+    # Willem III tower on the north wall, facing the sidewalk camera.
+    # The nearest mapped road is a side street behind a house; the open view
+    # of the fort is from the north.
+    cam = (-7136.0, 222.0)
+    best_edge = None
+    area = poly_area(poly)
+    ccw = area > 0
+    for i in range(len(poly)):
+        a, b = poly[i], poly[(i + 1) % len(poly)]
+        dx, dz = b[0] - a[0], b[1] - a[1]
+        el = hypot(dx, dz) or 1
+        left = (-dz / el, dx / el)
+        outward = left if not ccw else (dz / el, -dx / el)
         mx, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-        nx, nz = outward
-        for s in (-2.1, 2.1):
-            # along-edge offset
-            dx, dz = b[0] - a[0], b[1] - a[1]
-            el = hypot(dx, dz) or 1
-            px = mx + dx / el * s + nx * 1.1
-            pz = mz + dz / el * s + nz * 1.1
-            box(paint, px - ox, ground + 1.35 - h0, pz - oz, 0.72, 2.7, 0.72, MAROON)
-            box(paint, px - ox, ground + 2.85 - h0, pz - oz, 0.9, 0.28, 0.9, WHITE)
-        # white gate rails
-        box(paint, mx + nx * 1.1 - ox, ground + 1.15 - h0, mz + nz * 1.1 - oz, 3.4 if abs(nx) < 0.6 else 0.08, 1.5, 0.08 if abs(nx) < 0.6 else 3.4, WHITE)
-    # flag pole west of the tower
-    pole = (tx - 7.5, base, tz + 2)
+        toward = norm((cam[0] - mx, cam[1] - mz))
+        facing = dot(outward, toward)
+        dist = hypot(cam[0] - mx, cam[1] - mz)
+        score = facing * 4 - dist * 0.02
+        if best_edge is None or score > best_edge[0]:
+            best_edge = (score, outward, (mx, mz))
+    fx, fz = best_edge[1]
+    mx, mz = best_edge[2]
+    wx, wz = mx - fx * 1.4, mz - fz * 1.4
+    tx, tz = wx - ox, wz - oz
+    rx, rz = -fz, fx
+    base = height_at(wx, wz) - h0
+
+    def tp(x, y, z):
+        return (tx + rx * x + fx * z, base + y, tz + rz * x + fz * z)
+
+    def obox(x, y, z, sx, sy, sz, color):
+        hx, hy, hz = sx / 2, sy / 2, sz / 2
+
+        def p(ix, iy, iz):
+            return tp(x + ix * hx, y + iy * hy, z + iz * hz)
+
+        for face in (
+            (p(-1, -1, 1), p(1, -1, 1), p(1, 1, 1), p(-1, 1, 1)),
+            (p(1, -1, -1), p(-1, -1, -1), p(-1, 1, -1), p(1, 1, -1)),
+            (p(-1, 1, 1), p(1, 1, 1), p(1, 1, -1), p(-1, 1, -1)),
+            (p(-1, -1, -1), p(1, -1, -1), p(1, -1, 1), p(-1, -1, 1)),
+            (p(1, -1, 1), p(1, -1, -1), p(1, 1, -1), p(1, 1, 1)),
+            (p(-1, -1, -1), p(-1, -1, 1), p(-1, 1, 1), p(-1, 1, -1)),
+        ):
+            paint.quad(*face, color)
+
+    # light-blue base, maroon middle, white clock stage
+    obox(0, 2.7, 0, 6.4, 5.4, 6.4, BLUE_BASE)
+    obox(0, 7.55, 0, 6.15, 4.9, 6.15, MAROON)
+    obox(0, 12.7, 0, 6.55, 5.6, 6.55, WHITE)
+    obox(0, 15.65, 0, 7.0, 0.4, 7.0, WHITE)
+    clock_uv = atlas.clock()
+    # street face is local +z. Two arched openings and a clock.
+    for side in (-1.35, 1.35):
+        obox(side, 8.15, 3.15, 1.35, 2.35, 0.28, WHITE)
+        obox(side, 8.0, 3.28, 0.78, 1.55, 0.18, GLASS)
+        crown_y = 9.15
+        steps = 6
+        center = tp(side, crown_y, 3.36)
+        prev = None
+        for step in range(steps + 1):
+            ang = math.pi * step / steps
+            pt = tp(side + math.cos(ang) * 0.62, crown_y + math.sin(ang) * 0.62, 3.36)
+            if prev is not None:
+                paint.tri(center, prev, pt, WHITE)
+            prev = pt
+    # door arch in the blue base
+    obox(0, 2.15, 3.22, 1.7, 2.5, 0.22, WHITE)
+    obox(0, 2.0, 3.34, 1.05, 1.85, 0.16, GLASS)
+    s = 1.7
+    cy = 12.85
+    u0, v0, u1, v1 = clock_uv
+    signs.quad(
+        tp(-s / 2, cy - s / 2, 3.4),
+        tp(s / 2, cy - s / 2, 3.4),
+        tp(s / 2, cy + s / 2, 3.4),
+        tp(-s / 2, cy + s / 2, 3.4),
+        WHITE,
+        ((u1, v0), (u0, v0), (u0, v1), (u1, v1)),
+    )
+    words = atlas.words("W    III", (250, 250, 248), (90, 150, 185), w=300, h=90, font=ImageFont.truetype(FONT, 54))
+    # The sidewalk sees the back of this quad, which mirrors U. Swap U so
+    # W sits on the viewer's left and III on the right, unmirrored.
+    signs.quad(
+        tp(-2.35, 4.15, 3.32),
+        tp(2.35, 4.15, 3.32),
+        tp(2.35, 4.95, 3.32),
+        tp(-2.35, 4.95, 3.32),
+        WHITE,
+        ((words[2], words[1]), (words[0], words[1]), (words[0], words[3]), (words[2], words[3])),
+    )
+    # balcony under the arches, projecting toward the street
+    obox(0, 6.35, 3.55, 3.3, 0.16, 1.15, WHITE)
+    obox(0, 6.85, 4.05, 3.3, 0.1, 0.1, WHITE)
+    for s in (-1.35, -0.45, 0.45, 1.35):
+        obox(s, 6.6, 4.05, 0.08, 0.48, 0.08, WHITE)
+    # red gate piers and a white gate in front of the tower
+    for s in (-2.5, 2.5):
+        obox(s, 1.5, 5.6, 0.9, 3.0, 0.9, MAROON)
+        obox(s, 3.15, 5.6, 1.1, 0.32, 1.1, WHITE)
+    obox(0, 1.15, 5.6, 4.0, 1.35, 0.1, WHITE)
+    # Aruba flag beside the tower
+    pole = tp(-8.1, 0, 2.6)
     cyl(paint, pole[0], pole[1], pole[2], 0.08, 14.5, WHITE, seg=6)
     flag = atlas.flag()
-    fy = base + 12.6
+    fy = 12.2
     u0, v0, u1, v1 = flag
+    # Hang across the sidewalk view. A flag running straight at the camera is a sliver.
     signs.quad(
-        (pole[0], fy, pole[2]),
-        (pole[0] - 3.2, fy, pole[2]),
-        (pole[0] - 3.2, fy + 2.0, pole[2]),
-        (pole[0], fy + 2.0, pole[2]),
+        tp(-8.1, fy, 2.6),
+        tp(-11.4, fy, 3.5),
+        tp(-11.4, fy + 2.15, 3.5),
+        tp(-8.1, fy + 2.15, 2.6),
         WHITE,
         ((u0, v0), (u1, v0), (u1, v1), (u0, v1)),
     )
-    # white bollards along the south side
+    # white bollards along the street side of the tower
     bollard = Prim()
     cyl(bollard, 0, 0, 0, 0.14, 0.9, WHITE, seg=6)
     xforms = []
     for i in range(-6, 7):
-        xforms.append(((tx + i * 1.7, base, tz + 8.5), (0, 0, 0, 1), (1, 1, 1)))
+        bx, by, bz = tp(i * 1.5, 0, 7.2)
+        xforms.append(((bx, by, bz), (0, 0, 0, 1), (1, 1, 1)))
     lod = Prim()
     box(lod, tx, base + 9, tz, 6, 18, 6, WHITE)
     extrude_walls(lod, poly, ground, ground + 4, OCHRE, (ox, oz), h0)
     glb = Glb("fortzoutman")
-    glb.mat("paint", rough=0.82)
+    glb.mat("paint", rough=0.82, double=True)
     glb.mat("sign", rough=0.6, tex=0, double=True)
     glb.images.append((atlas.png(), "image/png"))
     glb.add(paint, "paint")
@@ -1505,6 +1533,25 @@ def disc(prim, cx, cy, cz, r, color, seg=18):
         )
 
 
+def monument_layout():
+    """Shared terrace numbers so the queen stands on the slab, not in it."""
+    park = (-7118.0, 430.0)
+    center = (-7110.0, 453.0)
+    ground = height_at(*center)
+    terrace = ground + 0.18
+    wall_x = center[0] + 3.4
+    slab_top = terrace + 1.69
+    return {
+        "park": park,
+        "center": center,
+        "ground": ground,
+        "terrace": terrace,
+        "wall_x": wall_x,
+        "slab_top": slab_top,
+        "figure": (wall_x + 0.9, center[1]),
+    }
+
+
 def build_park():
     """Wilhelmina Park: a raised brick terrace around the existing statue.
 
@@ -1513,10 +1560,11 @@ def build_park():
     statue's feet and the east face is a retaining wall. Gardens, hedges,
     benches and the fountain/plinth sit on that terrace.
     """
-    ox, oz = -7118.0, 430.0
+    layout = monument_layout()
+    ox, oz = layout["park"]
     h0 = height_at(ox, oz)
-    statue = (-7110.0, 453.0)
-    ground = height_at(*statue)
+    statue = layout["center"]
+    ground = layout["ground"]
     paint = Prim()
     cy = ground - h0
     cx, cz = statue[0] - ox, statue[1] - oz
@@ -1527,18 +1575,21 @@ def build_park():
     # pale inner circle under the monument
     disc(paint, cx, top + 0.05, cz, 7.2, (0.86, 0.82, 0.74), seg=16)
 
-    # Inscription wall just east of the statue, facing inland (+x).
-    wall_x = cx + 3.4
-    box(paint, wall_x, top + 0.85, cz, 0.72, 1.7, 8.6, STONE)
-    box(paint, wall_x, top + 1.78, cz, 0.92, 0.22, 9.1, (0.78, 0.74, 0.68))
-    for s in (-3.55, 3.55):
-        sphere(paint, wall_x, top + 2.35, cz + s, 0.62, (0.22, 0.24, 0.27), seg=7)
-    # fountain basin on the inland side of the plinth, with three stone treads
-    basin_x = cx + 11.2
+    # Inscription wall facing east. Slab on top, dark spheres under its ends.
+    wall_x = layout["wall_x"] - ox
+    box(paint, wall_x, top + 0.70, cz, 1.05, 1.40, 7.2, STONE)
+    slab_y = (layout["slab_top"] - h0) - 0.11
+    box(paint, wall_x + 0.55, slab_y, cz, 2.4, 0.22, 5.6, (0.62, 0.63, 0.66))
+    box(paint, wall_x, top + 1.12, cz, 0.26, 0.48, 0.30, (0.48, 0.49, 0.52))
+    for s in (-2.75, 2.75):
+        sphere(paint, wall_x + 0.62, top + 0.78, cz + s, 0.50, (0.08, 0.09, 0.10), seg=8)
+    # fountain sits south of the monument so the east approach sees the queen
+    basin_x = cx - 1.5
+    basin_z = cz + 10.5
     for k, w in enumerate((5.6, 7.2, 8.8)):
-        box(paint, wall_x + 1.15 + k * 0.7, top + 0.14 + k * 0.16, cz, 1.15, 0.28, w, (0.84, 0.80, 0.74))
-    cyl(paint, basin_x, top, cz, 3.7, 0.62, (0.78, 0.74, 0.68), seg=16)
-    disc(paint, basin_x, top + 0.48, cz, 2.7, (0.42, 0.70, 0.82), seg=16)
+        box(paint, basin_x, top + 0.14 + k * 0.16, basin_z - 2.2 + k * 0.55, w, 0.28, 1.15, (0.84, 0.80, 0.74))
+    cyl(paint, basin_x, top, basin_z, 3.7, 0.62, (0.78, 0.74, 0.68), seg=16)
+    disc(paint, basin_x, top + 0.48, basin_z, 2.7, (0.42, 0.70, 0.82), seg=16)
     # four garden beds on the terrace
     beds = [
         (cx - 6.2, cz - 7.4, 5.2, 2.6, (0.86, 0.28, 0.38)),
@@ -1555,7 +1606,16 @@ def build_park():
 
     atlas = Atlas()
     words = atlas.words("WILHELMINA", (245, 236, 220), (92, 58, 46), w=300, h=86, font=ImageFont.truetype(FONT, 46))
-    dates = atlas.add_shop("1898 - 1948")
+
+    def line(text, x, y, w, h, fill, bg, font):
+        atlas.draw.rectangle((x, y, x + w, y + h), fill=bg)
+        bbox = atlas.draw.textbbox((0, 0), text, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        atlas.draw.text((x + (w - tw) / 2, y + (h - th) / 2 - 2), text, fill=fill, font=font)
+        return atlas._uv(x, y, w, h)
+
+    motto = line("Nos Reina Stima", 1720, 110, 300, 64, (245, 236, 220), (92, 58, 46), ImageFont.truetype(FONT_REG, 32))
+    dates = line("1898 - 1948", 1720, 184, 300, 56, (245, 236, 220), (92, 58, 46), ImageFont.truetype(FONT, 28))
     # Dutch tricolor for the poles flanking the monument. Clock cell is free.
     dx0, dy0, dw, dh = 1040, 8, 280, 180
     stripe = dh // 3
@@ -1565,31 +1625,40 @@ def build_park():
     dutch = atlas._uv(dx0, dy0, dw, dh)
     aruba = atlas.flag()
     signs = Prim()
-    face = wall_x + 0.40
+    face = wall_x + 0.56
     u0, v0, u1, v1 = words
     signs.quad(
-        (face, top + 0.95, cz + 2.7),
-        (face, top + 0.95, cz - 2.7),
-        (face, top + 1.62, cz - 2.7),
-        (face, top + 1.62, cz + 2.7),
+        (face, top + 0.78, cz + 2.4),
+        (face, top + 0.78, cz - 2.4),
+        (face, top + 1.12, cz - 2.4),
+        (face, top + 1.12, cz + 2.4),
         WHITE,
         ((u0, v0), (u1, v0), (u1, v1), (u0, v1)),
     )
+    mu0, mv0, mu1, mv1 = motto
+    signs.quad(
+        (face, top + 0.42, cz + 2.0),
+        (face, top + 0.42, cz - 2.0),
+        (face, top + 0.72, cz - 2.0),
+        (face, top + 0.72, cz + 2.0),
+        WHITE,
+        ((mu0, mv0), (mu1, mv0), (mu1, mv1), (mu0, mv1)),
+    )
     du0, dv0, du1, dv1 = dates
     signs.quad(
-        (face, top + 0.42, cz + 1.6),
-        (face, top + 0.42, cz - 1.6),
-        (face, top + 0.88, cz - 1.6),
-        (face, top + 0.88, cz + 1.6),
+        (face, top + 0.08, cz + 1.4),
+        (face, top + 0.08, cz - 1.4),
+        (face, top + 0.36, cz - 1.4),
+        (face, top + 0.36, cz + 1.4),
         WHITE,
         ((du0, dv0), (du1, dv0), (du1, dv1), (du0, dv1)),
     )
-    # flag poles: two Dutch, two Aruba, around the terrace
+    # One Dutch and one Aruba flag flank the monument; two more hold the wider lawn.
     for (px, pz, uv) in (
-        (cx - 2.2, cz - 5.4, dutch),
-        (cx - 2.2, cz + 5.4, dutch),
-        (cx + 11.2, cz - 5.2, aruba),
-        (cx + 11.2, cz + 5.2, aruba),
+        (wall_x + 0.15, cz - 4.35, dutch),
+        (wall_x + 0.15, cz + 4.35, aruba),
+        (cx - 4.5, cz - 6.2, dutch),
+        (cx + 8.5, cz + 6.2, aruba),
     ):
         cyl(paint, px, top, pz, 0.06, 7.2, WHITE, seg=5)
         fu0, fv0, fu1, fv1 = uv
@@ -1617,6 +1686,9 @@ def build_park():
     palms = []
     for i in range(14):
         a = i / 14 * math.tau
+        # Leave the east approach open so the statue is not a palm trunk.
+        if a < 0.95 or a > math.tau - 0.95:
+            continue
         rad = 14.2
         px = statue[0] + math.cos(a) * rad
         pz = statue[1] + math.sin(a) * rad
@@ -1625,6 +1697,8 @@ def build_park():
     # a second, taller ring on the real lawn outside the terrace
     for i in range(10):
         a = (i + 0.5) / 10 * math.tau
+        if a < 0.85 or a > math.tau - 0.85:
+            continue
         rad = 22.0
         px = statue[0] + math.cos(a) * rad
         pz = statue[1] + math.sin(a) * rad
@@ -1668,6 +1742,8 @@ def build_park():
     benches = []
     for i in range(10):
         a = i / 10 * math.tau + 0.3
+        if min(a, math.tau - a) < 0.5:
+            continue
         rad = 10.2
         px = cx + math.cos(a) * rad
         pz = cz + math.sin(a) * rad
@@ -1682,6 +1758,9 @@ def build_park():
     lamps = []
     for i in range(6):
         a = i / 6 * math.tau
+        # Keep the east approach clear of a lamp post in front of the queen.
+        if a < 0.7 or a > math.tau - 0.7:
+            continue
         px = cx + math.cos(a) * 8.6
         pz = cz + math.sin(a) * 8.6
         lamps.append(((px, top, pz), yaw_quat(a), (1, 1, 1)))
@@ -1761,6 +1840,95 @@ def build_skyline(road_smith):
     glb.add(paint, "paint")
     glb.lod1_prim = lod
     return glb, (ox, oz)
+
+
+def build_statue():
+    """Robed figure standing on the monument slab, facing the east approach."""
+    layout = monument_layout()
+    ox, oz = layout["figure"]
+    h0 = height_at(ox, oz)
+    feet = layout["slab_top"] - h0
+    paint = Prim()
+    gown = (0.94, 0.93, 0.90)
+    sash = (0.78, 0.76, 0.72)
+    skin = (0.86, 0.76, 0.64)
+    # Flared skirt, bodice, sash and crown. Local +x faces the east sidewalk.
+    box(paint, 0, feet + 0.70, 0, 1.45, 1.40, 0.85, gown)
+    box(paint, 0, feet + 1.70, 0, 0.72, 0.72, 0.42, gown)
+    box(paint, 0.16, feet + 1.55, 0.04, 0.10, 1.25, 0.12, sash)
+    box(paint, -0.55, feet + 1.75, 0, 0.16, 0.70, 0.18, gown)
+    box(paint, 0.50, feet + 1.58, 0.08, 0.16, 0.58, 0.18, gown)
+    box(paint, 0, feet + 2.22, 0.06, 0.18, 0.16, 0.18, skin)
+    sphere(paint, 0, feet + 2.52, 0.08, 0.26, skin, seg=7)
+    box(paint, 0, feet + 2.78, 0.06, 0.30, 0.10, 0.26, GOLD)
+    box(paint, 0, feet + 2.90, 0.04, 0.12, 0.14, 0.12, GOLD)
+    lod = Prim()
+    box(lod, 0, feet + 1.35, 0, 0.7, 2.7, 0.42, gown)
+    glb = Glb("wilhelmina_statue")
+    glb.mat("paint", rough=0.72)
+    glb.add(paint, "paint")
+    glb.lod1_prim = lod
+    return glb, (ox, oz)
+
+
+def patch_church(path):
+    """Steepen the existing nave so the terracotta slopes clear the white gable.
+
+    The tile mesh is eight verts: eaves 0,3,4,7 and the ridge 1,2,5,6. Raising
+    the ridge above the pediment (wall peak at local y 2.65) puts an orange
+    border on both sloping edges from the street, and a real pitch on the
+    long sides from a three-quarter view. Positions are absolute, so a second
+    run does not keep climbing.
+    """
+    data = bytearray(Path(path).read_bytes())
+    jlen = struct.unpack_from("<I", data, 12)[0]
+    gltf = json.loads(data[20 : 20 + jlen])
+    bin_off = 20 + jlen + 8
+    tile = gltf["meshes"][0]["primitives"][1]
+    acc = gltf["accessors"][tile["attributes"]["POSITION"]]
+    view = gltf["bufferViews"][acc["bufferView"]]
+    stride = view.get("byteStride", 6)
+    base = bin_off + view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+    scale = 24.122535705566406
+    # mesh-local metres, inside the normalized range (±scale)
+    ridge_y, eave_y = 6.45, -0.15
+    targets = {
+        0: (24.12, eave_y, 1.38),
+        1: (17.83, ridge_y, -9.92),
+        2: (-17.83, ridge_y, 9.92),
+        3: (-11.53, eave_y, 21.23),
+        4: (-24.12, eave_y, -1.38),
+        5: (-17.83, ridge_y, 9.92),
+        6: (17.83, ridge_y, -9.92),
+        7: (11.53, eave_y, -21.23),
+    }
+
+    def q(metres):
+        return max(-32767, min(32767, int(round(metres / scale * 32767))))
+
+    for i, (x, y, z) in targets.items():
+        struct.pack_into("<hhh", data, base + i * stride, q(x), q(y), q(z))
+    for mat in gltf["materials"]:
+        pbr = mat.setdefault("pbrMetallicRoughness", {})
+        if mat.get("name") == "tile":
+            pbr["baseColorFactor"] = [0.76, 0.34, 0.18, 1]
+            mat["doubleSided"] = True
+        elif mat.get("name") == "spire":
+            pbr["baseColorFactor"] = [0.70, 0.18, 0.14, 1]
+    raw = json.dumps(gltf, separators=(",", ":")).encode()
+    while len(raw) % 4:
+        raw += b" "
+    blen = struct.unpack_from("<I", data, bin_off - 8)[0]
+    blob = bytes(data[bin_off : bin_off + blen])
+    out = bytearray()
+    total = 12 + 8 + len(raw) + 8 + len(blob)
+    out += struct.pack("<III", 0x46546C67, 2, total)
+    out += struct.pack("<II", len(raw), 0x4E4F534A)
+    out += raw
+    out += struct.pack("<II", len(blob), 0x004E4942)
+    out += blob
+    Path(path).write_bytes(out)
+    print("church roof steepened", path.name)
 
 
 def clear_shop_signs(buildings):
@@ -1921,9 +2089,26 @@ def main():
             )
         )
 
+    fort_atlas = Atlas()
+    fort = build_fort(fort_atlas)
+    fort.name = "fortzoutman"
+    fort_data, fort_tris = fort.pack()
+    (HERO / "ora_fort.glb").write_bytes(fort_data)
+    print("fort", fort_tris)
+
+    statue, statue_at = build_statue()
+    statue_data, statue_tris = statue.pack()
+    (HERO / "wilhelmina_statue.glb").write_bytes(statue_data)
+    print("statue", statue_tris, statue_at)
+
+    patch_church(HERO / "protestant_old.glb")
+    stale_roof = HERO / "ora_churchroof.glb"
+    if stale_roof.exists():
+        stale_roof.unlink()
+
     real_entries = [e for e in entries if "glb" in e]
     manifest = json.loads(MANIFEST.read_text())
-    retired = {"ora_ms_0", "ora_ms_1", "ora_ms_2", "wilhelmina_park", "ora_skyline"}
+    retired = {"ora_ms_0", "ora_ms_1", "ora_ms_2", "wilhelmina_park", "ora_skyline", "ora_churchroof"}
     manifest = [e for e in manifest if e.get("id") not in retired]
     for old in retired:
         stale = HERO / f"{old}.glb"
@@ -1937,6 +2122,28 @@ def main():
         else:
             manifest.append(ent)
             by_id[ent["id"]] = ent
+    if "fortzoutman" in by_id:
+        by_id["fortzoutman"].update(
+            {
+                "tris": {"fortzoutman_lod0": fort_tris[0], "fortzoutman_lod1": fort_tris[1]},
+                "textures": 1,
+                "status": "v5-oranjestad",
+                "ref_sources": REFS,
+            }
+        )
+    if "wilhelmina_statue" in by_id:
+        by_id["wilhelmina_statue"].update(
+            {
+                "tris": {"wilhelmina_statue_lod0": statue_tris[0], "wilhelmina_statue_lod1": statue_tris[1]},
+                "textures": 0,
+                "status": "v5-oranjestad",
+                "ref_sources": REFS,
+                "glb": "models/hero/wilhelmina_statue.glb",
+                "x": round(statue_at[0], 2),
+                "z": round(statue_at[1], 2),
+                "lod": {"hi": "wilhelmina_statue_lod0", "lo": "wilhelmina_statue_lod1", "switch_m": 260},
+            }
+        )
     MANIFEST.write_text(json.dumps(manifest, indent=1))
     cleared = clear_shop_signs(picked)
     print(f"manifest heroes written, shop billboards cleared: {cleared}")

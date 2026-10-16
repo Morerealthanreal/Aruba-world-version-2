@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 
 const phase = process.argv[2] || "before";
 const only = new Set((process.argv[3] || "").split(",").filter(Boolean));
-const outDir = `/opt/cursor/artifacts/oranjestad/${phase}`;
+const outDir = `/opt/cursor/artifacts/oranjestad-skyline/${phase}`;
 await mkdir(outDir, { recursive: true });
 
 const browser = await puppeteer.launch({
@@ -44,7 +44,25 @@ const shots = [
     name: "mainstreet",
     stand: [-7080, 18],
     eye: [-7080, 2.1, 12],
-    look: [-7280, 4.2, -8],
+    look: [-7280, 5.5, -8],
+  },
+  {
+    name: "church",
+    stand: [-7267, 80],
+    eye: [-7267, 1.7, 80],
+    look: [-7240, 7.5, 68],
+  },
+  {
+    name: "church-quarter",
+    stand: [-7255, 68],
+    eye: [-7255, 1.7, 68],
+    look: [-7236, 10, 78],
+  },
+  {
+    name: "gables",
+    stand: [-7148, 6],
+    eye: [-7148, 1.7, 6],
+    look: [-7220, 8.2, 24],
   },
   {
     name: "mainstreet-east",
@@ -66,15 +84,15 @@ const shots = [
   },
   {
     name: "fort-zoutman",
-    stand: [-7188, 210],
-    eye: [-7185, 2.2, 205],
-    look: [-7132, 10, 258],
+    stand: [-7136, 222],
+    eye: [-7136, 3.8, 216],
+    look: [-7141, 8.2, 238],
   },
   {
     name: "wilhelmina",
-    stand: [-7084, 456],
-    eye: [-7084, 2.4, 456],
-    look: [-7116, 2.2, 453],
+    stand: [-7092, 453],
+    eye: [-7092, 2.6, 453],
+    look: [-7106.2, 5.6, 453],
   },
   {
     name: "cruise-terminal",
@@ -102,22 +120,42 @@ async function shoot(shot) {
     // Stand on the shot itself so hero LOD follows the camera, not a distant road.
     window.game.teleport("walk", x, z, 0);
   }, { x: shot.stand[0], z: shot.stand[1] });
-  await new Promise((r) => setTimeout(r, 9000));
+  await new Promise((r) => setTimeout(r, 14000));
   const dataUrl = await page.evaluate(({ eye, look, lift }) => {
     window.__noRender = true;
     const g = window.game;
     const cam = g.camera;
     const gy = g.real.heightAt(eye[0], eye[2]);
     const ly = g.real.heightAt(look[0], look[2]);
-    const up = lift || 1.7;
-    cam.position.set(eye[0], gy + (eye[1] > 20 ? eye[1] : up), eye[2]);
-    cam.lookAt(look[0], ly + (look[1] > 20 ? look[1] : Math.max(look[1], 3)), look[2]);
+    const up = eye[1] > 20 ? eye[1] : (eye[1] || lift || 1.7);
+    cam.position.set(eye[0], eye[1] > 20 ? eye[1] : gy + up, eye[2]);
+    cam.lookAt(look[0], look[1] > 20 ? look[1] : ly + Math.max(look[1], 3), look[2]);
     cam.up.set(0, 1, 0);
     cam.updateMatrixWorld(true);
+    g.scene.traverse((obj) => {
+      if (obj.isSkinnedMesh) obj.visible = false;
+    });
+    const vis = {};
+    let walker = null;
+    g.scene.traverse((obj) => {
+      if (!walker && obj.isSkinnedMesh) {
+        obj.updateWorldMatrix(true, false);
+        const e = obj.matrixWorld.elements;
+        walker = [Math.round(e[12]), Math.round(e[14])];
+      }
+      if (!obj.name) return;
+      if (/^(protestant_old|ora_gable0|fortzoutman|wilhelmina_statue)_lod0$/.test(obj.name)) {
+        vis[obj.name] = obj.visible;
+        obj.visible = true;
+      }
+      if (/^(protestant_old|ora_gable0|fortzoutman|wilhelmina_statue)_lod1$/.test(obj.name)) obj.visible = false;
+    });
+    vis.walker = walker;
     g.renderer.render(g.scene, cam);
-    return g.renderer.domElement.toDataURL("image/png");
+    return { url: g.renderer.domElement.toDataURL("image/png"), vis };
   }, shot);
-  const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  console.log(shot.name, "lod", JSON.stringify(dataUrl.vis));
+  const buf = Buffer.from(dataUrl.url.slice(dataUrl.url.indexOf(",") + 1), "base64");
   const file = `${outDir}/${shot.name}.png`;
   await writeFile(file, buf);
   console.log("wrote", file, buf.length);
