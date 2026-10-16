@@ -257,24 +257,35 @@ export class PerfFixes {
     if (!h) return;
     const orig = h.update.bind(h);
     const cap = this.heroCap;
-    let primed = false;
+    // Far towns are not visited until late in the island loop, so their textures
+    // were still uploading on the measured laps. Drip the glTF loads out after
+    // the first frames: starting the whole manifest at once stalled the main
+    // thread and the phone soak never got its car-mode click through.
+    let dripAt = 0;
+    let dripI = 0;
     h.update = (x: number, z: number) => {
       orig(x, z);
-      // The island loop only comes near the far towns late. Start those glTF
-      // loads on the first update so their textures are on the GPU before the
-      // phone soak's measured laps, instead of trickling in town by town.
-      // List is filled by hero.init before the game reports ready. Seed once,
-      // then put visibility back on the player: orig() also toggles it.
-      if (!primed && h.list.length) {
-        primed = true;
-        const seeds: { x: number; z: number }[] = [];
-        for (const n of h.list) {
-          if (n._g || n._loading) continue;
-          if (seeds.some((s) => Math.hypot(s.x - n.x, s.z - n.z) < 1200)) continue;
-          seeds.push(n);
-          orig(n.x, n.z);
+      if (!dripAt && h.list.length) dripAt = performance.now() + 2500;
+      if (dripAt && performance.now() >= dripAt && dripI < h.list.length) {
+        const batch: Array<(typeof h.list)[number]> = [];
+        while (dripI < h.list.length && batch.length < 4) {
+          const n = h.list[dripI++];
+          if (!n._g && !n._loading) batch.push(n);
         }
-        orig(x, z);
+        if (batch.length) {
+          // orig() starts every hero within 1.5 km. Hold the rest back so this
+          // frame only parses the batch, then restore the player's visibility.
+          const block: Array<(typeof h.list)[number]> = [];
+          for (const n of h.list) {
+            if (n._g || n._loading || batch.includes(n)) continue;
+            if (!batch.some((b) => Math.hypot(b.x - n.x, b.z - n.z) < 1500)) continue;
+            n._loading = true;
+            block.push(n);
+          }
+          for (const n of batch) orig(n.x, n.z);
+          for (const n of block) if (!n._g) n._loading = false;
+          orig(x, z);
+        }
       }
       let hidden = 0;
       for (const n of h.list) {
