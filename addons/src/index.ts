@@ -18,6 +18,7 @@ import { TerrMerge } from "./terrMerge";
 import { LampGlow } from "./lampGlow";
 import { TrafficSystem } from "./trafficLife";
 import { PedestrianCrowds } from "./pedestrians";
+import { BeachPeople } from "./beachPeople";
 import { attachPlayerLocomotion } from "./locomotion";
 import { WorldAudio } from "./audio";
 import { mountUI } from "./ui";
@@ -73,6 +74,7 @@ async function main() {
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
   const useLife = params.get("life") !== "0";
   const peds = useLife && params.get("peds") !== "0" ? new PedestrianCrowds(g) : null;
+  const beach = useLife && params.get("beach") !== "0" ? new BeachPeople(g) : null;
   if (params.get("loco") !== "0") attachPlayerLocomotion(g); // r287: player mocap walk/run (from PR #13, player only)
   const kids = !peds && params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
@@ -112,7 +114,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, beach, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, version: "0.12.1" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -125,6 +127,7 @@ async function main() {
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
     if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
+    if (beach) beach.update(Math.min(dt, 0.1), uTime.value);
     if (audio) audio.update();
     if (radio) radio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
