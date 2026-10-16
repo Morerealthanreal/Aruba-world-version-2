@@ -2,6 +2,7 @@
 import { isOpen, worldFrame } from "../addons/src/interiors/volume";
 import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "../addons/src/interiors/pastechi";
 import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
+import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -89,4 +90,40 @@ for (const line of [MCD_DOOR_AT, -6.2]) {
 if (!isOpen(mcd, MCD_OBS, -8005.9, -5486.8, MCD_DOOR_HALF, mWall)) console.log("ok mcd neighbour stays shut");
 else { console.log("FAIL neighbour opened"); bad++; }
 if (!bad) console.log("mcd aisle clear", MCD_DOOR_AT);
+
+const sbx = worldFrame(sbxLocal, SBX_X, SBX_Z, 0);
+sbx.poly = SBX_POLY;
+function sAt(a: number, d: number) {
+  const x = sbx.mx + sbx.ux * a + sbx.nx * d;
+  const z = sbx.mz + sbx.uz * a + sbx.nz * d;
+  return isOpen(sbx, SBX_OBS, x, z, SBX_DOOR_HALF, mWall);
+}
+const sbxCases: [string, number, number, boolean][] = [
+  ["sbx door", SBX_DOOR_AT, 0.2, true],
+  ["sbx sidewalk", SBX_DOOR_AT, -0.9, true],
+  ["sbx aisle", SBX_DOOR_AT, 8, true],
+  ["sbx bar", 6, 3.1, false],
+  ["sbx case", 3.8, 1.9, false],
+  ["sbx table", -7.5, 5.3, false],
+  ["sbx back", 0, 13.1, false],
+  ["sbx outside", SBX_DOOR_AT, -3, false],
+  ["sbx jamb", 2.5, 0.05, false],
+];
+for (const [name, a, d, want] of sbxCases) {
+  const got = sAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.5; d <= 12; d += 0.25) {
+  if (!sAt(SBX_DOOR_AT, d)) {
+    console.log("FAIL sbx aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(sbx, SBX_OBS, -8069.9, -5971.2, SBX_DOOR_HALF, mWall)) console.log("ok sbx neighbour stays shut");
+else { console.log("FAIL sbx neighbour opened"); bad++; }
+if (!bad) console.log("sbx aisle clear", SBX_DOOR_AT);
 process.exit(bad ? 1 : 0);
