@@ -105,8 +105,9 @@ export function buildMoomba(group: Group, f: Frame) {
   const shell = new Builder();
   const hw = mbLocal.halfW;
   const depth = mbLocal.depth;
-  const doorL = mbLocal.doorAt - MB_DOOR_HALF;
-  const doorR = mbLocal.doorAt + MB_DOOR_HALF;
+  const doorAt = mbLocal.doorAt ?? 0;
+  const doorL = doorAt - MB_DOOR_HALF;
+  const doorR = doorAt + MB_DOOR_HALF;
   const liner = 0.12;
 
   shell.quad(
