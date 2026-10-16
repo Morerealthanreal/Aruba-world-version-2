@@ -216,4 +216,14 @@ Another main run had reported renderer geometry growth of 38 against a limit of 
 
 Heap still rises about 20 MB on each island loop (23.6 MB in the measured window, under the 24 MB cap). Unloaded regions were keeping their kit and parked-car instance buffers when the fold had not finished; those are released with the region now. The remaining climb is inside the cap on this harness.
 
-Plane, same route, full turbo (560 km/h, 4050 frames, this branch). Callback time p50 / p95 / p99 / max is 8.8 / 19.1 / 224 / 632 ms. Frames over 16 / 33 / 50 ms: 242 / 176 / 175. Of the 175 long frames, 160 are texture or buffer uploads inside the draw (34.1 s total, max 607 ms) and 15 are shader compiles (7.3 s, max 614 ms, several of them the shadow pass). The non-GL part of the frame stays under 50 ms (max 43.6). Holding a cold mesh off screen was tried previously and removed: it left these uploads in the draw and made typical frames slower.
+Plane is the same route at full turbo (560 km/h, 4050 frames). Motorcycle is the same route at the bike's top speed (55 m/s, 5401 frames). Callback time only. Gap p50 was 193 ms (plane) and 185 ms (moto); that is SwiftShader present delay, not a phone frame time.
+
+| metric | plane | moto |
+|---|---|---|
+| p50 / p95 / p99 / max (ms) | 8.8 / 19.1 / 224 / 632 | 6.5 / 11.7 / 19.4 / 566 |
+| frames >16 / >33 / >50 ms | 242 / 176 / 175 | 80 / 35 / 35 |
+| upload total / max (ms) | 34059 / 607 | 8164 / 486 |
+| shader total / max (ms) | 7280 / 614 | 6304 / 553 |
+| long frames that are uploads / shaders | 160 / 15 | 21 / 13 |
+
+The non-GL part of those frames stays under 50 ms (plane max 43.6, moto max 29.6). The long frames are still the upload or the shadow-program compile inside the draw. Holding a cold mesh off screen was tried previously and removed: it left these uploads in the draw and made typical frames slower.
