@@ -13,6 +13,16 @@ References are visual guides only. Nothing below is a pasted photo.
 5. **Zeerovers, Savaneta** (OSM way 639821170). Same origin and footprint. Open roof, posts, picnic tables, blue `ZEEROVERS` sign toward the road. Neighbouring beach buildings still crowd the road approach.
 6. **Arikok visitor centre** (OSM way 169938948). Same origin and footprint. The old high LOD used an uncoloured white wall. Walls are now stone, with a dark plinth, a deep eave, and a sign reading `PARKE NACIONAL ARIKOK`.
 
+## Batch — inland streets, waterfront, rural shoulders (this change)
+
+Shoulder decision: open Arikok and the named rural stretches use a gravel edge, not a town sidewalk. `sw` is cleared on Weg Fontein, Diamantbergweg, Franse Pas, Weg Sero Blanco, Ayo (the owned segments), Balashi, and the Hooiberg hill road. The road shader already draws a crumbled gravel shoulder when `sw` is off. Sidewalks stay on town streets, including Zeppenfeldstraat, Savaneta, Santa Cruz, Paradera, and Caya G.F. Betico Croes past the Hooiberg trailhead. Noord, Palm Beach, Eagle Beach, L.G. Smith Boulevard, J.E. Irausquin Boulevard, and the hotel strip were not edited.
+
+1. **Rest of San Nicolas Main Street** (Zeppenfeldstraat, outside the mural set and outside Charlie's). Post office, Setar, and the two-storey Caribbean Mercantile Bank; pink La Deseada with FCCA and Esquire on the north side of the Charlie's block; Liberty Store and Arubabank on the south side; two-storey Mediq. Hide footprints were checked against the `sn_*` points, Charlie's, the Alankar mural, and the museum.
+2. **More cunucu lots.** Two more Paradera houses (salmon and yellow, not the earlier Paradera lot) and two Santa Cruz houses west of the fast-food strip. Hip roofs, porches, masonry fences with white caps, a cactus.
+3. **Refinery from the road.** Tanks, a red pipe rack, a chain-link fence, and a gate on the land approach west of the pad. This is not the distant chimney skyline, and the column sits clear of those stack sites.
+4. **Savaneta waterfront.** `marines_gate` is the same hero: a wider black KORPS MARINIERS arch, a cream sentry box, a green fence, and a flag. Two fishing piers stand on the open shore east of Zeerovers and Flying Fishbone. Zeerovers itself is unchanged.
+5. **Hooiberg base.** Dirt-lot trailhead south of the summit: a low stone wall, a green shelter, an HOOIBERG sign, cactus, and a watapana. `hooiberg_steps` and `hooiberg_summit` are not moved, and the terrain height is not changed.
+
 ## Owned, still wrong (next batches)
 
 1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
@@ -22,7 +32,7 @@ References are visual guides only. Nothing below is a pasted photo.
 5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes. The Museum of Industry water tower shape is unverified. Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
 6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
 7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
-8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
+8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, and markings have not been checked from the driver's seat on this branch. Town stretches keep sidewalks. Open Arikok and the named rural roads above are a gravel shoulder. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
 9. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
 
 ## Off limits — for their owners
