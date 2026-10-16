@@ -38,6 +38,7 @@ import { Turbo } from "./turbo";
 import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
 import { CamCycle } from "./camCycle";
+import { Radio } from "./radio";
 import { Sea } from "./sea";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
@@ -76,6 +77,7 @@ async function main() {
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
   const audio = params.get("audio") !== "0" ? new WorldAudio(g) : null;
+  const radio = params.get("radio") !== "0" && params.get("audio") !== "0" ? new Radio(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = motoEnabled ? new GvMoto(g) : null;
@@ -111,6 +113,7 @@ async function main() {
     if (traffic) traffic.update(dt);
     if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
     if (audio) audio.update();
+    if (radio) radio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
