@@ -202,3 +202,16 @@ The hitch that showed up as ~3500 draws for a handful of frames is gone: cells a
 | alloc MB/frame | 0.98 | 0.93 | 1.00 | 0.98 |
 
 Gap (wall time from one animation callback to the next) was not recorded on the before run. After, gap p50 is 212 ms on low and 307 ms on med; that is SwiftShader present delay plus the pump, not a phone frame time. Phone soak (`tests/long-drive-soak.spec.js`, low) passes. The high project is skipped by the test.
+
+## Round 7 (geometry and heap over a long drive)
+
+Phone soak, low, SwiftShader, five island loops. Before is main `1434bee` (r298). After is this branch. Growth is the median of the last measured loop minus the median of the loop before it. Renderer geometry is allowed to exceed the live scene by 12. Heap cap is 24 MB after a forced GC.
+
+| | geometry growth | scene geometry growth | geometry limit | heap growth | texture growth |
+|---|---|---|---|---|---|
+| before (main) | 5.0 | 46.5 | 58.5 | 20.1 MB | 2.5 |
+| after | -17.5 | -3.5 | 12.0 | 23.6 MB | 0.5 |
+
+Another main run had reported renderer geometry growth of 38 against a limit of 31.5. That gap is the overview terrain: each block keeps three LODs and only the one assigned at sample time is in the scene count, but the renderer counts a LOD the first time it is drawn and never forgets it. Drawing all three once at startup puts them in the baseline, so later swaps do not add geometries. This soak's renderer count fell by 17.5 while the scene count fell by 3.5.
+
+Heap still rises about 20 MB on each island loop (23.6 MB in the measured window, under the 24 MB cap). Unloaded regions were keeping their kit and parked-car instance buffers when the fold had not finished; those are released with the region now. The remaining climb is inside the cap on this harness.
