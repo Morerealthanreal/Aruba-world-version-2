@@ -362,7 +362,7 @@ def shoulder_cells(roads, ring, gap=2.4):
         z += gap
         if frame is None:
             continue
-        dist = frame["w"] / 2 + 1.7
+        dist = frame["w"] / 2 + 2.5
         cells.append((frame["x"] - frame["ex"] * dist, frame["z"] - frame["ez"] * dist))
     return cells
 
@@ -454,7 +454,8 @@ def add_stroke(mesh, origin, right, up, normal, u0, v0, u1, v1, h, thick):
             origin[2] + right[2] * u * h + up[2] * v * h + normal[2] * n,
         )
 
-    d = 0.012
+    # Board half-depth is 0.03. Letters have to sit in front of that face.
+    d = 0.05
     a = at(u0 + px, v0 + py, d)
     b = at(u1 + px, v1 + py, d)
     c = at(u1 - px, v1 - py, d)
@@ -589,7 +590,7 @@ def add_car(body, glass, x, z, tx, tz, origin):
     g = mesh_height(x, z)
     if g < 0.25:
         return
-    p = local(x, g + 0.42, z, origin)
+    p = local(x, g + 0.62, z, origin)
     # Body along the road. box() is axis aligned, so the long axis follows
     # whichever of x/z the road is closer to.
     if abs(tz) >= abs(tx):
