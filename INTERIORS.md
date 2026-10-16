@@ -8,9 +8,10 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **McDonald's Palm Beach** (J.E. Irausquin Boulevard). Storefront opens on the clear stretch beside the sign. The yellow arch blade and the roadside sign stay. Grey tile dining room, wood order counter with a red fascia and yellow pickup strip, menu boards, two order kiosks, red chairs and grey tables.
 - **Starbucks Palm Beach** (Paseo Herencia, J.E. Irausquin Boulevard 382A). Entrance under the siren sign on the south face. Wood bar with a green front, pastry case, drink menu, cafe tables and dark green chairs. The sign, green band and roof stay.
 - **Palm Beach Plaza** (east rotunda, J.E. Irausquin Boulevard). The blue glass under the PALM BEACH PLAZA canopy opens. Inside: a tiled hall, Skechers and Niel's shopfronts, a Caribbean Cinemas counter, benches, and a hanging directory. The canopy, rotunda, and shop signs on the outside stay.
+- **Hard Rock Cafe Palm Beach** (South Beach Centre). The north wall opens under the yellow HARD ROCK CAFE sign. Inside: a dark dining room, wood bar with a red front, stools, menu, tables with red chairs, and a guitar on the back wall. The sign, gold roof trim, and the roof guitar stay.
 
 ## Next
 
-- Popular restaurants with strong photo references
-- Hotel lobbies (Radisson Blu and others)
-- More Palm Beach Plaza shopfronts if a single hall is not enough
+- Radisson Blu lobby
+- More hotel lobbies
+- More shops and restaurants with strong photo references
