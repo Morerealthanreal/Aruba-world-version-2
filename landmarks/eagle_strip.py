@@ -111,7 +111,9 @@ def png_bytes(im):
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", comp) + chunk(b"IEND", b"")
 
 def facade_png(wall, arch=False):
-    W, H = 64, 96
+    # Power-of-two. A 64x96 image with mipmaps and repeat wrap is an
+    # incomplete texture on WebGL1 and has taken the context down.
+    W, H = 64, 128
     im = Image.new("RGBA", (W, H), wall + (255,))
     d = ImageDraw.Draw(im)
     # one storey tile: white frame, dark glass. Ground tile gets an arch when asked.
@@ -250,8 +252,15 @@ class G:
                 continue
             nv = len(pos) // 3
             xs, ys, zs = pos[0::3], pos[1::3], pos[2::3]
+            # A zero normal becomes NaN in the standard material and the high
+            # bloom/GTAO chain clears the whole view.
+            fixed = list(nrm)
+            for k in range(0, len(fixed), 3):
+                nx, ny, nz = fixed[k], fixed[k + 1], fixed[k + 2]
+                if nx * nx + ny * ny + nz * nz < 1e-8:
+                    fixed[k], fixed[k + 1], fixed[k + 2] = 0.0, 1.0, 0.0
             pa = self.f32(pos, nv, 4, "VEC3", [min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)])
-            na = self.f32(nrm, nv, 4, "VEC3")
+            na = self.f32(fixed, nv, 4, "VEC3")
             ua = self.f32(uv, nv, 4, "VEC2")
             ia = self.indices(idx)
             gl_prims.append({"attributes": {"POSITION": pa, "NORMAL": na, "TEXCOORD_0": ua}, "indices": ia, "material": mat})
@@ -354,7 +363,11 @@ def wall(mesh, poly, y0, y1, us=3.3):
     for i in range(n):
         x1, z1 = poly[i]; x2, z2 = poly[(i + 1) % n]
         dx, dz = x2 - x1, z2 - z1
-        L = hypot(dx, dz) or 1
+        L = hypot(dx, dz)
+        # A repeated footprint vertex has no direction. normalize(0) is NaN
+        # and the high-quality bloom pass turns that into a black frame.
+        if L < 0.05:
+            continue
         nx, nz = dz / L, -dx / L
         a = mesh.v(x1, y0, z1, nx, 0, nz, 0, y0 / us)
         b = mesh.v(x2, y0, z2, nx, 0, nz, L / us, y0 / us)
@@ -419,7 +432,9 @@ def gable_roof(mesh, poly, y, rise):
 
 def uy_cross(ax, ay, az, bx, by, bz):
     nx, ny, nz = ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx
-    L = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
+    L = math.sqrt(nx * nx + ny * ny + nz * nz)
+    if L < 1e-8:
+        return 0.0, 1.0, 0.0
     # prefer upward
     if ny < 0:
         nx, ny, nz = -nx, -ny, -nz
@@ -447,14 +462,17 @@ def gable_face(mesh, e1, e2, peak, outset=0.12):
     tri(peak[1] - (peak[1] - 0) * 0 + 0)  # placeholder replaced below
 
 def add_gable_trim(mesh, e1, e2, peak, y_eave):
+    # The ridge sits on the midpoint of this short end, so peak.xz - midpoint is
+    # zero and the old normal was (0,0,0). Push the face out along the edge
+    # perpendicular, away from the footprint centroid (local origin).
+    dx, dz = e2[0] - e1[0], e2[1] - e1[1]
+    L = hypot(dx, dz) or 1
+    nx, nz = -dz / L, dx / L
     mx = (e1[0] + e2[0]) / 2
     mz = (e1[1] + e2[1]) / 2
-    # outward: direction from a point 1m toward the building is unknown; offset along the
-    # horizontal from the ridge midpoint to this gable midpoint, which points outward.
-    ox, oz = mx - peak[0], mz - peak[2]
-    L = hypot(ox, oz) or 1
-    ox, oz = ox / L * 0.18, oz / L * 0.18
-    nx, nz = ox / 0.18, oz / 0.18
+    if nx * mx + nz * mz < 0:
+        nx, nz = -nx, -nz
+    ox, oz = nx * 0.18, nz * 0.18
     a = mesh.v(e1[0] + ox, y_eave, e1[1] + oz, nx, 0, nz, 0, 0)
     b = mesh.v(e2[0] + ox, y_eave, e2[1] + oz, nx, 0, nz, 1, 0)
     c = mesh.v(peak[0] + ox, peak[1], peak[2] + oz, nx, 0, nz, 0.5, 1)
@@ -671,10 +689,12 @@ RESORTS = [
          bg="#6e1d32", fg="#f6e27a", wall=(236, 236, 232), trim=(255, 255, 255), roof=(232, 230, 224),
          dutch=False, arch=True, anchor=(-9163.5, -3537.5), radius=40,
          keys=(), flat_big=True, only_ids={3318}, flat=True),
+    # Kept from main: white facade, red tile roof and the resort sign.
+    # Rebuilding it on the footprint replaced that model with a plain block.
     dict(id="eagleres", name="Eagle Aruba Resort & Casino", sign="EAGLE ARUBA",
          bg="#1e3a5f", fg="#ffffff", wall=(231, 208, 168), trim=(247, 243, 234), roof=(184, 90, 56),
          dutch=False, arch=False, anchor=(-9002.5, -3448.4), radius=95,
-         keys=("eagle resort",), flat_big=False),
+         keys=("eagle resort",), flat_big=False, keep_main=True),
     dict(id="m_bucutiandtararesort", name="Bucuti & Tara Beach Resort", sign="BUCUTI & TARA",
          bg="#2c2118", fg="#f6f1e6", wall=(243, 239, 230), trim=(255, 252, 246), roof=(166, 75, 50),
          dutch=False, arch=False, anchor=(-9955.2, -2438.7), radius=75,
@@ -1098,10 +1118,12 @@ def cluster(pts, cell=1.7, min_n=6):
             merged.append(c)
     return merged
 
-def git_blob(rel):
+def git_blob(rel, rev="origin/main"):
+    """Read a blob from main. The strip commit deletes the old palapa/fofoti
+    meshes, so a re-run cannot recover their positions from HEAD."""
     import subprocess
     try:
-        return subprocess.check_output(["git", "show", "HEAD:" + rel])
+        return subprocess.check_output(["git", "show", "%s:%s" % (rev, rel)])
     except subprocess.CalledProcessError:
         return None
 
@@ -1246,29 +1268,67 @@ def osm_ground(segs):
                 paths.append(world)
     return parking, paths
 
-def ribbon(mesh, pts, width, y_lift, ox, oz, color_normal=(0, 1, 0)):
+def ground_height(x, z):
+    """The terrain PNG is a surface model, so a pixel on a roof is metres
+    above the sand. A path vertex that samples a roof becomes a wall in
+    front of the camera. Take the lowest reading in a short cross; the
+    road and the beach are always lower than the building they sit beside."""
+    h = height_at(x, z)
+    for rad in (8.0, 18.0, 32.0):
+        for dx, dz in ((rad, 0), (-rad, 0), (0, rad), (0, -rad)):
+            h = min(h, height_at(x + dx, z + dz))
+    return h
+
+def clamp_slope(pts, hs):
+    """Stop a missed roof sample from standing a ribbon up as a wall."""
+    out = list(hs)
+    for i in range(1, len(out)):
+        dist = hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+        cap = max(0.35, dist * 0.06)
+        if out[i] > out[i - 1] + cap:
+            out[i] = out[i - 1] + cap
+        elif out[i] < out[i - 1] - cap:
+            out[i] = out[i - 1] - cap
+    return out
+
+def ribbon(mesh, pts, width, y_lift, ox, oz, heights=None):
+    if len(pts) < 2:
+        return
+    hs = list(heights) if heights is not None else [ground_height(x, z) for x, z in pts]
+    hs = clamp_slope(pts, hs)
+    base = height_at(ox, oz)
     for i in range(len(pts) - 1):
         x1, z1 = pts[i]; x2, z2 = pts[i + 1]
         dx, dz = x2 - x1, z2 - z1
         L = hypot(dx, dz) or 1
         px, pz = -dz / L * width * 0.5, dx / L * width * 0.5
-        quad = [(x1 + px, z1 + pz), (x1 - px, z1 - pz), (x2 - px, z2 - pz), (x2 + px, z2 + pz)]
+        # Both edges of a cross-section share one height. Sampling each
+        # corner on its own lets one edge sit on a roof and the quad
+        # becomes a wall across the boulevard.
+        corners = (
+            (x1 + px, z1 + pz, hs[i]),
+            (x1 - px, z1 - pz, hs[i]),
+            (x2 - px, z2 - pz, hs[i + 1]),
+            (x2 + px, z2 + pz, hs[i + 1]),
+        )
         ids = []
-        for x, z in quad:
-            y = height_at(x, z) - height_at(ox, oz) + y_lift
-            ids.append(mesh.v(x - ox, y, z - oz, 0, 1, 0, 0, 0))
+        for x, z, h in corners:
+            ids.append(mesh.v(x - ox, h - base + y_lift, z - oz, 0, 1, 0, 0, 0))
         mesh.quad(*ids)
 
 def fan(mesh, poly, y_lift, ox, oz):
     if len(poly) < 3:
         return
+    # A lot is flat. One roof pixel in the ring was tilting a slab up
+    # over the road; use the lowest ground sample instead.
+    h = min(ground_height(x, z) for x, z in poly)
     cx = sum(p[0] for p in poly) / len(poly)
     cz = sum(p[1] for p in poly) / len(poly)
-    cy = height_at(cx, cz) - height_at(ox, oz) + y_lift
-    c = mesh.v(cx - ox, cy, cz - oz, 0, 1, 0, 0.5, 0.5)
+    base = height_at(ox, oz)
+    y = h - base + y_lift
+    c = mesh.v(cx - ox, y, cz - oz, 0, 1, 0, 0.5, 0.5)
     ids = []
     for x, z in poly:
-        y = height_at(x, z) - height_at(ox, oz) + y_lift
         ids.append(mesh.v(x - ox, y, z - oz, 0, 1, 0, 0, 0))
     for i in range(len(ids)):
         mesh.tri(c, ids[i], ids[(i + 1) % len(ids)])
@@ -1334,36 +1394,34 @@ def build_kit(name, origin, trees, palapas, brollies, sidewalks, parking, paths)
                 if n is not None:
                     bucket.append(n)
     # ground (lod0 only; lod1 skips the fine stall lines)
+    # Sidewalks only. Paths have their own mesh so the two don't z-fight,
+    # and parking is a flat lot rather than a second copy of the sidewalk.
     ground = M()
     stalls = M()
     for seg in sidewalks:
-        ribbon(ground, [(seg[0], seg[1]), (seg[2], seg[3])], 2.3, 0.08, ox, oz)
+        heights = [seg[4], seg[5]] if len(seg) >= 6 else None
+        ribbon(ground, [(seg[0], seg[1]), (seg[2], seg[3])], 2.3, 0.08, ox, oz, heights)
     for poly in parking:
-        # stall stripes; the lot surface itself is the grey mesh below
         if len(poly) >= 4:
             cx = sum(p[0] for p in poly) / len(poly)
             cz = sum(p[1] for p in poly) / len(poly)
-            ribbon(stalls, [(cx - 6, cz), (cx + 6, cz)], 0.12, 0.1, ox, oz)
-    for line in paths:
-        ribbon(ground, line, 2.8, 0.1, ox, oz)
+            h = min(ground_height(x, z) for x, z in poly)
+            ribbon(stalls, [(cx - 6, cz), (cx + 6, cz)], 0.12, 0.12, ox, oz, [h, h])
     gnode = []
     if not ground.empty():
         gm = g.add_mesh(name + "_gnd", [(ground.p, ground.n, ground.u, ground.i, walk_m)])
-        # parking shares walk mesh; recolour by a second mesh if we split. The sidewalk and
-        # parking currently share `ground`. Split parking into its own mesh for the grey.
         g.nodes.append({"name": name + "_gnd", "mesh": gm})
         gnode.append(len(g.nodes) - 1)
-    # rebuild parking separately so it isn't concrete-coloured
     park = M()
     for poly in parking:
-        fan(park, poly, 0.07, ox, oz)
+        fan(park, poly, 0.06, ox, oz)
     if not park.empty():
         pm = g.add_mesh(name + "_park", [(park.p, park.n, park.u, park.i, park_m)])
         g.nodes.append({"mesh": pm})
         gnode.append(len(g.nodes) - 1)
     access = M()
     for line in paths:
-        ribbon(access, line, 2.8, 0.11, ox, oz)
+        ribbon(access, line, 2.8, 0.1, ox, oz)
     if not access.empty():
         am = g.add_mesh(name + "_path", [(access.p, access.n, access.u, access.i, path_m)])
         g.nodes.append({"mesh": am})
@@ -1372,18 +1430,6 @@ def build_kit(name, origin, trees, palapas, brollies, sidewalks, parking, paths)
         sm = g.add_mesh(name + "_stall", [(stalls.p, stalls.n, stalls.u, stalls.i, stall_m)])
         g.nodes.append({"mesh": sm})
         gnode.append(len(g.nodes) - 1)
-    # The sidewalk was baked into `ground` with the walk material, but parking was also
-    # fanned into ground before I split it. fan() into ground AND park would double.
-    # I called fan(ground) earlier AND fan(park). Remove the first by not having done it...
-    # It's already in `ground`. Double parking (concrete + grey) will z-fight.
-    # Fix: don't put parking in ground. I already did. Rebuild ground as sidewalks only
-    # by reconstructing - the mesh `ground` has both. Easiest fix is to accept a 1cm
-    # offset (park is +0.07, ground parking is +0.06) which z-fights. Let me clear that
-    # by regenerating ground from sidewalks only if I still can. I'll rebuild the ground
-    # mesh now... too late, the GLB accessor is already written from `ground`.
-    # I'll leave it and NOT add the second park mesh if it z-fights. Offset park to +0.12
-    # so the grey wins. Already written at +0.07. Concrete underneath at +0.06 shows at edges.
-    # Acceptable: grey lot with a concrete rim. OK.
     hi = g.nodes  # indices currently include ground nodes at the end AND instance nodes
     # Instance nodes were appended during inst_node before ground. Their indices are in nodes_hi/lo.
     # Ground nodes got appended after and also pushed to gnode. They should be children of lod0 only.
@@ -1410,6 +1456,33 @@ def chunk_of(z):
         return "eb_mid"
     return "eb_south"
 
+def restore_main(manifest, ids):
+    """Put main's GLB and manifest entry back. The footprint rebuild of
+    Eagle Aruba dropped its white facade, red tile roof and sign."""
+    raw = git_blob("game/data/hero/manifest.json")
+    if not raw:
+        print("restore_main: origin/main manifest missing")
+        return manifest
+    main_by = {e.get("id"): e for e in json.loads(raw)}
+    wanted = set(ids)
+    out = []
+    seen = set()
+    for e in manifest:
+        i = e.get("id")
+        if i in wanted and i in main_by:
+            out.append(main_by[i])
+            seen.add(i)
+        else:
+            out.append(e)
+    for i in ids:
+        if i not in seen and i in main_by:
+            out.append(main_by[i])
+        data = git_blob("game/models/hero/%s.glb" % i)
+        if data:
+            open(os.path.join(HERO, i + ".glb"), "wb").write(data)
+            print("restored", i, len(data))
+    return out
+
 # ---------------------------------------------------------------- main
 def main():
     buildings = load_buildings()
@@ -1427,7 +1500,9 @@ def main():
 
     for r in RESORTS:
         bs = claimed.get(r["id"]) or []
-        if not bs:
+        if not bs or r.get("keep_main"):
+            if r.get("keep_main"):
+                print(f"  {r['id']}: kept from main")
             continue
         built = build_resort(r, bs)
         if not built:
@@ -1519,8 +1594,11 @@ def main():
         # perpendicular, both sides, just outside the asphalt
         px, pz = -dz / L, dx / L
         off = w * 0.5 + 1.5
-        sidewalks.append((x1 + px * off, z1 + pz * off, x2 + px * off, z2 + pz * off))
-        sidewalks.append((x1 - px * off, z1 - pz * off, x2 - px * off, z2 - pz * off))
+        # Height comes from the asphalt, not from the offset point. The
+        # offset often lands on a hotel roof in the surface model.
+        h1, h2 = height_at(x1, z1), height_at(x2, z2)
+        sidewalks.append((x1 + px * off, z1 + pz * off, x2 + px * off, z2 + pz * off, h1, h2))
+        sidewalks.append((x1 - px * off, z1 - pz * off, x2 - px * off, z2 - pz * off, h1, h2))
 
     kits = defaultdict(lambda: dict(trees=[], palapas=[], brollies=[], sidewalks=[], parking=[], paths=[]))
     for t in tree_items:
@@ -1581,6 +1659,7 @@ def main():
         print(f"  wrote {name} {os.path.getsize(os.path.join(HERO, name + '.glb'))//1024}kb")
 
     manifest = [e for e in manifest if e.get("id") not in drop]
+    manifest = restore_main(manifest, [r["id"] for r in RESORTS if r.get("keep_main")])
     # delete unreferenced glbs
     for i in drop:
         p = os.path.join(HERO, i + ".glb")
