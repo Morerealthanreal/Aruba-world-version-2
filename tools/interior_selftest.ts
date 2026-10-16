@@ -13,6 +13,7 @@ import { SF_DOOR_HALF, SF_OBS, SF_POLY, SF_X, SF_Z, sfLocal } from "../addons/sr
 import { MB_DOOR_HALF, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "../addons/src/interiors/moomba";
 import { GN_DOOR_HALF, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "../addons/src/interiors/giannis";
 import { RN_DOOR_HALF, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "../addons/src/interiors/renmall";
+import { RP_DOOR_HALF, RP_OBS, RP_POLY, RP_X, RP_Z, rpLocal } from "../addons/src/interiors/royalplaza";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -508,4 +509,47 @@ if (!isOpen(rn, RN_OBS, roadX, roadZ, RN_DOOR_HALF, mWall)) console.log("ok rn r
 else { console.log("FAIL rn road opened"); bad++; }
 if (!bad) console.log("rn aisle clear");
 console.log("rn door", rn.mx.toFixed(2), rn.mz.toFixed(2), "n", rn.nx.toFixed(3), rn.nz.toFixed(3));
+
+const rp = worldFrame(rpLocal, RP_X, RP_Z, 0);
+rp.poly = RP_POLY;
+const rpDoor = rp.doorAt ?? 0;
+function rpAt(a: number, d: number) {
+  const x = rp.mx + rp.ux * a + rp.nx * d;
+  const z = rp.mz + rp.uz * a + rp.nz * d;
+  return isOpen(rp, RP_OBS, x, z, RP_DOOR_HALF, mWall);
+}
+const rpCases: [string, number, number, boolean][] = [
+  ["rp door", rpDoor, 0.3, true],
+  ["rp sidewalk", rpDoor, -0.9, true],
+  ["rp aisle", rpDoor, 3.5, true],
+  ["rp hall", rpDoor, 7, true],
+  ["rp red", rpDoor - 3.2, 9.2, false],
+  ["rp blue", rpDoor + 3.2, 9.2, false],
+  ["rp cafe", rpDoor, 11.4, false],
+  ["rp bench", rpDoor - 2.4, 4.5, false],
+  ["rp outside", rpDoor, -4, false],
+  ["rp jamb", rpDoor + 1.7, 0.12, false],
+  ["rp past", rpDoor, 14, false],
+  ["rp side", 7.6, 4, false],
+];
+for (const [name, a, d, want] of rpCases) {
+  const got = rpAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 8.2; d += 0.25) {
+  if (!rpAt(rpDoor, d)) {
+    console.log("FAIL rp aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+const rpRoadX = rp.mx + rp.ux * rpDoor + rp.nx * -12;
+const rpRoadZ = rp.mz + rp.uz * rpDoor + rp.nz * -12;
+if (!isOpen(rp, RP_OBS, rpRoadX, rpRoadZ, RP_DOOR_HALF, mWall)) console.log("ok rp road stays shut");
+else { console.log("FAIL rp road opened"); bad++; }
+if (!bad) console.log("rp aisle clear");
+console.log("rp door", (rp.mx + rp.ux * rpDoor).toFixed(2), (rp.mz + rp.uz * rpDoor).toFixed(2), "n", rp.nx.toFixed(3), rp.nz.toFixed(3));
 process.exit(bad ? 1 : 0);

@@ -17,10 +17,10 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Moomba Beach Bar** (Palm Beach). The glass bay beside the teal MOOMBA sign opens onto the sand. Inside: a sand and teal floor, a wood bar with a teal top, and a Moomba Beach board. The sign, the tan roof, and the beach-bed deck stay.
 - **Gianni's Ristorante Italiano** (Palm Beach, J.E. Irausquin Boulevard). The terrace under the white canopy is the dining room. Green and white tiles, red chairs, a host stand, and a board for pasta, pizza, and tiramisu. The Gianni's sign, the canopy, and the stools stay.
 - **Renaissance Mall** (Oranjestad, Havenstraat). The center bay under the green ARUBA ALOE sign opens. Inside: a tiled hall with a terracotta runner, Pier Market and Hot Look counters, an Aruba Aloe stand, benches, and a Renaissance Mall board. The pink facade, red awnings, and the street signs stay.
+- **Royal Plaza Mall** (Oranjestad, Havenstraat). The bay under the yellow awning opens. Inside: a pink and cream tiled hall, Gifts and Jewels counters, a Cafe stand, benches, and a Royal Plaza board. The pink facade, white trim, coloured awnings, and the towers stay.
 
 ## Next
 
-- Royal Plaza mall shops
 - Super Food Plaza
 - Zeerovers dining deck
 - Charlie's Bar
