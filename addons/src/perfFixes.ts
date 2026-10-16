@@ -292,9 +292,11 @@ export class PerfFixes {
           block.push(n);
         }
         for (const n of allow) orig(n.x, n.z);
+        // orig() at the player also starts loads. Unblock only after that,
+        // or this frame opens every nearby model again.
+        orig(x, z);
         for (const n of block) if (!n._g) n._loading = false;
-      }
-      orig(x, z);
+      } else orig(x, z);
       let hidden = 0;
       for (const n of h.list) {
         if (!n._g || !n._g.visible) continue;
