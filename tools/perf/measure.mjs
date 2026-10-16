@@ -1,4 +1,5 @@
-// [Q=q=med] node measure.mjs <label> "<extra query>" [--static] [--drive] [--alloc] [--cpu] [--trace] [--frames=N] [--to=x,z] [--at=x,z,h]
+// [Q=q=med] node measure.mjs <label> "<extra query>" [--static] [--drive] [--plane] [--moto] [--alloc] [--cpu] [--trace] [--frames=N] [--to=x,z] [--at=x,z,h]
+// --plane flies the same route at full turbo (560 km/h). --moto rides it at the bike's top speed (55 m/s).
 // Serve game/ first (PORT, default 8777). Boots q=low at a small phone-aspect viewport (software GL),
 // waits for streaming + add-on work to settle, then
 //  --static: freezes the sim, switches to the S24-class viewport and records draw calls / triangles per
@@ -10,6 +11,7 @@ import { boot, sleep } from "./boot.mjs";
 const OUT = new URL(".", import.meta.url).pathname;
 const [label, extra = "", ...flags] = process.argv.slice(2);
 const doDrive = flags.includes("--drive"), doStatic = flags.includes("--static") || !doDrive, doTrace = flags.includes("--trace");
+const mode = flags.includes("--plane") ? "plane" : flags.includes("--moto") ? "moto" : "car";
 const routeTo = (flags.find((f) => f.startsWith("--to=")) || "--to=-9700,-2900").slice(5).split(",").map(Number);
 const maxFrames = +((flags.find((f) => f.startsWith("--frames=")) || "--frames=2400").slice(9));
 const q = (process.env.Q || "q=low") + "&t=10&freeze=1&fpsguard=0" + (extra ? "&" + extra : "");
@@ -150,33 +152,54 @@ if (doDrive) {
   }, routeTo);
   console.log("route", JSON.stringify(route));
   out.route = route;
+  out.mode = mode;
+  if (mode !== "car") {
+    console.log("engage", JSON.stringify(await page.evaluate((mode) => {
+      document.querySelector(`#modes button[data-mode="${mode}"]`)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      if (mode === "plane") {
+        const b = document.querySelector("button.awturbo");
+        if (b) b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        window.__awTurbo = true; window.__awTurboK = 2; window.__awTurboV = 560 / 3.6; window.__awTurboLvl = 1;
+      }
+      return { mode: game.S.mode, turbo: !!window.__awTurbo };
+    }, mode)));
+    await settle(4000, 120000);
+  }
   const cdp = await page.createCDPSession();
   if (flags.includes("--alloc")) { await cdp.send("HeapProfiler.enable"); await cdp.send("HeapProfiler.startSampling", { samplingInterval: 8192, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true }); }
   if (flags.includes("--cpu")) { await cdp.send("Profiler.enable"); await cdp.send("Profiler.setSamplingInterval", { interval: 500 }); await cdp.send("Profiler.start"); }
   if (doTrace) await page.tracing.start({ path: `${OUT}res/${label}_trace.json`, categories: ["toplevel", "devtools.timeline", "disabled-by-default-devtools.timeline.frame", "v8", "blink.user_timing"] });
-  await page.evaluate((maxFrames) => {
-    const M = window.__M, Rt = window.__route, S = game.S, V = 150 / 3.6;
+  await page.evaluate((maxFrames, mode) => {
+    const M = window.__M, Rt = window.__route, S = game.S;
+    const V = mode === "plane" ? 560 / 3.6 : mode === "moto" ? 55 : 150 / 3.6;
     M.rec = true; M.frames = []; M.top = []; for (const k in M.fn) delete M.fn[k];
     let s = 0, i = 1, n = 0;
     window.__driveDone = false;
     const step = () => {
       s += V / 30; n++;
-      if (s >= Rt.L - 5 || n > maxFrames) { M.rec = false; window.__driveDone = true; window.__stepN = undefined; S.car.s = 0; return; }
+      if (s >= Rt.L - 5 || n > maxFrames) { M.rec = false; window.__driveDone = true; window.__stepN = undefined; S.car.s = 0; if (S.plane) S.plane.s = 0; return; }
       while (i < Rt.acc.length - 1 && Rt.acc[i] < s) i++;
       const a = Rt.pts[i - 1], b = Rt.pts[i], seg = Rt.acc[i] - Rt.acc[i - 1] || 1, u = (s - Rt.acc[i - 1]) / seg;
       // heading from a look-ahead point (smooth over the lane polyline's kinks)
-      let j = i; while (j < Rt.acc.length - 1 && Rt.acc[j] < s + 12) j++;
+      let j = i; while (j < Rt.acc.length - 1 && Rt.acc[j] < s + (mode === "plane" ? 40 : 12)) j++;
       const c = Rt.pts[j];
       const x = a[0] + (b[0] - a[0]) * u, z = a[1] + (b[1] - a[1]) * u;
-      S.car.x = x; S.car.z = z; S.car.h = Math.atan2(-(c[0] - x), -(c[1] - z)); S.car.s = V;
+      const h = Math.atan2(-(c[0] - x), -(c[1] - z));
+      if (mode === "plane") {
+        const p = S.plane, gnd = game.real.heightAt(x, z);
+        p.x = x; p.z = z; p.h = h; p.s = V; p.thr = 1; p.p = 0; p.r = 0; p.g = gnd; p.y = gnd + 70;
+        window.__awTurbo = true; window.__awTurboK = 2; window.__awTurboV = V; window.__awTurboLvl = 1;
+      } else {
+        S.car.x = x; S.car.z = z; S.car.h = h; S.car.s = V;
+      }
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
-  }, maxFrames);
+  }, maxFrames, mode);
   let last = Date.now();
   while (!(await page.evaluate(() => window.__driveDone))) {
     await sleep(5000);
-    if (Date.now() - last > 30000) { last = Date.now(); console.log("frame", await page.evaluate(() => window.__M.frame + " q=" + game.real.queue.length + " car " + Math.round(game.S.car.x) + "," + Math.round(game.S.car.z))); }
+    if (Date.now() - last > 30000) { last = Date.now(); console.log("frame", await page.evaluate((mode) => { const p = mode === "plane" ? game.S.plane : game.S.car; return window.__M.frame + " q=" + game.real.queue.length + " " + mode + " " + Math.round(p.x) + "," + Math.round(p.z) + " s=" + Math.round(p.s); }, mode)); }
   }
   if (doTrace) await page.tracing.stop();
   const agg = (nodes, val) => { const m = {}; for (const n of nodes) { const c = n.callFrame; const k = (c.functionName || "(anon)") + " " + (c.url || "").split("/").pop().split("?")[0] + ":" + (c.lineNumber + 1) + ":" + (c.columnNumber + 1); m[k] = (m[k] || 0) + val(n); } return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 60); };
