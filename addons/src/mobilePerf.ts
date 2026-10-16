@@ -200,7 +200,9 @@ export class MobilePerf {
       // while hidden so the upload happens before that batch's first paint.
       if (this.preUpload) for (const slot of TEX) {
         const t = (m as unknown as Record<string, Tex | null>)[slot];
-        if (t && t.isTexture && !t.isCubeTexture && !this.seenTex.has(t)) { this.seenTex.add(t); this.texQ.push(t); }
+        if (t && t.isTexture && !t.isCubeTexture && !(t as Tex & { userData?: { awBaked?: boolean } }).userData?.awBaked && !this.seenTex.has(t)) {
+          this.seenTex.add(t); this.texQ.push(t);
+        }
       }
     }
     if (add) this.pend.push(o);

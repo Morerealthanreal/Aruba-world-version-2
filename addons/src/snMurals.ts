@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
+import { bakeMuralAtlas, loadMuralAtlas } from "./muralAtlas";
 
 // San Nicolas Art Fair murals as one shared atlas on the real OSM walls.
 // The JPEG is an original painting. Public photos were reference only.
@@ -27,25 +28,25 @@ type Doc = {
 export class SnMurals {
   mesh?: THREE.Mesh;
   private doc?: Doc;
+  private atlas?: THREE.Texture;
   private ys: number[] = [];
   private grounded = false;
+  private loadOnce?: Promise<void>;
   private k = 0;
   private hidden: THREE.Object3D[] = [];
   private heroScan = true;
   private readonly tmp = new THREE.Vector3();
 
   constructor(private g: AGame) {
-    void this.load().catch((e) => console.warn("[aw] sn murals", e));
+    this.loadOnce = this.load().catch((e) => console.warn("[aw] sn murals", e));
   }
 
   private async load() {
     const res = await fetch("./data/sn_murals.json");
     if (!res.ok) throw new Error("sn_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
-    const tex = await new THREE.TextureLoader().loadAsync("./" + doc.atlas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = Math.min(4, this.g.renderer.capabilities.getMaxAnisotropy());
-    tex.generateMipmaps = true;
+    const tex = await loadMuralAtlas("./" + doc.atlas, this.g.renderer);
+    this.atlas = tex;
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       polygonOffset: true,
@@ -152,6 +153,7 @@ export class SnMurals {
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;
+    if (this.atlas) bakeMuralAtlas(this.atlas, this.g.renderer);
   }
 
   // Approximate free-standing heroes sit on the wrong walls. The game turns
