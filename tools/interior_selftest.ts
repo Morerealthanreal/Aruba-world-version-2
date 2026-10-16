@@ -10,6 +10,7 @@ import { HY_DOOR_HALF, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "../addons/sr
 import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
 import { MR_DOOR_HALF, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "../addons/src/interiors/marriott";
 import { SF_DOOR_HALF, SF_OBS, SF_POLY, SF_X, SF_Z, sfLocal } from "../addons/src/interiors/senorfrogs";
+import { MB_DOOR_HALF, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "../addons/src/interiors/moomba";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -390,4 +391,41 @@ if (!isOpen(sf, SF_OBS, -8199.7, -5312.2, SF_DOOR_HALF, mWall)) console.log("ok 
 else { console.log("FAIL sf road opened"); bad++; }
 if (!bad) console.log("sf aisle clear");
 console.log("sf door", sf.mx.toFixed(2), sf.mz.toFixed(2), "n", sf.nx.toFixed(3), sf.nz.toFixed(3));
+
+const mb = worldFrame(mbLocal, MB_X, MB_Z, 0);
+mb.poly = MB_POLY;
+function mbAt(a: number, d: number) {
+  const x = mb.mx + mb.ux * a + mb.nx * d;
+  const z = mb.mz + mb.uz * a + mb.nz * d;
+  return isOpen(mb, MB_OBS, x, z, MB_DOOR_HALF, mWall);
+}
+const mbCases: [string, number, number, boolean][] = [
+  ["mb door", 8, 0.3, true],
+  ["mb sidewalk", 8, -0.9, true],
+  ["mb aisle", 8, 3.2, true],
+  ["mb bar", 8, 5.8, false],
+  ["mb chair", 6.6, 3.0, false],
+  ["mb outside", 8, -3, false],
+  ["mb jamb", 9.7, 0.15, false],
+  ["mb past", 8, 10, false],
+  ["mb side", 10.2, 3, false],
+];
+for (const [name, a, d, want] of mbCases) {
+  const got = mbAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 4.8; d += 0.25) {
+  if (!mbAt(8, d)) {
+    console.log("FAIL mb aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(mb, MB_OBS, -8104.0, -6377.4, MB_DOOR_HALF, mWall)) console.log("ok mb road stays shut");
+else { console.log("FAIL mb road opened"); bad++; }
+if (!bad) console.log("mb aisle clear");
+console.log("mb door", mb.mx.toFixed(2), mb.mz.toFixed(2), "n", mb.nx.toFixed(3), mb.nz.toFixed(3));
 process.exit(bad ? 1 : 0);
