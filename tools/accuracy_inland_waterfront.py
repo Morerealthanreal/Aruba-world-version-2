@@ -323,7 +323,8 @@ def build_shop_row(model_id, items, roads, colors, sign_text, sign_on):
         if hit is None:
             raise SystemExit(f"no road for {name}")
         _, qx, qz, rname, _fn = hit
-        fr = Frame((mx, mz), (qx - mx, qz - mz))
+        # Mesh stays local to the manifest origin. The loader adds (x, z).
+        fr = Frame((0.0, 0.0), (qx - mx, qz - mz))
         x0, x1, z0, z1 = obb(fr, ring, (mx, mz))
         # pad a little so the mass covers the footprint
         x0 -= 0.15
@@ -391,7 +392,7 @@ def build_house(model_id, ring, roads, wall_rgb, fence_rgb):
     if hit is None:
         raise SystemExit(f"no road for {model_id}")
     _, qx, qz, _n, _fn = hit
-    fr = Frame((mx, mz), (qx - mx, qz - mz))
+    fr = Frame((0.0, 0.0), (qx - mx, qz - mz))
     x0, x1, z0, z1 = obb(fr, ring, (mx, mz))
     # porch recess: walls stop short of the road face
     z_wall = z1 - 1.25
@@ -466,8 +467,8 @@ def build_refinery(roads):
     # The class-0 track the earlier land camera sits on is near (7603, 10444).
     # The industrial pad is the large footprint around (7770, 10384).
     origin = (7705.0, 10405.0)
-    # face the track, which lies west-northwest of the pad
-    fr = Frame(origin, (7603 - origin[0], 10444 - origin[1]))
+    # face the track, which lies west-northwest of the pad. Mesh is local.
+    fr = Frame((0.0, 0.0), (7603 - origin[0], 10444 - origin[1]))
     for lod in (0, 1):
         box_xf(M.mesh(lod, gravel), fr, -28, 34, 0.02, 0.12, -6, 22)
         # gate on the road side
@@ -497,8 +498,9 @@ def build_refinery(roads):
                 box_xf(M.mesh(lod, fence), fr, -24 + i * 8, -23.7 + i * 8, 0.2, 2.05, 20.35, 20.48)
     # keep the column away from the queued skyline coordinates
     col = fr.p(25.3, 0, 1.0)
+    col = (origin[0] + col[0], origin[1] + col[2])
     for cx, cz in CHIMNEYS:
-        if math.hypot(col[0] - cx, col[2] - cz) < 40:
+        if math.hypot(col[0] - cx, col[1] - cz) < 40:
             raise SystemExit(f"refinery column collides with skyline site {cx},{cz}")
     info = write_glb(M, HERO / "refinery_road.glb")
     check_glb(HERO / "refinery_road.glb")
@@ -513,7 +515,7 @@ def build_pier(model_id, origin, length, width, wood=True):
     deck = M.material("deck", deck_c, 0.7)
     post = M.material("post", WOOD_DARK if wood else (0.45, 0.46, 0.48), 0.6)
     rail = M.material("rail", (0.55, 0.42, 0.24) if wood else STEEL, 0.55, double=True)
-    fr = Frame(origin, (0.0, 1.0))  # +Z south
+    fr = Frame((0.0, 0.0), (0.0, 1.0))  # local +Z south; manifest origin is the shore
     half = width / 2
     for lod in (0, 1):
         box_xf(M.mesh(lod, deck), fr, -half, half, 0.35, 0.58, 0.0, length)
@@ -549,7 +551,7 @@ def build_marines():
     flag = M.material("flag", (0.12, 0.32, 0.62), 0.5, double=True)
     # road closest point from the survey is (3788, 8119); origin (3790.1, 8114.5)
     origin = (3790.1, 8114.5)
-    fr = Frame(origin, (3788 - origin[0], 8119 - origin[1]))
+    fr = Frame((0.0, 0.0), (3788 - origin[0], 8119 - origin[1]))
     png = sign_png(["KORPS MARINIERS"], (12, 12, 14, 255), (245, 245, 240, 255), w=640, h=128)
     for lod in (0, 1):
         # arch posts across the driveway (local X), sign toward the road (+Z)
@@ -594,7 +596,7 @@ def build_hooiberg():
     png = sign_png(["HOOIBERG"], (16, 72, 36, 255), (255, 255, 255, 255))
     # road is south of the shelf. Face the sign south, toward the road.
     origin = (-2712.0, 592.0)
-    fr = Frame(origin, (0.0, 1.0))
+    fr = Frame((0.0, 0.0), (0.0, 1.0))
     for lod in (0, 1):
         # low stone wall along the road, with a gap
         box_xf(M.mesh(lod, stone), fr, -14, -2.2, 0.1, 0.85, 8.5, 9.3)
