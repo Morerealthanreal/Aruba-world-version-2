@@ -6,7 +6,7 @@
 //    ?warmup=full restores the old whole-scene compileAsync.
 //  - Textures of those new meshes upload one per frame (renderer.initTexture) so the first draw is not
 //    also the upload. Default on; ?preup=0 disables. Only textures of meshes we actually warm.
-import { MeshDepthMaterial, Scene, WebGLRenderTarget } from "three";
+import { MeshDepthMaterial, Scene, Vector4 } from "three";
 import type { Object3D } from "three";
 import type { AGame } from "./env";
 type R = {
@@ -58,7 +58,7 @@ export class MobilePerf {
   private uploaded = new WeakSet<object>();
   private gpuQ: O[] = [];
   private warming = false;
-  private scratch: WebGLRenderTarget | null = null;
+  private view = new Vector4();
   private frameN = 0;
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
@@ -238,34 +238,42 @@ export class MobilePerf {
     if (!this.seen.has(o)) this.consider(o);
     else this.pend.push(o);
   }
-  /** Upload a new mesh's buffers outside the animation callback, into a 4×4 target so the canvas is left alone. */
+  /** Upload a new mesh's buffers outside the animation callback.
+   *  The draw goes to the screen framebuffer (so the buffers land in the same vertex arrays the
+   *  real frame uses) with an empty scissor, which keeps it from changing the picture. */
   private flushGpu() {
     if (!this.gpuQ.length) return;
     const r = this.g.renderer as unknown as {
-      getRenderTarget(): unknown;
-      setRenderTarget(t: unknown): void;
+      getViewport(t: Vector4): Vector4;
+      setViewport(x: number, y: number, w: number, h: number): void;
+      setScissorTest(v: boolean): void;
+      setScissor(x: number, y: number, w: number, h: number): void;
       renderBufferDirect(camera: unknown, scene: unknown, geometry: unknown, material: unknown, object: unknown, group: unknown): void;
     };
     const list = this.gpuQ.splice(0, 240);
-    if (!this.scratch) this.scratch = new WebGLRenderTarget(4, 4);
-    const prev = r.getRenderTarget();
+    const view = r.getViewport(this.view);
     this.warming = true;
     try {
-      r.setRenderTarget(this.scratch);
+      r.setViewport(0, 0, 1, 1);
+      r.setScissorTest(true);
+      r.setScissor(0, 0, 0, 0);
       for (const o of list) {
         const geo = o.geometry;
         const mats = matsOf(o);
-        if (!geo || !mats.length) { this.uploaded.add(o); continue; }
+        if (!geo || !mats.length || !o.parent) { this.uploaded.add(o); continue; }
         for (const m of mats) {
-          try { r.renderBufferDirect(this.g.camera, null, geo, m, o, null); } catch { /* the real draw reports it */ }
+          try { r.renderBufferDirect(this.g.camera, null, geo, m, o, null); this.stats.reps++; }
+          catch { /* the real draw reports it */ }
         }
         this.uploaded.add(o);
-        if (!this.hotMat.has(mats[0]) && this.ready(mats[0])) this.hotMat.add(mats[0]);
+        if (mats[0] && !this.hotMat.has(mats[0]) && this.ready(mats[0])) this.hotMat.add(mats[0]);
       }
-    } catch { /* target rejected; the real draw uploads instead */ }
-    finally {
+    } finally {
       this.warming = false;
-      try { r.setRenderTarget(prev); } catch { /* restore best-effort */ }
+      try {
+        r.setScissorTest(false);
+        r.setViewport(view.x, view.y, view.z, view.w);
+      } catch { /* leave the viewport; the next real frame sets it */ }
     }
   }
   /**
