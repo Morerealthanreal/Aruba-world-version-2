@@ -223,3 +223,14 @@ Raw callback time. SwiftShader present delay is in `gap`, not in these columns.
 | gap p50 (ms) | 209 | 210 | 191 | 191 | 183 | 187 |
 
 On this content the low median was already 5.4 ms before the change (the 7.5 ms figure in round 5 was the previous island build). After, it is 6.0 ms. Frames over 50 ms on the low drive fell from 33 to 14, and the non-GL part of those frames no longer exceeds 50 ms. The 500 ms shadow-map compiles from the before run are gone; what remains is a color-program finalize or a `bufferData` inside the draw itself. At full turbo the plane's long frames are still mostly uploads (159 of 175), and that count did not come down. The motorcycle's shader time fell from 8.0 s to 2.6 s and its frames over 50 ms from 39 to 24; its typical render went from 3.4 ms to 5.0 ms, which is why the median rose. Skipping the first draw of a cold mesh was tried and removed: it left these uploads in place and made typical frames slower.
+
+Street-sign plates are a canvas atlas built with the region (one texture, shared by the plate map and emissive map). `disposeRegion` freed geometry, the heightfield, and the water material, and left that atlas on the GPU. It now disposes the atlas when the region unloads, and the pre-upload queue will not allocate it again. Shared pole, fence, and hedge materials are untouched.
+
+Phone soak, low, same route (Oranjestad through Baby Beach, 3 warmup loops + 2 measured). `renderer.info.memory.textures`, last measured cycle minus the first:
+
+| | texture growth | last-cycle textures (low → high stop) |
+|---|---|---|
+| before this dispose | −1.5 | 510–518 |
+| after | −1 | 487–504 |
+
+The official growth was already inside the limit of 4 on this harness; the leak showed up as atlases that never left the GPU after a region unloaded. A teleport check confirmed the dispose: each unloaded region that still had its plate atlas released it, and a region whose only remaining texture was that atlas dropped the count by 1. No console errors. Per-stop movement between the two measured cycles stays inside the resident-set noise (after: Noord +6, California −13, Baby Beach +6) and does not climb on every loop.
