@@ -72,9 +72,9 @@ const shots = [
   },
   {
     name: "wilhelmina",
-    stand: [-7160, 430],
-    eye: [-7172, 2.2, 428],
-    look: [-7108, 3.4, 456],
+    stand: [-7084, 456],
+    eye: [-7084, 2.4, 456],
+    look: [-7116, 2.2, 453],
   },
   {
     name: "cruise-terminal",
