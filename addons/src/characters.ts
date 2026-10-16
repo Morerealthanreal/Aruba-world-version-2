@@ -1,5 +1,5 @@
 import {
-  BufferGeometry, Color, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
+  BufferGeometry, Color, DoubleSide, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
   Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader,
   Vector3, Vector4,
   type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
@@ -205,7 +205,7 @@ if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
 diffuseColor = vec4(texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb, 1.0);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v4";
+  material.customProgramCacheKey = () => "aw-face-card-v5";
   material.alphaTest = 0;
   material.alphaHash = false;
   material.transparent = false;
@@ -353,6 +353,7 @@ function paintMaterial(
   palette: CharacterPalette,
   phase: number,
   part: "body" | "hair" | "head" = "body",
+  faceKind = 0,
 ) {
   const hairVolume = part === "hair";
   const solidSkin = part === "head";
@@ -381,9 +382,11 @@ function paintMaterial(
   material.depthWrite = true;
   material.alphaToCoverage = false;
   material.alphaHash = false;
-  // Solid hair and the repaired clothes are opaque. Leftover hair cards on
-  // the short-haired rig still need a cutout; skin is forced opaque below.
-  material.alphaTest = hairVolume || solidSkin ? 0 : Math.max(material.alphaTest, 0.24);
+  if (hairVolume) material.side = DoubleSide;
+  // Alpha-to-coverage on a masked atlas turns shoulders and hands into dots.
+  // Short-hair cards are cut in the shader with a literal cutoff, so this
+  // stays 0 and the high-quality pass never enables coverage on skin.
+  material.alphaTest = 0;
   material.userData.awPaint = uniforms;
   const hairVertex = tileCondition(tiles.hair, "awVertexTile");
   const dressVertex = tileCondition(tiles.dress, "awVertexTile");
@@ -406,6 +409,11 @@ function paintMaterial(
     s.uniforms.uAwSunDir = { value: sunDir };
     s.uniforms.uAwHeadInv = uniforms.headInv;
     s.uniforms.uAwPortrait = uniforms.portrait;
+    if (solidSkin) {
+      const kind = ((faceKind % 3) + 3) % 3;
+      s.uniforms.uAwFaceMap = { value: faceTextures[kind] };
+      s.uniforms.uAwFaceCrop = { value: FACE_CROP[kind] };
+    }
     s.vertexShader = s.vertexShader
       .replace(
         "#include <common>",
@@ -415,7 +423,8 @@ uniform float uAwPedPhase;
 uniform vec3 uAwSunDir;
 uniform mat4 uAwHeadInv;
 varying vec3 vAwHead;
-varying float vAwFaceDot;`,
+varying float vAwFaceDot;
+${solidSkin ? "varying vec3 vAwShellP;\nvarying vec3 vAwShellN;" : ""}`,
       )
       .replace(
         "#include <begin_vertex>",
@@ -432,7 +441,8 @@ if (${dressVertex}) {
   float awDressFlex = smoothstep(0.18, 0.88, awDressAlong);
   transformed.x += sin(uAwPedTime * 1.25 + uAwPedPhase + position.y * 9.0) * 0.02 * awDressFlex;
   transformed.z += cos(uAwPedTime * 0.85 + uAwPedPhase) * 0.008 * awDressFlex;
-}`,
+}
+${solidSkin ? "vAwShellP = position;\nvAwShellN = normal;" : ""}`,
       )
       .replace(
         "#include <project_vertex>",
@@ -453,7 +463,8 @@ uniform vec3 uAwPedDress;
 uniform vec3 uAwSunDir;
 uniform float uAwPortrait;
 varying vec3 vAwHead;
-varying float vAwFaceDot;`,
+varying float vAwFaceDot;
+${solidSkin ? "uniform sampler2D uAwFaceMap;\nuniform vec4 uAwFaceCrop;\nvarying vec3 vAwShellP;\nvarying vec3 vAwShellN;\nvec3 awShellPaint = vec3(0.0);\nfloat awShellMask = 0.0;" : ""}`,
       )
       .replace(
         "#include <map_fragment>",
@@ -465,11 +476,18 @@ if (uAwPortrait > 0.5) {
   float awOval = (awP.x * awP.x) / 0.003844 + (awP.y * awP.y) / 0.007744;
   awFace = smoothstep(0.015, 0.06, vAwHead.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
 }
-if (${solidSkin ? "true" : "false"}) {
-  diffuseColor.rgb = uAwPedSkin;
+${solidSkin ? `if (true) {
+  float awU = clamp(vAwShellP.x / 0.150 + 0.50, 0.0, 1.0);
+  float awV = clamp((vAwShellP.y + 0.062) / 0.188, 0.0, 1.0);
+  vec2 awC = vec2(awU, awV) - vec2(0.50, 0.48);
+  float awOval = (awC.x * awC.x) / 0.30 + (awC.y * awC.y) / 0.34;
+  awShellMask = smoothstep(0.01, 0.055, vAwShellP.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
+  awShellPaint = texture2D(uAwFaceMap, uAwFaceCrop.xy + vec2(awU, awV) * uAwFaceCrop.zw).rgb;
+  diffuseColor.rgb = mix(uAwPedSkin, awShellPaint, awShellMask);
   diffuseColor.a = 1.0;
-} else if (${skinFragment}) {
-  diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
+} else ` : ""}if (${skinFragment}) {
+  vec3 awSkinLit = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
+  diffuseColor.rgb = mix(uAwPedSkin, awSkinLit, smoothstep(0.15, 0.55, diffuseColor.a));
   if (awFace > 0.15) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, 0.55);
   float awSkull = 1.0 - smoothstep(0.12, 0.24, length(vAwHead - vec3(0.0, 0.02, 0.01)));
   if (uAwPortrait > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, awSkull);
@@ -478,13 +496,16 @@ if (${solidSkin ? "true" : "false"}) {
   diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.84);
   ${hairVolume ? "diffuseColor.a = 1.0;" : ""}
 } else if (${topFragment}) {
-  diffuseColor.rgb *= uAwPedTop;
+  vec3 awTopLit = diffuseColor.rgb * uAwPedTop;
+  diffuseColor.rgb = mix(uAwPedTop * 0.72, awTopLit, smoothstep(0.15, 0.55, diffuseColor.a));
   diffuseColor.a = 1.0;
 } else if (${bottomFragment}) {
-  diffuseColor.rgb *= uAwPedBottom;
+  vec3 awBotLit = diffuseColor.rgb * uAwPedBottom;
+  diffuseColor.rgb = mix(uAwPedBottom * 0.72, awBotLit, smoothstep(0.15, 0.55, diffuseColor.a));
   diffuseColor.a = 1.0;
 } else if (${dressFragment}) {
-  diffuseColor.rgb *= uAwPedDress;
+  vec3 awDressLit = diffuseColor.rgb * uAwPedDress;
+  diffuseColor.rgb = mix(uAwPedDress * 0.72, awDressLit, smoothstep(0.15, 0.55, diffuseColor.a));
   diffuseColor.a = 1.0;
 } else if (${detailFragment}) {
   diffuseColor.a = 1.0;
@@ -494,11 +515,9 @@ ${hairVolume ? "diffuseColor.a = 1.0;" : "if (!(" + hairFragment + ")) diffuseCo
       )
       .replace(
         "#include <alphatest_fragment>",
-        hairVolume
+        hairVolume || solidSkin
           ? "#include <alphatest_fragment>"
-          : `#ifdef USE_ALPHATEST
-if ((${hairFragment}) && diffuseColor.a < alphaTest) discard;
-#endif`,
+          : `if ((${hairFragment}) && diffuseColor.a < 0.24) discard;`,
       )
       .replace(
         "#include <emissivemap_fragment>",
@@ -514,14 +533,15 @@ float awGrade = mix(0.78 + 0.28 * awWrap, 0.98 + 0.06 * awWrap, clamp(awFace, 0.
 diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * awGrade;
 float awRimAmt = mix(0.16 + 0.95 * awBack, 0.05 + 0.12 * awBack, clamp(awFace, 0.0, 1.0));
 totalEmissiveRadiance += awGold * awRim * awRimAmt;
-if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 0.28;`,
+if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 0.28;
+${solidSkin ? "totalEmissiveRadiance += awShellPaint * awShellMask * 0.2;" : ""}`,
       );
   };
   const shaderVariant = [
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v10:${part}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v12:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -539,7 +559,7 @@ export function styleCharacter(
     if (!mesh.isMesh) return;
     const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
     const part = mesh.name === "aw:hair" ? "hair" : mesh.name === "aw:head-shell" ? "head" : "body";
-    const { material, uniforms } = paintMaterial(source, palette, phase, part);
+    const { material, uniforms } = paintMaterial(source, palette, phase, part, faceKind);
     mesh.material = material;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
