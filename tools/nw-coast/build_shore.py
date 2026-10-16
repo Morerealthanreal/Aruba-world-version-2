@@ -507,9 +507,11 @@ SIGN_INK = (0.10, 0.26, 0.42)
 SIGN_BLUE = (0.10, 0.32, 0.55)
 SIGN_WHITE = (0.95, 0.95, 0.93)
 POST_W = (0.42, 0.30, 0.18)
-# Lighthouse walk and Faro Blanco terrace. Dirt, not the white dune sand.
-GRAVEL = (0.68, 0.64, 0.56)
-CONC = (0.76, 0.74, 0.68)
+# Lighthouse walk and Faro Blanco terrace. Pale packed gravel against the tan hill,
+# with a darker limestone edge so the walk still reads in flat light.
+GRAVEL = (0.78, 0.75, 0.68)
+STONE_P = (0.40, 0.37, 0.32)
+CONC = (0.82, 0.80, 0.74)
 BUOY_Y = (0.90, 0.70, 0.10)
 BUOY_W = (0.93, 0.93, 0.90)
 
@@ -1177,8 +1179,9 @@ def register(b: B):
     b.mat("signi", SIGN_INK, 0.6)
     b.mat("signu", SIGN_BLUE, 0.5)
     b.mat("signw", SIGN_WHITE, 0.45)
-    b.mat("gravel", GRAVEL, 0.96)
-    b.mat("conc", CONC, 0.84)
+    b.mat("gravel", GRAVEL, 0.94)
+    b.mat("stonep", STONE_P, 0.9)
+    b.mat("conc", CONC, 0.82)
     b.mat("buoyy", BUOY_Y, 0.45)
     b.mat("buoyw", BUOY_W, 0.4)
 
@@ -1350,30 +1353,6 @@ def lot_blocked(x, z):
     return False
 
 
-def drape_pad(b, mat, x, z, step, lod, lo, hi):
-    hs = (
-        mesh_height(x, z),
-        mesh_height(x + step, z),
-        mesh_height(x + step, z + step),
-        mesh_height(x, z + step),
-    )
-    if min(hs) < lo or max(hs) > hi or max(hs) - min(hs) > 1.2:
-        return False
-    lift = 0.035 if lod == 0 else 0.05
-    b.quad(
-        lod,
-        mat,
-        [
-            (x, hs[0] + lift, z),
-            (x + step, hs[1] + lift, z),
-            (x + step, hs[2] + lift, z + step),
-            (x, hs[3] + lift, z + step),
-        ],
-        (0, 1, 0),
-    )
-    return True
-
-
 def add_lh_grounds(b, dunes):
     """Gravel walk up the north side of the hill, and the west viewing terrace.
 
@@ -1415,39 +1394,36 @@ def add_lh_grounds(b, dunes):
         for side in (-1, 1):
             wx = x + side * 1.25
             base = min(h0, h1) - 0.04
-            crown = max(h0, h1) + 0.46
-            b.box(0, "lime", wx - 0.14, base, z, wx + 0.14, crown, z1)
+            crown = max(h0, h1) + 0.72
+            b.box(0, "stonep", wx - 0.16, base, z, wx + 0.16, crown, z1)
             if n % 2 == 0:
-                b.box(1, "lime", wx - 0.16, base, z, wx + 0.16, max(base + 0.2, crown - 0.12), z1)
+                b.box(1, "stonep", wx - 0.18, base, z, wx + 0.18, crown - 0.16, z1)
         n += 1
         z = z1
+    # No gravel sheet on the slope: a flat pad reads as a floating slab. The
+    # overlook is a low stone wall and two benches west of the existing rail.
     cells = 0
-    # West of Faro Blanco's rail (rail reaches x=-8942). This pad is the lower overlook.
-    for zz in range(-10336, -10312, 4):
-        for xx in range(-8972, -8956, 4):
-            if lot_blocked(xx + 2, zz + 2) or any_hit(dunes, xx + 2, zz + 2):
-                continue
-            if drape_pad(b, "gravel", xx, zz, 4.0, 0, 16.0, 28.0):
-                drape_pad(b, "gravel", xx, zz, 4.0, 1, 16.0, 28.0)
-                cells += 1
-    for zz in range(-10336, -10312, 4):
-        wx = -8972.4
+    for zz in range(-10334, -10314, 4):
+        wx = -8968.0
         if lot_blocked(wx, zz + 2) or any_hit(dunes, wx, zz + 2):
             continue
         h0, h1 = mesh_height(wx, zz), mesh_height(wx, zz + 4)
         if not (16.0 < h0 < 28.0 and 16.0 < h1 < 28.0):
             continue
         base = min(h0, h1) - 0.02
-        b.box(0, "lime", wx - 0.16, base, zz, wx + 0.16, max(h0, h1) + 0.52, zz + 4)
-        b.box(1, "lime", wx - 0.18, base, zz, wx + 0.18, max(h0, h1) + 0.38, zz + 4)
-    for bx, bz in ((-8964.0, -10330.0), (-8962.0, -10318.0)):
+        b.box(0, "stonep", wx - 0.22, base, zz, wx + 0.22, max(h0, h1) + 0.78, zz + 4)
+        b.box(1, "stonep", wx - 0.24, base, zz, wx + 0.24, max(h0, h1) + 0.55, zz + 4)
+        cells += 1
+    for bx, bz in ((-8962.5, -10328.0), (-8961.5, -10318.0)):
         if lot_blocked(bx, bz) or any_hit(dunes, bx, bz):
             continue
         g = mesh_height(bx, bz)
         if 16.0 < g < 28.0:
-            b.box(0, "plinth", bx - 0.7, g, bz - 0.26, bx + 0.7, g + 0.42, bz + 0.26)
-            b.box(1, "plinth", bx - 0.65, g, bz - 0.24, bx + 0.65, g + 0.36, bz + 0.24)
-    print("grounds walk", n, "at x", round(x, 1), "terrace", cells)
+            b.box(0, "postw", bx - 0.85, g, bz - 0.28, bx + 0.85, g + 0.42, bz + 0.28)
+            b.box(1, "postw", bx - 0.8, g, bz - 0.26, bx + 0.8, g + 0.34, bz + 0.26)
+            for legx in (-0.65, 0.65):
+                b.box(0, "postw", bx + legx - 0.06, g, bz - 0.16, bx + legx + 0.06, g + 0.42, bz + 0.16)
+    print("grounds walk", n, "at x", round(x, 1), "terrace wall", cells)
 
 
 def add_swim_buoy(b, x, z, scale=1.0):
@@ -1498,8 +1474,11 @@ def add_snorkel_notch(b, z, label):
         b.box(0, "conc", x0, bot, z - 1.15, x1, top, z + 1.15)
         b.box(1, "conc", x0, bot, z - 1.05, x1, top, z + 1.05)
         for side in (-1, 1):
-            zs = z + side * 1.38
-            b.box(0, "lime" if side < 0 else "limed", x0, bot, zs - 0.2, x1, top + 0.26, zs + 0.2)
+            zs = z + side * 1.55
+            # Dark ironshore cheeks, tall enough to read against the pale sand.
+            b.box(0, "boulder", x0 - 0.15, bot - 0.08, zs - 0.38, x1 + 0.1, top + 0.62, zs + 0.38)
+            if i == 0:
+                b.box(1, "boulder", x0, bot, zs - 0.32, x1, top + 0.45, zs + 0.32)
         prev = top
         placed += 1
     sx = found - placed * run - 0.3
@@ -1511,8 +1490,8 @@ def add_snorkel_notch(b, z, label):
     bx = cx - 1.0
     while bx > cx - 28.0 and mesh_height(bx, z) > 0.02:
         bx -= 1.0
-    add_swim_buoy(b, bx - 2.5, z - 2.0)
-    add_swim_buoy(b, bx - 1.2, z + 2.4, 0.85)
+    add_swim_buoy(b, bx - 1.4, z - 1.8, 1.55)
+    add_swim_buoy(b, bx - 0.6, z + 2.2, 1.25)
     print("notch", label, round(found, 1), z, "treads", placed, "buoy x", round(bx, 1))
 
 
