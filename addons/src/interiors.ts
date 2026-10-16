@@ -103,6 +103,8 @@ const DOOR_FRAG = `
 
 export class Interiors {
   places: Place[];
+  /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
+  private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
     this.places = [placePastechi(), placeMcdonalds()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
@@ -131,6 +133,13 @@ export class Interiors {
   }
 
   update() {
+    if (this.rebake.size) {
+      for (const [mat, n] of this.rebake) {
+        mat.needsUpdate = true;
+        if (n <= 1) this.rebake.delete(mat);
+        else this.rebake.set(mat, n - 1);
+      }
+    }
     const S = this.g.S as { mode: string; walk: { x: number; z: number }; car: { x: number; z: number }; plane: { x: number; z: number } };
     const e = S.mode === "walk" ? S.walk : S.mode === "plane" ? S.plane : S.car;
     const ps = this.places;
@@ -198,6 +207,8 @@ export class Interiors {
   ) {
     const name = mat.name || "";
     if (name !== "ground" && name !== "lwall") return;
+    this.rebake.set(mat, 4);
+    mat.needsUpdate = true;
     chainPatch(mat, "door-" + name, (s: Shader) => {
       if (!s.vertexShader.includes("#include <begin_vertex>")) return;
       if (!s.fragmentShader.includes("#include <clipping_planes_fragment>")) return;

@@ -57,6 +57,16 @@ async function settle(tag) {
     const e = h && h.list && h.list.find((n) => n.k === "mcd1");
     return !!(e && e._g);
   }, null, { timeout: 90000 });
+  // The far-city massing box covers the hero until this 1 km region is built.
+  // Shots taken before that show a solid wall even though the door shader is on.
+  await page.waitForFunction(() => {
+    const w = window.game.S.walk;
+    const M = window.game.real.M;
+    const rx = Math.floor((w.x - M.X0) / M.RS);
+    const rz = Math.floor((w.z - M.Z0) / M.RS);
+    for (const r of window.game.real.regions.values()) if (r.rx === rx && r.rz === rz && r.state === "built") return true;
+    return false;
+  }, null, { timeout: 120000 });
   await page.waitForTimeout(2000);
   const info = await page.evaluate(() => {
     const w = window.game.S.walk;
