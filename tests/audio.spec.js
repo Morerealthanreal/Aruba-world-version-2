@@ -13,7 +13,7 @@ function installRuntimeErrorCapture(page) {
 
 test("player engines, silent traffic, crash sirens and turbo", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "low", "audio behavior does not depend on quality");
-  test.setTimeout(6 * 60 * 1000);
+  test.setTimeout(8 * 60 * 1000);
   const errors = installRuntimeErrorCapture(page);
 
   // emerg=force turns every traffic car into an emergency model, and crash
@@ -21,6 +21,9 @@ test("player engines, silent traffic, crash sirens and turbo", async ({ page }, 
   await page.goto("/?q=low&crash=force&crashx=10", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.game?.ready && window.__aw?.audio, undefined, { timeout: 120_000 });
   await expect(page.locator("#loading")).toBeHidden();
+  // The car button is already in the document. SwiftShader can sit in a long
+  // frame right after load, and a 15s click expires before that frame returns.
+  page.setDefaultTimeout(90_000);
   await page.locator('#modes button[data-mode="car"]').click({ force: true });
   await page.locator("#c").click({ force: true });
 
@@ -70,8 +73,11 @@ test("player engines, silent traffic, crash sirens and turbo", async ({ page }, 
     window.game.teleport("car", stats.x, stats.z, 0);
     window.game.S.snapCam = 8;
   });
-  await page.waitForFunction(() => window.__aw.audio.stats.police > 0.008, undefined, { timeout: 45_000 });
-  await page.waitForFunction(() => window.__aw.crash.stats.fs, undefined, { timeout: 90_000 });
+  // Police and the forensics van are scripted, and sim time is capped at 50ms
+  // per frame. A slow SwiftShader frame makes their arrival take longer on
+  // the wall clock; the vehicles themselves are unchanged.
+  await page.waitForFunction(() => window.__aw.audio.stats.police > 0.008, undefined, { timeout: 90_000 });
+  await page.waitForFunction(() => window.__aw.crash.stats.fs, undefined, { timeout: 150_000 });
 
   const atScene = await page.evaluate(() => ({
     audio: window.__aw.audio.stats,

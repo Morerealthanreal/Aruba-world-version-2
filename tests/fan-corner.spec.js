@@ -48,9 +48,20 @@ test("fan suction takes the same corner harder without flipping", async ({
     async ({ speed, cornerSteps, straightSteps, seeds }) => {
       const game = window.game;
       const wrap = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle));
+      // The comparison is physics-only. Rendering each stepped frame on
+      // SwiftShader blows the test budget before the heading is measured.
+      const previousNoRender = window.__noRender;
+      window.__noRender = true;
 
       const freeze = () => {
         window.__stepN = 0;
+      };
+
+      const finish = () => {
+        freeze();
+        window.__awFan = true;
+        window.__noRender = previousNoRender;
+        game.held.right = false;
       };
 
       const settle = () =>
@@ -162,13 +173,12 @@ test("fan suction takes the same corner harder without flipping", async ({
           if (chosen) break;
         }
         if (!chosen) {
+          finish();
           return { error: `no clear corner for ${mode}`, rejected };
         }
         rows.push(chosen);
       }
-      freeze();
-      window.__awFan = true;
-      game.held.right = false;
+      finish();
       return { rows };
     },
     {

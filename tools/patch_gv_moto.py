@@ -157,12 +157,15 @@ swap(
     "a.y+=(v-a.y)*Math.min(1,(window.__awFan?v<a.y?42:12:14)*e),a.y=Math.max(a.y,l,window.__awFan?Math.min(v,a.y+1.4*e):v)",
     "a.y+=(v-a.y)*Math.min(1,14*e),a.y=Math.max(a.y,l,v)",
     "a.y+=(v-a.y)*Math.min(1,(window.__awFan?80:14)*e),a.y=Math.max(a.y,l,v)",
+    "a.y+=(v-a.y)*Math.min(1,(window.__awFan?80:14)*e)",
+    "a.y+=(v-a.y)*Math.min(1,14*e)",
 )
 swap(
     "fan squat and roll",
     # Downforce keeps the shell flat. Road bank is halved and cornering roll
     # stays inside a couple of degrees so a fast corner does not flip the car.
     "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03)+(window.__awFan?p(-Math.abs(a.s)*.0005,-.035,0):0),C=p(-b*(window.__awFan?.45:1),-.12,.12)+p(u*a.s*(window.__awFan?.0009:.0022),window.__awFan?-.035:-.05,window.__awFan?.035:.05)",
+    "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03)+(window.__awFan?p(-Math.abs(a.s)*.0016,-.1,0):0),C=p(-b,-.12,.12)+p(u*a.s*(window.__awFan?.007:.0022),window.__awFan?-.2:-.05,window.__awFan?.2:.05)",
     "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03),C=p(-b,-.12,.12)+p(u*a.s*.0022,-.05,.05)",
 )
 
