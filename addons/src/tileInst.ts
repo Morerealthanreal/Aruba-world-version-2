@@ -249,6 +249,6 @@ export class TileInstances {
   }
 }
 function primeMesh(o: Object3D) {
-  const prime = (window as unknown as { __aw?: { mperf?: { prime?: (o: Object3D) => void } } }).__aw?.mperf?.prime;
-  if (prime) prime(o);
+  const mp = (window as unknown as { __aw?: { mperf?: { prime: (o: Object3D) => void } } }).__aw?.mperf;
+  if (mp) { try { mp.prime(o); } catch { /* warm-up is best-effort */ } }
 }

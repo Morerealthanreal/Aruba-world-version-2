@@ -259,6 +259,9 @@ export class MobilePerf {
   // Shadow passes use one shared MeshDepthMaterial (alpha-tested materials clone it). Compiling the
   // shared variant here starts that link with the game's program cache; a mismatch only adds an unused program.
   private warmDepth(o: O, r: R) {
+    const morph = o.geometry?.morphAttributes;
+    // a morph geometry without MORPHTARGETS_COUNT bakes a broken depth program into the shared cache
+    if (morph && (morph.position || morph.normal || morph.color)) return;
     const k = (o.isBatchedMesh ? "B" : "") + (o.isInstancedMesh ? "I" : "") + (o.isSkinnedMesh ? "s" : "");
     if (this.depthKeys.has(k)) return;
     this.depthKeys.add(k);
