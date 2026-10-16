@@ -202,3 +202,24 @@ The hitch that showed up as ~3500 draws for a handful of frames is gone: cells a
 | alloc MB/frame | 0.98 | 0.93 | 1.00 | 0.98 |
 
 Gap (wall time from one animation callback to the next) was not recorded on the before run. After, gap p50 is 212 ms on low and 307 ms on med; that is SwiftShader present delay plus the pump, not a phone frame time. Phone soak (`tests/long-drive-soak.spec.js`, low) passes. The high project is skipped by the test.
+
+## Round 6 (shadow warm-up, low median, turbo and motorcycle)
+
+Same harness on current main (r292) plus the round-5 fixes. Before is that tree. After also compiles the shadow-map depth program (back face, fog off, render-target state) and finalizes it in the tile pump, drains queued texture uploads there, and keeps the building-batch walk and the instance-pool refill out of the animation callback. Low is the 21 km drive. Plane is the same road at full turbo (560 km/h). Motorcycle is the same road at the bike's top speed (55 m/s). Med was not remeasured. Phone soak (`tests/long-drive-soak.spec.js`, low) passes.
+
+Raw callback time. SwiftShader present delay is in `gap`, not in these columns.
+
+| metric | low before | low after | plane before | plane after | moto before | moto after |
+|---|---|---|---|---|---|---|
+| frames | 5401 | 5401 | 4050 | 4050 | 5401 | 5401 |
+| raw frame p50 / p95 / p99 / max (ms) | 5.4 / 10.5 / 16.2 / 583 | 6.0 / 10.5 / 15.0 / 605 | 7.0 / 15.4 / 210 / 555 | 6.7 / 16.0 / 214 / 518 | 4.7 / 9.2 / 18.3 / 661 | 6.6 / 11.4 / 17.2 / 524 |
+| raw frames >16 / >33 / >50 ms | 48 / 33 / 33 | 33 / 14 / 14 | 183 / 163 / 163 | 196 / 175 / 175 | 58 / 41 / 39 | 58 / 24 / 24 |
+| CPU frame p50 / max (ms) | 5.2 / 62 | 5.8 / 25.2 | 6.1 / 263 | 5.9 / 249 | 4.6 / 71.5 | 6.4 / 80.9 |
+| CPU frames >50 ms | 1 | 0 | 2 | 1 | 1 | 1 |
+| shader compile total / max (ms) | 6235 / 751 | 3380 / 709 | 5180 / 541 | 5629 / 507 | 7972 / 648 | 2644 / 737 |
+| texture+buffer upload total / max (ms) | 8510 / 583 | 3758 / 440 | 31249 / 459 | 33538 / 425 | 7611 / 404 | 5968 / 434 |
+| draw spikes (calls > 1500) | 0 | 1 | 2 | 3 | 1 | 1 |
+| draw calls avg / max | 274 / 601 | 278 / 1642 | 261 / 1834 | 262 / 1825 | 266 / 1665 | 265 / 1601 |
+| gap p50 (ms) | 209 | 210 | 191 | 191 | 183 | 187 |
+
+On this content the low median was already 5.4 ms before the change (the 7.5 ms figure in round 5 was the previous island build). After, it is 6.0 ms. Frames over 50 ms on the low drive fell from 33 to 14, and the non-GL part of those frames no longer exceeds 50 ms. The 500 ms shadow-map compiles from the before run are gone; what remains is a color-program finalize or a `bufferData` inside the draw itself. At full turbo the plane's long frames are still mostly uploads (159 of 175), and that count did not come down. The motorcycle's shader time fell from 8.0 s to 2.6 s and its frames over 50 ms from 39 to 24; its typical render went from 3.4 ms to 5.0 ms, which is why the median rose. Skipping the first draw of a cold mesh was tried and removed: it left these uploads in place and made typical frames slower.
