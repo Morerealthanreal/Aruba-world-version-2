@@ -60595,5 +60595,95 @@
   "ref_sources": "Airside roof cap on the existing airport_fx shell. Wikimedia 'Roman Tokman Aruba Airport': turquoise standing-seam roof on the apron side. Same origin as airport_fx so it sits on that model.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "park"
+ },
+ {
+  "id": "dv_golf",
+  "k": "dv_golf",
+  "name": "Divi Village golf pins and boulevard sign",
+  "status": "smith-edge additive",
+  "x": -9535.78,
+  "z": -1847.84,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/dv_golf.glb",
+  "lod": {
+   "hi": "dv_golf_lod0",
+   "lo": "dv_golf_lod1",
+   "switch_m": 640
+  },
+  "tris": {
+   "dv_golf_lod0": 140,
+   "dv_golf_lod1": 124
+  },
+  "textures": 1,
+  "hide_footprint": [],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "terrain height at the placement; no OSM footprint replaced",
+  "ref_sources": "Divi Village Golf & Beach Resort, 9-hole course inland of J.E. Irausquin at the Druif end (about 12.537, -70.056). Street View: green fairway, red and yellow pins, a roadside DIVI VILLAGE sign. The peach arch hero is left where it is.",
+  "frame": "glb origin = sign; glTF +X = world x, +Z = world z, Y up; landmarks/smith_edge.py",
+  "cat": "landmark"
+ },
+ {
+  "id": "alhambra_sign",
+  "k": "alhambra_sign",
+  "name": "Alhambra casino forecourt sign",
+  "status": "smith-edge additive",
+  "x": -9798.13,
+  "z": -2170.75,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/alhambra_sign.glb",
+  "lod": {
+   "hi": "alhambra_sign_lod0",
+   "lo": "alhambra_sign_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "alhambra_sign_lod0": 32,
+   "alhambra_sign_lod1": 32
+  },
+  "textures": 2,
+  "hide_footprint": [],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "terrain height at the placement; no OSM footprint replaced",
+  "ref_sources": "Alhambra Casino & Shopping Bazaar at the Queen Conch roundabout. Street View: burgundy board, gold ALHAMBRA letters, white arcade and brass onion domes. The existing hero keeps its mesh and its own sign; this board faces J.E. Irausquin from the forecourt.",
+  "frame": "glb origin = sign; glTF +X = world x, +Z = world z, Y up; landmarks/smith_edge.py",
+  "cat": "landmark"
+ },
+ {
+  "id": "bubali_board",
+  "k": "bubali_board",
+  "name": "Bubali Bird Sanctuary approach board",
+  "status": "smith-edge additive",
+  "x": -8495.76,
+  "z": -4583.64,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/bubali_board.glb",
+  "lod": {
+   "hi": "bubali_board_lod0",
+   "lo": "bubali_board_lod1",
+   "switch_m": 280
+  },
+  "tris": {
+   "bubali_board_lod0": 32,
+   "bubali_board_lod1": 32
+  },
+  "textures": 2,
+  "hide_footprint": [],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "terrain height at the placement; no OSM footprint replaced",
+  "ref_sources": "Bubali Bird Sanctuary observation tower, two-level wooden lookout inland of J.E. Irausquin (aruba.com / OSM). The tower hero and its green sign are unchanged. This board faces the south-east approach.",
+  "frame": "glb origin = sign; glTF +X = world x, +Z = world z, Y up; landmarks/smith_edge.py",
+  "cat": "landmark"
  }
 ]
