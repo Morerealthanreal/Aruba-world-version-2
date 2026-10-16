@@ -79,8 +79,9 @@ swap(
 )
 swap(
     "drift and turn",
-    # ?fan=0 (or add-ons off) keeps the stock speed washout. Fan downforce adds
-    # yaw that grows with speed, so lateral g climbs instead of flattening.
+    # ?fan=0 keeps the stock washout. Fan suction adds yaw that grows with
+    # speed, so a fast corner tightens instead of sliding out. Low speed stays
+    # near the old radius so a short steer from rest is not a wall pin.
     f";a.drift=(a.drift||0)+((window.__awFan?0:o&&{enabled}&&c&&Math.abs(a.st)>.3&&Math.abs(a.s)>9?1:0)-(a.drift||0))*Math.min(1,e*(window.__awFan?18:c?7.5:3.5));window.__awDrift=o&&{enabled}?a.drift:0;let u=a.st*(window.__awFan?(o?1.65:1.8)+Math.abs(a.s)*(o?.032:.036):(o?({enabled}?1.95:1.35):2)/(1+Math.abs(a.s)*(o?({enabled}?.055:.1):.06)))*(1+(window.__awFan?0:o&&{enabled}?a.drift*.55:0))",
     f";a.drift=(a.drift||0)+((o&&{enabled}&&c&&Math.abs(a.st)>.3&&Math.abs(a.s)>9?1:0)-(a.drift||0))*Math.min(1,e*(c?7.5:3.5));window.__awDrift=o&&{enabled}?a.drift:0;let u=a.st*((o?({enabled}?1.95:1.35):2)/(1+Math.abs(a.s)*(o?({enabled}?.055:.1):.06)))*(1+(o&&{enabled}?a.drift*.55:0))",
     ";let u=a.st*((o?1.35:2)/(1+Math.abs(a.s)*(o?.1:.06)))",
@@ -94,6 +95,9 @@ swap(
 )
 swap(
     "lean angle",
+    # Fan yaw is physics-breaking. Lean still uses the stock full-lock rate,
+    # so the bike does not fall on its side just because the fan can turn harder.
+    f"{enabled}?Math.max(-.72,Math.min(.72,-Math.atan((window.__awFan?Math.sign(u||1)*Math.min(Math.abs(u),1.95/(1+Math.abs(a.s)*.055)*Math.min(1,Math.abs(a.s)/4)):u)*Math.abs(a.s)/9.8)*1.05)):Math.max(-.45,Math.min(.45,-Math.atan((window.__awFan?Math.sign(u||1)*Math.min(Math.abs(u),1.35/(1+Math.abs(a.s)*.1)*Math.min(1,Math.abs(a.s)/4)):u)*Math.abs(a.s)/9.8)*.8))",
     f"{enabled}?Math.max(-.72,Math.min(.72,-Math.atan(Math.abs(a.s)*u/9.8)*1.05)):Math.max(-.45,Math.min(.45,-Math.atan(Math.abs(a.s)*u/9.8)*.8))",
     "Math.max(-.45,Math.min(.45,-Math.atan(Math.abs(a.s)*u/9.8)*.8))",
     "Math.max(-.72,Math.min(.72,-Math.atan(Math.abs(a.s)*u/9.8)*1.05))",
@@ -148,11 +152,19 @@ swap(
 )
 swap(
     "fan surface suction",
+    # Suck down onto the road quickly. A bump or kerb may only lift the shell
+    # at a walking pace, so the fan does not launch the car off the crest.
+    "a.y+=(v-a.y)*Math.min(1,(window.__awFan?v<a.y?42:12:14)*e),a.y=Math.max(a.y,l,window.__awFan?Math.min(v,a.y+1.4*e):v)",
+    "a.y+=(v-a.y)*Math.min(1,14*e),a.y=Math.max(a.y,l,v)",
+    "a.y+=(v-a.y)*Math.min(1,(window.__awFan?80:14)*e),a.y=Math.max(a.y,l,v)",
     "a.y+=(v-a.y)*Math.min(1,(window.__awFan?80:14)*e)",
     "a.y+=(v-a.y)*Math.min(1,14*e)",
 )
 swap(
     "fan squat and roll",
+    # Downforce keeps the shell flat. Road bank is halved and cornering roll
+    # stays inside a couple of degrees so a fast corner does not flip the car.
+    "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03)+(window.__awFan?p(-Math.abs(a.s)*.0005,-.035,0):0),C=p(-b*(window.__awFan?.45:1),-.12,.12)+p(u*a.s*(window.__awFan?.0009:.0022),window.__awFan?-.035:-.05,window.__awFan?.035:.05)",
     "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03)+(window.__awFan?p(-Math.abs(a.s)*.0016,-.1,0):0),C=p(-b,-.12,.12)+p(u*a.s*(window.__awFan?.007:.0022),window.__awFan?-.2:-.05,window.__awFan?.2:.05)",
     "let S=p(y,-.18,.18)+p(-x*.004,-.03,.03),C=p(-b,-.12,.12)+p(u*a.s*.0022,-.05,.05)",
 )

@@ -10,6 +10,7 @@ jobs:
   aruba-world:
     name: Aruba World (${{ matrix.quality }})
     runs-on: ubuntu-latest
+    # SwiftShader low runs the phone soak and the corner comparison; 15 minutes cancels them.
     timeout-minutes: 45
     strategy:
       fail-fast: false
