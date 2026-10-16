@@ -1,0 +1,15 @@
+Basis Universal(TM) Supercompressed GPU Texture Compression Library
+
+Copyright (c) 2016-2026 Binomial LLC.
+All rights reserved except as granted under the Apache 2.0 license.
+"Basis Universal" is a trademark of Binomial LLC.
+
+The documents in the Basis Universal wiki, and the Basis Universal library,
+example, and tool source code, fall under the Apache 2.0 license, unless
+otherwise explicitly indicated.
+
+Redistributions or derivative works must include a readable copy of the
+attribution notices from this NOTICE file (see Apache License 2.0 section 4(d)).
+
+This software, documentation and specifications are provided "as is", without
+warranty of any kind (see Apache License 2.0 sections 7-8).

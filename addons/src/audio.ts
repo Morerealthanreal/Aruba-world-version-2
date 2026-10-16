@@ -31,7 +31,7 @@ type Graph = {
   police: Tone; police2: Tone; policePan: StereoPannerNode; policeOut: GainNode;
   amb: Tone; amb2: Tone; ambPan: StereoPannerNode; ambOut: GainNode;
   thump: OscillatorNode; thumpGain: GainNode; crunch: NoiseTap; metal: NoiseTap;
-  skid: NoiseTap; waves: NoiseTap; city: NoiseTap;
+  skid: NoiseTap;
 };
 type Node = { position: { x: number; z: number }; parent: Node | null };
 type Child = Node & { name: string };
@@ -68,7 +68,6 @@ export class WorldAudio {
   private policeLin = 0;
   private ambLin = 0;
   private crashRoot: CrashRoot | null = null;
-  private waveBase = 0.012;
   private heardMode = "";
   private policeD = -1;
   private policeX = 0;
@@ -336,16 +335,7 @@ export class WorldAudio {
 
       const skid = this.tap(ctx, noise, "bandpass", 1600);
       skid.gain.connect(master);
-      const waves = this.tap(ctx, noise, "lowpass", 680);
-      waves.gain.connect(master);
-      const city = this.tap(ctx, noise, "bandpass", 1000);
-      city.gain.connect(master);
-      const waveLfo = ctx.createOscillator();
-      const waveDepth = ctx.createGain();
-      waveLfo.frequency.value = 0.12;
-      waveDepth.gain.value = 0.004;
-      waveLfo.connect(waveDepth).connect(waves.gain.gain);
-      waveLfo.start();
+      // r285: removed the always-on 'waves' (lowpass noise + LFO, never below 0.012) and 'city' (1 kHz bandpass noise) beds: constant hiss/feedback.
 
       this.audio = {
         ctx, master, noise, car, moto, clunk,
@@ -353,7 +343,7 @@ export class WorldAudio {
         roar, crackle, sub, sub2, whooshFilter, whoosh,
         police, police2, policePan, policeOut,
         amb, amb2, ambPan, ambOut,
-        thump, thumpGain, crunch, metal, skid, waves, city,
+        thump, thumpGain, crunch, metal, skid,
       };
       this.stats.started = true;
       this.stats.nodes = 48;
@@ -712,14 +702,6 @@ export class WorldAudio {
       audio.ambPan.pan.value = pan < -0.75 ? -0.75 : pan > 0.75 ? 0.75 : pan;
     }
 
-    const active = mode === "walk" ? state.walk : mode === "plane" ? state.plane : state.car;
-    const palm = Math.hypot(active.x + 8220, active.z + 5750);
-    const downtown = Math.hypot(active.x + 7150, active.z);
-    const beachMix = Math.max(0, 1 - palm / 1900);
-    const cityMix = Math.max(Math.max(0, 1 - downtown / 1900), beachMix * 0.45);
-    this.waveBase = this.approach(this.waveBase, 0.012 + beachMix * 0.022, dt, 1.2);
-    audio.waves.amp = this.write(audio.waves.gain.gain, audio.waves.amp, this.waveBase, 0.001);
-    audio.city.amp = this.write(audio.city.gain.gain, audio.city.amp, cityMix * 0.016, 0.001);
 
     const want = this.muted || document.hidden ? 0 : MASTER;
     this.masterLin = this.approach(this.masterLin, want, dt > 0 ? dt : 0.016, 8);
