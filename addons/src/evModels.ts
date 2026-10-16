@@ -271,7 +271,8 @@ export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tabl
     n.detail.idle.setEffectiveWeight(walking ? 0 : 1);
     n.detail.walk.timeScale = 1.05;
     n.detail.mixer.update(dt);
-    updateCharacterPaint(n.detail.paints, n.t);
+    const sky = (window.game?.real as { sky?: { sunDir?: { x: number; y: number; z: number } } } | undefined)?.sky;
+    updateCharacterPaint(n.detail.paints, n.t, sky?.sunDir);
     return;
   }
   const breath = Math.sin(n.t * 1.45);

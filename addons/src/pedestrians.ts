@@ -282,7 +282,8 @@ export class PedestrianCrowds {
       rig.root.visible = true;
       rig.walk.timeScale = 0.85 + walker.speed * 0.18;
       if (dt > 0) rig.mixer.update(dt);
-      updateCharacterPaint(rig.paints, time);
+      const sky = (this.g.real as unknown as { sky?: { sunDir?: { x: number; y: number; z: number } } }).sky;
+      updateCharacterPaint(rig.paints, time, sky?.sunDir);
       result.visible++;
       result.draws += rig.metrics.draws;
       result.triangles += rig.metrics.triangles;
