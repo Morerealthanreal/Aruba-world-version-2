@@ -161,6 +161,15 @@ export class MobilePerf {
       n++;
     }
   }
+  /** True when `o` hangs under the hero GLB group, which stays loaded after it leaves the cull radius. */
+  private inHero(o: O): boolean {
+    const u = o.userData as { awHero?: number };
+    if (u.awHero) return u.awHero === 1;
+    let hero = false;
+    for (let p: O | null = o; p; p = p.parent as O | null) if (p.name === "hero") { hero = true; break; }
+    u.awHero = hero ? 1 : 2;
+    return hero;
+  }
   private consider(o: O) {
     if (this.seen.has(o) || !(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !o.material) return;
     this.seen.add(o); this.stats.objs++;
@@ -174,7 +183,9 @@ export class MobilePerf {
       if (!m || m.visible === false) continue;
       const k = sig(m, f, this.lightKey);
       if (!this.keys.has(k)) { this.keys.add(k); add = true; }
-      if (this.preUpload && o.visible) for (const slot of TEX) {
+      // Hidden hero LODs are still in the tree. Leaving their textures until the
+      // next time that LOD is drawn uploads them on a later lap of the island.
+      if (this.preUpload && (o.visible || this.inHero(o))) for (const slot of TEX) {
         const t = (m as unknown as Record<string, Tex | null>)[slot];
         if (t && t.isTexture && !t.isCubeTexture && !this.seenTex.has(t)) {
           this.seenTex.add(t);
