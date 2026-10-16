@@ -28,6 +28,14 @@ test("fan suction takes the same corner harder without flipping", async ({
   test.skip(testInfo.project.name !== "low", "The corner comparison runs on LOW only");
   test.setTimeout(4 * 60 * 1000);
 
+  const errors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console.error: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => {
+    errors.push(`uncaught exception: ${error.stack || error.message}`);
+  });
+
   await page.goto("/?q=low", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => window.game?.ready && window.__aw && window.__awFan === true,
@@ -211,4 +219,5 @@ test("fan suction takes the same corner harder without flipping", async ({
       expect(row.fanLean, "motorcycle lean").toBeLessThanOrEqual(row.stockLean + 0.12);
     }
   }
+  expect(errors, `The corner run emitted browser errors:\n${errors.join("\n\n")}`).toEqual([]);
 });
