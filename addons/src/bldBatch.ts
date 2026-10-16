@@ -235,8 +235,8 @@ export class BldBatch {
     if (!b.bm.parent) {
       // stay off the camera until the batched program has been finalized (see MobilePerf.prime)
       b.bm.layers.disable(0);
-      const prime = (window as unknown as { __aw?: { mperf?: { prime?: (o: Object3D, fn?: () => void) => void } } }).__aw?.mperf?.prime;
-      if (prime) prime(b.bm, () => b.bm.layers.enable(0));
+      const mp = (window as unknown as { __aw?: { mperf?: { prime: (o: Object3D, fn?: () => void) => void } } }).__aw?.mperf;
+      if (mp) { try { mp.prime(b.bm, () => b.bm.layers.enable(0)); } catch { b.bm.layers.enable(0); } }
       else b.bm.layers.enable(0);
       R.group!.add(b.bm);
     }
