@@ -9,9 +9,9 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Starbucks Palm Beach** (Paseo Herencia, J.E. Irausquin Boulevard 382A). Entrance under the siren sign on the south face. Wood bar with a green front, pastry case, drink menu, cafe tables and dark green chairs. The sign, green band and roof stay.
 - **Palm Beach Plaza** (east rotunda, J.E. Irausquin Boulevard). The blue glass under the PALM BEACH PLAZA canopy opens. Inside: a tiled hall, Skechers and Niel's shopfronts, a Caribbean Cinemas counter, benches, and a hanging directory. The canopy, rotunda, and shop signs on the outside stay.
 - **Hard Rock Cafe Palm Beach** (South Beach Centre). The north wall opens under the yellow HARD ROCK CAFE sign. Inside: a dark dining room, wood bar with a red front, stools, menu, tables with red chairs, and a guitar on the back wall. The sign, gold roof trim, and the roof guitar stay.
+- **Radisson Blu Aruba** (Palm Beach). The north podium opens through the blue glass bays. Inside: a cream and pale-blue lobby, a navy reception desk, a Radisson Blu board, The Clover coffee counter, and blue chairs. The tower, balconies, and the Radisson Blu sign stay.
 
 ## Next
 
-- Radisson Blu lobby
-- More hotel lobbies
+- More hotel lobbies (Hilton, Hyatt, Marriott on Palm Beach)
 - More shops and restaurants with strong photo references
