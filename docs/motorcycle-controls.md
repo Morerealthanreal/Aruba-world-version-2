@@ -52,10 +52,12 @@ adapted from a MakeHuman / MPFB character and released
 ([source](https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f)).
 Hair, street clothes and the head are not shown. The body wears black leathers with red
 chest and shoulder panels, black gloves and black boots. The hips sit on the front
-of the seat, just behind the tank, so the tail cowl stays clear behind the leathers,
-and the arms reach forward to the grips. The full-face helmet,
+of the seat, just behind the tank, and the torso leans forward about 45° so the
+chest is on the tank and the helmet is low behind the windscreen. The tail cowl
+stays clear behind the leathers, the knees sit against the tank, and the forearms
+meet the gloves on the grips. The full-face helmet,
 dark visor, glove shells and boot shafts are modelled for this project. `sport_rider`
-is about 6,300 triangles and `sport_rider_far` about 2,900, and both are children of the
+is about 6,700 triangles and `sport_rider_far` about 3,000, and both are children of the
 same leaning group as the bike.
 
 The near group `sport_bike` is about 20,000 triangles. `sport_bike_far` is about 4,000

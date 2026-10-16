@@ -151,8 +151,9 @@ swap(
 )
 swap(
     "motorcycle model cache",
-    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=8`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=9`)",
     "Uh.loadAsync(`./models/moto.glb`)",
+    "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=8`)",
     "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=7`)",
     "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=6`)",
     "Uh.loadAsync(window.__awMotoEnabled===!1?`./models/moto-stock.glb`:`./models/moto.glb?v=5`)",
