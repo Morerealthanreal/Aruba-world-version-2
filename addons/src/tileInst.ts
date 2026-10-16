@@ -45,8 +45,28 @@ export class TileInstances {
     r.__awHideStack = [r.group];
     this.conceal(r);
   }
+  /** A disposed region used to stay in `open` until its fold finished, so its kits and parked cars never became garbage. */
+  private sweepDetached() {
+    for (const r of this.open) if (!r.group || !r.group.parent) this.releaseRegion(r);
+    for (const r of this.live) if (!r.group || !r.group.parent) this.releaseRegion(r);
+  }
+  private releaseRegion(r: Reg) {
+    const buckets = r.__awInst || (this.job?.r === r ? this.job.out : undefined);
+    if (this.job?.r === r) this.job = null;
+    this.open.delete(r);
+    this.live.delete(r);
+    this.dirty.delete(r);
+    for (const b of buckets || []) {
+      if (b.im) b.im.dispose();
+      if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); }
+    }
+    r.__awInst = undefined;
+    r.__awHid = undefined;
+    r.__awHideStack = undefined;
+  }
   /** Fold regions a job just touched. Called from the tile pump, before the next paint. */
   afterJobs(regions: Map<string, Reg>) {
+    this.sweepDetached();
     const t0 = performance.now();
     let guard = 0;
     while (performance.now() - t0 < 8 && guard++ < 6) {
@@ -226,7 +246,7 @@ export class TileInstances {
   private live = new Set<Reg>();
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
-    if (this.job && (!this.job.r.group || !this.job.r.group.parent)) { this.live.add(this.job.r); this.job.r.__awInst = this.job.out; this.job = null; }
+    this.sweepDetached();
     let fr = this.job ? this.job.r : undefined;
     if (fr && (fr.__awFoldDone || !fr.group?.parent)) { this.job = null; fr = undefined; }
     if (!fr) for (const r of regions.values()) {
@@ -234,11 +254,7 @@ export class TileInstances {
       if (r.state === "built" || r.__awFold || r.__awHideStack) { fr = r; break; }
     }
     if (fr) this.fold(fr, 3); // one region at a time, sliced; the pump folds a fresh job before the next paint
-    // regions A disposed (disposeRegion detaches the group): free our instance buffers / leave the pools
-    for (const r of this.live) if (!r.group || !r.group.parent) {
-      for (const b of r.__awInst || []) { if (b.im) b.im.dispose(); if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); } }
-      this.live.delete(r); this.dirty.delete(r);
-    }
+    this.sweepDetached();
     const moved = (x - this.lastX) ** 2 + (z - this.lastZ) ** 2 > 16;
     if (moved) { this.lastX = x; this.lastZ = z; for (const r of this.live) this.dirty.add(r); for (const p of this.pools.values()) this.dirtyPools.add(p); }
     for (const [key, p] of this.pools) if (this.dirtyPools.has(p)) { const [lo, hi] = this.range(key.slice(0, key.indexOf("|"))); p.fill(this.lastX, this.lastZ, lo, hi + 3); }

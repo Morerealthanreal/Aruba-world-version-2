@@ -325,8 +325,14 @@ export class Flora {
 
   update(regions: Map<string, Reg>, x: number, z: number) {
     const t0 = performance.now();
+    // genR is the only strong reference to a region once A has unloaded it. Drop it when the
+    // build finishes or the group leaves the world, or that region's meshes stay in the heap.
+    if (this.genR && (this.genR.state !== "built" || !this.genR.group || !this.genR.group.parent)) { this.gen = null; this.genR = null; }
     if (!this.gen) for (const r of regions.values()) if (!r.__awFlora && r.state === "built" && r.group && r.json) { this.gen = this.build(r); this.genR = r; break; }
-    while (this.gen && performance.now() - t0 < this.budget) { if (this.genR && this.genR.state !== "built") { this.gen = null; break; } if (this.gen.next().done) { this.gen = null; this.lastX = 1e9; } }
+    while (this.gen && performance.now() - t0 < this.budget) {
+      if (this.genR && (this.genR.state !== "built" || !this.genR.group || !this.genR.group.parent)) { this.gen = null; this.genR = null; break; }
+      if (this.gen.next().done) { this.gen = null; this.genR = null; this.lastX = 1e9; }
+    }
     for (const r of this.live) if (!r.group || !r.group.parent) { // region disposed by A
       for (const b of r.__awFlora || []) { if (b.im) b.im.dispose(); if (b.pool) b.pool.remove(b); }
       this.live.delete(r); this.lastX = 1e9;

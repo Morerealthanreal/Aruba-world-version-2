@@ -6,7 +6,7 @@
 //    whole-scene compileAsync.
 //  - Textures of those new meshes upload one per frame (renderer.initTexture) so the first draw is not
 //    also the upload. Default on; ?preup=0 disables. Only textures of meshes we actually warm.
-import { BufferGeometry, Mesh, MeshDepthMaterial } from "three";
+import { BufferGeometry, Mesh, MeshDepthMaterial, Vector4 } from "three";
 import type { Object3D } from "three";
 import type { AGame } from "./env";
 type R = {
@@ -15,7 +15,7 @@ type R = {
   compileAsync?: (s: unknown, c: unknown, t?: unknown) => Promise<unknown>;
   debug?: { checkShaderErrors: boolean };
 };
-type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown };
+type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown; __awGone?: number };
 const TEX = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "specularMap", "clearcoatNormalMap"];
 type Mat = {
   id: number; version: number; type: string; transparent?: boolean; side?: number; visible?: boolean;
@@ -29,6 +29,8 @@ type O = Object3D & {
   castShadow: boolean; receiveShadow: boolean;
   material?: Mat | Mat[];
   geometry?: { attributes: Record<string, unknown>; morphAttributes: Record<string, unknown[]> };
+  instanceMatrix?: { array?: ArrayBufferView };
+  layers: { enable(channel: number): void; disable(channel: number): void };
 };
 type Reg = { group?: Object3D };
 export class MobilePerf {
@@ -37,7 +39,7 @@ export class MobilePerf {
   private n = 0; private t = 0.2; private busy = false;
   private seen = new WeakSet<object>(); private keys = new Set<string>(); private lightKey = "";
   private seenTex = new WeakSet<object>(); private texQ: Tex[] = []; private pend: O[] = []; private inflight = 0;
-  private stack: O[] = []; private childN = new WeakMap<object, number>(); private lc = 0;
+  private stack: O[] = []; private onStack = new WeakSet<object>(); private childN = new WeakMap<object, number>(); private lc = 0;
   private depthMat = new MeshDepthMaterial(); private depthMesh = new Mesh(); private empty = new BufferGeometry();
   private depthKeys = new Set<string>();
   stats = { compiles: 0, objs: 0, reps: 0, uploads: 0, depth: 0, synced: 0 };
@@ -45,13 +47,52 @@ export class MobilePerf {
   private syncQ: Mat[] = [];
   private queued = new WeakSet<object>();
   private syncTries = new WeakMap<object, number>();
-  private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
+  private holds: { fn: () => void; mats: Mat[]; tries: number; wait?: O }[] = [];
+  /** Meshes compiled outside the animation callback (hero GLBs). beforeRender does not drain this. */
+  private later: O[] = [];
+  private seenGeo = new WeakSet<object>();
+  private coldObj = new WeakSet<object>();
+  private coldN = 0;
+  private gpuQ: O[] = [];
+  private gpuTries = new WeakMap<object, number>();
+  private chunks: { obj: O; target: number; buf: WebGLBuffer; bytes: Uint8Array; offset: number }[] = [];
+  private warming = false;
+  private warmObj: O | null = null;
+  private gl: WebGL2RenderingContext | null = null;
+  private view = new Vector4();
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
-    const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
+    const A = g.real as unknown as { update?: (...a: number[]) => unknown; hero?: { group?: O } } | null;
     if (A && A.update) {
       const orig = A.update.bind(A);
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
+    }
+    this.hookHero(A?.hero?.group);
+    this.hookDraw();
+  }
+  /**
+   * Palm Beach and Oranjestad heroes arrive as a GLB full of new materials. Compiling
+   * them on the frame they are added is the first-visit hitch. Keep the meshes off the
+   * camera until the job pump has compiled them, between frames.
+   */
+  private hookHero(group?: O) {
+    if (!group || !this.incremental) return;
+    const add = group.add.bind(group);
+    group.add = ((...objs: O[]) => {
+      for (const obj of objs) this.deferHero(obj);
+      return add(...objs);
+    }) as typeof group.add;
+  }
+  private deferHero(obj: O) {
+    const meshes: O[] = [];
+    obj.traverse((o) => { const m = o as O; if (m.isMesh) meshes.push(m); });
+    if (!meshes.length) return;
+    let left = meshes.length;
+    const show = () => { if (--left > 0) return; for (const m of meshes) m.layers.enable(0); };
+    for (const m of meshes) {
+      m.layers.disable(0);
+      this.later.push(m);
+      this.holds.push({ fn: show, mats: matsOf(m), tries: 0, wait: m });
     }
   }
   /** Shadow cadence, a slice of the warm-up walk, and at most two compiles. Runs at the start of A's update, before the render. */
@@ -78,12 +119,14 @@ export class MobilePerf {
   /** Called at the end of the tile-job pump, after new meshes exist and before the next frame. */
   afterJobs() {
     if (!this.incremental) return;
+    if (this.later.length) { this.pend.push(...this.later); this.later.length = 0; }
     this.seed();
     this.walk(1.2);
     this.pump(2);
     // getUniforms (the first-draw stall) runs here, outside the animation callback
     this.sync(8);
     if (this.preUpload && this.texQ.length) this.upload(1);
+    this.flushGpu(6);
   }
   /**
    * Link `obj`'s program now and run `onReady` once getUniforms has populated it.
@@ -104,7 +147,7 @@ export class MobilePerf {
     if (!pending.length) { onReady?.(); return; }
     if (onReady) this.holds.push({ fn: onReady, mats: pending, tries: 0 });
   }
-  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0); }
+  pending() { return this.pend.length + this.later.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + this.gpuQ.length + this.chunks.length + (this.busy ? 1 : 0); }
   private full(dt: number) {
     if ((this.t -= dt) > 0) return;
     const r = this.g.renderer as unknown as R;
@@ -116,13 +159,17 @@ export class MobilePerf {
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0;
-    while (this.texQ.length && n < max && performance.now() - t0 < 2) {
+    const defer: Tex[] = [];
+    let guard = 0;
+    while (this.texQ.length && n < max && guard++ < 24 && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
-      if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }
+      if (t.__awGone) continue;
+      if (t.version === 0 || !img || img.complete === false) { defer.push(t); continue; }
       if (r.properties.get(t).__version === t.version) continue;
-      try { r.initTexture(t); } catch { /* image not ready */ }
+      try { r.initTexture(t); } catch { defer.push(t); continue; }
       n++; this.stats.uploads++;
     }
+    if (defer.length) this.texQ.push(...defer);
   }
   private seed() {
     // light set rarely changes (day/night toggles). A full walk every frame was its own hitch.
@@ -136,26 +183,34 @@ export class MobilePerf {
       if (lk !== this.lightKey) {
         const first = this.lightKey === "";
         this.lightKey = lk;
-        if (!first) { this.keys.clear(); this.depthKeys.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; }
+        if (!first) { this.keys.clear(); this.depthKeys.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; this.onStack = new WeakSet(); }
       }
     }
-    const push = (o: O | undefined | null) => {
-      if (!o || this.childN.get(o) === o.children.length) return;
-      this.stack.push(o);
-    };
-    push(this.g.scene as unknown as O);
+    this.enqueue(this.g.scene as unknown as O);
     const regs = (this.g.real as unknown as { regions?: Map<string, Reg> } | null)?.regions;
-    if (regs) for (const R of regs.values()) push(R.group as O | undefined);
+    if (regs) for (const R of regs.values()) this.enqueue(R.group as O | undefined);
+  }
+  /** One queue entry per node. A detached node is dropped so an unloaded region is not kept alive by the walk. */
+  private enqueue(o: O | undefined | null) {
+    const scene = this.g.scene as unknown as O;
+    if (!o || this.onStack.has(o)) return;
+    if (o !== scene && !o.parent) return;
+    if (this.childN.get(o) === o.children.length) return;
+    this.onStack.add(o);
+    this.stack.push(o);
   }
   private walk(budget: number) {
     const t0 = performance.now();
+    const scene = this.g.scene as unknown as O;
     let n = 0;
     while (this.stack.length && n < 800 && performance.now() - t0 < budget) {
       const o = this.stack.pop()!;
+      this.onStack.delete(o);
+      if (o !== scene && !o.parent) continue;
       const ch = o.children, cn = ch.length;
       if (this.childN.get(o) === cn) { n++; continue; } // unchanged node; a new child flips the count and re-walks siblings
       this.childN.set(o, cn);
-      for (let i = 0; i < cn; i++) this.stack.push(ch[i] as O);
+      for (let i = 0; i < cn; i++) this.enqueue(ch[i] as O);
       this.consider(o);
       n++;
     }
@@ -191,6 +246,7 @@ export class MobilePerf {
       const reps = [o];
       const root = { traverse: (cb: (o: O) => void) => { for (const x of reps) cb(x); }, traverseVisible: () => {} };
       this.compileObject(o, r);
+      (o as O & { __awCompiled?: number }).__awCompiled = 1;
       if (o.castShadow && o.isMesh && o.geometry) this.warmDepth(o, r);
       for (const m of matsOf(o)) if (!this.ready(m)) this.queue(m);
       n++;
@@ -244,6 +300,10 @@ export class MobilePerf {
     if (!this.holds.length) return;
     const keep: typeof this.holds = [];
     for (const h of this.holds) {
+      if (h.wait && !(h.wait as O & { __awCompiled?: number }).__awCompiled) {
+        if (++h.tries < 90) keep.push(h); else try { h.fn(); } catch { /* mesh already gone */ }
+        continue;
+      }
       let wait = false;
       if (props) for (const m of h.mats) {
         try {
@@ -255,6 +315,120 @@ export class MobilePerf {
       try { h.fn(); } catch { /* mesh already gone */ }
     }
     this.holds = keep;
+  }
+  /**
+   * A new mesh's first bufferData is the long frame at turbo and on the bike. Skip that draw
+   * (one WeakSet check once the queue is idle) and upload the buffer in slices from the pump.
+   */
+  private hookDraw() {
+    if (!this.incremental) return;
+    const renderer = this.g.renderer as unknown as {
+      getContext(): WebGL2RenderingContext;
+      renderBufferDirect(...a: unknown[]): void;
+      getViewport(v: Vector4): Vector4;
+      setScissorTest(v: boolean): void;
+      setScissor(x: number, y: number, w: number, h: number): void;
+      setViewport(x: number, y: number, w: number, h: number): void;
+    };
+    const gl = renderer.getContext();
+    this.gl = gl;
+    const origBD = gl.bufferData.bind(gl);
+    const origRBD = renderer.renderBufferDirect.bind(renderer);
+    const CHUNK = 48 * 1024;
+    gl.bufferData = ((target: number, data: ArrayBufferView | number, usage: number, srcOffset?: number, length?: number) => {
+      const src = data as ArrayBufferView;
+      if (!this.warming || typeof data === "number" || !src || src.byteLength <= CHUNK || srcOffset !== undefined) {
+        return (origBD as (...a: unknown[]) => void)(target, data, usage, srcOffset, length);
+      }
+      const bytes = new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
+      const binding = target === gl.ELEMENT_ARRAY_BUFFER ? gl.ELEMENT_ARRAY_BUFFER_BINDING : gl.ARRAY_BUFFER_BINDING;
+      const buf = gl.getParameter(binding) as WebGLBuffer | null;
+      (origBD as (...a: unknown[]) => void)(target, bytes.byteLength, usage);
+      const n = Math.min(CHUNK, bytes.byteLength);
+      gl.bufferSubData(target, 0, bytes, 0, n);
+      const obj = this.warmObj;
+      if (buf && obj && n < bytes.byteLength) this.chunks.push({ obj, target, buf, bytes, offset: n });
+    }) as typeof gl.bufferData;
+    renderer.renderBufferDirect = (...args: unknown[]) => {
+      if (this.warming) return origRBD(...args);
+      const object = args[4] as O | null | undefined;
+      const geo = object?.geometry;
+      if (!object || !geo) return origRBD(...args);
+      if (this.coldN && this.coldObj.has(object)) return;
+      if (this.seenGeo.has(object)) return origRBD(...args);
+      this.seenGeo.add(object);
+      if (meshBytes(object) < CHUNK) return origRBD(...args);
+      this.coldObj.add(object);
+      this.coldN++;
+      this.gpuQ.push(object);
+      this.pend.push(object);
+    };
+  }
+  private releaseObj(obj: O) {
+    if (this.chunks.some((c) => c.obj === obj)) return;
+    if (!this.coldObj.has(obj)) return;
+    this.coldObj.delete(obj);
+    this.coldN--;
+  }
+  /** Continue sliced uploads, then start the next cold mesh once its program is finalized. */
+  private flushGpu(budget: number) {
+    const gl = this.gl;
+    const renderer = this.g.renderer as unknown as {
+      renderBufferDirect(...a: unknown[]): void;
+      getViewport(v: Vector4): Vector4;
+      setScissorTest(v: boolean): void;
+      setScissor(x: number, y: number, w: number, h: number): void;
+      setViewport(x: number, y: number, w: number, h: number): void;
+    };
+    if (!gl) return;
+    const t0 = performance.now();
+    const CHUNK = 48 * 1024;
+    while (this.chunks.length && performance.now() - t0 < budget) {
+      const c = this.chunks[0];
+      if (!c.obj.parent) { this.chunks.shift(); this.releaseObj(c.obj); continue; }
+      gl.bindBuffer(c.target, c.buf);
+      const n = Math.min(CHUNK, c.bytes.byteLength - c.offset);
+      gl.bufferSubData(c.target, c.offset, c.bytes, c.offset, n);
+      c.offset += n;
+      this.stats.uploads++;
+      if (c.offset >= c.bytes.byteLength) { this.chunks.shift(); this.releaseObj(c.obj); }
+    }
+    let spun = 0;
+    const guard = this.gpuQ.length;
+    while (this.gpuQ.length && this.chunks.length < 6 && performance.now() - t0 < budget && spun < guard) {
+      const o = this.gpuQ[0];
+      spun++;
+      if (!o.parent || !o.geometry) { this.gpuQ.shift(); this.releaseObj(o); continue; }
+      const mats = matsOf(o);
+      if (!(o as O & { __awCompiled?: number }).__awCompiled || mats.some((m) => m && !this.ready(m))) {
+        const tries = (this.gpuTries.get(o) || 0) + 1;
+        this.gpuTries.set(o, tries);
+        this.gpuQ.shift();
+        if (tries > 12) this.releaseObj(o);
+        else this.gpuQ.push(o);
+        continue;
+      }
+      this.gpuQ.shift();
+      const view = renderer.getViewport(this.view);
+      this.warmObj = o;
+      this.warming = true;
+      try {
+        renderer.setScissorTest(true);
+        renderer.setScissor(0, 0, 0, 0);
+        for (const m of mats) {
+          try { renderer.renderBufferDirect(this.g.camera, null, o.geometry, m, o, null); }
+          catch { /* the real draw reports a broken program */ }
+        }
+      } finally {
+        this.warming = false;
+        this.warmObj = null;
+        try {
+          renderer.setScissorTest(false);
+          renderer.setViewport(view.x, view.y, view.z, view.w);
+        } catch { /* the next real frame sets the viewport */ }
+      }
+      this.releaseObj(o);
+    }
   }
   // Shadow passes use one shared MeshDepthMaterial (alpha-tested materials clone it). Compiling the
   // shared variant here starts that link with the game's program cache; a mismatch only adds an unused program.
@@ -279,6 +453,19 @@ export class MobilePerf {
   }
 }
 type Prog = { isReady: () => boolean; getUniforms: () => unknown };
+function meshBytes(o: O) {
+  let n = 0;
+  const geo = o.geometry as { attributes?: Record<string, { array?: ArrayBufferView }>; index?: { array?: ArrayBufferView } | null } | undefined;
+  if (geo) {
+    const at = geo.attributes || {};
+    for (const k in at) n += at[k]?.array?.byteLength || 0;
+    n += geo.index?.array?.byteLength || 0;
+  }
+  n += o.instanceMatrix?.array?.byteLength || 0;
+  const color = o.instanceColor as { array?: ArrayBufferView } | undefined;
+  n += color?.array?.byteLength || 0;
+  return n;
+}
 function matsOf(o: { material?: Mat | Mat[] }) {
   if (!o.material) return [];
   return Array.isArray(o.material) ? o.material.filter(Boolean) : [o.material];
