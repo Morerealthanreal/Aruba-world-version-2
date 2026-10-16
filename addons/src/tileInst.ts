@@ -47,8 +47,28 @@ export class TileInstances {
     r.__awHideStack = [r.group];
     this.conceal(r);
   }
+  /** A disposed region used to stay in `open` until its fold finished, so its kits and parked cars never became garbage. */
+  private sweepDetached() {
+    for (const r of this.open) if (!r.group || !r.group.parent) this.releaseRegion(r);
+    for (const r of this.live) if (!r.group || !r.group.parent) this.releaseRegion(r);
+  }
+  private releaseRegion(r: Reg) {
+    const buckets = r.__awInst || (this.job?.r === r ? this.job.out : undefined);
+    if (this.job?.r === r) this.job = null;
+    this.open.delete(r);
+    this.live.delete(r);
+    this.dirty.delete(r);
+    for (const b of buckets || []) {
+      if (b.im) b.im.dispose();
+      if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); }
+    }
+    r.__awInst = undefined;
+    r.__awHid = undefined;
+    r.__awHideStack = undefined;
+  }
   /** Fold regions a job just touched. Called from the tile pump, before the next paint. */
   afterJobs(regions: Map<string, Reg>) {
+    this.sweepDetached();
     const t0 = performance.now();
     let guard = 0;
     while (performance.now() - t0 < 8 && guard++ < 6) {
@@ -233,17 +253,13 @@ export class TileInstances {
   private live = new Set<Reg>();
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
-    if (this.job && (!this.job.r.group || !this.job.r.group.parent)) { this.live.add(this.job.r); this.job.r.__awInst = this.job.out; this.job = null; }
+    this.sweepDetached();
     let fr = this.job ? this.job.r : undefined;
     if (fr && (fr.__awFoldDone || !fr.group?.parent)) { this.job = null; fr = undefined; }
     // New folds run in the pump (afterJobs), outside the animation callback. Continuing a
     // half-finished job here keeps a concealed region from staying hidden if the pump yielded.
     if (fr) this.fold(fr, 0.4);
-    // regions A disposed (disposeRegion detaches the group): free our instance buffers / leave the pools
-    for (const r of this.live) if (!r.group || !r.group.parent) {
-      for (const b of r.__awInst || []) { if (b.im) b.im.dispose(); if (b.pool) { b.pool.remove(b); this.dirtyPools.add(b.pool); } }
-      this.live.delete(r); this.dirty.delete(r);
-    }
+    this.sweepDetached();
     // 12 m, not 4 m: at full turbo the plane covers 5 m per frame, so the tighter
     // threshold rebuilt every pool on every frame. Cull radii are hundreds of metres.
     const moved = (x - this.lastX) ** 2 + (z - this.lastZ) ** 2 > 144;
