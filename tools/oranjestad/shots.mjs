@@ -27,7 +27,7 @@ page.on("console", (m) => {
   if (m.type() === "error") console.log("CONSOLE", m.text().slice(0, 240));
 });
 await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-await page.goto("http://127.0.0.1:8777/?q=high&t=9.5", {
+await page.goto("http://127.0.0.1:8777/?q=high&t=9.5&peds=0", {
   waitUntil: "load",
   timeout: 120000,
 });
@@ -55,8 +55,8 @@ const shots = [
   {
     name: "wilhelm-shops",
     stand: [-7116, 158],
-    eye: [-7116, 1.8, 158],
-    look: [-7078, 3.0, 148],
+    eye: [-7102, 3.4, 148],
+    look: [-7068, 2.6, 142],
   },
   {
     name: "fort-close",
@@ -138,6 +138,9 @@ async function shoot(shot) {
     cam.lookAt(look[0], ly + (look[1] > 20 ? look[1] : Math.max(look[1], 3)), look[2]);
     cam.up.set(0, 1, 0);
     cam.updateMatrixWorld(true);
+    g.scene.traverse((obj) => {
+      if (obj.isSkinnedMesh) obj.visible = false;
+    });
     g.renderer.render(g.scene, cam);
     return g.renderer.domElement.toDataURL("image/png");
   }, shot);

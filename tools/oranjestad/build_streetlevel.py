@@ -389,16 +389,16 @@ def build_main(buildings, origin):
     line = chain_roads(lambda n: n.startswith("Caya G.F. Betico Croes"), (-7340, -6680, -40, 90))
     lamps, benches = [], []
     lamp, bench = lamp_proto(), bench_proto()
-    for i, (x, z, tx, tz, lx, lz) in enumerate(samples(line, 16)):
+    # Keep furniture in the open brick, beside the tram, where a walker sees it.
+    for i, (x, z, tx, tz, lx, lz) in enumerate(samples(line, 18)):
         for side in (1, -1):
-            px, pz = x + lx * side * 2.05, z + lz * side * 2.05
+            px, pz = x + lx * side * 1.45, z + lz * side * 1.45
             h = land(px, pz, buildings)
             if h is None:
                 continue
-            if i % 2 == 0 and side == 1:
+            if side == 1 and i % 2 == 0:
                 lamps.append(xform(px, h, pz, origin))
-            if i % 2 == 1 and side == -1:
-                # Bench faces the street (inward).
+            if side == -1 and i % 3 == 1:
                 yaw = face_yaw(-lx * side, -lz * side)
                 benches.append(xform(px, h, pz, origin, yaw))
     g.add_instances(lamp, "paint", lamps)
@@ -468,7 +468,7 @@ def build_wilhelm(buildings, cars, origin, png, cells, S):
                 lamps.append(xform(px, h, pz, origin))
         if i % 5 == 2:
             side = -1 if (i // 5) % 2 == 0 else 1
-            px, pz = x + lx * side * 3.15, z + lz * side * 3.15
+            px, pz = x + lx * side * 4.2, z + lz * side * 4.2
             h = land(px, pz, buildings)
             if h is None or near_any(px, pz, cars, 8) or near_any(px, pz, placed_cars, 9):
                 continue
@@ -610,13 +610,13 @@ def build_plazas(buildings, origin, fort_fp):
     g.mat("paint", rough=0.86)
     stone = Prim()
     cx, cz = -7212.0, 165.0
-    step = 2.2
+    step = 2.4
     n = 0
-    y = -18
-    while y <= 18:
-        x = -18
-        while x <= 18:
-            if x * x + y * y <= 18 * 18:
+    y = -32.0
+    while y <= 32.0:
+        x = -32.0
+        while x <= 32.0:
+            if x * x + y * y <= 32 * 32:
                 corners = [
                     (cx + x, cz + y),
                     (cx + x + step * 0.92, cz + y),
