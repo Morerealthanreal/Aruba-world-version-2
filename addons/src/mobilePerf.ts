@@ -190,11 +190,21 @@ export class MobilePerf {
     const regs = (this.g.real as unknown as { regions?: Map<string, Reg> } | null)?.regions;
     if (regs) for (const R of regs.values()) this.enqueue(R.group as O | undefined);
   }
+  /** A region's group stays the parent of its meshes after the group itself leaves the scene. */
+  private attached(o: O) {
+    const scene = this.g.scene as unknown as O;
+    let p: O | null = o;
+    for (let i = 0; p && i < 64; i++) {
+      if (p === scene) return true;
+      p = p.parent as O | null;
+    }
+    return false;
+  }
   /** One queue entry per node. A detached node is dropped so an unloaded region is not kept alive by the walk. */
   private enqueue(o: O | undefined | null) {
     const scene = this.g.scene as unknown as O;
     if (!o || this.onStack.has(o)) return;
-    if (o !== scene && !o.parent) return;
+    if (o !== scene && !this.attached(o)) return;
     if (this.childN.get(o) === o.children.length) return;
     this.onStack.add(o);
     this.stack.push(o);
@@ -206,7 +216,7 @@ export class MobilePerf {
     while (this.stack.length && n < 800 && performance.now() - t0 < budget) {
       const o = this.stack.pop()!;
       this.onStack.delete(o);
-      if (o !== scene && !o.parent) continue;
+      if (o !== scene && !this.attached(o)) continue;
       const ch = o.children, cn = ch.length;
       if (this.childN.get(o) === cn) { n++; continue; } // unchanged node; a new child flips the count and re-walks siblings
       this.childN.set(o, cn);
@@ -242,7 +252,7 @@ export class MobilePerf {
     let n = 0;
     while (this.pend.length && n < max && performance.now() - t0 < 2) {
       const o = this.pend.shift()!;
-      if (!o.parent && o !== (this.g.scene as unknown as O)) continue;
+      if (o !== (this.g.scene as unknown as O) && !this.attached(o)) continue;
       const reps = [o];
       const root = { traverse: (cb: (o: O) => void) => { for (const x of reps) cb(x); }, traverseVisible: () => {} };
       this.compileObject(o, r);
@@ -300,6 +310,7 @@ export class MobilePerf {
     if (!this.holds.length) return;
     const keep: typeof this.holds = [];
     for (const h of this.holds) {
+      if (h.wait && !this.attached(h.wait)) continue;
       if (h.wait && !(h.wait as O & { __awCompiled?: number }).__awCompiled) {
         if (++h.tries < 90) keep.push(h); else try { h.fn(); } catch { /* mesh already gone */ }
         continue;
@@ -385,7 +396,7 @@ export class MobilePerf {
     const CHUNK = 48 * 1024;
     while (this.chunks.length && performance.now() - t0 < budget) {
       const c = this.chunks[0];
-      if (!c.obj.parent) { this.chunks.shift(); this.releaseObj(c.obj); continue; }
+      if (!this.attached(c.obj)) { this.chunks.shift(); this.releaseObj(c.obj); continue; }
       gl.bindBuffer(c.target, c.buf);
       const n = Math.min(CHUNK, c.bytes.byteLength - c.offset);
       gl.bufferSubData(c.target, c.offset, c.bytes, c.offset, n);
@@ -398,7 +409,7 @@ export class MobilePerf {
     while (this.gpuQ.length && this.chunks.length < 6 && performance.now() - t0 < budget && spun < guard) {
       const o = this.gpuQ[0];
       spun++;
-      if (!o.parent || !o.geometry) { this.gpuQ.shift(); this.releaseObj(o); continue; }
+      if (!o.geometry || !this.attached(o)) { this.gpuQ.shift(); this.releaseObj(o); continue; }
       const mats = matsOf(o);
       if (!(o as O & { __awCompiled?: number }).__awCompiled || mats.some((m) => m && !this.ready(m))) {
         const tries = (this.gpuTries.get(o) || 0) + 1;
