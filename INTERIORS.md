@@ -11,8 +11,10 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Hard Rock Cafe Palm Beach** (South Beach Centre). The north wall opens under the yellow HARD ROCK CAFE sign. Inside: a dark dining room, wood bar with a red front, stools, menu, tables with red chairs, and a guitar on the back wall. The sign, gold roof trim, and the roof guitar stay.
 - **Radisson Blu Aruba** (Palm Beach). The north podium opens through the blue glass bays. Inside: a cream and pale-blue lobby, a navy reception desk, a Radisson Blu board, The Clover coffee counter, and blue chairs. The tower, balconies, and the Radisson Blu sign stay.
 - **Hyatt Regency Aruba** (Palm Beach, J.E. Irausquin Boulevard). The ground floor under the HYATT REGENCY sign opens. Inside: a cream lobby, a terracotta band, a wood reception desk, and a board for reception, the casino, and the beach. The sign, balconies, and roofs stay.
+- **Hilton Aruba Caribbean Resort & Casino** (Palm Beach). The ground floor under the sign, on the drive, opens. Inside: a white lobby, a navy runner, a reception desk, and a board for reception, the casino, and the beach. The tower and the high sign stay.
 
 ## Next
 
-- More hotel lobbies (Hilton, Marriott on Palm Beach)
-- More shops and restaurants with strong photo references
+- Marriott Resort & Stellaris Casino lobby (Palm Beach)
+- Palm Beach strip shops and restaurants (Gelato Italiano, Señor Frog's, a Moomba-style beach bar)
+- Renaissance mall downtown
