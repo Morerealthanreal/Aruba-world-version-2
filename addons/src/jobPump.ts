@@ -60,17 +60,11 @@ export class JobPump {
     const ms = performance.now() - t0;
     this.stats.ticks++; if (ms > this.stats.maxMs) this.stats.maxMs = ms;
     const aw = (window as unknown as { __aw?: Aw }).__aw;
-    // copy concealed cells / kits into batches before the next paint, then finalize programs
-    // Stay in this turn until new shader programs are finalized. The next animation frame
-    // would otherwise draw them cold (getProgramInfoLog inside the frame, hundreds of ms).
-    let pass = 0;
-    do {
-      aw?.bbatch?.afterJobs?.();
-      aw?.perf?.inst?.afterJobs?.(A.regions);
-      aw?.mperf?.afterJobs?.();
-      // Stay in this turn until new programs are finalized and the textures the walk just
-      // found are uploaded. The next animation frame would otherwise draw them cold.
-    } while (++pass < 8 && ((aw?.mperf?.shaderPending?.() || 0) > 0 || (aw?.mperf?.backlog?.() || 0) > 0));
+    // One slice. compileAsync and the idle texture uploads continue on later turns;
+    // draining shaders and every pending initTexture here was a multi-hundred-ms freeze.
+    aw?.bbatch?.afterJobs?.();
+    aw?.perf?.inst?.afterJobs?.(A.regions);
+    aw?.mperf?.afterJobs?.();
   }
   private followUp() {
     const aw = (window as unknown as { __aw?: Aw }).__aw;

@@ -12,6 +12,8 @@
 - disposeRegion frees the street-sign canvas atlas (one per streamed region). The mesh is
   named signs; shared pole/fence/hedge materials are left alone. __awGone stops a later
   initTexture from allocating the same atlas again.
+- Hero models start loading at 3 km, one 1 km region before the 2 km distance where they
+  become visible, so their materials can compile before the first visit draws them.
 """
 import os
 P = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../game/assets/index-D_YJh5Nn.js')
@@ -98,6 +100,12 @@ if 'x.__awGone' not in s:
         "if(e.signTex&&!e.signTex.__awGone)e.signTex.__awGone=1,e.signTex.dispose();e.signTex=null;"
         "for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();e.hf?.dispose(),e.splat?.dispose(),e.mat?.dispose(),e.wmat?.dispose(),",
         "signAtlas")
+
+if 'r<3000&&!n._g&&!n._loading' not in s:
+    rep(
+        "r<1500&&!n._g&&!n._loading",
+        "r<3000&&!n._g&&!n._loading",
+        "heroAhead")
 
 if 'e.__awQ' not in s:
     rep(

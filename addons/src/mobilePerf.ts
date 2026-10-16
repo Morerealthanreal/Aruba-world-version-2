@@ -1,11 +1,13 @@
 // Frame-cost trims (r186). Off with ?mperf=0.
 //  - Phone only: sun shadow map re-renders every 2nd frame (static world; cars/peds move), same as HIGH's hiPerf.
 //  - Every device: shader warm-up, including the shadow-map depth variants. Materials are compiled
-//    from a signature (not material.id — instances share programs) in the tile-job pump, outside the
-//    animation callback, and getUniforms runs there too so the first draw does not stall the frame.
-//    ?warmup=full restores the old whole-scene compileAsync.
-//  - Textures of those new meshes upload one per frame (renderer.initTexture) so the first draw is not
-//    also the upload. Default on; ?preup=0 disables. Only textures of meshes we actually warm.
+//    from a signature (not material.id — instances share programs). KHR_parallel_shader_compile plus
+//    compileAsync links them off the main thread; getUniforms runs only once the driver reports the
+//    program ready, and only a couple per turn. ?warmup=full restores the old whole-scene compileAsync.
+//  - Textures of those new meshes upload via initTexture, one per idle slice, so a streaming frame
+//    does not upload the whole queue. Default on; ?preup=0 disables. Only textures of meshes we warm.
+//  - A hero's materials compile once the model is in the scene and the player is within 3 km
+//    (one 1 km region before the 2 km show distance). The model stays hidden until 2 km, same as before.
 import { MeshDepthMaterial, Scene } from "three";
 import type { Object3D } from "three";
 import type { AGame } from "./env";
@@ -50,9 +52,14 @@ export class MobilePerf {
   private syncQ: Mat[] = [];
   private queued = new WeakSet<object>();
   private syncTries = new WeakMap<object, number>();
-  private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
+  private holds: { fn: () => void; mats: Mat[]; tries: number; wait?: O }[] = [];
+  private heroSeen = new WeakSet<object>();
+  private idleArmed = false;
+  /** True when the context can link shaders without blocking the caller. */
+  private parallel = false;
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
+    try { this.parallel = !!(g.renderer.getContext() as WebGL2RenderingContext).getExtension("KHR_parallel_shader_compile"); } catch { /* software GL without the extension still compiles, just inline */ }
     const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
     if (A && A.update) {
       const orig = A.update.bind(A);
@@ -74,15 +81,44 @@ export class MobilePerf {
     if (!this.incremental) return;
     const t0 = performance.now();
     this.seed();
-    // finish the new nodes before the next paint; the walk itself is cheap compared with getUniforms
-    while (this.stack.length && performance.now() - t0 < 12) this.walk(2);
-    const t1 = performance.now();
-    while (this.pend.length && performance.now() - t1 < 10) this.pump(24);
-    // getUniforms (the first-draw stall) runs here, outside the animation callback
-    this.sync(48);
-    // First-use texture uploads were a large share of the >50 ms frames. Drain them here,
-    // before the next paint, instead of one-at-a-time inside the animation callback.
-    if (this.preUpload && this.texQ.length) this.upload(200, 1e9);
+    // A short slice. The pump comes back next frame; finishing the whole queue here was the freeze.
+    while (this.stack.length && performance.now() - t0 < 4) this.walk(2);
+    this.warmHeroes();
+    if (this.pend.length && performance.now() - t0 < 8) this.pump(4);
+    this.sync(2);
+    if (this.preUpload && this.texQ.length) this.upload(1, 5);
+    this.armIdle();
+  }
+  /**
+   * Heroes show at 2 km. Their GLB is requested from 3 km (one region further out) and compiled
+   * while the group is still invisible, so the first visit does not link those programs on the draw.
+   */
+  private warmHeroes() {
+    const list = (this.g.real as unknown as { hero?: { list?: { x: number; z: number; _g?: O }[] } } | null)?.hero?.list;
+    if (!list) return;
+    const s = this.g.S;
+    const p = s.mode === "plane" ? s.plane : s.mode === "walk" ? s.walk : s.car;
+    for (const n of list) {
+      const g = n._g;
+      if (!g || this.heroSeen.has(g)) continue;
+      if (Math.hypot(n.x - p.x, n.z - p.z) > 3000) continue;
+      this.heroSeen.add(g);
+      this.prime(g);
+    }
+  }
+  /** One initTexture while the browser is idle, then re-arm until the queue is empty. */
+  private armIdle() {
+    if (this.idleArmed || !this.preUpload || !this.texQ.length) return;
+    const ric = window.requestIdleCallback;
+    if (!ric) return;
+    this.idleArmed = true;
+    ric((d) => {
+      this.idleArmed = false;
+      if (!this.preUpload) return;
+      const budget = Math.max(1, Math.min(5, d.timeRemaining() || 1));
+      this.upload(1, budget);
+      if (this.texQ.length) this.armIdle();
+    }, { timeout: 32 });
   }
   /** Programs still waiting to be finalized. The pump keeps going until this is 0 so the next frame does not draw them cold. */
   shaderPending() { return this.syncQ.length + this.holds.length + this.pend.length; }
@@ -104,16 +140,18 @@ export class MobilePerf {
    */
   prime(obj: O, onReady?: () => void) {
     if (!this.incremental) { onReady?.(); return; }
-    const r = this.g.renderer as unknown as R;
-    if (r.compile) this.compileObject(obj, r);
-    const depth = this.warmShadow(obj, r);
     const mats = matsOf(obj);
-    for (const m of depth) mats.push(m);
-    const pending: Mat[] = [];
-    for (const m of mats) if (m && !this.ready(m)) pending.push(m);
-    for (const m of pending) this.queue(m);
-    if (!pending.length) { onReady?.(); return; }
-    if (onReady) this.holds.push({ fn: onReady, mats: pending, tries: 0 });
+    if (onReady) this.holds.push({ fn: onReady, mats, tries: 0, wait: obj });
+    // Turbo plumes are primed before they join the scene. Everything else is compiled
+    // with the next pump slice so this call does not link programs inline.
+    if (!obj.parent) {
+      const r = this.g.renderer as unknown as R;
+      this.compileObjects([obj], r);
+      for (const m of this.warmShadow(obj, r)) if (!this.ready(m)) this.queue(m);
+      for (const m of mats) if (m && !this.ready(m)) this.queue(m);
+      return;
+    }
+    this.pend.push(obj);
   }
   pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0) + this.backlog(); }
   private full(dt: number) {
@@ -216,11 +254,25 @@ export class MobilePerf {
       objs.push(o);
     }
     if (!objs.length) return;
-    // One compile walks the scene lights once for the whole batch. Per-object compiles were
-    // a full scene walk each, and the shadow variant needs a second pass with fog off.
-    this.compileObjects(objs, r);
-    for (const m of this.warmShadowBatch(objs, r)) if (!this.ready(m)) this.queue(m);
-    for (const o of objs) for (const m of matsOf(o)) if (!this.ready(m)) this.queue(m);
+    // prime() may hand us a hero group. compile() only sees what traverse visits.
+    const flat: O[] = [];
+    walkDrawables(objs, (o) => flat.push(o));
+    const depth = this.warmShadowBatch(flat, r);
+    const finish = () => {
+      for (const m of depth) if (!this.ready(m)) this.queue(m);
+      for (const o of flat) for (const m of matsOf(o)) if (!this.ready(m)) this.queue(m);
+      for (const h of this.holds) if (h.wait && flat.includes(h.wait)) for (const m of depth) if (!h.mats.includes(m)) h.mats.push(m);
+    };
+    // compileAsync polls COMPLETION_STATUS_KHR and resolves when the link is done.
+    // Calling it (not compile + an immediate getUniforms) keeps this turn off the driver wait.
+    if (this.parallel && r.compileAsync) {
+      const root = { traverse: (cb: (o: O) => void) => { for (const x of flat) cb(x); }, traverseVisible: () => {} };
+      this.inflight++;
+      r.compileAsync(root, this.g.camera, this.g.scene).then(finish, () => {}).finally(() => { this.inflight--; });
+    } else {
+      this.compileObjects(flat, r);
+      finish();
+    }
   }
   private compileObjects(list: O[], r: R) {
     if (!r.compile || !list.length) return;
@@ -241,11 +293,13 @@ export class MobilePerf {
    * Finalize every program a material has acquired, not only the one compiled last.
    * A shared material draws with several variants (batched, instanced, shadow); leaving
    * any of them cold is a multi-hundred-millisecond frame the first time it is used.
-   * Runs outside the animation callback. A couple of non-blocking polls, then finalize
-   * anyway: some drivers only finish the link inside getProgramInfoLog.
+   * Runs outside the animation callback. With KHR_parallel_shader_compile, getUniforms
+   * waits on the driver, so it runs only after isReady(). A program that never reports
+   * ready is finalized after a few dozen polls so the pump cannot spin forever.
    */
   private sync(max: number) {
     if (!this.syncQ.length && !this.holds.length) { this.flush(); return; }
+    const t0 = performance.now();
     const again: Mat[] = [];
     const q = this.syncQ;
     this.syncQ = [];
@@ -257,10 +311,10 @@ export class MobilePerf {
       let later = false;
       for (const prog of progs) {
         if (this.synced.has(prog)) continue;
-        if (n >= max) { later = true; break; }
+        if (n >= max || performance.now() - t0 > 8) { later = true; break; }
         let done = true;
         try { done = prog.isReady(); } catch { done = false; }
-        if (!done && (this.syncTries.get(prog) || 0) < 2) { this.syncTries.set(prog, (this.syncTries.get(prog) || 0) + 1); later = true; continue; }
+        if (!done && (this.syncTries.get(prog) || 0) < 30) { this.syncTries.set(prog, (this.syncTries.get(prog) || 0) + 1); later = true; continue; }
         try { prog.getUniforms(); } catch { /* broken program; don't retry every pump */ }
         this.synced.add(prog); this.stats.synced++; n++;
       }
@@ -414,6 +468,14 @@ function shadowSideOf(m: Mat) {
   if (custom !== null && custom !== undefined) return custom;
   const side = m.side || 0;
   return side === 2 ? 2 : side === 1 ? 0 : 1;
+}
+function walkDrawables(list: O[], cb: (o: O) => void) {
+  const stack = list.slice();
+  while (stack.length) {
+    const o = stack.pop()!;
+    if (o.isMesh || o.isPoints || o.isLine || o.isSprite) cb(o);
+    for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as O);
+  }
 }
 function matsOf(o: { material?: Mat | Mat[] }) {
   if (!o.material) return [];
