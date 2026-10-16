@@ -9,6 +9,8 @@
 - Terrain LOD downgrades wait 15% past the threshold; upgrades stay immediate.
 - The dispose-distance scan no longer copies regions.values() every frame.
 - GTAO's alpha-mesh hide list is walked in 1.2 ms slices instead of a full scene traverse.
+- disposeRegion frees streamed street-sign atlases (one canvas per region, up to 1536x2048)
+  and drops the bitmap so a retained region object cannot keep it on the JS heap.
 """
 import os
 P = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../game/assets/index-D_YJh5Nn.js')
@@ -94,6 +96,18 @@ if 'e.__awQ' not in s:
         "let c=o.children;for(let k=0;k<c.length;k++)q.push(c[k])}if(!q.length){for(let k=a.length-1;k>=0;k--)seen.has(a[k])||(e.__awS.delete(a[k]),a.splice(k,1));e.__awSeen=null}}"
         "for(let k=0;k<a.length;k++){let m=a[k];m.__awV=m.visible;m.visible=!1}r(...i);for(let k=0;k<a.length;k++)a[k].visible=a[k].__awV}",
         "gtao")
+
+if 't.name===`signs`' not in s:
+    rep(
+        "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(e=>{e.geometry&&e.geometry.dispose()}));for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();",
+        "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(t=>{t.geometry&&t.geometry.dispose();"
+        "if(t.name===`signs`&&t.material&&!Array.isArray(t.material)){let m=t.material,x=m.map;"
+        "if(x&&!x.__awGone)x.__awGone=1,x.dispose(),x.image=null;"
+        "if(m.emissiveMap&&m.emissiveMap!==x&&!m.emissiveMap.__awGone)m.emissiveMap.__awGone=1,m.emissiveMap.dispose(),m.emissiveMap.image=null;"
+        "m.map=null,m.emissiveMap=null}}));"
+        "if(e.signTex&&!e.signTex.__awGone)e.signTex.__awGone=1,e.signTex.dispose(),e.signTex.image=null;e.signTex=null;"
+        "for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();",
+        "signAtlas")
 
 open(P, 'w').write(s)
 print('ok', os.path.basename(P), len(s))
