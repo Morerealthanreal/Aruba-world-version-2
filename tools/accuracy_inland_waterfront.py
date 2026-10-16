@@ -323,8 +323,9 @@ def build_shop_row(model_id, items, roads, colors, sign_text, sign_on):
         if hit is None:
             raise SystemExit(f"no road for {name}")
         _, qx, qz, rname, _fn = hit
-        # Mesh stays local to the manifest origin. The loader adds (x, z).
-        fr = Frame((0.0, 0.0), (qx - mx, qz - mz))
+        # Local to the shared manifest origin. The loader adds (ox, oz),
+        # so each shop is offset from that origin onto its own footprint.
+        fr = Frame((mx - ox, mz - oz), (qx - mx, qz - mz))
         x0, x1, z0, z1 = obb(fr, ring, (mx, mz))
         # pad a little so the mass covers the footprint
         x0 -= 0.15
