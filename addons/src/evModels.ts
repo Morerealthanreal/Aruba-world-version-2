@@ -4,7 +4,7 @@
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
 import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
-import { createLoco, loadLocomotion, stepLoco, type Loco, type LocoClips } from "./locomotion";
+import { createLoco, loadLocomotion, stepLoco, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -195,6 +195,7 @@ export type Npc = {
     inner: Object3D; mixer: AnimationMixer; walk: AnimationAction | null;
     idle: AnimationAction | null; loco: Loco | null; paints: CharacterPaint[];
     faceMesh: SkinnedMesh | null; faceHead: Object3D | null;
+    femaleArms: boolean;
   };
 };
 const NPC_HEAD = new SphereGeometry(0.12, 10, 8);
@@ -233,7 +234,9 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
   const palette = sourceIndex % npcSources.length === 1
     ? { ...selected, top: selected.dress }
     : selected;
-  const faceKind = sourceIndex % npcSources.length === 1 ? 1 : 2;
+  const female = sourceIndex % npcSources.length === 1;
+  const faceKind = female ? 1 : 2;
+  inner.position.y = -0.016;
   const paints = styleCharacter(
     inner,
     palette,
@@ -271,7 +274,10 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
     idle.play();
     walk.setEffectiveWeight(0);
   }
-  n.detail = { inner, mixer, walk, idle, loco, paints, faceMesh: face.mesh, faceHead: face.head };
+  n.detail = {
+    inner, mixer, walk, idle, loco, paints, faceMesh: face.mesh, faceHead: face.head,
+    femaleArms: female,
+  };
 }
 export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const g = new Group(); g.name = "aw:npc";
@@ -298,6 +304,7 @@ export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tabl
     if (n.detail.loco) {
       // Scenario staff walk at about 1.3 m/s. Talk and idle stay on the idle clip.
       stepLoco(n.detail.loco, mode === "walk" ? 1.3 : 0, dt, 1);
+      if (n.detail.femaleArms) swingFemaleArms(n.detail.inner, n.detail.loco);
     } else if (n.detail.walk && n.detail.idle) {
       const walking = mode === "walk";
       n.detail.walk.setEffectiveWeight(walking ? 1 : 0);

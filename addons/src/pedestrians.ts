@@ -5,7 +5,7 @@
 import {
   AnimationMixer, Group, type AnimationAction, type Object3D, type SkinnedMesh,
 } from "three";
-import { createLoco, loadLocomotion, slewYaw, stepLoco, type Loco, type LocoClips } from "./locomotion";
+import { createLoco, loadLocomotion, slewYaw, stepLoco, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -229,7 +229,8 @@ export class PedestrianCrowds {
         const ux = dx / length, uz = dz / length;
         walker.x = ax + dx * t - uz * walker.side;
         walker.z = az + dz * t + ux * walker.side;
-        walker.y = this.amb!.w.surfaceAt(walker.x, walker.z) + 0.02;
+        // Sole cluster sits ~1.5 cm above the toe plant. This puts that sole on the pavement.
+        walker.y = this.amb!.w.surfaceAt(walker.x, walker.z) - 0.016;
         walker.yaw = walker.dir > 0 ? Math.atan2(ux, uz) : Math.atan2(-ux, -uz);
         return true;
       }
@@ -311,7 +312,10 @@ export class PedestrianCrowds {
       rig.root.scale.setScalar(walker.height);
       rig.root.visible = true;
       if (rig.loco) {
-        if (dt > 0) stepLoco(rig.loco, walker.speed, dt, walker.height);
+        if (dt > 0) {
+          stepLoco(rig.loco, walker.speed, dt, walker.height);
+          if (rig.kind === 0 || rig.kind === 1) swingFemaleArms(rig.inner, rig.loco);
+        }
       } else if (rig.walk && dt > 0) {
         rig.walk.timeScale = 0.85 + walker.speed * 0.18;
         rig.mixer.update(dt);

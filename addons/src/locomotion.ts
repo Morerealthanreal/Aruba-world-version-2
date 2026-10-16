@@ -3,7 +3,7 @@
 // (see game/models/locomotion.glb and CREDITS.md). Every visible person has
 // their own mixer so they stay out of step; the clip data is loaded once.
 import {
-  AnimationMixer, LoopRepeat, Euler, Quaternion,
+  AnimationMixer, LoopRepeat, Euler, Quaternion, Vector3,
   type AnimationAction, type AnimationClip, type Object3D, type WebGLRenderer,
 } from "three";
 import { characterLoader } from "./characters";
@@ -136,6 +136,37 @@ export function stepLoco(loco: Loco, speed: number, dt: number, bodyScale = 1) {
   loco.walk.timeScale = rate(walkMs, w.walk);
   loco.run.timeScale = rate(runMs, w.run);
   if (dt > 0) loco.mixer.update(dt);
+}
+
+const _armAxis = new Vector3(1, 0, 0);
+const _armQuat = new Quaternion();
+
+/**
+ * Maya's arms are short, so the shared clip parks her hands on her hips.
+ * Extra shoulder swing, opposite left to right, is applied only on the
+ * female pedestrians. The player keeps the clip as authored.
+ */
+export function swingFemaleArms(root: Object3D, loco: Loco) {
+  const walk = loco.weights.walk;
+  const run = loco.weights.run;
+  const moving = walk + run;
+  if (moving < 0.12) return;
+  const running = run > walk;
+  const action = running ? loco.run : loco.walk;
+  const duration = action.getClip().duration || 1;
+  const phase = ((action.time % duration) / duration) * Math.PI * 2;
+  const amp = (running ? 0.22 : 0.28) * Math.min(1, moving / 0.5);
+  const swing = -Math.cos(phase) * amp;
+  const turn = (name: string, angle: number) => {
+    const bone = root.getObjectByName(name);
+    if (!bone) return;
+    _armQuat.setFromAxisAngle(_armAxis, angle);
+    bone.quaternion.multiply(_armQuat);
+  };
+  turn("upperarm_l", swing);
+  turn("upperarm_r", -swing);
+  turn("lowerarm_l", -swing * 0.16);
+  turn("lowerarm_r", swing * 0.16);
 }
 
 /** Turn toward a heading without snapping. Radians. */
