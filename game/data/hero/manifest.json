@@ -60641,8 +60641,8 @@
    "switch_m": 800
   },
   "tris": {
-   "nw_antilla_lod0": 584,
-   "nw_antilla_lod1": 168
+   "nw_antilla_lod0": 656,
+   "nw_antilla_lod1": 216
   },
   "textures": 0,
   "hide_footprint": null,
@@ -60700,8 +60700,8 @@
    "switch_m": 300
   },
   "tris": {
-   "nw_boca_lod0": 1184,
-   "nw_boca_lod1": 272
+   "nw_boca_lod0": 1064,
+   "nw_boca_lod1": 284
   },
   "textures": 0,
   "hide_footprint": null,
@@ -60759,7 +60759,7 @@
    "switch_m": 320
   },
   "tris": {
-   "nw_hadi_lod0": 1776,
+   "nw_hadi_lod0": 1796,
    "nw_hadi_lod1": 416
   },
   "textures": 0,
@@ -60788,7 +60788,7 @@
    "switch_m": 340
   },
   "tris": {
-   "nw_arashi_lod0": 2124,
+   "nw_arashi_lod0": 2208,
    "nw_arashi_lod1": 272
   },
   "textures": 0,

@@ -586,12 +586,12 @@ KITES = [
     (0.85, 0.28, 0.55),
 ]
 # Dried palm is much darker than a beach umbrella. The skirt band is the shadowed edge.
-THATCH_D = (0.44, 0.29, 0.12)
-THATCH_E = (0.30, 0.19, 0.08)
+THATCH_D = (0.32, 0.18, 0.07)
+THATCH_E = (0.16, 0.09, 0.04)
 FRAME_C = (0.94, 0.93, 0.88)
 SHUTTER = (0.20, 0.36, 0.26)
-RUST = (0.46, 0.28, 0.16)
-RUST_D = (0.28, 0.17, 0.11)
+RUST = (0.36, 0.18, 0.09)
+RUST_D = (0.22, 0.12, 0.07)
 SPONGE = (0.72, 0.42, 0.22)
 GRAVEL = (0.55, 0.53, 0.48)
 STALL = (0.88, 0.86, 0.78)
@@ -766,33 +766,32 @@ def stair_flight(b: B, z, x_top, run=0.30, width=2.5, max_n=18):
     placed = []
     for i in range(max_n):
         x0 = x1 - run
-        samples = []
-        for fx in (0.15, 0.5, 0.85):
-            for fz in (-0.32, 0.0, 0.32):
-                samples.append(mesh_height(x0 + (x1 - x0) * fx, z + width * fz))
-        low = min(samples)
-        top = low + 0.045
-        if prev is not None and top > prev - 0.08:
-            top = prev - 0.08
-        # A forced riser that lifts the tread off the mesh is how the old stair floated.
-        if top > low + 0.12:
-            top = low + 0.045
-        if top < 0.38:
+        # Seat the tread on the high (east) edge so the nose projects over the drop.
+        # Using the low edge buried every tread inside the cliff face.
+        backs = [mesh_height(x1 - 0.04, z + width * fz) for fz in (-0.28, 0.0, 0.28)]
+        fronts = [mesh_height(x0 + 0.04, z + width * fz) for fz in (-0.28, 0.0, 0.28)]
+        back, front = min(backs), min(fronts)
+        top = back + 0.05
+        if prev is not None:
+            top = min(top, prev - 0.16)
+            if top > back + 0.12:
+                top = back + 0.05
+        if top < 0.42:
             break
-        rise = (prev - top) if prev is not None else 0.22
-        thick = min(0.42, max(0.16, rise))
-        bot = max(top - thick, low - 0.05)
-        if top - bot < 0.12:
-            bot = top - 0.12
+        rise = (prev - top) if prev is not None else max(0.18, top - front)
+        thick = min(0.46, max(0.18, rise if rise > 0.05 else 0.18))
+        bot = top - thick
+        bot = max(bot, min(front, back) - 0.08)
+        if top - bot < 0.14:
+            bot = top - 0.14
         b.box(0, "conc", x0, bot, z - width / 2, x1, top, z + width / 2)
         if i % 2 == 0:
             b.box(1, "conc", x0, bot, z - width / 2, x1, top, z + width / 2)
-        # Cheek walls step with the flight. Height tracks the riser so a shallow
-        # tread does not grow a tall parapet.
-        wall_top = top + max(0.36, min(0.62, rise + 0.24))
+        # A low curb, so the treads stay the thing you see.
+        curb = top + 0.18
         for side in (-1, 1):
-            zs = z + side * (width / 2 + 0.08)
-            b.box(0, "conc", x0, top - 0.02, zs - 0.07, x1, wall_top, zs + 0.07)
+            zs = z + side * (width / 2 + 0.06)
+            b.box(0, "conc", x0, top - 0.02, zs - 0.055, x1, curb, zs + 0.055)
         placed.append((x0, x1, top, bot))
         prev = top
         x1 = x0
@@ -811,16 +810,7 @@ def stair_flight(b: B, z, x_top, run=0.30, width=2.5, max_n=18):
         x0, x1s, top, _bot = placed[i]
         xm = (x0 + x1s) * 0.5
         b.beam(0, "rail", (xm, top + 0.02, zrail), (xm, top + 0.95, zrail), 0.025, 0.025)
-    b.box(
-        1,
-        "rail",
-        placed[-1][0],
-        placed[-1][2] + 0.7,
-        zrail - 0.04,
-        placed[0][1],
-        placed[0][2] + 1.0,
-        zrail + 0.04,
-    )
+        b.box(1, "rail", xm - 0.04, top + 0.15, zrail - 0.04, xm + 0.04, top + 0.95, zrail + 0.04)
     print(
         f"  flight n={len(placed)} x {placed[0][1]:.2f}->{placed[-1][0]:.2f} "
         f"top {placed[0][2]:.2f}->{placed[-1][2]:.2f}"
@@ -845,15 +835,16 @@ def add_palapa(b: B, x, z, yaw=0.0, span=2.15):
         (x - e * c - e * s, z - e * s + e * c),
     ]
     b.hip(0, "thatchd", roof, g + 2.28, 1.05)
-    skirt = 0.48
+    # dark ceiling, so the underside is thatch rather than a hole
+    b.box_yaw(0, "thatche", x, g + 2.12, z, span * 0.78, 0.07, span * 0.78, yaw)
+    skirt = 0.78
     for i in range(4):
         a, cpt = roof[i], roof[(i + 1) % 4]
         mx, mz = (a[0] + cpt[0]) * 0.5, (a[1] + cpt[1]) * 0.5
         dx, dz = cpt[0] - a[0], cpt[1] - a[1]
         L = math.hypot(dx, dz) or 1.0
-        # push the skirt just outside the eave so the edge reads as thatch, not a fascia board
         ox, oz = dz / L, -dx / L
-        b.box_yaw(0, "thatche", mx + ox * 0.06, g + 2.28 - skirt, mz + oz * 0.06, L * 0.5 + 0.08, skirt, 0.10, math.atan2(dz, dx))
+        b.box_yaw(0, "thatche", mx + ox * 0.08, g + 2.28 - skirt, mz + oz * 0.08, L * 0.5 + 0.1, skirt, 0.12, math.atan2(dz, dx))
     b.box_yaw(1, "thatchd", x, g + 2.2, z, span * 0.95, 0.85, span * 0.95, yaw)
 
 
@@ -913,23 +904,26 @@ def add_opening(b: B, x, z, y, yaw):
 
 
 def add_air_kite(b: B, x, z, color_name, alt, reach, side):
-    """Static crescent on a line. Trade wind is from the east, so it flies west, over the sea."""
+    """Static crescent facing the beach. A flat kite reads as a line from the sand."""
     g = height(x, z)
     kx = x - reach
     kz = z + side
     ky = alt
-    b.beam(0, "line", (x, g + 1.0, z), (kx, ky - 0.4, kz), 0.012, 0.012)
-    segs = 5
+    b.beam(0, "line", (x, g + 1.0, z), (kx, ky - 1.4, kz), 0.016, 0.016)
+    segs = 6
+    span = 6.4
     lead, trail = [], []
     for i in range(segs + 1):
         t = i / segs
-        ang = (t - 0.5) * 2.15
-        lead.append((kx + math.cos(ang) * 1.25, ky + 0.15, kz + math.sin(ang) * 1.85))
-        trail.append((kx + math.cos(ang) * 0.45, ky - 0.08, kz + math.sin(ang) * 1.65))
+        zoff = (t - 0.5) * span
+        # Pinched tips and a deep belly, so the silhouette is a crescent.
+        belly = math.sin(t * math.pi)
+        lead.append((kx + 0.4, ky + 1.15 + belly * 0.35, kz + zoff))
+        trail.append((kx - 0.15, ky + 1.15 - belly * 2.5, kz + zoff * 0.92))
     for i in range(segs):
-        b.quad(0, color_name, [lead[i], lead[i + 1], trail[i + 1], trail[i]], (0, 1, 0))
-        b.quad(0, color_name, [lead[i + 1], lead[i], trail[i], trail[i + 1]], (0, -1, 0))
-    b.box(1, color_name, kx - 0.3, ky - 0.4, kz - 1.5, kx + 1.3, ky + 0.4, kz + 1.5)
+        b.quad(0, color_name, [lead[i], lead[i + 1], trail[i + 1], trail[i]], (1, 0.2, 0))
+        b.quad(0, color_name, [lead[i + 1], lead[i], trail[i], trail[i + 1]], (-1, 0.2, 0))
+    b.box(1, color_name, kx - 0.2, ky - 1.8, kz - 2.6, kx + 0.5, ky + 1.3, kz + 2.6)
 
 
 def add_windsurf(b: B, x, z, color_name, yaw):
@@ -939,11 +933,11 @@ def add_windsurf(b: B, x, z, color_name, yaw):
         return False
     b.box_yaw(0, "board", x, g + 0.02, z, 1.35, 0.05, 0.28, yaw)
     b.box_yaw(1, "board", x, g + 0.02, z, 1.2, 0.08, 0.3, yaw)
-    b.beam(0, "spar", (x, g + 0.08, z), (x, g + 3.35, z), 0.028, 0.028)
+    b.beam(0, "spar", (x, g + 0.08, z), (x, g + 4.15, z), 0.035, 0.035)
     c, s = math.cos(yaw + 1.15), math.sin(yaw + 1.15)
-    top = (x + c * 0.08, g + 3.2, z + s * 0.08)
-    foot = (x + c * 0.05, g + 0.55, z + s * 0.05)
-    clew = (x + c * 1.25, g + 1.45, z + s * 1.25)
+    top = (x + c * 0.1, g + 4.0, z + s * 0.1)
+    foot = (x + c * 0.05, g + 0.5, z + s * 0.05)
+    clew = (x + c * 1.7, g + 1.7, z + s * 1.7)
     outward = (s, 0.15, -c)
     b.tri(0, color_name, top, foot, clew, outward)
     b.tri(0, color_name, top, clew, foot, (-outward[0], -outward[1], -outward[2]))
@@ -963,22 +957,27 @@ def add_wreck(b: B, ax, az, fx, fz):
         for lod in lods:
             b.box_yaw(lod, mat, cx, y0, cz, half_l, y1 - y0, half_b, yaw)
 
-    # Stern section, then a gap, then the bow (bow is +along, toward the beach).
-    hull(-34, 2.6, 26, -2.4, 0.88, 1.7, "rust", (0, 1))
-    hull(-34, -1.8, 24, -3.6, 0.28, 2.8, "rustd", (0,))
-    hull(32, 2.4, 28, -2.2, 0.82, 1.65, "rust", (0, 1))
-    hull(32, -1.6, 26, -3.4, 0.24, 2.7, "rustd", (0,))
-    # bridge block on the bow
-    hull(48, 1.4, 4.0, 0.4, 1.7, 2.1, "rustd", (0, 1))
-    for along_d, side, top in ((-20, 2.2, 2.8), (16, 2.0, 2.5), (-4, 1.2, 1.15)):
+    # Stern, a gap, then the bow (+along, toward the beach). Above water the
+    # rail is narrow and broken, so it does not read as a floating dock.
+    hull(-34, 1.6, 26, -1.6, 0.72, 1.15, "rust", (0, 1))
+    hull(-34, -1.4, 22, -3.2, 0.22, 2.2, "rustd", (0,))
+    hull(32, 1.5, 28, -1.5, 0.68, 1.1, "rust", (0, 1))
+    hull(32, -1.3, 24, -3.0, 0.18, 2.1, "rustd", (0,))
+    for along_d, y1, half in ((-48, 1.15, 2.2), (-18, 1.35, 3.0), (8, 1.05, 2.4), (40, 1.45, 2.8)):
+        hull(along_d, 1.7, half, 0.35, y1, 0.7, "rustd", (0, 1))
+    hull(48, 1.2, 3.6, 0.45, 2.35, 1.8, "rustd", (0, 1))
+    for along_d, side, top in ((-22, 1.5, 4.6), (14, 1.4, 4.2), (-2, 0.8, 1.6)):
         cx = ax + fx * along_d + px * side
         cz = az + fz * along_d + pz * side
-        b.beam(0, "spar", (cx, 0.35, cz), (cx + px * 0.45, top, cz + pz * 0.45), 0.08, 0.08)
-        b.box(1, "spar", cx - 0.1, 0.4, cz - 0.1, cx + 0.1, top, cz + 0.1)
+        mast_top = top + (1.6 if top > 3 else 0)
+        b.beam(0, "spar", (cx, 0.35, cz), (cx, mast_top, cz), 0.16, 0.14)
+        b.box(1, "spar", cx - 0.16, 0.45, cz - 0.16, cx + 0.16, mast_top, cz + 0.16)
+        if top > 3:
+            b.beam(0, "spar", (cx - px * 2.2, mast_top - 1.1, cz - pz * 2.2), (cx + px * 2.2, mast_top - 0.9, cz + pz * 2.2), 0.08, 0.06)
     for along_d in (-50, -24, -8, 12, 36, 55):
-        cx = ax + fx * along_d + px * 3.0
-        cz = az + fz * along_d + pz * 3.0
-        b.box_yaw(0, "sponge", cx, 0.5, cz, 1.5, 0.36, 0.65, yaw)
+        cx = ax + fx * along_d + px * 2.2
+        cz = az + fz * along_d + pz * 2.2
+        b.box_yaw(0, "sponge", cx, 0.45, cz, 1.5, 0.36, 0.55, yaw)
 
 
 def parking_pad(b, roads, x0, x1, z0, z1):
@@ -1312,7 +1311,7 @@ def build():
     while x_top > cliff - 4 and mesh_height(x_top, bz) > 4.85:
         x_top -= 0.2
     print(f"  boca flight start x={x_top:.2f} mesh={mesh_height(x_top, bz):.2f}")
-    placed, x_end, _y_end = stair_flight(b, bz, x_top, run=0.30, width=2.5)
+    placed, x_end, _y_end = stair_flight(b, bz, x_top, run=0.40, width=2.2)
     print(f"  boca steps {placed}")
     rock_arm(b, cliff + 2, bz - 5, -1.1, -0.15, 5)
     rock_arm(b, cliff + 1, bz + 5, -1.05, 0.12, 4)
@@ -1471,7 +1470,7 @@ def build():
             )
             kites += 1
         else:
-            if add_windsurf(b, x - 8, z - 2, f"kite{i % 4}", yaw=-0.35 - 0.15 * i):
+            if add_windsurf(b, x - 16, z - 5, f"kite{i % 4}", yaw=-0.5):
                 rigs += 1
     # a couple more rigs on the open sand, clear of the hut row and the sail rack
     for j, (dx, dz, yaw) in enumerate(((-18, 14, -0.2), (-16, -18, 0.15), (-22, 4, -0.5))):
