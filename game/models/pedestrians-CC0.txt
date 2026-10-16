@@ -23,19 +23,23 @@ The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
 
 - The LOD files retain Idle_Standing and Walk_Relaxed as a fallback.
   The live walk, run, and idle cycles are the separate locomotion.glb clips.
-- The long hair cards are replaced at load with a cap parented to the head bone.
-  The cap covers the crown. The broken scalp cards are replaced with a solid head.
+- The long hair cards are replaced at load with hair parented to the head bone.
+  A crown covers the skull, and thick locks hang down the back and both sides.
+  The broken scalp cards are replaced with a solid head. The front of that head
+  samples the oil portrait, so the eyes, nose, and mouth are on the mesh.
   A neck weighted to the neck bone joins the head to the shoulders.
   The dress cone is replaced with a short thigh-weighted skirt and visible legs.
+  The dress shoulder and hand cards are replaced with solid limbs on the arm bones.
 - Bake skin, face, hair, and fabric into a hand-painted 4x4 texture atlas.
 - Add near and reduced mid-distance mesh LODs.
 - Compress textures as KTX2/ETC1S and geometry/animation with Meshopt.
 
 The near-LOD face paintings in models/faces/ (face-maya.jpg, face-dress.jpg,
-face-sam.jpg) are project-made oil-style portraits. They appear on a curved
-card parented to the head of the two or three closest people, within about
-8 m. Each card is 126 triangles, so a crowd adds at most a few hundred
-triangles. They are not part of the Innerscene or MakeHuman sources.
+face-sam.jpg) are project-made oil-style portraits. The front of the solid
+head samples the portrait. A curved card parented to the head of the two or
+three closest people, within about 8 m, sharpens that same painting when it
+faces the camera. Each card is 126 triangles, so a crowd adds at most a few
+hundred triangles. They are not part of the Innerscene or MakeHuman sources.
 
 The character meshes are not Quaternius bodies. The walk, run, and idle
 cycles in locomotion.glb are retargeted from the Quaternius Universal
