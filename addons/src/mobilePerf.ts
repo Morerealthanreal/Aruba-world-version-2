@@ -57,9 +57,13 @@ export class MobilePerf {
   private idleArmed = false;
   /** True when the context can link shaders without blocking the caller. */
   private parallel = false;
+  /** Large first uploads. The mesh stays undrawn until the slices land, so one bufferData is not a freeze. */
+  private bufJobs = new Map<WebGLBuffer, { target: number; data: ArrayBufferView; offset: number }>();
+  private stepBuf: (budget?: number) => void = () => {};
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
     try { this.parallel = !!(g.renderer.getContext() as WebGL2RenderingContext).getExtension("KHR_parallel_shader_compile"); } catch { /* software GL without the extension still compiles, just inline */ }
+    this.hookBuffers();
     const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
     if (A && A.update) {
       const orig = A.update.bind(A);
@@ -87,6 +91,7 @@ export class MobilePerf {
     if (this.pend.length && performance.now() - t0 < 8) this.pump(4);
     this.sync(2);
     if (this.preUpload && this.texQ.length) this.upload(1, 5);
+    this.stepBuf(4);
     this.armIdle();
   }
   /**
@@ -106,18 +111,19 @@ export class MobilePerf {
       this.prime(g);
     }
   }
-  /** One initTexture while the browser is idle, then re-arm until the queue is empty. */
+  /** One initTexture while the browser is idle, and another slice of any large buffer. */
   private armIdle() {
-    if (this.idleArmed || !this.preUpload || !this.texQ.length) return;
+    if (this.idleArmed) return;
+    if (!this.bufJobs.size && (!this.preUpload || !this.texQ.length)) return;
     const ric = window.requestIdleCallback;
     if (!ric) return;
     this.idleArmed = true;
     ric((d) => {
       this.idleArmed = false;
-      if (!this.preUpload) return;
       const budget = Math.max(1, Math.min(5, d.timeRemaining() || 1));
-      this.upload(1, budget);
-      if (this.texQ.length) this.armIdle();
+      if (this.preUpload) this.upload(1, budget);
+      this.stepBuf(budget);
+      if (this.bufJobs.size || (this.preUpload && this.texQ.length)) this.armIdle();
     }, { timeout: 32 });
   }
   /** Programs still waiting to be finalized. The pump keeps going until this is 0 so the next frame does not draw them cold. */
@@ -153,7 +159,110 @@ export class MobilePerf {
     }
     this.pend.push(obj);
   }
-  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0) + this.backlog(); }
+  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + this.bufJobs.size + (this.busy ? 1 : 0) + this.backlog(); }
+  /**
+   * A first upload bigger than 128 KB is allocated empty and filled 16 KB at a time.
+   * Draws that use that buffer are skipped until the slices finish, then the mesh appears whole.
+   * A second update of the same buffer (dynamic data) uploads in full so it cannot stay sliced forever.
+   * At most two buffers are in flight; anything further uploads the way three always did.
+   */
+  private hookBuffers() {
+    const gl = this.g.renderer.getContext() as WebGL2RenderingContext;
+    const CHUNK = 16 * 1024, BIG = 128 * 1024;
+    const jobs = this.bufJobs;
+    const origData = gl.bufferData.bind(gl);
+    const origSub = gl.bufferSubData.bind(gl);
+    const origDelete = gl.deleteBuffer.bind(gl);
+    const origBind = gl.bindBuffer.bind(gl);
+    const origVAO = gl.bindVertexArray.bind(gl);
+    const vaoBufs = new WeakMap<object, Set<WebGLBuffer>>();
+    const defaultBufs = new Set<WebGLBuffer>();
+    let curSet = defaultBufs;
+    let boundA = gl.getParameter(gl.ARRAY_BUFFER_BINDING) as WebGLBuffer | null;
+    let boundE = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING) as WebGLBuffer | null;
+    const note = (buf: WebGLBuffer | null) => { if (buf) curSet.add(buf); };
+    gl.bindBuffer = ((target: number, buf: WebGLBuffer | null) => {
+      if (target === gl.ARRAY_BUFFER) boundA = buf;
+      else if (target === gl.ELEMENT_ARRAY_BUFFER) { boundE = buf; note(buf); }
+      return origBind(target, buf);
+    }) as typeof gl.bindBuffer;
+    gl.bindVertexArray = ((vao: WebGLVertexArrayObject | null) => {
+      origVAO(vao);
+      if (vao) { let s = vaoBufs.get(vao); if (!s) { s = new Set(); vaoBufs.set(vao, s); } curSet = s; }
+      else curSet = defaultBufs;
+      boundE = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING) as WebGLBuffer | null;
+      note(boundE);
+    }) as typeof gl.bindVertexArray;
+    const origAttrib = gl.vertexAttribPointer.bind(gl);
+    gl.vertexAttribPointer = ((...a: Parameters<WebGL2RenderingContext["vertexAttribPointer"]>) => { note(boundA); return origAttrib(...a); }) as typeof gl.vertexAttribPointer;
+    const origAttribI = gl.vertexAttribIPointer.bind(gl);
+    gl.vertexAttribIPointer = ((...a: Parameters<WebGL2RenderingContext["vertexAttribIPointer"]>) => { note(boundA); return origAttribI(...a); }) as typeof gl.vertexAttribIPointer;
+    const bindingOf = (target: number) => target === gl.ARRAY_BUFFER ? gl.ARRAY_BUFFER_BINDING : target === gl.ELEMENT_ARRAY_BUFFER ? gl.ELEMENT_ARRAY_BUFFER_BINDING : 0;
+    const bound = (target: number) => { const b = bindingOf(target); return b ? gl.getParameter(b) as WebGLBuffer | null : null; };
+    // origBind, not gl.bindBuffer: slicing must not attach the buffer to whatever VAO is current.
+    const bind = (target: number, buf: WebGLBuffer | null) => {
+      if (target === gl.ARRAY_BUFFER) boundA = buf;
+      else if (target === gl.ELEMENT_ARRAY_BUFFER) boundE = buf;
+      origBind(target, buf);
+    };
+    this.stepBuf = (budget = 4) => {
+      if (!jobs.size) return;
+      const t0 = performance.now();
+      const prevA = boundA, prevE = boundE;
+      for (const [buf, job] of jobs) {
+        if (performance.now() - t0 > budget) break;
+        const data = job.data, el = (data as { BYTES_PER_ELEMENT?: number }).BYTES_PER_ELEMENT || 1;
+        const left = data.byteLength - job.offset;
+        if (left <= 0) { jobs.delete(buf); continue; }
+        const count = Math.max(1, Math.floor(Math.min(CHUNK, left) / el));
+        const start = (job.offset / el) | 0;
+        bind(job.target, buf);
+        origSub(job.target, job.offset, data, start, count);
+        job.offset += count * el;
+        if (job.offset >= data.byteLength) jobs.delete(buf);
+      }
+      if (boundA !== prevA) bind(gl.ARRAY_BUFFER, prevA);
+      if (boundE !== prevE) bind(gl.ELEMENT_ARRAY_BUFFER, prevE);
+    };
+    gl.bufferData = ((target: number, data: ArrayBufferView | number, usage: number) => {
+      if (typeof data === "number" || !data || jobs.size >= 2 || data.byteLength <= BIG) return origData(target, data as never, usage);
+      const buf = bound(target);
+      if (!buf) return origData(target, data as never, usage);
+      origData(target, data.byteLength, usage);
+      jobs.set(buf, { target, data, offset: 0 });
+      this.stepBuf(4);
+    }) as typeof gl.bufferData;
+    gl.bufferSubData = ((target: number, offset: number, data: ArrayBufferView, srcOffset?: number, length?: number) => {
+      if (srcOffset !== undefined || !data) return origSub(target, offset, data, srcOffset as number, length as number);
+      const buf = bound(target);
+      if (buf && jobs.has(buf)) { jobs.delete(buf); return origSub(target, offset, data); }
+      if (offset === 0 && data.byteLength > BIG && jobs.size < 2 && buf) {
+        jobs.set(buf, { target, data, offset: 0 });
+        this.stepBuf(4);
+        return;
+      }
+      return origSub(target, offset, data);
+    }) as typeof gl.bufferSubData;
+    gl.deleteBuffer = ((buf: WebGLBuffer | null) => { if (buf) jobs.delete(buf); return origDelete(buf); }) as typeof gl.deleteBuffer;
+    const blocked = () => {
+      if (!jobs.size) return false;
+      for (const buf of jobs.keys()) if (curSet.has(buf) || buf === boundA || buf === boundE) return true;
+      return false;
+    };
+    const skip = (fn: (...a: never[]) => unknown) => function (this: unknown, ...a: never[]) {
+      if (blocked()) return;
+      return fn.apply(gl, a);
+    };
+    for (const name of ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced"] as const) {
+      const fn = gl[name];
+      if (typeof fn === "function") (gl as unknown as Record<string, unknown>)[name] = skip(fn.bind(gl) as (...a: never[]) => unknown);
+    }
+    const ext = gl.getExtension("WEBGL_multi_draw") as { multiDrawArraysWEBGL?: (...a: never[]) => unknown; multiDrawElementsWEBGL?: (...a: never[]) => unknown } | null;
+    if (ext) for (const name of ["multiDrawArraysWEBGL", "multiDrawElementsWEBGL"] as const) {
+      const fn = ext[name];
+      if (typeof fn === "function") ext[name] = skip(fn.bind(ext) as (...a: never[]) => unknown);
+    }
+  }
   private full(dt: number) {
     if ((this.t -= dt) > 0) return;
     const r = this.g.renderer as unknown as R;
