@@ -111,8 +111,12 @@ SPECS = [
         "lat": 12.4357777, "lng": -69.9113945,
         "address": "Bernhardstraat 144, west wall of Korps Politie Aruba",
         "bld": 4074, "wall": 0,
-        "wm": 6.3, "hm": 6.3,
-        "pw": 504, "ph": 504,
+        # The game wall is red (#d8553f). The owl sits on a cream field that
+        # runs to the corners, so it reads as paint on the wall.
+        "fill": True,
+        "sharp": True,
+        "wm": 15.6, "hm": 6.8,
+        "pw": 1600, "ph": 700,
         "sources": [
             "Street Art Cities marker 13073 (lat 12.4357777, lng -69.9113945, Bernhardstraat 144)",
             "Wikimedia Commons File:Mural police station San Nicolas Aruba .jpeg and File:Mural police station San Nicolas Aruba16 06 35 979000.jpeg (Caribiana, CC BY-SA 4.0, camera 12.43591, -69.91149)",
@@ -156,8 +160,11 @@ SPECS = [
         "lat": 12.4348557, "lng": -69.9098535,
         "address": "Stuyvesantstraat, long street wall of the Trilax corner the pin faces",
         "bld": 4985, "wall": 0,
-        "wm": 14.0, "hm": 3.35,
-        "pw": 840, "ph": 201,
+        # This face also carries the game's procedural ring. Cover it.
+        "fill": True,
+        "sharp": True,
+        "wm": 20.6, "hm": 3.6,
+        "pw": 2048, "ph": 360,
         "sources": [
             "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only.",
         ],
@@ -212,8 +219,10 @@ SPECS = [
         "lat": 12.4355315, "lng": -69.9100037,
         "address": "Bernard van de Veen Zeppenfeldstraat 9, street wall of La Aruba (pin falls inside the block)",
         "bld": 4079, "wall": 1,
-        "wm": 12.4, "hm": 3.05,
-        "pw": 806, "ph": 198,
+        # House-kit windows stand 0.13 m off this wall. Sit the paint in front of them.
+        "lift": 0.24,
+        "wm": 14.8, "hm": 3.2,
+        "pw": 1024, "ph": 220,
         "sources": [
             "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only.",
         ],
@@ -254,8 +263,12 @@ SPECS = [
         "lat": 12.435077, "lng": -69.9100802,
         "address": "Van Renselaerstraat 2, street wall of The Emporium",
         "bld": 4081, "wall": 5,
-        "wm": 2.85, "hm": 3.15,
-        "pw": 300, "ph": 332,
+        # Portrait fills the Van Renselaerstraat wall. The game wall is blue;
+        # the painting's own field is the turquoise of the real mural.
+        "fill": True,
+        "sharp": True,
+        "wm": 13.6, "hm": 3.3,
+        "pw": 1728, "ph": 420,
         "sources": [
             "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
             "Wikimedia Commons File:Mural art in and around Mainstreet, San Nicolas Aruba 07.jpg (CC0, same headdress portrait)",
@@ -309,53 +322,133 @@ def wash(draw, box, c1, c2, steps=18):
 
 
 def paint_night(w, h):
-    im = Image.new("RGB", (w, h), (236, 228, 206))
+    """Farid Rueda owl: cream wall, mandala face, ear tufts, teal beak.
+
+    The field runs to the edges of a wide wall. The owl stays tall in the
+    middle, so the cream is the painted wall rather than a square panel.
+    """
+    im = Image.new("RGB", (w, h), (236, 226, 204))
     d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, w, h), (244, 236, 214), (214, 206, 184))
-    cx, cy = w * 0.50, h * 0.46
-    # ear tufts
-    d.polygon([(cx - w * 0.28, cy - h * 0.08), (cx - w * 0.42, cy - h * 0.42), (cx - w * 0.16, cy - h * 0.28)], fill=(46, 92, 78))
-    d.polygon([(cx + w * 0.28, cy - h * 0.08), (cx + w * 0.42, cy - h * 0.40), (cx + w * 0.16, cy - h * 0.26)], fill=(92, 78, 46))
-    # mandala discs
-    rings = [
-        (0.46, (42, 140, 150, 230)),
-        (0.38, (86, 70, 160, 220)),
-        (0.30, (40, 120, 110, 210)),
-        (0.22, (180, 90, 150, 180)),
-    ]
-    for rad, col in rings:
-        d.ellipse([cx - w * rad, cy - h * rad * 1.05, cx + w * rad, cy + h * rad * 1.05], fill=col)
-    # petal wedges
-    r = rng(7)
-    for i in range(14):
-        a0 = -math.pi * 0.85 + i * (math.pi * 1.7 / 14)
-        a1 = a0 + 0.18
-        rad = 0.34 + (i % 3) * 0.03
-        col = ((70, 150, 170), (150, 90, 170), (40, 110, 120), (200, 140, 90))[i % 4]
-        pts = [(cx, cy)]
-        for a in (a0, (a0 + a1) / 2, a1):
-            pts.append((cx + math.cos(a) * w * rad, cy + math.sin(a) * h * rad))
-        d.polygon(pts, fill=col + (210,))
-    # eyes
-    for sx in (-0.13, 0.13):
-        ex, ey = cx + w * sx, cy - h * 0.02
-        d.ellipse([ex - w * 0.09, ey - h * 0.13, ex + w * 0.09, ey + h * 0.13], fill=(20, 16, 18))
-        d.ellipse([ex - w * 0.062, ey - h * 0.09, ex + w * 0.062, ey + h * 0.09], fill=(232, 224, 206))
-        d.ellipse([ex - w * 0.028, ey - h * 0.055, ex + w * 0.022, ey + h * 0.02], fill=(30, 24, 20))
-        d.ellipse([ex - w * 0.03, ey - h * 0.06, ex - w * 0.005, ey - h * 0.02], fill=(255, 255, 255, 180))
-    # beak diamond
-    d.polygon([
-        (cx, cy + h * 0.02),
-        (cx + w * 0.045, cy + h * 0.12),
-        (cx, cy + h * 0.34),
-        (cx - w * 0.045, cy + h * 0.12),
-    ], fill=(36, 168, 166))
-    d.polygon([(cx, cy + h * 0.08), (cx + w * 0.018, cy + h * 0.16), (cx, cy + h * 0.22), (cx - w * 0.018, cy + h * 0.16)], fill=(214, 170, 70))
-    # drips
-    d.line([(cx - w * 0.22, cy + h * 0.22), (cx - w * 0.05, cy + h * 0.42), (cx + w * 0.16, cy + h * 0.30)], fill=(90, 70, 170), width=4)
-    d.line([(cx - w * 0.1, cy + h * 0.36), (cx + w * 0.22, cy + h * 0.44)], fill=(70, 80, 180), width=3)
-    grain(im, 10, 3)
+    wash(d, (0, 0, w, h), (246, 238, 218), (214, 202, 176))
+    r = rng(21)
+    for _ in range(70):
+        x, y = r.randint(0, w), r.randint(0, h)
+        rad = r.randint(10, 48)
+        d.ellipse([x - rad, y - rad, x + rad, y + rad], fill=(228, 216, 192, 36))
+    # dark skirting, as on the station wall
+    d.rectangle([0, int(h * 0.915), w, h], fill=(36, 34, 32))
+    d.rectangle([0, int(h * 0.905), w, int(h * 0.92)], fill=(78, 74, 68))
+
+    side = h * 0.92
+    cx, cy = w * 0.50, h * 0.43
+
+    def P(x, y):
+        return (cx + x * side, cy + y * side)
+
+    # faint wreath
+    d.ellipse([*P(-0.62, -0.58), *P(0.62, 0.62)], outline=(170, 190, 180, 90), width=max(2, h // 180))
+    d.arc([*P(-0.70, -0.66), *P(0.70, 0.66)], 200, 340, fill=(150, 176, 168, 80), width=max(2, h // 200))
+
+    def tuft(sign, cols):
+        d.polygon([P(sign * 0.18, -0.10), P(sign * 0.52, -0.62), P(sign * 0.08, -0.32)], fill=cols[0])
+        d.polygon([P(sign * 0.22, -0.16), P(sign * 0.46, -0.52), P(sign * 0.16, -0.30)], fill=cols[1])
+        d.polygon([P(sign * 0.28, -0.22), P(sign * 0.40, -0.46), P(sign * 0.24, -0.34)], fill=cols[2])
+        for i in range(4):
+            yy = -0.22 - i * 0.08
+            x0, y0 = P(sign * 0.30, yy)
+            x1, y1 = P(sign * 0.38, yy + 0.05)
+            d.ellipse([min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)], outline=cols[3], width=2)
+
+    tuft(-1, ((32, 96, 78), (196, 164, 52), (48, 70, 120), (230, 210, 120)))
+    tuft(1, ((48, 78, 64), (120, 96, 48), (70, 48, 90), (210, 180, 90)))
+
+    # mandala discs behind the petals
+    for rad, col in (
+        (0.50, (28, 120, 132, 210)),
+        (0.40, (92, 64, 150, 200)),
+        (0.30, (36, 108, 118, 190)),
+    ):
+        d.ellipse([*P(-rad, -rad * 0.96), *P(rad, rad * 0.96)], fill=col)
+
+    palette = (
+        (42, 150, 168), (150, 84, 176), (36, 110, 128),
+        (210, 150, 70), (70, 80, 170), (90, 170, 150),
+        (180, 90, 140), (40, 90, 110),
+    )
+    for i in range(18):
+        a0 = -math.pi * 0.92 + i * (math.pi * 1.84 / 18)
+        a1 = a0 + 0.16
+        rad = 0.36 + (i % 3) * 0.045
+        col = palette[i % len(palette)]
+        mid = (a0 + a1) / 2
+        tip = rad + 0.06
+        pts = [
+            P(math.cos(a0) * rad * 0.55, math.sin(a0) * rad * 0.55),
+            P(math.cos(a0) * rad, math.sin(a0) * rad),
+            P(math.cos(mid) * tip, math.sin(mid) * tip),
+            P(math.cos(a1) * rad, math.sin(a1) * rad),
+        ]
+        d.polygon(pts, fill=col + (230,))
+        d.line([pts[1], pts[2], pts[3]], fill=(255, 255, 255, 70), width=2)
+        # inner leaf mark
+        inner = 0.22 + (i % 2) * 0.04
+        d.polygon([
+            P(math.cos(mid) * 0.12, math.sin(mid) * 0.12),
+            P(math.cos(mid - 0.08) * inner, math.sin(mid - 0.08) * inner),
+            P(math.cos(mid + 0.08) * inner, math.sin(mid + 0.08) * inner),
+        ], fill=palette[(i + 3) % len(palette)] + (180,))
+
+    # brow feathers between the eyes
+    d.polygon([P(0, -0.34), P(0.10, -0.08), P(0, 0.02), P(-0.10, -0.08)], fill=(48, 170, 168))
+    d.polygon([P(0, -0.26), P(0.045, -0.10), P(0, -0.02), P(-0.045, -0.10)], fill=(230, 190, 80))
+
+    def eye(sx):
+        ex, ey = cx + sx * side, cy - 0.02 * side
+        rw, rh = side * 0.115, side * 0.145
+        d.ellipse([ex - rw * 1.25, ey - rh * 1.2, ex + rw * 1.25, ey + rh * 1.15], fill=(24, 20, 28))
+        d.ellipse([ex - rw, ey - rh, ex + rw, ey + rh], fill=(236, 228, 210))
+        d.pieslice([ex - rw, ey - rh, ex + rw, ey + rh], 200, 340, fill=(48, 40, 36))
+        d.ellipse([ex - rw * 0.42, ey - rh * 0.15, ex + rw * 0.38, ey + rh * 0.55], fill=(28, 22, 20))
+        d.ellipse([ex - rw * 0.55, ey - rh * 0.72, ex - rw * 0.05, ey - rh * 0.15], fill=(255, 255, 255, 200))
+
+    eye(-0.145)
+    eye(0.145)
+
+    # teal beak diamond
+    d.polygon([P(0, 0.02), P(0.07, 0.16), P(0, 0.46), P(-0.07, 0.16)], fill=(28, 168, 166))
+    d.polygon([P(0, 0.08), P(0.035, 0.18), P(0, 0.30), P(-0.035, 0.18)], fill=(214, 168, 64))
+    d.polygon([P(0, 0.14), P(0.015, 0.20), P(0, 0.26), P(-0.015, 0.20)], fill=(120, 40, 90))
+    # cheek petals
+    for sign, col in ((-1, (150, 80, 170)), (1, (70, 110, 190))):
+        d.polygon([
+            P(sign * 0.16, 0.08), P(sign * 0.34, 0.02),
+            P(sign * 0.30, 0.18), P(sign * 0.12, 0.16),
+        ], fill=col)
+
+    # purple moustache drips under the beak
+    d.line([P(-0.28, 0.22), P(-0.08, 0.48), P(0.22, 0.32)], fill=(110, 70, 180), width=max(3, h // 90))
+    d.line([P(-0.16, 0.40), P(0.26, 0.50)], fill=(80, 70, 170), width=max(2, h // 120))
+    d.polygon([P(0, 0.46), P(0.04, 0.58), P(-0.02, 0.62), P(-0.05, 0.50)], fill=(90, 60, 160))
+    grain(im, 8, 3)
+    # Outer paint soaks into the red station wall instead of ending in a cut line.
+    # A few pixels only, so the cream meets the red wall without a painted frame.
+    feather_sides(im, (216, 85, 63), max(8, int(min(w, h) * 0.018)))
     return im
+
+
+def feather_sides(im, rgb, band):
+    px = im.load()
+    w, h = im.size
+    for y in range(h):
+        top = y / band if y < band else 1.0
+        for x in range(w):
+            e = min(x, w - 1 - x) / band
+            e = min(e, top)
+            if e >= 1:
+                continue
+            t = e * e
+            p = px[x, y]
+            px[x, y] = tuple(int(rgb[k] * (1 - t) + p[k] * t) for k in range(3))
 
 
 def paint_lion(w, h):
@@ -411,31 +504,95 @@ def paint_turtles(w, h):
 
 
 def paint_flamingo(w, h):
-    im = Image.new("RGB", (w, h), (120, 200, 220))
+    """Profile flamingo head on a geometric facade, beak to the right.
+
+    The wall is a long low strip, so the head fills the height and the
+    triangles run the full width. A white shutter band sits along the bottom.
+    """
+    im = Image.new("RGB", (w, h), (48, 176, 196))
     d = ImageDraw.Draw(im, "RGBA")
-    # geometric field
-    tris = [
-        [(0, 0), (w * 0.28, 0), (0, h)], (255, 80, 90),
-        [(w * 0.28, 0), (w * 0.55, 0), (w * 0.2, h)], (70, 170, 90),
-        [(w * 0.55, 0), (w, 0), (w * 0.7, h * 0.4)], (240, 180, 40),
-        [(w * 0.7, h * 0.4), (w, 0), (w, h)], (40, 90, 180),
-        [(0, h), (w * 0.35, h), (w * 0.15, h * 0.45)], (230, 90, 70),
+    # faceted field, left to right, full height above the shutters
+    shut = int(h * 0.78)
+    cols = [
+        (214, 48, 64), (64, 186, 86), (36, 176, 196), (244, 196, 48),
+        (240, 112, 36), (36, 96, 186), (196, 48, 140), (120, 200, 70),
+        (40, 160, 200), (250, 150, 40), (70, 90, 190), (220, 70, 80),
     ]
-    for i in range(0, len(tris), 2):
-        d.polygon(tris[i], fill=tris[i + 1])
-    # head
+    n = 14
+    for i in range(n):
+        x0 = w * i / n
+        x1 = w * (i + 1) / n
+        xm = (x0 + x1) / 2
+        col = cols[i % len(cols)]
+        if i % 2 == 0:
+            d.polygon([(x0, 0), (x1, 0), (xm, shut)], fill=col)
+            d.polygon([(x0, shut), (x1, shut), (xm, int(shut * 0.35))], fill=cols[(i + 5) % len(cols)])
+        else:
+            d.polygon([(x0, 0), (x1, 0), (x0, shut * 0.55), (xm, shut)], fill=col)
+            d.polygon([(x1, 0), (x1, shut), (xm, shut)], fill=cols[(i + 3) % len(cols)])
+    # a few overlapping accent triangles so it is not a single row of wedges
+    accents = [
+        (0.02, 0.05, 0.22, 0.0, 0.08, 0.55, (250, 220, 60)),
+        (0.18, 0.0, 0.36, 0.08, 0.12, 0.42, (40, 80, 180)),
+        (0.55, 0.0, 0.78, 0.0, 0.70, 0.48, (120, 210, 80)),
+        (0.72, 0.05, 0.98, 0.0, 0.88, 0.50, (240, 90, 40)),
+        (0.84, 0.20, 1.0, 0.55, 0.90, 0.75, (30, 140, 190)),
+    ]
+    for a, b, c, e, f, g, col in accents:
+        d.polygon([(w * a, h * b), (w * c, h * e), (w * f, h * g)], fill=col)
+
+    # neck rising on the left into a huge head facing right
     d.polygon([
-        (w * 0.18, h * 0.55), (w * 0.62, h * 0.18), (w * 0.78, h * 0.42),
-        (w * 0.48, h * 0.78), (w * 0.22, h * 0.72),
-    ], fill=(214, 48, 72))
-    d.polygon([(w * 0.62, h * 0.28), (w * 0.92, h * 0.55), (w * 0.58, h * 0.48)], fill=(30, 28, 32))
-    d.ellipse([w * 0.50, h * 0.22, w * 0.62, h * 0.42], fill=(245, 220, 80))
-    d.ellipse([w * 0.54, h * 0.28, w * 0.59, h * 0.38], fill=(20, 20, 20))
-    # shutter band
-    d.rectangle([0, h * 0.72, w, h], fill=(236, 236, 234))
-    for x in range(0, w, 14):
-        d.line([(x, h * 0.74), (x, h * 0.98)], fill=(180, 180, 178), width=2)
-    grain(im, 8, 9)
+        (w * 0.02, shut), (w * 0.10, h * 0.42), (w * 0.22, h * 0.18),
+        (w * 0.34, h * 0.10), (w * 0.28, h * 0.55), (w * 0.12, shut),
+    ], fill=(176, 28, 58))
+    d.polygon([
+        (w * 0.08, h * 0.50), (w * 0.20, h * 0.22), (w * 0.30, h * 0.16),
+        (w * 0.24, h * 0.48),
+    ], fill=(214, 60, 86))
+
+    # head
+    d.ellipse([w * 0.22, h * 0.04, w * 0.62, h * 0.72], fill=(196, 36, 64))
+    d.ellipse([w * 0.30, h * 0.10, w * 0.58, h * 0.58], fill=(224, 72, 96))
+    # cheek highlight
+    d.ellipse([w * 0.34, h * 0.22, w * 0.52, h * 0.48], fill=(236, 120, 130, 140))
+    # crown curve
+    d.pieslice([w * 0.26, h * 0.02, w * 0.58, h * 0.36], 200, 340, fill=(160, 24, 52))
+
+    # eye — large enough to read from the street
+    ex, ey = w * 0.40, h * 0.26
+    ew, eh = w * 0.045, h * 0.16
+    d.ellipse([ex - ew, ey - eh, ex + ew, ey + eh], fill=(250, 214, 60))
+    d.ellipse([ex - ew * 0.45, ey - eh * 0.45, ex + ew * 0.42, ey + eh * 0.42], fill=(18, 16, 16))
+    d.ellipse([ex - ew * 0.35, ey - eh * 0.55, ex - ew * 0.02, ey - eh * 0.1], fill=(255, 255, 255))
+
+    # hooked black beak pointing down-right
+    d.polygon([
+        (w * 0.50, h * 0.30), (w * 0.78, h * 0.42), (w * 0.74, h * 0.62),
+        (w * 0.66, h * 0.78), (w * 0.58, h * 0.58), (w * 0.48, h * 0.46),
+    ], fill=(22, 20, 24))
+    d.line([(w * 0.52, h * 0.36), (w * 0.70, h * 0.50), (w * 0.64, h * 0.66)], fill=(180, 176, 170), width=max(2, h // 80))
+    # beak base where it meets the face
+    d.polygon([
+        (w * 0.46, h * 0.32), (w * 0.56, h * 0.34), (w * 0.52, h * 0.48), (w * 0.44, h * 0.44),
+    ], fill=(236, 228, 220))
+
+    # upper windows on the right, dark rectangles in the colour field
+    for i, x in enumerate((0.62, 0.74, 0.86)):
+        d.rectangle([w * x, h * 0.06, w * (x + 0.07), h * 0.28], fill=(28, 32, 40))
+        d.rectangle([w * x, h * 0.06, w * (x + 0.07), h * 0.28], outline=(210, 214, 216), width=2)
+        d.line([(w * (x + 0.035), h * 0.08), (w * (x + 0.035), h * 0.26)], fill=(180, 184, 188), width=1)
+
+    # roller shutters
+    d.rectangle([0, shut, w, h], fill=(232, 232, 230))
+    d.rectangle([0, shut, w, shut + max(3, h // 40)], fill=(190, 192, 194))
+    step = max(8, w // 140)
+    for x in range(0, w, step):
+        d.line([(x, shut + 4), (x, h - 2)], fill=(176, 176, 174), width=2)
+    # a couple of shutter seams
+    for x in (0.33, 0.66):
+        d.line([(w * x, shut), (w * x, h)], fill=(150, 150, 148), width=3)
+    grain(im, 6, 9)
     return im
 
 
@@ -565,35 +722,120 @@ def paint_flowers(w, h):
 
 
 def paint_mujer(w, h):
-    im = Image.new("RGB", (w, h), (16, 150, 162))
+    """Lina Arias headdress portrait on a turquoise wall, edge to edge.
+
+    The figure is centred and full height. Turquoise continues to both
+    ends of the long street wall so the portrait is not a small stamp.
+    """
+    im = Image.new("RGB", (w, h), (12, 156, 168))
     d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, w, h), (24, 168, 178), (8, 108, 128))
-    # shoulders and neck
-    d.polygon([(w * 0.08, h), (w * 0.22, h * 0.62), (w * 0.78, h * 0.62), (w * 0.92, h)], fill=(112, 74, 52))
-    d.polygon([(w * 0.38, h * 0.58), (w * 0.62, h * 0.58), (w * 0.58, h * 0.78), (w * 0.42, h * 0.78)], fill=(168, 124, 96))
+    wash(d, (0, 0, w, h), (28, 178, 186), (6, 118, 140))
+    # vertical paint streaks, like the weathered turquoise wall
+    r = rng(33)
+    for i in range(36):
+        x = int(w * i / 36 + r.randint(-6, 6))
+        d.line([(x, 0), (x + r.randint(-8, 8), h)], fill=(255, 255, 255, 18), width=2)
+    # the portrait occupies the middle of the wide wall
+    cx = w * 0.50
+    s = h  # figure scale is the wall height
+
+    def X(t):
+        return cx + t * s
+
+    # outstretched arm to the left, brown, with a cuff band
+    d.polygon([
+        (X(-0.95), h * 0.72), (X(-0.22), h * 0.58),
+        (X(-0.18), h * 0.78), (X(-0.92), h * 0.88),
+    ], fill=(122, 78, 54))
+    d.polygon([
+        (X(-0.70), h * 0.66), (X(-0.48), h * 0.62),
+        (X(-0.46), h * 0.74), (X(-0.68), h * 0.78),
+    ], fill=(28, 24, 22))
+    d.line([(X(-0.66), h * 0.68), (X(-0.50), h * 0.72)], fill=(230, 190, 70), width=2)
+
+    # shoulders and chest
+    d.polygon([
+        (X(-0.42), h), (X(-0.28), h * 0.62), (X(0.28), h * 0.62), (X(0.42), h),
+    ], fill=(112, 72, 50))
+    d.polygon([
+        (X(-0.16), h * 0.70), (X(0.16), h * 0.70), (X(0.10), h * 0.98), (X(-0.10), h * 0.98),
+    ], fill=(150, 102, 74))
+    # chest lines
+    for i in range(4):
+        yy = 0.74 + i * 0.05
+        d.line([(X(-0.12), h * yy), (X(0.12), h * yy)], fill=(40, 28, 22), width=2)
+
+    # neck
+    d.polygon([
+        (X(-0.07), h * 0.58), (X(0.07), h * 0.58), (X(0.06), h * 0.72), (X(-0.06), h * 0.72),
+    ], fill=(176, 128, 96))
+
     # face
-    d.ellipse([w * 0.28, h * 0.28, w * 0.72, h * 0.62], fill=(186, 142, 112))
-    d.polygon([(w * 0.40, h * 0.36), (w * 0.60, h * 0.36), (w * 0.64, h * 0.48), (w * 0.36, h * 0.48)], fill=(18, 110, 128))
-    d.ellipse([w * 0.36, h * 0.36, w * 0.50, h * 0.48], outline=(230, 198, 70), width=3)
-    d.ellipse([w * 0.50, h * 0.36, w * 0.64, h * 0.48], outline=(230, 198, 70), width=3)
-    d.ellipse([w * 0.40, h * 0.39, w * 0.46, h * 0.45], fill=(20, 16, 16))
-    d.ellipse([w * 0.54, h * 0.39, w * 0.60, h * 0.45], fill=(20, 16, 16))
-    d.polygon([(w * 0.48, h * 0.46), (w * 0.52, h * 0.46), (w * 0.50, h * 0.50)], fill=(150, 96, 80))
-    d.arc([w * 0.44, h * 0.50, w * 0.56, h * 0.56], 20, 160, fill=(120, 60, 56), width=2)
-    # headdress
-    d.ellipse([w * 0.22, h * 0.16, w * 0.78, h * 0.42], fill=(16, 14, 16))
+    d.ellipse([X(-0.16), h * 0.30, X(0.16), h * 0.62], fill=(196, 148, 114))
+    # blue mask
+    d.polygon([
+        (X(-0.15), h * 0.38), (X(0), h * 0.34), (X(0.15), h * 0.38),
+        (X(0.14), h * 0.50), (X(0), h * 0.52), (X(-0.14), h * 0.50),
+    ], fill=(16, 86, 122))
+    # yellow bead outline
+    d.line([
+        (X(-0.15), h * 0.39), (X(0), h * 0.345), (X(0.15), h * 0.39),
+        (X(0.13), h * 0.49), (X(0), h * 0.515), (X(-0.13), h * 0.49), (X(-0.15), h * 0.39),
+    ], fill=(232, 198, 64), width=max(2, h // 90))
+    # diamond eyes
+    for sign in (-1, 1):
+        ex = sign * 0.065
+        d.polygon([
+            (X(ex), h * 0.40), (X(ex + 0.028), h * 0.435),
+            (X(ex), h * 0.47), (X(ex - 0.028), h * 0.435),
+        ], fill=(244, 240, 232))
+        d.polygon([
+            (X(ex), h * 0.415), (X(ex + 0.012), h * 0.435),
+            (X(ex), h * 0.455), (X(ex - 0.012), h * 0.435),
+        ], fill=(20, 16, 18))
+    # nose and mouth
+    d.polygon([(X(0), h * 0.50), (X(0.012), h * 0.545), (X(-0.012), h * 0.545)], fill=(150, 96, 78))
+    d.arc([X(-0.045), h * 0.54, X(0.045), h * 0.59], 15, 165, fill=(120, 58, 56), width=2)
+
+    # headdress base
+    d.ellipse([X(-0.20), h * 0.20, X(0.20), h * 0.42], fill=(16, 14, 16))
+    # black spikes
+    for i in range(11):
+        t = -0.22 + i * 0.044
+        d.polygon([
+            (X(t), h * 0.28), (X(t + 0.01), h * 0.02), (X(t + 0.03), h * 0.30),
+        ], fill=(12, 12, 14))
+    # red feathers behind the pom-poms
     for i in range(9):
-        x = w * (0.24 + i * 0.058)
-        d.polygon([(x, h * 0.22), (x + w * 0.03, h * 0.02), (x + w * 0.055, h * 0.24)], fill=(176, 28, 36))
-    for i in range(6):
-        x = w * (0.30 + i * 0.07)
-        d.ellipse([x, h * 0.14, x + w * 0.06, h * 0.24], fill=(232, 204, 86))
-    d.ellipse([w * 0.46, h * 0.16, w * 0.54, h * 0.24], fill=(180, 30, 40))
-    # necklace
-    for i in range(5):
-        x = w * (0.40 + i * 0.04)
-        d.line([(x, h * 0.60), (w * 0.50, h * 0.74)], fill=(20, 70, 90), width=2)
-    grain(im, 8, 14)
+        t = -0.18 + i * 0.045
+        d.polygon([
+            (X(t), h * 0.30), (X(t + 0.02), h * 0.06), (X(t + 0.05), h * 0.32),
+        ], fill=(176, 28, 40))
+    # yellow pom-poms in an arc
+    for i in range(7):
+        t = -0.15 + i * 0.05
+        y0 = 0.14 + abs(i - 3) * 0.012
+        d.ellipse([X(t), h * y0, X(t + 0.045), h * (y0 + 0.09)], fill=(236, 204, 72))
+        d.ellipse([X(t + 0.012), h * (y0 + 0.02), X(t + 0.032), h * (y0 + 0.055)], fill=(255, 230, 140))
+    # red jewel at the brow
+    d.ellipse([X(-0.03), h * 0.16, X(0.03), h * 0.24], fill=(186, 28, 40))
+    d.polygon([(X(0), h * 0.175), (X(0.012), h * 0.20), (X(0), h * 0.225), (X(-0.012), h * 0.20)], fill=(255, 80, 70))
+    # small gold drop under the jewel
+    d.polygon([(X(0), h * 0.24), (X(0.012), h * 0.28), (X(-0.012), h * 0.28)], fill=(214, 170, 60))
+
+    # beaded necklace
+    for i in range(7):
+        t = -0.10 + i * 0.033
+        y = 0.64 + abs(i - 3) * 0.012
+        d.ellipse([X(t), h * y, X(t + 0.022), h * (y + 0.045)], fill=(16, 40, 56))
+        d.line([(X(t + 0.01), h * (y + 0.04)), (X(0), h * 0.82)], fill=(20, 50, 70), width=1)
+    d.polygon([(X(0), h * 0.78), (X(0.02), h * 0.86), (X(-0.02), h * 0.86)], fill=(214, 170, 50))
+
+    # right shoulder hint so the figure is not only an arm to the left
+    d.polygon([
+        (X(0.18), h * 0.66), (X(0.55), h * 0.78), (X(0.50), h * 0.92), (X(0.16), h * 0.80),
+    ], fill=(122, 78, 54))
+    grain(im, 6, 14)
     return im
 
 
@@ -660,27 +902,39 @@ def main():
     images = []
     placed = []
     for spec in SPECS:
-        im = PAINT[spec["id"]](spec["pw"], spec["ph"]).filter(ImageFilter.SMOOTH)
+        im = PAINT[spec["id"]](spec["pw"], spec["ph"])
+        if not spec.get("sharp"):
+            im = im.filter(ImageFilter.SMOOTH)
         images.append(im)
         b, w, dist, facing, t, qx, qz = choose_wall(spec["lat"], spec["lng"], spec["bld"], spec["wall"])
         # Fit the painted aspect inside the real wall.
         aspect = spec["pw"] / spec["ph"]
-        max_w = max(2.4, w["len"] - 0.45)
         bld_h = float(b.get("h") or 3.4)
-        max_h = max(2.2, bld_h - 0.2)
-        width = min(spec["wm"], max_w)
-        height = width / aspect
-        if height > max_h:
-            height = max_h
-            width = height * aspect
-        # Center on the GPS projection, clamped so the panel stays on the wall.
-        half = width / 2 / w["len"]
-        t_c = min(1 - half, max(half, t))
+        if spec.get("fill"):
+            # Edge to edge on this face. Paint aspect matches the wall.
+            width = max(2.4, w["len"] - 0.08)
+            height = width / aspect
+            max_h = max(2.2, bld_h - 0.05)
+            if height > max_h:
+                height = max_h
+                width = height * aspect
+            half = width / 2 / w["len"]
+            t_c = 0.5
+        else:
+            max_w = max(2.4, w["len"] - 0.45)
+            max_h = max(2.2, bld_h - 0.2)
+            width = min(spec["wm"], max_w)
+            height = width / aspect
+            if height > max_h:
+                height = max_h
+                width = height * aspect
+            half = width / 2 / w["len"]
+            t_c = min(1 - half, max(half, t))
         cx = w["ax"] + (w["bx"] - w["ax"]) * t_c
         cz = w["az"] + (w["bz"] - w["az"]) * t_c
         dx, dz = (w["bx"] - w["ax"]) / w["len"], (w["bz"] - w["az"]) / w["len"]
         ox, oz = w["ox"], w["oz"]
-        lift = 0.07
+        lift = float(spec.get("lift", 0.07))
         x0 = cx - dx * width / 2 + ox * lift
         z0 = cz - dz * width / 2 + oz * lift
         x1 = cx + dx * width / 2 + ox * lift
