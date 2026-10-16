@@ -1,11 +1,11 @@
-// Headless downtown Oranjestad shots. Camera is posed after the region streams in.
-// Usage: node shots.mjs before|after
+// Headless Oranjestad civic shots. Camera is posed after the region streams in.
+// Usage: node shots.mjs before|after [name,name]
 import puppeteer from "/workspace/tools/perf/node_modules/puppeteer-core/lib/puppeteer/puppeteer-core.js";
 import { writeFile, mkdir } from "node:fs/promises";
 
 const phase = process.argv[2] || "before";
 const only = new Set((process.argv[3] || "").split(",").filter(Boolean));
-const outDir = `/opt/cursor/artifacts/oranjestad-street/${phase}`;
+const outDir = `/opt/cursor/artifacts/oranjestad-civic/${phase}`;
 await mkdir(outDir, { recursive: true });
 
 const browser = await puppeteer.launch({
@@ -37,114 +37,121 @@ await page.waitForFunction(() => window.game && window.game.ready && window.game
 });
 console.log("ready");
 
-// Stand the walker at each spot so that region and hero streaming covers it,
-// then pose the camera once and render a single frame.
+// eye y <= 20 is a lift above the ground. look y <= 20 is added to the ground.
 const shots = [
   {
-    name: "mainstreet",
-    stand: [-7054, 15],
-    eye: [-7054, 2.1, 15],
-    look: [-7220, 3.2, -4],
+    name: "cruise",
+    stand: [-7810, 70],
+    eye: [-7810, 2.4, 70],
+    look: [-7888, 6.5, 58],
   },
   {
-    name: "wilhelminastraat",
-    stand: [-7180, 110],
-    eye: [-7180, 2.0, 110],
-    look: [-7085, 3.4, 145],
+    name: "marina",
+    stand: [-7392, 168],
+    eye: [-7392, 2.4, 168],
+    look: [-7495, 2.0, 148],
   },
   {
-    name: "wilhelm-shops",
-    stand: [-7116, 158],
-    eye: [-7102, 3.4, 148],
-    look: [-7068, 2.6, 142],
+    name: "ferry",
+    stand: [-7384, 174],
+    eye: [-7384, 2.6, 174],
+    look: [-7438, 3.2, 162],
   },
   {
-    name: "fort-close",
-    stand: [-7162, 232],
-    eye: [-7162, 1.8, 232],
-    look: [-7132, 8, 252],
+    name: "parliament",
+    stand: [-7165, 218],
+    eye: [-7165, 2.2, 218],
+    look: [-7216, 6.2, 242],
   },
   {
-    name: "padu",
-    stand: [-7240, 150],
-    eye: [-7240, 2.0, 150],
-    look: [-7212, 2.4, 168],
+    name: "cityhall",
+    stand: [-7136, 128],
+    eye: [-7136, 2.0, 128],
+    look: [-7162, 5.2, 146],
   },
   {
-    name: "mainstreet-east",
-    stand: [-6880, 40],
-    eye: [-6880, 2.2, 32],
-    look: [-7080, 4.5, 10],
+    name: "portico",
+    stand: [-7189, 220],
+    eye: [-7189, 2.6, 220],
+    look: [-7203, 5.2, 228],
   },
   {
-    name: "lg-smith",
-    stand: [-7480, 40],
-    eye: [-7460, 2.4, 90],
-    look: [-7580, 6, -20],
+    name: "govern",
+    stand: [-7161, 206],
+    eye: [-7161, 2.4, 206],
+    look: [-7204, 8.0, 240],
   },
   {
-    name: "royal-plaza",
-    stand: [-7520, 30],
-    eye: [-7470, 2.2, 55],
-    look: [-7565, 8, -30],
+    name: "plaza",
+    stand: [-7304, 36],
+    eye: [-7304, 2.2, 36],
+    look: [-7328, 5.2, 10],
   },
   {
-    name: "fort-zoutman",
-    stand: [-7188, 210],
-    eye: [-7185, 2.2, 205],
-    look: [-7132, 10, 258],
+    name: "museum",
+    stand: [-7383, -144],
+    eye: [-7383, 2.2, -144],
+    look: [-7418, 5.4, -130],
   },
-  {
-    name: "wilhelmina",
-    stand: [-7084, 456],
-    eye: [-7084, 2.4, 456],
-    look: [-7116, 2.2, 453],
-  },
-  {
-    name: "cruise-terminal",
-    stand: [-7820, 90],
-    eye: [-7795, 2.8, 115],
-    look: [-7888, 6, 58],
-  },
-  {
-    name: "renaissance",
-    stand: [-7240, 280],
-    eye: [-7220, 2.4, 250],
-    look: [-7305, 5, 350],
-  },
-  {
-    name: "harbour-overview",
-    stand: [-7300, 80],
-    eye: [-7550, 78, 280],
-    look: [-7350, 4, 40],
-  },
+];
+
+const FORCE = [
+  "cruise",
+  "ora_marina",
+  "ora_ferry",
+  "gova77053638",
+  "governor",
+  "cityhall",
+  "archmuseum",
+  "penha",
+  "bluehorse_fountain",
+  "ora_penharow",
+  "ora_plaza",
 ];
 
 async function shoot(shot) {
   await page.evaluate(({ x, z }) => {
     window.__noRender = false;
-    // Stand on the shot itself so hero LOD follows the camera, not a distant road.
     window.game.teleport("walk", x, z, 0);
   }, { x: shot.stand[0], z: shot.stand[1] });
-  await new Promise((r) => setTimeout(r, 9000));
-  const dataUrl = await page.evaluate(({ eye, look, lift }) => {
-    window.__noRender = true;
+  await new Promise((r) => setTimeout(r, 12000));
+  const dataUrl = await page.evaluate(({ eye, look, force }) => {
     const g = window.game;
     const cam = g.camera;
     const gy = g.real.heightAt(eye[0], eye[2]);
     const ly = g.real.heightAt(look[0], look[2]);
-    const up = lift || 1.7;
-    cam.position.set(eye[0], gy + (eye[1] > 20 ? eye[1] : up), eye[2]);
-    cam.lookAt(look[0], ly + (look[1] > 20 ? look[1] : Math.max(look[1], 3)), look[2]);
+    const eyeY = eye[1] > 20 ? eye[1] : gy + eye[1];
+    const lookY = look[1] > 20 ? look[1] : ly + look[1];
+    const vis = {};
+    g.scene.traverse((obj) => {
+      const n = obj.name || "";
+      for (const id of force) {
+        if (n === `${id}_lod0` || n === `${id}_lod1`) vis[n] = obj.visible;
+      }
+    });
+    for (const id of force) {
+      g.scene.traverse((obj) => {
+        if (obj.name === `${id}_lod0`) obj.visible = true;
+        if (obj.name === `${id}_lod1`) obj.visible = false;
+      });
+    }
+    window.__noRender = true;
+    cam.position.set(eye[0], eyeY, eye[2]);
+    cam.lookAt(look[0], lookY, look[2]);
     cam.up.set(0, 1, 0);
     cam.updateMatrixWorld(true);
     g.scene.traverse((obj) => {
       if (obj.isSkinnedMesh) obj.visible = false;
     });
     g.renderer.render(g.scene, cam);
-    return g.renderer.domElement.toDataURL("image/png");
-  }, shot);
-  const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+    return {
+      png: g.renderer.domElement.toDataURL("image/png"),
+      vis,
+      blocked: g.blocked ? g.blocked(eye[0], eye[2]) : null,
+    };
+  }, { ...shot, force: FORCE });
+  console.log("vis", shot.name, JSON.stringify(dataUrl.vis), "blocked", dataUrl.blocked);
+  const buf = Buffer.from(dataUrl.png.slice(dataUrl.png.indexOf(",") + 1), "base64");
   const file = `${outDir}/${shot.name}.png`;
   await writeFile(file, buf);
   console.log("wrote", file, buf.length);
