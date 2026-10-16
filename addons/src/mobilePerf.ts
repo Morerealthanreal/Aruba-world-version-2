@@ -6,7 +6,7 @@
 //    ?warmup=full restores the old whole-scene compileAsync.
 //  - Textures of those new meshes upload one per frame (renderer.initTexture) so the first draw is not
 //    also the upload. Default on; ?preup=0 disables. Only textures of meshes we actually warm.
-import { MeshDepthMaterial, Scene, Vector4 } from "three";
+import { MeshDepthMaterial, Scene } from "three";
 import type { Object3D } from "three";
 import type { AGame } from "./env";
 type R = {
@@ -51,15 +51,6 @@ export class MobilePerf {
   private queued = new WeakSet<object>();
   private syncTries = new WeakMap<object, number>();
   private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
-  /** Materials whose programs are finalized. One lookup per draw, no property walk. */
-  private hotMat = new WeakSet<object>();
-  private deferRec = new WeakMap<object, { frame: number; n: number }>();
-  private noted = new WeakSet<object>();
-  private uploaded = new WeakSet<object>();
-  private gpuQ: O[] = [];
-  private warming = false;
-  private view = new Vector4();
-  private frameN = 0;
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
     const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
@@ -67,26 +58,9 @@ export class MobilePerf {
       const orig = A.update.bind(A);
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
     }
-    // A mesh that shows up inside this frame's update is drawn before the pump can warm it.
-    // Skip that draw (it was not on screen last frame) and warm it before the next paint.
-    if (this.incremental) {
-      const renderer = g.renderer as unknown as { renderBufferDirect: (...a: unknown[]) => unknown };
-      const origRBD = renderer.renderBufferDirect.bind(renderer);
-      renderer.renderBufferDirect = (...args: unknown[]) => {
-        if (this.warming) return origRBD(...args);
-        const material = args[3] as (Mat & { isMeshDepthMaterial?: boolean; isMeshDistanceMaterial?: boolean }) | null | undefined;
-        const object = args[4] as O | null | undefined;
-        // New geometry uploads inside the draw that first uses it. Skip that draw — the mesh was
-        // not on screen last frame — and upload it from the pump before the next paint.
-        if (object && !this.uploaded.has(object) && this.deferObject(object)) return;
-        if (material && !material.isMeshDepthMaterial && !material.isMeshDistanceMaterial && !this.hotMat.has(material) && this.deferDraw(material, object as O)) return;
-        return origRBD(...args);
-      };
-    }
   }
   /** Phone shadow cadence only. Walking and compiling here was a steady tax on every streaming frame. */
   beforeRender() {
-    this.frameN++;
     if (!this.on) return;
     const r = this.g.renderer as unknown as R;
     r.shadowMap.autoUpdate = false;
@@ -109,13 +83,12 @@ export class MobilePerf {
     // First-use texture uploads were a large share of the >50 ms frames. Drain them here,
     // before the next paint, instead of one-at-a-time inside the animation callback.
     if (this.preUpload && this.texQ.length) this.upload(200, 1e9);
-    this.flushGpu();
   }
   /** Programs still waiting to be finalized. The pump keeps going until this is 0 so the next frame does not draw them cold. */
   shaderPending() { return this.syncQ.length + this.holds.length + this.pend.length; }
   /** Scene walk or a texture upload still queued. Incomplete images are not included, so a loading texture cannot spin the pump. */
   backlog() {
-    if (this.stack.length || this.gpuQ.length) return 1;
+    if (this.stack.length) return 1;
     const n = this.texQ.length;
     for (let i = 0; i < n && i < 16; i++) {
       const t = this.texQ[i], img = t.image as { complete?: boolean } | null | undefined;
@@ -176,7 +149,7 @@ export class MobilePerf {
       if (lk !== this.lightKey) {
         const first = this.lightKey === "";
         this.lightKey = lk;
-        if (!first) { this.keys.clear(); this.depthMats.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; this.hotMat = new WeakSet(); this.deferRec = new WeakMap(); this.noted = new WeakSet(); }
+        if (!first) { this.keys.clear(); this.depthMats.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; }
       }
     }
     const push = (o: O | undefined | null) => {
@@ -221,74 +194,6 @@ export class MobilePerf {
       }
     }
     if (add) this.pend.push(o);
-  }
-  private deferObject(o: O): boolean {
-    let rec = this.deferRec.get(o);
-    if (!rec) this.deferRec.set(o, (rec = { frame: this.frameN, n: 1 }));
-    else if (rec.frame !== this.frameN) { rec.frame = this.frameN; rec.n++; }
-    // A variant we never manage to warm still has to appear. Two frames is enough for the pump.
-    if (rec.n > 2) { this.uploaded.add(o); return false; }
-    this.note(o);
-    return true;
-  }
-  private note(o: O) {
-    if (!o || this.noted.has(o)) return;
-    this.noted.add(o);
-    this.gpuQ.push(o);
-    if (!this.seen.has(o)) this.consider(o);
-    else this.pend.push(o);
-  }
-  /** Upload a new mesh's buffers outside the animation callback.
-   *  The draw goes to the screen framebuffer (so the buffers land in the same vertex arrays the
-   *  real frame uses) with an empty scissor, which keeps it from changing the picture. */
-  private flushGpu() {
-    if (!this.gpuQ.length) return;
-    const r = this.g.renderer as unknown as {
-      getViewport(t: Vector4): Vector4;
-      setViewport(x: number, y: number, w: number, h: number): void;
-      setScissorTest(v: boolean): void;
-      setScissor(x: number, y: number, w: number, h: number): void;
-      renderBufferDirect(camera: unknown, scene: unknown, geometry: unknown, material: unknown, object: unknown, group: unknown): void;
-    };
-    const list = this.gpuQ.splice(0, 240);
-    const view = r.getViewport(this.view);
-    this.warming = true;
-    try {
-      r.setViewport(0, 0, 1, 1);
-      r.setScissorTest(true);
-      r.setScissor(0, 0, 0, 0);
-      for (const o of list) {
-        const geo = o.geometry;
-        const mats = matsOf(o);
-        if (!geo || !mats.length || !o.parent) { this.uploaded.add(o); continue; }
-        for (const m of mats) {
-          try { r.renderBufferDirect(this.g.camera, null, geo, m, o, null); this.stats.reps++; }
-          catch { /* the real draw reports it */ }
-        }
-        this.uploaded.add(o);
-        if (mats[0] && !this.hotMat.has(mats[0]) && this.ready(mats[0])) this.hotMat.add(mats[0]);
-      }
-    } finally {
-      this.warming = false;
-      try {
-        r.setScissorTest(false);
-        r.setViewport(view.x, view.y, view.z, view.w);
-      } catch { /* leave the viewport; the next real frame sets it */ }
-    }
-  }
-  /**
-   * A material with no finalized program is not drawn yet. The pump compiles and uploads it
-   * before the next frame. After a couple of frames, draw anyway so a variant we cannot
-   * match does not leave a hole in the world.
-   */
-  private deferDraw(m: Mat, o: O): boolean {
-    if (this.ready(m)) { this.hotMat.add(m); return false; }
-    let rec = this.deferRec.get(m);
-    if (!rec) this.deferRec.set(m, (rec = { frame: this.frameN, n: 1 }));
-    else if (rec.frame !== this.frameN) { rec.frame = this.frameN; rec.n++; }
-    if (rec.n > 2) return false;
-    this.note(o);
-    return true;
   }
   private pump(max: number) {
     const r = this.g.renderer as unknown as R;

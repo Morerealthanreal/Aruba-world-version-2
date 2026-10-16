@@ -222,7 +222,7 @@ if (doDrive) {
     const fnSum = Object.fromEntries(Object.entries(M.fn).map(([k, e]) => [k, { n: e.n, avg: +(e.sum / Math.max(1, e.n)).toFixed(3), max: +e.max.toFixed(2), perFrame: +(e.sum / F.length).toFixed(3) }]).sort((a, b) => b[1].perFrame - a[1].perFrame));
     const W = (f) => ({ f: f.f, cbt: +f.cbt.toFixed(1), glc: +f.glc.toFixed(1), glu: +f.glu.toFixed(1), up: f.up, progs: f.progs, fn: Object.fromEntries(Object.entries(f.fn).filter(([, v]) => v > 1).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +v.toFixed(1)])) });
     const worstNonGl = [...F].sort((a, b) => (b.cbt - b.glc - b.glu) - (a.cbt - a.glc - a.glu)).slice(0, 15).map(W);
-    const worst = [...F].sort((a, b) => b.cbt - a.cbt).slice(0, 15).map((f) => ({ f: f.f, cbt: +f.cbt.toFixed(1), glc: +f.glc.toFixed(1), progs: f.progs, cb: Object.fromEntries(Object.entries(f.cb).map(([k, v]) => [k, +v.toFixed(1)])), fn: Object.fromEntries(Object.entries(f.fn).filter(([, v]) => v > 1).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +v.toFixed(1)])) }));
+    const worst = [...F].sort((a, b) => b.cbt - a.cbt).slice(0, 15).map((f) => ({ f: f.f, cbt: +f.cbt.toFixed(1), glc: +f.glc.toFixed(1), glu: +f.glu.toFixed(1), up: f.up, progs: f.progs, cb: Object.fromEntries(Object.entries(f.cb).map(([k, v]) => [k, +v.toFixed(1)])), fn: Object.fromEntries(Object.entries(f.fn).filter(([, v]) => v > 1).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +v.toFixed(1)])) }));
     const dh = F.map((f) => f.dh).filter((d) => d > 0);
     return {
       frames: F.length, cbt: { p50: pct(cbt, 0.5), p95: pct(cbt, 0.95), p99: pct(cbt, 0.99), max: pct(cbt, 1), over16: cbt.filter((x) => x > 16.7).length, over33: cbt.filter((x) => x > 33).length, over50: cbt.filter((x) => x > 50).length },
