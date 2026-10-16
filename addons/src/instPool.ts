@@ -13,6 +13,8 @@ export class Pool {
   im: InstancedMesh | null = null;
   private cap = 0;
   private srcs = new Set<Src>();
+  private matR = { start: 0, count: 0 };
+  private colR = { start: 0, count: 0 };
   constructor(private geo: BufferGeometry, private mat: Material, private o: Opts, private parent: Object3D) {}
   get size() { return this.srcs.size; }
   add(s: Src) { this.srcs.add(s); let n = 0; for (const x of this.srcs) n += x.n; if (n > this.cap) this.grow(n); }
@@ -51,10 +53,19 @@ export class Pool {
     }
     im.count = c; im.visible = c > 0;
     if (c > 0) {
-      im.instanceMatrix.clearUpdateRanges(); im.instanceMatrix.addUpdateRange(0, c * 16); im.instanceMatrix.needsUpdate = true;
-      if (im.instanceColor) { im.instanceColor.clearUpdateRanges(); im.instanceColor.addUpdateRange(0, c * 3); im.instanceColor.needsUpdate = true; }
+      touchRange(im.instanceMatrix, this.matR, c * 16);
+      if (im.instanceColor) touchRange(im.instanceColor, this.colR, c * 3);
     }
     return c;
   }
   dispose() { if (this.im) { this.im.removeFromParent(); this.im.dispose(); this.im = null; } this.cap = 0; }
+}
+
+type Attr = { updateRanges: { start: number; count: number }[]; needsUpdate: boolean };
+/** reuse one range record — clearUpdateRanges + addUpdateRange allocated a fresh object every fill */
+export function touchRange(attr: Attr, range: { start: number; count: number }, count: number) {
+  range.start = 0; range.count = count;
+  const rs = attr.updateRanges;
+  if (rs.length === 0 || rs[0] !== range) { rs.length = 0; rs.push(range); }
+  attr.needsUpdate = true;
 }

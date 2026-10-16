@@ -91,7 +91,9 @@ async function main() {
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
-  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") === "1") : null;
+  if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
+  // texture pre-upload is on unless ?preup=0; it only queues textures of meshes the warm-up actually sees
+  const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") !== "0") : null;
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
   const tmerge = params.get("tmerge") !== "0" && g.real ? new TerrMerge(g.real as never) : null;
   const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3, +(params.get("bbshell") || Infinity)) : null;

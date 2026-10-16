@@ -211,10 +211,12 @@ if (doDrive) {
       glu: { total: +F.reduce((a, f) => a + f.glu, 0).toFixed(1), max: +Math.max(...F.map((f) => f.glu)).toFixed(1) },
       glc: { total: +F.reduce((a, f) => a + f.glc, 0).toFixed(1), max: +Math.max(...F.map((f) => f.glc)).toFixed(1), progs0: F[0].progs, progs1: F[F.length - 1].progs },
       nonGl: (() => { const v = F.map((f) => f.cbt - f.glc - f.glu); return { p50: pct(v, 0.5), p95: pct(v, 0.95), p99: pct(v, 0.99), max: pct(v, 1), over33: v.filter((x) => x > 33).length, over50: v.filter((x) => x > 50).length }; })(),
+      gap: (() => { const v = F.map((f) => f.gap || 0); return { p50: pct(v, 0.5), p95: pct(v, 0.95), p99: pct(v, 0.99), max: pct(v, 1), over33: v.filter((x) => x > 33).length, over50: v.filter((x) => x > 50).length }; })(),
+      drawSpikes: F.filter((f) => f.calls > 1500).length,
     };
   });
   out.drive = { ...res, after: await snapStats() };
-  console.log("drive", JSON.stringify({ frames: res.frames, cbt: res.cbt, glc: res.glc, glu: res.glu, nonGl: res.nonGl, calls: res.calls, tris: res.tris, alloc: res.allocMBperFrame, maxQueue: res.maxQueue }));
+  console.log("drive", JSON.stringify({ frames: res.frames, cbt: res.cbt, gap: res.gap, glc: res.glc, glu: res.glu, nonGl: res.nonGl, calls: res.calls, tris: res.tris, alloc: res.allocMBperFrame, maxQueue: res.maxQueue, drawSpikes: res.drawSpikes }));
 }
 fs.mkdirSync(OUT + "res", { recursive: true });
 fs.writeFileSync(`${OUT}res/${label}.json`, JSON.stringify(out, null, 1));
