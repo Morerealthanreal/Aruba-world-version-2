@@ -407,8 +407,9 @@ def build_santa_cruz(roads):
     # gable-end cross and blue rake, on the front (+X)
     G.prism(hi_b, x1 - 0.15, x1 + 0.08, z0 + 0.3, z1 - 0.3, 7.0, 7.25)
     cross(hi_b, x1 + 0.12, 9.2, (z0 + z1) / 2 + 1.2, 2.4, 1.5, 0.18, "x")
-    # tower on the road side of the front. The south road sits on -Z.
-    tx, tz = x1 - 1.6, z0 + 2.2
+    # Tower on the viewer's left of the east front, matching the 2021 photo.
+    # Facing +X, left is +Z.
+    tx, tz = x1 - 1.6, z1 - 2.2
     G.box(hi_w, tx, 9.0, tz, 4.4, 18.0, 4.4)
     G.box(hi_p, tx, 0.7, tz, 4.7, 1.4, 4.7)
     G.box(hi_b, tx, 16.6, tz, 4.8, 0.35, 4.8)
@@ -416,7 +417,7 @@ def build_santa_cruz(roads):
         G.box(hi_b, tx + s, 8.5, tz + 2.25, 0.18, 12, 0.12)
         G.box(hi_b, tx + s, 8.5, tz - 2.25, 0.18, 12, 0.12)
         G.box(hi_b, tx + 2.25, 8.5, tz + s, 0.12, 12, 0.18)
-    add_windows(m.mesh(0, glass), hi_b, tx, tz - 2.2, 14.6, 16.2, "nz", 3, 0.9)
+    add_windows(m.mesh(0, glass), hi_b, tx + 2.2, tz, 14.6, 16.2, "px", 3, 0.9)
     # red tile cap
     G.gable_roof(m.mesh(0, cap), tx - 2.3, tx + 2.3, tz - 2.3, tz + 2.3, 17.7, 20.4)
     cross(hi_b, tx, 20.6, tz, 1.5, 0.9, 0.12, "z")
@@ -519,7 +520,7 @@ def build_seroe(roads):
     cactus = m.material("cactus", (0.22, 0.40, 0.20))
     hi_w = m.mesh(0, wall)
     G.wall_ring(hi_w, ring, 0, 5.6)
-    G.gable_roof(m.mesh(0, roof), x0 - 0.3, x1 + 0.3, z0 - 0.15, z1 + 0.15, 5.4, 9.6)
+    G.gable_roof(m.mesh(0, roof), x0 - 0.3, x1 + 0.3, z0 - 0.15, z1 + 0.15, 5.4, 11.4)
     # transept gable on the +Z side
     G.prism(hi_w, -2.2, 3.4, z1 - 0.4, z1 + 3.2, 0, 5.5)
     G.gable_roof(m.mesh(0, roof), -2.5, 3.7, z1 - 0.5, z1 + 3.4, 5.3, 8.2)
@@ -532,8 +533,10 @@ def build_seroe(roads):
     span = x1 - x0
     for i in range(5):
         x = x0 + span * (0.18 + 0.15 * i)
-        G.box(m.mesh(0, stone), x, 2.4, z0 - 0.35, 0.7, 4.8, 0.7)
-        G.box(m.mesh(0, stone), x, 2.2, z1 + 0.15, 0.55, 4.2, 0.45)
+        G.box(m.mesh(0, stone), x, 2.5, z0 - 0.85, 0.9, 5.0, 1.5)
+        G.box(m.mesh(0, stone), x, 4.7, z0 - 0.55, 0.55, 1.3, 0.9)
+        G.box(m.mesh(0, stone), x, 2.3, z1 + 0.55, 0.8, 4.6, 1.2)
+        G.box(m.mesh(0, stone), x, 4.4, z1 + 0.35, 0.5, 1.1, 0.7)
     # sunday-school chapel off the rear corner
     G.box(hi_w, x0 - 3.2, 2.4, z0 + 1.5, 6.2, 4.8, 5.2)
     G.gable_roof(m.mesh(0, roof), x0 - 6.4, x0, z0 - 1.2, z0 + 4.2, 4.6, 6.8)
@@ -542,7 +545,7 @@ def build_seroe(roads):
     for cx_, cz_, h in ((x1 + 4, z1 + 2, 5.5), (x1 + 2, z0 - 3, 4.2)):
         G.box(m.mesh(0, cactus), cx_, h / 2, cz_, 0.55, h, 0.55)
     G.box(m.mesh(1, wall), 0, 2.8, 0, x1 - x0, 5.6, z1 - z0)
-    G.gable_roof(m.mesh(1, roof), x0, x1, z0, z1, 5.4, 9.6)
+    G.gable_roof(m.mesh(1, roof), x0, x1, z0, z1, 5.4, 11.4)
     G.box(m.mesh(1, wall), x0 - 3.2, 2.4, z0 + 1.5, 6.2, 4.8, 5.2)
     rotate_model(m, ang)
     info = G.write_glb(m, HERO / "seroe_church.glb")
@@ -561,31 +564,31 @@ def build_cave(name, lat, lon, roads, mouths, length, height, depth):
     else:
         ang = 0
     m = G.Model(name)
-    rock = m.material("rock", (0.32, 0.30, 0.27))
-    dark = m.material("dark", (0.08, 0.07, 0.06))
-    rust = m.material("rust", (0.40, 0.28, 0.20))
-    gate = m.material("gate", (0.18, 0.18, 0.17))
+    # Dark charcoal limestone. The first pass was a pale box and read as a garage.
+    rock = m.material("rock", (0.11, 0.10, 0.09))
+    dark = m.material("dark", (0.035, 0.032, 0.03))
+    rust = m.material("rust", (0.22, 0.18, 0.14))
+    gate = m.material("gate", (0.16, 0.15, 0.14))
     hi = m.mesh(0, rock)
-    # cliff body. +X is toward the road.
-    G.box(hi, -depth / 2, height / 2, 0, depth, height, length)
-    # broken top lip
-    G.box(m.mesh(0, rust), -depth / 2, height - 0.4, 0, depth * 0.7, 1.1, length * 0.92)
+    # cliff body set back from the road, with a lip over the mouths
+    G.box(hi, -depth / 2 - 0.6, height / 2, 0, depth, height, length)
+    G.box(hi, -0.2, height - 1.8, 0, depth * 0.45, 2.6, length * 0.98)
+    G.box(m.mesh(0, rust), -depth * 0.15, height - 0.2, -length * 0.18, depth * 0.4, 1.8, length * 0.32)
+    G.box(hi, -depth * 0.3, height + 0.7, length * 0.16, depth * 0.32, 2.4, length * 0.26)
     for i, (z, w, mh) in enumerate(mouths):
-        # mouth frame proud of the face, black opening inside it
-        G.box(hi, 0.35, mh / 2 + 0.4, z, 0.7, mh + 0.8, w + 1.1)
-        G.box(m.mesh(0, dark), 0.72, mh / 2 + 0.15, z, 0.35, mh, w)
+        # open mouth under the overhang, low, wider than it is tall
+        G.box(m.mesh(0, dark), 0.05, mh / 2 + 0.15, z, 1.6, mh, w)
+        G.box(hi, 0.15, mh * 0.35, z - w / 2 - 0.35, 1.5, mh * 0.7, 0.7)
+        G.box(hi, 0.15, mh * 0.35, z + w / 2 + 0.35, 1.5, mh * 0.7, 0.7)
         if name == "fontein_cave":
-            for k in range(4):
-                G.box(m.mesh(0, gate), 0.95, 0.45 + k * (mh / 4.5), z, 0.06, 0.08, w * 0.92)
-            G.box(m.mesh(0, gate), 0.95, mh / 2, z - w / 2, 0.08, mh, 0.08)
-            G.box(m.mesh(0, gate), 0.95, mh / 2, z + w / 2, 0.08, mh, 0.08)
+            for k in range(3):
+                G.box(m.mesh(0, gate), 0.9, 0.55 + k * (mh / 3.4), z, 0.05, 0.05, w * 0.88)
     if name == "quadirikiri":
-        # skylight holes on the roof, the thing the cave is known for
         for z in (-4.5, 5.5):
-            G.box(m.mesh(0, dark), -depth * 0.35, height + 0.2, z, 2.2, 0.6, 2.2)
+            G.box(m.mesh(0, dark), -depth * 0.35, height + 0.15, z, 2.2, 0.5, 2.2)
     G.box(m.mesh(1, rock), -depth / 2, height / 2, 0, depth, height, length)
     for z, w, mh in mouths:
-        G.box(m.mesh(1, dark), 0.4, mh / 2, z, 0.5, mh, w)
+        G.box(m.mesh(1, dark), 0.2, mh / 2, z, 0.6, mh, w)
     rotate_model(m, ang)
     info = G.write_glb(m, HERO / f"{name}.glb")
     G.check_glb(HERO / f"{name}.glb")
