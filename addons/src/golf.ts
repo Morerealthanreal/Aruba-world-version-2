@@ -4,6 +4,8 @@
 // 18 holes; the rest are ribbons offset from the mapped cart paths toward the mapped
 // greens and bunkers, clipped to the course and kept off the lighthouse / Faro Blanco lot.
 // Surfaces are draped on heightAt, one shared material per surface, flags and palms instanced.
+// Ground photos (clubhouse tile roofs and a tower, wind-bent palms, white bunkers, desert
+// washes rather than a lake on the 15th) set the clubhouse massing and the turf colors.
 // ?golf=0 turns it off.
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute,
@@ -35,15 +37,15 @@ const SHOW = 3200;
 const CELL = 8;
 
 const COL = {
-  fairway: 0x3a9a42,
-  green: 0x7ed14a,
+  fairway: 0x3f8c38,
+  green: 0x86c652,
   tee: 0x2f8a38,
   bunker: 0xf4f0e4,
   path: 0xb7b3a8,
   water: 0x1e7384,
   deck: 0xe4d5bf,
   wall: 0xf3efe4,
-  roof: 0xc45c32,
+  roof: 0xb8432c,
   glass: 0x243646,
   trunk: 0x6b4a2c,
   frond: 0x1f6b32,
@@ -51,7 +53,7 @@ const COL = {
   cloth: 0xf7f4ee,
 };
 
-function stripe(mat: MeshLambertMaterial, freq: number, key: string) {
+function stripe(mat: MeshLambertMaterial, freq: number, key: string, dark = 0.9) {
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader = "varying vec3 vTdsW;\n" + shader.vertexShader.replace(
       "#include <project_vertex>",
@@ -59,22 +61,23 @@ function stripe(mat: MeshLambertMaterial, freq: number, key: string) {
     );
     const f = freq.toFixed(4);
     const g = (freq * 0.37).toFixed(4);
+    const d = dark.toFixed(3);
     shader.fragmentShader = "varying vec3 vTdsW;\n" + shader.fragmentShader.replace(
       "#include <color_fragment>",
       `#include <color_fragment>
       float s = fract(vTdsW.x * ${f} + vTdsW.z * ${g});
-      diffuseColor.rgb *= s < 0.5 ? 0.92 : 1.0;`,
+      diffuseColor.rgb *= s < 0.5 ? ${d} : 1.0;`,
     );
   };
   mat.customProgramCacheKey = () => key;
 }
 
-function groundMat(color: number, key?: string, freq?: number) {
+function groundMat(color: number, key?: string, freq?: number, dark?: number) {
   const m = new MeshLambertMaterial({ color });
   m.polygonOffset = true;
   m.polygonOffsetFactor = -2;
   m.polygonOffsetUnits = -4;
-  if (key && freq) stripe(m, freq, key);
+  if (key && freq) stripe(m, freq, key, dark);
   return m;
 }
 
@@ -161,6 +164,8 @@ export class TierraGolf {
   private palmN = 0;
   private flagAt: number[][] = [];
   private palmAt: number[][] = [];
+  private extraPalms: number[][] = [];
+  private extraI = 0;
   private propKey = "";
   private club: Group | null = null;
   private clubLo: Mesh | null = null;
@@ -174,8 +179,8 @@ export class TierraGolf {
     this.group.name = "aw:tds";
     g.scene.add(this.group);
     this.mats = {
-      fairway: groundMat(COL.fairway, "tds-fair", 0.09),
-      green: groundMat(COL.green, "tds-green", 0.22),
+      fairway: groundMat(COL.fairway, "tds-fair", 0.09, 0.86),
+      green: groundMat(COL.green, "tds-green", 0.22, 0.9),
       tee: groundMat(COL.tee),
       bunker: groundMat(COL.bunker),
       path: groundMat(COL.path),
@@ -193,7 +198,7 @@ export class TierraGolf {
     };
     this.poles = this.blankInstances(this.poleGeo(), this.mats.pole, 24);
     this.flags = this.blankInstances(this.flagGeo(), this.mats.flag, 24);
-    this.palms = this.blankInstances(this.palmGeo(), this.mats.frond, 24);
+    this.palms = this.blankInstances(this.palmGeo(), this.mats.frond, 40);
     // palm geo carries trunk via a second mesh sharing matrices — built in palmGeo as one colored mesh
     this.installVeg();
     void this.load();
@@ -239,6 +244,7 @@ export class TierraGolf {
       return;
     }
     this.scanTiles();
+    this.seedClubPalms();
     this.fillMask();
     this.hideClubFootprints();
     this.world.vegDirty = true;
@@ -302,6 +308,23 @@ export class TierraGolf {
         }
       }
     }
+  }
+
+  private seedClubPalms() {
+    const d = this.data!;
+    if (!d.club.length) return;
+    const c = centroid(d.club[0]);
+    const spots: number[][] = [];
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.35;
+      const rad = 36 + (i % 3) * 5;
+      const x = c[0] + Math.cos(a) * rad;
+      const z = c[1] + Math.sin(a) * rad * 0.82;
+      if (d.club.some((r) => pip(r, x, z))) continue;
+      if (d.pool.length > 3 && pip(d.pool, x, z)) continue;
+      spots.push([x, z]);
+    }
+    this.extraPalms = spots;
   }
 
   private hideClubFootprints() {
@@ -469,6 +492,7 @@ export class TierraGolf {
     const hi = new Group();
     hi.name = "aw:tds:club";
     for (const ring of d.club) this.extrude(hi, ring, ring === d.club[0] ? 5.4 : 3.6);
+    this.tower(hi, d.club[0]);
     if (d.pool.length > 3) this.pool(hi, d.pool);
     hi.traverse((o) => { const m = o as Mesh; if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; m.matrixAutoUpdate = false; } });
     const c = centroid(d.club[0]);
@@ -481,6 +505,52 @@ export class TierraGolf {
     this.group.add(hi, box);
     this.club = hi;
     this.clubLo = box;
+  }
+
+  /** Square campanile, the cream tower with a clay-tile cap in the ground photos. */
+  private tower(parent: Group, ringIn: Ring) {
+    const ring = openRing(ringIn);
+    if (ring.length < 3) return;
+    const c = centroid(ring);
+    let p = ring[0];
+    for (const q of ring) if (q[0] < p[0]) p = q;
+    const x = p[0] * 0.35 + c[0] * 0.65;
+    const z = p[1] * 0.35 + c[1] * 0.65;
+    const ground = this.hAt(x, z);
+    if (!Number.isFinite(ground)) return;
+    const base = ground - 0.2;
+    const wallTop = ground + 11.2;
+    const s = 6.4;
+    const box = new BoxGeometry(s, wallTop - base, s);
+    box.translate(x, (base + wallTop) / 2, z);
+    parent.add(new Mesh(box, this.mats.wall));
+    const peak = wallTop + 2.6;
+    const o = s / 2 + 0.45;
+    const rp = [x, peak, z, x - o, wallTop, z - o, x + o, wallTop, z - o, x + o, wallTop, z + o, x - o, wallTop, z + o];
+    const rg = new BufferGeometry();
+    rg.setAttribute("position", new Float32BufferAttribute(rp, 3));
+    rg.setIndex([0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1]);
+    rg.computeVertexNormals();
+    parent.add(new Mesh(rg, this.mats.fascia));
+    const slits: number[] = [];
+    const openings: [number, number, number, number][] = [
+      [x - s / 2 - 0.05, z, 0, 1],
+      [x, z - s / 2 - 0.05, 1, 0],
+    ];
+    for (const [ox, oz, ax, az] of openings) {
+      const hw = 0.55, y0 = wallTop - 3.4, y1 = wallTop - 0.9;
+      const quad = [
+        [ox - ax * hw, y0, oz - az * hw],
+        [ox + ax * hw, y0, oz + az * hw],
+        [ox + ax * hw, y1, oz + az * hw],
+        [ox - ax * hw, y1, oz - az * hw],
+      ];
+      for (const tri of [0, 1, 2, 0, 2, 3]) slits.push(quad[tri][0], quad[tri][1], quad[tri][2]);
+    }
+    const sg = new BufferGeometry();
+    sg.setAttribute("position", new Float32BufferAttribute(slits, 3));
+    sg.computeVertexNormals();
+    parent.add(new Mesh(sg, this.mats.glass));
   }
 
   private extrude(parent: Group, ringIn: Ring, wallH: number) {
@@ -644,10 +714,21 @@ export class TierraGolf {
       const p = d.palms[this.palmN];
       if (!this.hasH(p[0], p[1])) break;
       const y = this.hAt(p[0], p[1]);
-      const sc = 0.85 + ((Math.abs(Math.sin(p[0] * 0.17 + p[1])) * 0.4));
-      this.setInst(this.palms, this.palmN, p[0], y, p[1], p[0] * 0.3, sc);
-      this.palmAt.push([p[0], p[1], sc]);
+      const sc = 1.9 + ((Math.abs(Math.sin(p[0] * 0.17 + p[1])) * 0.7));
+      this.setInst(this.palms, this.palmN, p[0], y, p[1], p[0] * 0.3, sc, -0.2);
+      this.palmAt.push([p[0], p[1], sc, -0.2]);
       this.palmN++;
+      changed = true;
+    }
+    while (this.extraI < this.extraPalms.length && this.palmN < 36) {
+      const p = this.extraPalms[this.extraI];
+      if (!this.hasH(p[0], p[1])) break;
+      const sc = 2.05 + (this.extraI % 4) * 0.15;
+      const lean = -0.18 - (this.extraI % 4) * 0.04;
+      this.setInst(this.palms, this.palmN, p[0], this.hAt(p[0], p[1]), p[1], p[0] * 0.2, sc, lean);
+      this.palmAt.push([p[0], p[1], sc, lean]);
+      this.palmN++;
+      this.extraI++;
       changed = true;
     }
     if (changed) {
@@ -659,13 +740,21 @@ export class TierraGolf {
     }
   }
 
-  private setInst(mesh: InstancedMesh, i: number, x: number, y: number, z: number, yaw: number, s: number) {
+  private setInst(mesh: InstancedMesh, i: number, x: number, y: number, z: number, yaw: number, s: number, lean = 0) {
     this.v.set(x, y, z);
     this.q.setFromAxisAngle(this.up, yaw);
+    if (lean) {
+      // Stored lean is negative. A positive rotation about +Z tips the crown toward -X (west).
+      this.leanQ.setFromAxisAngle(this.west, -lean);
+      this.q.premultiply(this.leanQ);
+    }
     this.scale.set(s, s, s);
     this.m.compose(this.v, this.q, this.scale);
     mesh.setMatrixAt(i, this.m);
   }
+
+  private leanQ = new Quaternion();
+  private west = new Vector3(0, 0, 1);
 
   private up = new Vector3(0, 1, 0);
   private scale = new Vector3();
@@ -702,7 +791,7 @@ export class TierraGolf {
       const p = this.palmAt[i];
       const d2 = (cx - p[0]) ** 2 + (cz - p[1]) ** 2;
       const s = d2 < (LOD + 80) * (LOD + 80) && eye < 480 ? p[2] : 0;
-      this.setInst(this.palms, i, p[0], this.hAt(p[0], p[1]), p[1], p[0] * 0.3, s);
+      this.setInst(this.palms, i, p[0], this.hAt(p[0], p[1]), p[1], p[0] * 0.3, s, p[3] || 0);
     }
     if (this.flagN) {
       this.poles.instanceMatrix.needsUpdate = true;
