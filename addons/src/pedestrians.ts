@@ -5,6 +5,7 @@
 import {
   AnimationMixer, Group, type AnimationAction, type Object3D, type SkinnedMesh,
 } from "three";
+import { createLoco, loadLocomotion, slewYaw, stepLoco, type Loco, type LocoClips } from "./locomotion";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -34,7 +35,9 @@ type CharacterSource = {
 };
 type CharacterRig = {
   root: Group; inner: Object3D; mixer: AnimationMixer;
-  walk: AnimationAction; idle: AnimationAction; walker: Walker | null;
+  loco: Loco | null;
+  walk: AnimationAction | null; idle: AnimationAction | null; walker: Walker | null;
+  facing: number;
   kind: number; level: RigLevel; metrics: CharacterMetrics;
   paints: CharacterPaint[];
   faceMesh: SkinnedMesh | null; faceHead: Object3D | null;
@@ -100,27 +103,32 @@ export class PedestrianCrowds {
 
   private loadRigs() {
     void loadFacePortraits();
-    Promise.all(MODEL_SPECS.map(async (spec): Promise<CharacterSource> => {
+    const sourcesPromise = Promise.all(MODEL_SPECS.map(async (spec): Promise<CharacterSource> => {
       const source = await loadCharacterSource(this.g.renderer, spec.file);
       return {
         gl: source.gl, kind: spec.kind, level: spec.level, metrics: source.metrics,
       };
-    })).then((sources) => {
+    }));
+    const locoPromise = loadLocomotion(this.g.renderer).catch((error) => {
+      console.warn("[aw-peds] locomotion clips", error);
+      return null;
+    });
+    Promise.all([sourcesPromise, locoPromise]).then(([sources, loco]) => {
       for (let i = 0; i < this.nearCap; i++) {
         const kind = i % 3;
         this.nearRigs.push(this.makeRig(sources.find((source) =>
-          source.level === "near" && source.kind === kind)!, i));
+          source.level === "near" && source.kind === kind)!, i, loco));
       }
       for (let i = 0; i < this.midCap; i++) {
         const kind = (i + 1) % 3;
         this.midRigs.push(this.makeRig(sources.find((source) =>
-          source.level === "mid" && source.kind === kind)!, i + this.nearCap));
+          source.level === "mid" && source.kind === kind)!, i + this.nearCap, loco));
       }
-      console.info("[aw-peds] realistic rig LODs ready", this.nearRigs.length, this.midRigs.length);
+      console.info("[aw-peds] realistic rig LODs ready", this.nearRigs.length, this.midRigs.length, loco ? "mocap" : "fallback");
     }).catch((error) => console.warn("[aw-peds] realistic rig LODs", error));
   }
 
-  private makeRig(source: CharacterSource, slot: number): CharacterRig {
+  private makeRig(source: CharacterSource, slot: number, locoClips: LocoClips | null): CharacterRig {
     const inner = skClone(source.gl.scene);
     inner.rotation.y = Math.PI;
     const phase = slot * 1.61803398875;
@@ -133,19 +141,28 @@ export class PedestrianCrowds {
     root.add(inner);
     root.visible = false;
 
-    const mixer = new AnimationMixer(inner);
-    const clip = (name: string) =>
-      source.gl.animations.find((animation) => animation.name === name) || source.gl.animations[0];
-    const walk = mixer.clipAction(clip("Walk_Relaxed"));
-    const idle = mixer.clipAction(clip("Idle_Standing"));
-    walk.play();
-    idle.play();
-    walk.setEffectiveWeight(1);
-    idle.setEffectiveWeight(0);
-    walk.time = (phase % 1) * walk.getClip().duration;
+    let loco: Loco | null = null;
+    let mixer: AnimationMixer;
+    let walk: AnimationAction | null = null;
+    let idle: AnimationAction | null = null;
+    if (locoClips) {
+      loco = createLoco(inner, locoClips, phase);
+      mixer = loco.mixer;
+    } else {
+      mixer = new AnimationMixer(inner);
+      const clip = (name: string) =>
+        source.gl.animations.find((animation) => animation.name === name) || source.gl.animations[0];
+      walk = mixer.clipAction(clip("Walk_Relaxed"));
+      idle = mixer.clipAction(clip("Idle_Standing"));
+      walk.play();
+      idle.play();
+      walk.setEffectiveWeight(1);
+      idle.setEffectiveWeight(0);
+      walk.time = (phase % 1) * walk.getClip().duration;
+    }
     this.detailGroup.add(root);
     return {
-      root, inner, mixer, walk, idle, walker: null, kind: source.kind,
+      root, inner, mixer, loco, walk, idle, walker: null, facing: 0, kind: source.kind,
       level: source.level, metrics: source.metrics, paints,
       faceMesh: face.mesh, faceHead: face.head,
     };
@@ -274,7 +291,10 @@ export class PedestrianCrowds {
           }
         }
       }
-      if (chosen) chosen.walker = walker;
+      if (chosen) {
+        chosen.walker = walker;
+        chosen.facing = walker.yaw;
+      }
     }
   }
 
@@ -286,11 +306,16 @@ export class PedestrianCrowds {
       const walker = rig.walker;
       if (!walker) continue;
       rig.root.position.set(walker.x, walker.y, walker.z);
-      rig.root.rotation.y = walker.yaw;
+      rig.facing = slewYaw(rig.facing, walker.yaw, walker.speed, dt);
+      rig.root.rotation.y = rig.facing;
       rig.root.scale.setScalar(walker.height);
       rig.root.visible = true;
-      rig.walk.timeScale = 0.85 + walker.speed * 0.18;
-      if (dt > 0) rig.mixer.update(dt);
+      if (rig.loco) {
+        if (dt > 0) stepLoco(rig.loco, walker.speed, dt, walker.height);
+      } else if (rig.walk && dt > 0) {
+        rig.walk.timeScale = 0.85 + walker.speed * 0.18;
+        rig.mixer.update(dt);
+      }
       const sky = (this.g.real as unknown as { sky?: { sunDir?: { x: number; y: number; z: number } } }).sky;
       updateCharacterPaint(rig.paints, time, sky?.sunDir);
       result.visible++;

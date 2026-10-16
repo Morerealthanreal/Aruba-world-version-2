@@ -4,6 +4,7 @@
 // Liveries are canvas textures (cached, shared) on UV-mapped body decals.
 // Nose is local +Z, origin at ground centre (same convention as A's traffic cars).
 import { AnimationMixer, BoxGeometry, BufferGeometry, CanvasTexture, CylinderGeometry, Group, LOD, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SphereGeometry, SRGBColorSpace, Vector3, type AnimationAction, type Material, type Object3D } from "three";
+import { createLoco, loadLocomotion, stepLoco, type Loco, type LocoClips } from "./locomotion";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -191,8 +192,8 @@ export type Npc = {
   g: Group; rig: Group; torso: Mesh; head: Mesh;
   armL: Group; armR: Group; legL: Mesh; legR: Mesh; t: number; tablet: boolean;
   detail?: {
-    inner: Object3D; mixer: AnimationMixer; walk: AnimationAction;
-    idle: AnimationAction; paints: CharacterPaint[];
+    inner: Object3D; mixer: AnimationMixer; walk: AnimationAction | null;
+    idle: AnimationAction | null; loco: Loco | null; paints: CharacterPaint[];
     faceMesh: SkinnedMesh | null; faceHead: Object3D | null;
   };
 };
@@ -201,6 +202,7 @@ const NPC_TORSO = new CylinderGeometry(0.5, 0.39, 1, 7, 1);
 const NPC_LIMB = new CylinderGeometry(0.4, 0.5, 1, 6, 1);
 NPC_LIMB.translate(0, -0.5, 0); // rotations now happen at the shoulder / hip
 let npcSources: GLTF[] | null = null;
+let npcLoco: LocoClips | null = null;
 let npcLoad: Promise<void> | null = null;
 let npcSerial = 0;
 const _npcPos = new Vector3();
@@ -208,11 +210,17 @@ const _camPos = new Vector3();
 function loadNpcRigs() {
   const renderer = window.game?.renderer;
   if (!renderer) return Promise.reject(new Error("renderer is not ready"));
-  return (npcLoad ||= Promise.all(["ped_sam_near.glb", "ped_maya_dress_near.glb"].map((file) =>
-    loadCharacterSource(renderer, file)))
-    .then(async (sources) => {
+  return (npcLoad ||= Promise.all([
+    Promise.all(["ped_sam_near.glb", "ped_maya_dress_near.glb"].map((file) => loadCharacterSource(renderer, file))),
+    loadLocomotion(renderer).catch((error) => {
+      console.warn("[aw-npc] locomotion clips", error);
+      return null;
+    }),
+  ])
+    .then(async ([sources, loco]) => {
       await loadFacePortraits();
       npcSources = sources.map((source) => source.gl);
+      npcLoco = loco;
     })
     .catch((e) => console.warn("[aw-npc] detailed rigs", e)));
 }
@@ -247,11 +255,23 @@ function upgradeNpc(n: Npc, sourceIndex: number) {
     device.add(screen);
     n.g.add(device);
   }
-  const mixer = new AnimationMixer(inner);
-  const clip = (name: string) => source.animations.find((a) => a.name === name) || source.animations[0];
-  const walk = mixer.clipAction(clip("Walk_Relaxed")), idle = mixer.clipAction(clip("Idle_Standing"));
-  walk.play(); idle.play(); walk.setEffectiveWeight(0);
-  n.detail = { inner, mixer, walk, idle, paints, faceMesh: face.mesh, faceHead: face.head };
+  let loco: Loco | null = null;
+  let mixer: AnimationMixer;
+  let walk: AnimationAction | null = null;
+  let idle: AnimationAction | null = null;
+  if (npcLoco) {
+    loco = createLoco(inner, npcLoco, sourceIndex * 0.37);
+    mixer = loco.mixer;
+  } else {
+    mixer = new AnimationMixer(inner);
+    const clip = (name: string) => source.animations.find((a) => a.name === name) || source.animations[0];
+    walk = mixer.clipAction(clip("Walk_Relaxed"));
+    idle = mixer.clipAction(clip("Idle_Standing"));
+    walk.play();
+    idle.play();
+    walk.setEffectiveWeight(0);
+  }
+  n.detail = { inner, mixer, walk, idle, loco, paints, faceMesh: face.mesh, faceHead: face.head };
 }
 export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
   const g = new Group(); g.name = "aw:npc";
@@ -275,11 +295,16 @@ export function buildNpc(shirt: string, pants: string, tablet = false): Npc {
 export function animNpc(n: Npc, dt: number, mode: "walk" | "talk" | "idle", tablet = false) {
   n.t += dt;
   if (n.detail) {
-    const walking = mode === "walk";
-    n.detail.walk.setEffectiveWeight(walking ? 1 : 0);
-    n.detail.idle.setEffectiveWeight(walking ? 0 : 1);
-    n.detail.walk.timeScale = 1.05;
-    n.detail.mixer.update(dt);
+    if (n.detail.loco) {
+      // Scenario staff walk at about 1.3 m/s. Talk and idle stay on the idle clip.
+      stepLoco(n.detail.loco, mode === "walk" ? 1.3 : 0, dt, 1);
+    } else if (n.detail.walk && n.detail.idle) {
+      const walking = mode === "walk";
+      n.detail.walk.setEffectiveWeight(walking ? 1 : 0);
+      n.detail.idle.setEffectiveWeight(walking ? 0 : 1);
+      n.detail.walk.timeScale = 1.05;
+      n.detail.mixer.update(dt);
+    }
     const sky = (window.game?.real as { sky?: { sunDir?: { x: number; y: number; z: number } } } | undefined)?.sky;
     updateCharacterPaint(n.detail.paints, n.t, sky?.sunDir);
     const cam = window.game?.camera;
