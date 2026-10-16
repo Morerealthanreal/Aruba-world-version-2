@@ -79,8 +79,8 @@ async function stand(x, z, yaw) {
 const yawOf = (dx, dz) => Math.atan2(dx, dz);
 
 const street = {
-  x: door.x + outward.x * 7 + along.x * 2.2,
-  z: door.z + outward.z * 7 + along.z * 2.2,
+  x: door.x + outward.x * 8 + along.x * 1.1,
+  z: door.z + outward.z * 8 + along.z * 1.1,
 };
 await stand(street.x, street.z, yawOf(outward.x, outward.z));
 await settle("street");

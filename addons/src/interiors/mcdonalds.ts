@@ -30,7 +30,7 @@ export const mcdLocal: Vol = frameFromEdge(CORNERS, 1, 0);
 // blade sits near along 6, so the opening is the clear stretch to the east.
 export const MCD_DOOR_AT = -5.5;
 export const MCD_DOOR_HALF = 2.15;
-export const MCD_DOOR_TOP = 2.52;
+export const MCD_DOOR_TOP = 2.9;
 mcdLocal.doorAt = MCD_DOOR_AT;
 mcdLocal.depth = 16;
 
@@ -129,8 +129,10 @@ function addMenu(b: Builder, f: Frame, a: number, d: number, y0: number, y1: num
       pt(f, a + halfW, depth, y1), pt(f, a - halfW, depth, y1),
     ], normal, [1, 1, 1], uv);
   };
-  quad(d, [-f.nx, 0, -f.nz], [[0, 0], [1, 0], [1, 1], [0, 1]]);
-  quad(d + 0.03, [f.nx, 0, f.nz], [[1, 0], [0, 0], [0, 1], [1, 1]]);
+  // Room side faces the dining room. UVs are flipped against the street face so
+  // the board reads left to right from inside this storefront.
+  quad(d, [-f.nx, 0, -f.nz], [[1, 0], [0, 0], [0, 1], [1, 1]]);
+  quad(d + 0.03, [f.nx, 0, f.nz], [[0, 0], [1, 0], [1, 1], [0, 1]]);
 }
 
 const up = new Vector3(0, 1, 0);
@@ -153,6 +155,10 @@ export function buildMcdonalds(group: Group, f: Frame) {
   const doorL = MCD_DOOR_AT - MCD_DOOR_HALF;
   const doorR = MCD_DOOR_AT + MCD_DOOR_HALF;
 
+  shell.quad(
+    [pt(f, -hw + 0.35, 0.2, 0.02), pt(f, hw - 0.35, 0.2, 0.02), pt(f, hw - 0.35, depth - 0.35, 0.02), pt(f, -hw + 0.35, depth - 0.35, 0.02)],
+    [0, 1, 0], [0.7, 0.7, 0.68],
+  );
   const step = 1.3;
   for (let a = -hw + 0.5; a < hw - 0.6; a += step) {
     for (let d = 0.25; d < depth - 0.5; d += step) {
@@ -166,7 +172,7 @@ export function buildMcdonalds(group: Group, f: Frame) {
     }
   }
   shell.quad(
-    [pt(f, -hw + 0.4, 0.45, 3.35), pt(f, hw - 0.4, 0.45, 3.35), pt(f, hw - 0.4, depth - 0.4, 3.35), pt(f, -hw + 0.4, depth - 0.4, 3.35)],
+    [pt(f, -hw + 0.4, 0.25, 3.15), pt(f, hw - 0.4, 0.25, 3.15), pt(f, hw - 0.4, depth - 0.4, 3.15), pt(f, -hw + 0.4, depth - 0.4, 3.15)],
     [0, -1, 0], [0.9, 0.9, 0.88],
   );
 
@@ -174,11 +180,12 @@ export function buildMcdonalds(group: Group, f: Frame) {
   box(shell, f, -hw + 0.22, -hw + 0.22 + liner, 0.35, depth - 0.3, 0.04, 3.2, CREAM);
   box(shell, f, hw - 0.22 - liner, hw - 0.22, 0.35, depth - 0.3, 0.04, 3.2, CREAM);
   box(shell, f, -hw + 0.3, hw - 0.3, depth - 0.32, depth - 0.2, 0.04, 3.2, CREAM);
-  box(shell, f, -hw + 0.25, doorL, 0.16, 0.16 + liner, 0.02, 2.45, CREAM);
-  box(shell, f, doorR, hw - 0.25, 0.16, 0.16 + liner, 0.02, 2.45, CREAM);
-  box(shell, f, doorL, doorR, 0.18, 0.18 + liner, 2.28, 2.5, YEL);
-  box(shell, f, doorL + 0.04, doorL + 0.18, 0.2, 0.48, 0.02, 2.4, RED);
-  box(shell, f, doorR - 0.18, doorR - 0.04, 0.2, 0.48, 0.02, 2.4, RED);
+  box(shell, f, -hw + 0.25, doorL, 0.16, 0.16 + liner, 0.02, 2.9, CREAM);
+  box(shell, f, doorR, hw - 0.25, 0.16, 0.16 + liner, 0.02, 2.9, CREAM);
+  box(shell, f, doorL, doorR, 0.18, 0.18 + liner, 2.62, 2.88, YEL);
+  box(shell, f, doorL + 0.04, doorL + 0.18, 0.2, 0.48, 0.02, 2.75, RED);
+  box(shell, f, doorR - 0.18, doorR - 0.04, 0.2, 0.48, 0.02, 2.75, RED);
+  box(shell, f, -hw + 0.3, hw - 0.3, 0.2, 0.42, 2.92, 3.18, CREAM);
 
   // order counter west of the entrance, under the sign
   box(shell, f, -2.4, 4.6, 3.15, 4.35, 0.04, 1.05, WOOD);
@@ -201,8 +208,8 @@ export function buildMcdonalds(group: Group, f: Frame) {
   const tex = menuTexture();
   if (tex) {
     const boards = new Builder();
-    addMenu(boards, f, -4.15, 3.55, 1.25, 2.7, 0.85);
-    addMenu(boards, f, 1.0, 4.5, 1.4, 2.85, 1.55);
+    addMenu(boards, f, -2.15, 2.55, 1.35, 2.75, 0.7);
+    addMenu(boards, f, 1.0, 4.5, 1.45, 2.9, 1.55);
     const menu = new Mesh(boards.geometry(), new MeshBasicMaterial({ map: tex, side: DoubleSide }));
     menu.name = "aw:mcd:menu";
     group.add(menu);
