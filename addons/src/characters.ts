@@ -83,7 +83,7 @@ export function loadFacePortraits(): Promise<void> {
     face.magFilter = LinearFilter;
     face.minFilter = LinearMipmapLinearFilter;
     face.generateMipmaps = true;
-    face.anisotropy = 8;
+    face.anisotropy = 4;
     face.needsUpdate = true;
   }).catch((error) => {
     console.warn("[aw-characters] face portrait", file, error);
@@ -425,10 +425,6 @@ function paintMaterial(
   // Short-hair cards are cut in the shader with a literal cutoff, so this
   // stays 0 and the high-quality pass never enables coverage on skin.
   material.alphaTest = 0;
-  if (material.map && material.map.anisotropy < 8) {
-    material.map.anisotropy = 8;
-    material.map.needsUpdate = true;
-  }
   material.userData.awPaint = uniforms;
   const hairVertex = tileCondition(tiles.hair, "awVertexTile");
   const dressVertex = tileCondition(tiles.dress, "awVertexTile");
