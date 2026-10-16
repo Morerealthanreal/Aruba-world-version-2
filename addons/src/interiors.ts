@@ -19,6 +19,7 @@ import { buildSenorfrogs, SF_DOOR_HALF, SF_DOOR_TOP, SF_OBS, SF_POLY, SF_X, SF_Z
 import { buildMoomba, MB_DOOR_HALF, MB_DOOR_TOP, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "./interiors/moomba";
 import { buildGiannis, GN_DOOR_HALF, GN_DOOR_TOP, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "./interiors/giannis";
 import { buildRenmall, RN_DOOR_HALF, RN_DOOR_TOP, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "./interiors/renmall";
+import { buildRoyalplaza, RP_DOOR_HALF, RP_DOOR_TOP, RP_OBS, RP_POLY, RP_X, RP_Z, rpLocal } from "./interiors/royalplaza";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -459,6 +460,38 @@ function placeRenmall(): Place {
   };
 }
 
+function placeRoyalplaza(): Place {
+  const world = worldFrame(rpLocal, RP_X, RP_Z, 0);
+  world.poly = RP_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "royalplaza",
+    x: RP_X,
+    z: RP_Z,
+    rot: 0,
+    local: rpLocal,
+    world,
+    doorHalf: RP_DOOR_HALF,
+    doorTop: RP_DOOR_TOP,
+    doorSide: 0.5,
+    wall: 0.34,
+    obs: RP_OBS,
+    cut: ["ground"],
+    show: 100,
+    hide: 130,
+    floorAt: { x: -7545.39, z: -63.2 },
+    build: buildRoyalplaza,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -471,7 +504,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHyatt(), placeHilton(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHyatt(), placeHilton(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall(), placeRoyalplaza()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
