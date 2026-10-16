@@ -61076,11 +61076,11 @@
   "lod": {
    "hi": "nw_shore_houses_lod0",
    "lo": "nw_shore_houses_lod1",
-   "switch_m": 220
+   "switch_m": 750
   },
   "tris": {
-   "nw_shore_houses_lod0": 10125,
-   "nw_shore_houses_lod1": 4461
+   "nw_shore_houses_lod0": 20859,
+   "nw_shore_houses_lod1": 5043
   },
   "textures": 0,
   "hide_footprint": null,
@@ -61162,14 +61162,6 @@
     -9477.62
    ],
    [
-    -8879.22,
-    -9460.31
-   ],
-   [
-    -8870.47,
-    -9389.6
-   ],
-   [
     -9017.32,
     -9755.5
    ],
@@ -61204,10 +61196,6 @@
    [
     -8995.95,
     -9775.7
-   ],
-   [
-    -9004.56,
-    -9788.17
    ],
    [
     -8868.82,
@@ -61299,11 +61287,11 @@
   "lod": {
    "hi": "nw_shore_north_lod0",
    "lo": "nw_shore_north_lod1",
-   "switch_m": 340
+   "switch_m": 1100
   },
   "tris": {
-   "nw_shore_north_lod0": 7548,
-   "nw_shore_north_lod1": 1492
+   "nw_shore_north_lod0": 7302,
+   "nw_shore_north_lod1": 5202
   },
   "textures": 0,
   "hide_footprint": null,
@@ -61329,11 +61317,11 @@
   "lod": {
    "hi": "nw_shore_south_lod0",
    "lo": "nw_shore_south_lod1",
-   "switch_m": 320
+   "switch_m": 1400
   },
   "tris": {
-   "nw_shore_south_lod0": 11738,
-   "nw_shore_south_lod1": 2766
+   "nw_shore_south_lod0": 10232,
+   "nw_shore_south_lod1": 5700
   },
   "textures": 0,
   "hide_footprint": null,

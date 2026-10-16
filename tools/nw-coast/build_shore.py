@@ -462,7 +462,7 @@ class B:
 SAND_W = (0.90, 0.88, 0.83)
 SAND_H = (0.84, 0.83, 0.78)
 SAND_M = (0.86, 0.84, 0.78)
-LIME = (0.74, 0.71, 0.64)
+LIME = (0.66, 0.63, 0.56)
 LIME_D = (0.56, 0.53, 0.48)
 WET = (0.40, 0.38, 0.34)
 BOULDER_C = (0.32, 0.31, 0.29)
@@ -779,7 +779,8 @@ def add_sign(b, lines, x, z, yaw, board, ink, g=None, chevron=False):
     widths = []
     for i, line in enumerate(lines):
         y = y0 + pad + (n - 1 - i) * (glyph_h + gap)
-        widths.append(paint_text(b, 0, ink, line, x, y, z, yaw, pix))
+        for lod in (0, 1):
+            widths.append(paint_text(b, lod, ink, line, x, y, z, yaw, pix))
     widest = max(widths) if widths else 0.4
     left = widest * 0.5 + 0.16
     right = widest * 0.5 + (0.58 if chevron else 0.16)
@@ -821,15 +822,23 @@ def add_house(b, house, roads):
     if pt is None:
         return None
     ix, iz = pt
-    g = mesh_height(ix, iz)
-    if g < 0.4 or g > 16:
+    hs = sorted(mesh_height(p[0], p[1]) for p in poly)
+    low, high = hs[0], hs[-1]
+    if high - low > 4.8 or low < -0.3:
         return None
+    # Sit the floor on the low side so a villa on the dune toe does not float.
+    g = hs[min(len(hs) - 1, max(0, len(hs) // 5))]
+    if g < 0.35 or g > 14:
+        return None
+    base = min(g, low) - 0.06
+    if g - base > 1.5:
+        base = g - 1.5
     wall_h = 6.15 if house["h"] >= 6 else 3.2
     wall_name = "wallc" if house["i"] % 5 == 0 else "wallw"
     roof_name = "terr" if house["r"] == "hipped" else "rooff"
-    b.extrude(0, "plinth", poly, g - 0.04, g + 0.46)
+    b.extrude(0, "plinth", poly, base, g + 0.46)
     b.extrude(0, wall_name, poly, g + 0.40, g + wall_h)
-    b.extrude(1, "plinth", poly, g - 0.04, g + 0.46)
+    b.extrude(1, "plinth", poly, base, g + 0.46)
     b.extrude(1, wall_name, poly, g + 0.40, g + wall_h)
     if house["r"] == "hipped":
         b.hip(0, roof_name, poly, g + wall_h - 0.02, 1.15)
@@ -842,14 +851,17 @@ def add_house(b, house, roads):
     shut = "shutg" if house["i"] % 3 else "shutb"
     if house["i"] % 4 == 0:
         shut = None
-    for i, (a, bpt, L, nx, nz) in enumerate(els[:2]):
+    for i, (a, bpt, L, nx, nz) in enumerate(els):
         if L < 4.2:
             continue
-        mx, mz = (a[0] + bpt[0]) * 0.5, (a[1] + bpt[1]) * 0.5
+        spots = (0.5,) if L < 9 else (0.32, 0.68)
         yaw = math.atan2(bpt[1] - a[1], bpt[0] - a[0])
-        add_window(b, mx, mz, yaw, nx, nz, g + 1.15, shut)
-        if wall_h > 5:
-            add_window(b, mx, mz, yaw, nx, nz, g + 3.55, shut)
+        for t in spots:
+            mx = a[0] + (bpt[0] - a[0]) * t
+            mz = a[1] + (bpt[1] - a[1]) * t
+            add_window(b, mx, mz, yaw, nx, nz, g + 1.15, shut)
+            if wall_h > 5:
+                add_window(b, mx, mz, yaw, nx, nz, g + 3.55, shut)
     if rf:
         rx, rw, _, _, _ = rf
         best = None
@@ -894,17 +906,15 @@ def add_hut(b, x, z, yaw, color_name, roof):
         a = (x + lx0 * c - lz0 * s, z + lx0 * s + lz0 * c)
         bpt = (x + lx1 * c - lz1 * s, z + lx1 * s + lz1 * c)
         wx, wz = ox * c - oz * s, ox * s + oz * c
-        b.quad(
-            0,
-            color_name,
-            [
-                (a[0], g + 0.18, a[1]),
-                (bpt[0], g + 0.18, bpt[1]),
-                (bpt[0], g + 2.2, bpt[1]),
-                (a[0], g + 2.2, a[1]),
-            ],
-            (wx, 0, wz),
-        )
+        pts = [
+            (a[0], g + 0.18, a[1]),
+            (bpt[0], g + 0.18, bpt[1]),
+            (bpt[0], g + 2.2, bpt[1]),
+            (a[0], g + 2.2, a[1]),
+        ]
+        # Both sides, so the paint shows from the beach through the open front.
+        b.quad(0, color_name, pts, (wx, 0, wz))
+        b.quad(0, color_name, pts, (-wx, 0, -wz))
 
     wall_at(-hw, hd, hw, hd, 0, 1)
     wall_at(-hw, hd, -hw, -hd, -1, 0)
@@ -997,11 +1007,12 @@ def sand_cell(b, mat, x, z, step, lod):
     h11 = mesh_height(x + step, z + step)
     h01 = mesh_height(x, z + step)
     hs = (h00, h10, h11, h01)
-    if min(hs) < 0.18 or max(hs) > 3.3:
+    # Stay on the dry beach. Shallower cells read as white sheets in the surf.
+    if min(hs) < 0.48 or max(hs) > 3.3:
         return False
     if max(hs) - min(hs) > 1.15:
         return False
-    lift = 0.055 if lod == 0 else 0.08
+    lift = 0.02 if lod == 0 else 0.035
     b.quad(
         lod,
         mat,
@@ -1053,8 +1064,9 @@ def shore_pass(b, z0, z1, mode, houses=()):
         col = 0
         while x + step < limit:
             mat = {"sand": "sandw", "rock": "sandm", "huts": "sandh"}[mode]
-            # Malmok keeps sand to pockets: every other inland cell.
-            if mode == "rock" and col % 2 == 1 and x > cx + 12:
+            # Hadicurari's terrain is already the sand. Malmok's waterline is
+            # ironshore; sand there is pockets back from the rocks.
+            if mode == "huts" or (mode == "rock" and (x < cx + 10 or col % 2 == 1)):
                 x += step
                 col += 1
                 continue
@@ -1064,8 +1076,7 @@ def shore_pass(b, z0, z1, mode, houses=()):
                 continue
             if sand_cell(b, mat, x, z, step, 0):
                 n_sand += 1
-                if col % 2 == 0 and int(z / step) % 2 == 0:
-                    sand_cell(b, mat, x, z, step, 1)
+                sand_cell(b, mat, x, z, step, 1)
             x += step
             col += 1
         # Waterline rock and an inshore boulder.
@@ -1074,8 +1085,8 @@ def shore_pass(b, z0, z1, mode, houses=()):
         if rf is None or cx + 2 < rf[0] - rf[1] * 0.5 - 1.0:
             if 0.15 <= h_in <= 2.6:
                 b.box_yaw(0, "wet", cx + 1.2, h_in - 0.05, z, 1.5, 0.22, 1.05, 0.4)
-                if mode != "sand" or int(z) % 24 < 8:
-                    b.box_yaw(0, "lime", cx + 3.4, h_in - 0.02, z + 1.1, 1.8, 0.32, 1.15, -0.3)
+                if int(z) % 36 < step:
+                    b.box_yaw(0, "lime", cx + 3.4, h_in - 0.02, z + 1.1, 1.4, 0.28, 0.9, -0.3)
                     n_rock += 1
                 if int(z) % 18 < 9:
                     b.box_yaw(1, "lime", cx + 2.4, max(h_in, 0.2), z, 1.6, 0.28, 1.0, 0.2)
@@ -1089,11 +1100,11 @@ def shore_pass(b, z0, z1, mode, houses=()):
                     b.box_yaw(0, "lime" if k % 2 == 0 else "limed", px, hh - 0.08, z, 1.3, 0.4, 0.9, 0.5 * k)
                     px -= 3.2
                     n_rock += 1
-        if mode != "sand" and h_out < 0.4 and (rf is None or cx - 5 < rf[0] - rf[1] * 0.5):
-            every = 22 if mode == "huts" else 28
+        if mode != "sand" and h_out < 0.5 and (rf is None or cx - 5 < rf[0] - rf[1] * 0.5):
+            every = 16 if mode == "huts" else 18
             if int(z) % every < step:
-                top = 0.58 if mode == "huts" else 0.48
-                boulder(b, cx - 5.5, z, 0.3, 1.15 if mode == "huts" else 0.9, top)
+                top = 0.95 if mode == "huts" else 0.78
+                boulder(b, cx - 4.5, z, 0.4, 1.55 if mode == "huts" else 1.25, top)
                 n_rock += 1
         if mode == "huts" and int(z) % 16 < step:
             wx = cx + 32
@@ -1294,9 +1305,9 @@ def build():
         "painted timber huts and a thatch beach bar on the sand seaward of the sail rack"
     )
     entries = [
-        entry("nw_shore_houses", hx, hz, htris, 220, refs_h, hides),
-        entry("nw_shore_north", nx, nz, ntris, 340, refs_n),
-        entry("nw_shore_south", sx0, sz0, stris, 320, refs_s),
+        entry("nw_shore_houses", hx, hz, htris, 750, refs_h, hides),
+        entry("nw_shore_north", nx, nz, ntris, 1100, refs_n),
+        entry("nw_shore_south", sx0, sz0, stris, 1400, refs_s),
     ]
     append_manifest(entries)
     print("manifest appended", [e["id"] for e in entries])
