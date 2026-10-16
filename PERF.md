@@ -202,3 +202,31 @@ The hitch that showed up as ~3500 draws for a handful of frames is gone: cells a
 | alloc MB/frame | 0.98 | 0.93 | 1.00 | 0.98 |
 
 Gap (wall time from one animation callback to the next) was not recorded on the before run. After, gap p50 is 212 ms on low and 307 ms on med; that is SwiftShader present delay plus the pump, not a phone frame time. Phone soak (`tests/long-drive-soak.spec.js`, low) passes. The high project is skipped by the test.
+
+## Round 6 (r303 phone soak, street-sign atlases)
+
+Branch `cursor/geom-prewarm-flight-b91c` on r303. Low phone soak, Oranjestad through Baby Beach, 3 warmup loops + 2 measured. Growth is the median of the last measured loop minus the median of the first. Listener count stayed at 133.
+
+The reported renderer-geometry failure (38 against a limit of 31.5) did not show up on r303 with the missing-model skip only. That baseline passed in 7.5 min: heap 18.2 MB, geometries −2.5, scene geometries −2.5, scene objects +21.5, textures 0. Heap medians 394.9 MB then 413.1 MB.
+
+The deduped shader walk then reached street-sign atlases the stuck walk never uploaded. `disposeRegion` freed geometry and left each region's canvas atlas on the GPU, so the same soak failed textures at +7 (heap 18.1 MB and geometries +6 still inside their limits). `disposeRegion` now disposes the `signs` mesh atlas and `region.signTex`. Shared pole, fence, and hedge materials are left alone. `__awGone` stops a later `initTexture` from allocating that atlas again.
+
+After that dispose, the soak passed in 7.3 min:
+
+| | heap | geometries | scene geometries | scene objects | textures |
+|---|---|---|---|---|---|
+| before (skip only) | 18.2 MB | −2.5 | −2.5 | +21.5 | 0 |
+| walk, atlases kept | 18.1 MB | +6 | −12 | −9 | +7 |
+| after dispose | 18.7 MB | +36 | +24 | +64 | −3.5 |
+| limit | 24 MB | scene growth + 12 | 100 | 300 | 4 |
+
+After-dispose heap medians were 392.7 MB then 411.4 MB (19,578,064 bytes). Renderer geometries grew 36 against a limit of 36, because the live scene grew 24 and the allowance is that growth plus 12.
+
+Plane at full turbo and the motorcycle at 55 m/s were measured on the missing-model skip, same 21 km road, low, SwiftShader. Raw callback time. Gap p50 (plane 193 ms, motorcycle 186 ms) is the software present delay, not a phone frame time. CPU time outside GL stayed under 50 ms (plane max 27.4, motorcycle max 35.5).
+
+| | frames | p50 / p95 / p99 / max | >50 ms | upload / shader / both |
+|---|---|---|---|---|
+| plane, full turbo | 4050 | 8.6 / 17.1 / 210.9 / 612.1 | 151 | 145 / 4 / 2 |
+| motorcycle, 55 m/s | 5401 | 6.6 / 13.8 / 18.8 / 618.2 | 29 | 22 / 6 / 1 |
+
+Those long frames sit inside `renderer.render` (one `bufferData` or compile of 400–600 ms). Hiding heroes until compile, drawing every overview LOD into a 1×1 target, and slicing first-use buffer uploads were removed after they failed this soak (heap about 67 MB while the upload queue retained unloaded regions; geometries moved into the measured loops when heroes stayed hidden). A compile already running in the job pump still stalls the phone: one motorcycle pump tick was 493 ms of shader compile while the animation callback was 11 ms.
