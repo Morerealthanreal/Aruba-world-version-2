@@ -1,0 +1,611 @@
+{
+ "atlas": "textures/sn_mural_atlas.jpg",
+ "atlas_px": [
+  2048,
+  3180
+ ],
+ "note": "Original paintings. Public photos were visual reference only and are not embedded.",
+ "hide_heroes": [
+  {
+   "id": "sn_lionfish",
+   "x": 6518.5,
+   "z": 9318.0,
+   "why": "approximate lionfish panel sitting on the Prikichi wall"
+  },
+  {
+   "id": "sn_owl",
+   "x": 6376.3,
+   "z": 9392.1,
+   "why": "approximate owl about 80 m off the police-station Night Watcher"
+  },
+  {
+   "id": "sn_flamingo",
+   "x": 6628.5,
+   "z": 9493.0,
+   "why": "approximate flamingo off the Stuyvesantstraat coordinate"
+  },
+  {
+   "id": "sn_iguana",
+   "x": 6526.3,
+   "z": 9386.0,
+   "why": "approximate iguana overlapping the Mujer Azul block"
+  },
+  {
+   "id": "sn_alankar",
+   "x": 6572.8,
+   "z": 9435.5,
+   "why": "approximate Miss Alice panel at the Alankar centroid, off the street wall"
+  }
+ ],
+ "murals": [
+  {
+   "id": "night_watcher",
+   "name": "Night Watcher",
+   "artist": "Farid Rueda",
+   "year": 2016,
+   "address": "Bernhardstraat 144, west wall of Korps Politie Aruba",
+   "lat": 12.4357777,
+   "lng": -69.9113945,
+   "bld": 4074,
+   "bld_name": "Korps Politie Aruba - San Nicolaas",
+   "bld_h": 6.9,
+   "wall_i": 0,
+   "wall_len": 15.74,
+   "gps_dist_m": 1.06,
+   "center": [
+    6369.8,
+    9310.35
+   ],
+   "p0": [
+    6362.03,
+    9309.37
+   ],
+   "p1": [
+    6377.55,
+    9311.46
+   ],
+   "normal": [
+    -0.1334,
+    0.9911
+   ],
+   "width": 15.66,
+   "height": 6.85,
+   "uv": [
+    0.0,
+    0.779874,
+    0.78125,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13073 (lat 12.4357777, lng -69.9113945, Bernhardstraat 144)",
+    "Wikimedia Commons File:Mural police station San Nicolas Aruba .jpeg and File:Mural police station San Nicolas Aruba16 06 35 979000.jpeg (Caribiana, CC BY-SA 4.0, camera 12.43591, -69.91149)"
+   ]
+  },
+  {
+   "id": "lionfish",
+   "name": "Lion Fish",
+   "artist": "Dopie",
+   "year": 2017,
+   "address": "Caya Dick Cooper, south wall",
+   "lat": 12.4348797,
+   "lng": -69.9090145,
+   "bld": 11521,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 15.1,
+   "gps_dist_m": 0.7,
+   "center": [
+    6627.1,
+    9408.6
+   ],
+   "p0": [
+    6633.7,
+    9408.53
+   ],
+   "p1": [
+    6620.5,
+    9408.53
+   ],
+   "normal": [
+    -0.0,
+    -1.0
+   ],
+   "width": 13.2,
+   "height": 3.04,
+   "uv": [
+    0.381836,
+    0.131761,
+    0.801758,
+    0.194025
+   ],
+   "sources": [
+    "Street Art Cities marker 13093 (lat 12.4348797, lng -69.9090145, Caya Dick Cooper)",
+    "Wikimedia Commons File:Mural Lionfish Caya Dick Cooper.jpg (CC BY-SA 4.0, 12.435000, -69.909167)"
+   ]
+  },
+  {
+   "id": "turtles",
+   "name": "Save the Turtles",
+   "artist": "Ice One",
+   "year": 2017,
+   "address": "Stuyvesantstraat",
+   "lat": 12.4350338,
+   "lng": -69.9102934,
+   "bld": 11587,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 11.08,
+   "gps_dist_m": 13.53,
+   "center": [
+    6501.79,
+    9394.6
+   ],
+   "p0": [
+    6502.64,
+    9389.58
+   ],
+   "p1": [
+    6500.8,
+    9399.61
+   ],
+   "normal": [
+    -0.9836,
+    -0.1805
+   ],
+   "width": 10.2,
+   "height": 3.01,
+   "uv": [
+    0.0,
+    0.121698,
+    0.380859,
+    0.194025
+   ],
+   "sources": [
+    "Street Art Cities marker 13083 (lat 12.4350338, lng -69.9102934, Stuyvesantstraat)",
+    "Wikimedia Commons File:San Nicolas murals (Aruba) 23 00 09 183000.jpeg (Caribiana, CC BY-SA 4.0; described as Ice One, Stuyvesantstraat, 2017)"
+   ]
+  },
+  {
+   "id": "flamingos",
+   "name": "Flamingos",
+   "artist": "Graff Mapping and Richard Santana",
+   "year": 2016,
+   "address": "Stuyvesantstraat, the red street wall in front of the Trilax corner (the pin's own facade is buried behind this house)",
+   "lat": 12.4348557,
+   "lng": -69.9098535,
+   "bld": 11591,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.14,
+   "gps_dist_m": 12.73,
+   "center": [
+    6525.2,
+    9405.6
+   ],
+   "p0": [
+    6520.35,
+    9404.39
+   ],
+   "p1": [
+    6530.01,
+    9406.95
+   ],
+   "normal": [
+    -0.2564,
+    0.9666
+   ],
+   "width": 10.0,
+   "height": 3.35,
+   "uv": [
+    0.0,
+    0.394969,
+    0.78125,
+    0.563522
+   ],
+   "sources": [
+    "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only."
+   ]
+  },
+  {
+   "id": "iguana",
+   "name": "Iguana",
+   "artist": "Bordalo II",
+   "year": 2016,
+   "address": "Long street wall of the block the Stuyvesantstraat pin falls inside (the rendered facade on that side)",
+   "lat": 12.4346819,
+   "lng": -69.9099513,
+   "bld": 11592,
+   "bld_name": "",
+   "bld_h": 3.7,
+   "wall_i": 0,
+   "wall_len": 36.11,
+   "gps_dist_m": 13.35,
+   "center": [
+    6524.78,
+    9444.38
+   ],
+   "p0": [
+    6516.98,
+    9442.57
+   ],
+   "p1": [
+    6532.53,
+    9446.33
+   ],
+   "normal": [
+    -0.2354,
+    0.9719
+   ],
+   "width": 16.0,
+   "height": 3.3,
+   "uv": [
+    0.0,
+    0.058805,
+    0.46875,
+    0.121069
+   ],
+   "sources": [
+    "Street Art Cities marker 13085 (lat 12.4346819, lng -69.9099513, Stuyvesantstraat). Photo on that page used as visual reference only."
+   ]
+  },
+  {
+   "id": "prikichi",
+   "name": "Prikichi",
+   "artist": "Garrick Marchena",
+   "year": 2017,
+   "address": "Bargestraat / Crijnssenstraat corner, street wall",
+   "lat": 12.4356834,
+   "lng": -69.9099984,
+   "bld": 11563,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 15.01,
+   "gps_dist_m": 2.97,
+   "center": [
+    6520.9,
+    9317.41
+   ],
+   "p0": [
+    6517.32,
+    9317.05
+   ],
+   "p1": [
+    6524.47,
+    9317.91
+   ],
+   "normal": [
+    -0.1199,
+    0.9928
+   ],
+   "width": 7.2,
+   "height": 3.04,
+   "uv": [
+    0.539062,
+    0.208176,
+    0.841797,
+    0.290566
+   ],
+   "sources": [
+    "Street Art Cities marker 13080 (lat 12.4356834, lng -69.9099984, Bargestraat). Photo on that page used as visual reference only."
+   ]
+  },
+  {
+   "id": "pelican",
+   "name": "Pelican",
+   "artist": "Chemis",
+   "year": 2017,
+   "address": "Bargestraat, Customs block street wall",
+   "lat": 12.4357751,
+   "lng": -69.9101472,
+   "bld": 5014,
+   "bld_name": "Customs",
+   "bld_h": 3.4,
+   "wall_i": 5,
+   "wall_len": 12.29,
+   "gps_dist_m": 7.25,
+   "center": [
+    6500.83,
+    9316.55
+   ],
+   "p0": [
+    6504.51,
+    9316.93
+   ],
+   "p1": [
+    6497.16,
+    9316.03
+   ],
+   "normal": [
+    0.122,
+    -0.9925
+   ],
+   "width": 7.4,
+   "height": 3.05,
+   "uv": [
+    0.225586,
+    0.207547,
+    0.538086,
+    0.290566
+   ],
+   "sources": [
+    "Street Art Cities marker 13079 (lat 12.4357751, lng -69.9101472, Bargestraat). Photo on that page used as visual reference only."
+   ]
+  },
+  {
+   "id": "boss_return",
+   "name": "The Boss (blue iguana)",
+   "artist": "WD (Wild Drawing)",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, both street faces of La Aruba #2",
+   "lat": 12.4355315,
+   "lng": -69.9100037,
+   "bld": 4079,
+   "bld_name": "La Aruba #2",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 3.79,
+   "gps_dist_m": 16.26,
+   "center": [
+    6510.21,
+    9350.15
+   ],
+   "p0": [
+    6509.62,
+    9348.37
+   ],
+   "p1": [
+    6510.81,
+    9351.93
+   ],
+   "normal": [
+    -0.9487,
+    0.3162
+   ],
+   "width": 3.75,
+   "height": 3.12,
+   "uv": [
+    0.002052,
+    0.291195,
+    0.194651,
+    0.39434
+   ],
+   "sources": [
+    "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
+   ],
+   "base": "ground",
+   "lift": 0.1
+  },
+  {
+   "id": "boss",
+   "name": "The Boss (blue iguana)",
+   "artist": "WD (Wild Drawing)",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, both street faces of La Aruba #2",
+   "lat": 12.4355315,
+   "lng": -69.9100037,
+   "bld": 4079,
+   "bld_name": "La Aruba #2",
+   "bld_h": 3.4,
+   "wall_i": 1,
+   "wall_len": 15.7,
+   "gps_dist_m": 20.79,
+   "center": [
+    6516.26,
+    9357.61
+   ],
+   "p0": [
+    6510.83,
+    9351.97
+   ],
+   "p1": [
+    6521.7,
+    9363.24
+   ],
+   "normal": [
+    -0.7197,
+    0.6943
+   ],
+   "width": 15.66,
+   "height": 3.12,
+   "uv": [
+    0.194651,
+    0.291195,
+    0.997948,
+    0.39434
+   ],
+   "sources": [
+    "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
+   ],
+   "base": "ground",
+   "lift": 0.1,
+   "holes": [
+    [
+     4.87,
+     0.68,
+     6.91,
+     2.58
+    ],
+    [
+     12.72,
+     0.68,
+     14.76,
+     2.58
+    ]
+   ]
+  },
+  {
+   "id": "alice",
+   "name": "Miss Alice",
+   "artist": "Odeith",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 21, Alankar block",
+   "lat": 12.4344049,
+   "lng": -69.9093784,
+   "bld": 4083,
+   "bld_name": "Alankar II Fashion Clothing",
+   "bld_h": 3.4,
+   "wall_i": 1,
+   "wall_len": 15.37,
+   "gps_dist_m": 14.38,
+   "center": [
+    6574.87,
+    9455.64
+   ],
+   "p0": [
+    6568.53,
+    9454.75
+   ],
+   "p1": [
+    6581.19,
+    9456.67
+   ],
+   "normal": [
+    -0.1496,
+    0.9887
+   ],
+   "width": 12.8,
+   "height": 3.06,
+   "uv": [
+    0.469727,
+    0.059434,
+    0.870117,
+    0.121069
+   ],
+   "sources": [
+    "Street Art Cities marker 13092 (lat 12.4344049, lng -69.9093784, B. v/d Veen Zeppenfeldstraat 21). Photo on that page used as visual reference only."
+   ]
+  },
+  {
+   "id": "melting_pot",
+   "name": "Melting Pot",
+   "artist": "Armando Goedgedrag",
+   "year": 2022,
+   "address": "Bernhardstraat, low street wall beside Sam's, opposite the police-station block",
+   "lat": 12.436172,
+   "lng": -69.911256,
+   "bld": 11606,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 16.22,
+   "gps_dist_m": 16.79,
+   "center": [
+    6397.54,
+    9256.6
+   ],
+   "p0": [
+    6390.29,
+    9255.77
+   ],
+   "p1": [
+    6404.78,
+    9257.57
+   ],
+   "normal": [
+    -0.1233,
+    0.9924
+   ],
+   "width": 14.6,
+   "height": 3.05,
+   "uv": [
+    0.0,
+    0.000629,
+    0.427734,
+    0.058176
+   ],
+   "sources": [
+    "Wikimedia Commons File:San Nicolas Murals.jpeg (CC BY-SA 4.0). Description: Melting Pot by Armando Goedgedrag, Bernhardstraat opposite the police station. Camera 12.436172, -69.911256."
+   ]
+  },
+  {
+   "id": "mujer_azul",
+   "name": "Mujer Azul",
+   "artist": "Lina Arias",
+   "year": 2018,
+   "address": "Van Renselaerstraat 2, the Emporium face the street sees (the address wall is hidden behind Jewelenhuisje)",
+   "lat": 12.435077,
+   "lng": -69.9100802,
+   "bld": 4081,
+   "bld_name": "The Emporium",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.07,
+   "gps_dist_m": 4.99,
+   "center": [
+    6507.0,
+    9385.6
+   ],
+   "p0": [
+    6503.67,
+    9381.88
+   ],
+   "p1": [
+    6510.22,
+    9389.42
+   ],
+   "normal": [
+    -0.755,
+    0.6557
+   ],
+   "width": 9.99,
+   "height": 3.34,
+   "uv": [
+    0.0,
+    0.564151,
+    1.0,
+    0.779245
+   ],
+   "sources": [
+    "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
+    "Wikimedia Commons File:Mural art in and around Mainstreet, San Nicolas Aruba 07.jpg (CC0, same headdress portrait)"
+   ]
+  },
+  {
+   "id": "nothing_to_declare",
+   "name": "Nothing to Declare",
+   "artist": "Leon Keer",
+   "year": 2016,
+   "address": "B. v/d Veen Zeppenfeldstraat, beside the Uncle Louis block",
+   "lat": 12.4358289,
+   "lng": -69.9103532,
+   "bld": 11550,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.85,
+   "gps_dist_m": 7.27,
+   "center": [
+    6484.99,
+    9310.89
+   ],
+   "p0": [
+    6485.13,
+    9308.59
+   ],
+   "p1": [
+    6484.71,
+    9313.17
+   ],
+   "normal": [
+    -0.9957,
+    -0.0922
+   ],
+   "width": 4.6,
+   "height": 3.05,
+   "uv": [
+    0.0,
+    0.194654,
+    0.224609,
+    0.290566
+   ],
+   "sources": [
+    "Street Art Cities marker 13075 (lat 12.4358289, lng -69.9103532)",
+    "Wikimedia Commons File:Mural Harina Pan.jpg (CC BY-SA 4.0, camera 12.435833, -69.910278; described as Leon Keer 2016 on B. v/d Veen Zeppenfeldstraat next to Uncle Louis Store)"
+   ]
+  }
+ ]
+}
