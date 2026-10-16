@@ -159,17 +159,13 @@ export class MobilePerf {
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0;
-    const defer: Tex[] = [];
-    let guard = 0;
-    while (this.texQ.length && n < max && guard++ < 24 && performance.now() - t0 < 2) {
+    while (this.texQ.length && n < max && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
-      if (t.__awGone) continue;
-      if (t.version === 0 || !img || img.complete === false) { defer.push(t); continue; }
+      if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }
       if (r.properties.get(t).__version === t.version) continue;
-      try { r.initTexture(t); } catch { defer.push(t); continue; }
+      try { r.initTexture(t); } catch { /* image not ready */ }
       n++; this.stats.uploads++;
     }
-    if (defer.length) this.texQ.push(...defer);
   }
   private seed() {
     // light set rarely changes (day/night toggles). A full walk every frame was its own hitch.
