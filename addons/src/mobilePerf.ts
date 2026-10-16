@@ -15,7 +15,7 @@ type R = {
   compileAsync?: (s: unknown, c: unknown, t?: unknown) => Promise<unknown>;
   debug?: { checkShaderErrors: boolean };
 };
-type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown };
+type Tex = { isTexture?: boolean; isCubeTexture?: boolean; version: number; image: unknown; __awGone?: number };
 const TEX = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "specularMap", "clearcoatNormalMap"];
 type Mat = {
   id: number; version: number; type: string; transparent?: boolean; side?: number; visible?: boolean;
@@ -45,13 +45,41 @@ export class MobilePerf {
   private syncQ: Mat[] = [];
   private queued = new WeakSet<object>();
   private syncTries = new WeakMap<object, number>();
-  private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
+  private holds: { fn: () => void; mats: Mat[]; tries: number; wait?: O }[] = [];
+  /** Meshes compiled outside the animation callback (hero GLBs). beforeRender does not drain this. */
+  private later: O[] = [];
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
-    const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
+    const A = g.real as unknown as { update?: (...a: number[]) => unknown; hero?: { group?: O } } | null;
     if (A && A.update) {
       const orig = A.update.bind(A);
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
+    }
+    this.hookHero(A?.hero?.group);
+  }
+  /**
+   * Palm Beach and Oranjestad heroes arrive as a GLB full of new materials. Compiling
+   * them on the frame they are added is the first-visit hitch. Keep the meshes off the
+   * camera until the job pump has compiled them, between frames.
+   */
+  private hookHero(group?: O) {
+    if (!group || !this.incremental || !group.add) return;
+    const add = group.add.bind(group);
+    group.add = ((...objs: O[]) => {
+      for (const obj of objs) this.deferHero(obj);
+      return add(...objs);
+    }) as O["add"];
+  }
+  private deferHero(obj: O) {
+    const meshes: O[] = [];
+    obj.traverse((o) => { const m = o as O; if (m.isMesh) meshes.push(m); });
+    if (!meshes.length) return;
+    let left = meshes.length;
+    const show = () => { if (--left > 0) return; for (const m of meshes) m.layers.enable(0); };
+    for (const m of meshes) {
+      m.layers.disable(0);
+      this.later.push(m);
+      this.holds.push({ fn: show, mats: matsOf(m), tries: 0, wait: m });
     }
   }
   /** Shadow cadence, a slice of the warm-up walk, and at most two compiles. Runs at the start of A's update, before the render. */
@@ -78,6 +106,7 @@ export class MobilePerf {
   /** Called at the end of the tile-job pump, after new meshes exist and before the next frame. */
   afterJobs() {
     if (!this.incremental) return;
+    if (this.later.length) { this.pend.push(...this.later); this.later.length = 0; }
     this.seed();
     this.walk(1.2);
     this.pump(2);
@@ -104,7 +133,7 @@ export class MobilePerf {
     if (!pending.length) { onReady?.(); return; }
     if (onReady) this.holds.push({ fn: onReady, mats: pending, tries: 0 });
   }
-  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0); }
+  pending() { return this.pend.length + this.later.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0); }
   private full(dt: number) {
     if ((this.t -= dt) > 0) return;
     const r = this.g.renderer as unknown as R;
@@ -116,13 +145,18 @@ export class MobilePerf {
     const r = this.g.renderer as unknown as { initTexture(t: Tex): void; properties: { get(t: Tex): { __version?: number } } };
     const t0 = performance.now();
     let n = 0;
-    while (this.texQ.length && n < max && performance.now() - t0 < 2) {
+    const defer: Tex[] = [];
+    let guard = 0;
+    while (this.texQ.length && n < max && guard++ < 24 && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
-      if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }
+      if (t.__awGone) continue;
+      // Not ready yet: keep it, but let a later texture in this slice upload.
+      if (t.version === 0 || !img || img.complete === false) { defer.push(t); continue; }
       if (r.properties.get(t).__version === t.version) continue;
-      try { r.initTexture(t); } catch { /* image not ready */ }
+      try { r.initTexture(t); } catch { defer.push(t); continue; }
       n++; this.stats.uploads++;
     }
+    if (defer.length) this.texQ.push(...defer);
   }
   private seed() {
     // light set rarely changes (day/night toggles). A full walk every frame was its own hitch.
@@ -191,6 +225,7 @@ export class MobilePerf {
       const reps = [o];
       const root = { traverse: (cb: (o: O) => void) => { for (const x of reps) cb(x); }, traverseVisible: () => {} };
       this.compileObject(o, r);
+      (o as O & { __awCompiled?: number }).__awCompiled = 1;
       if (o.castShadow && o.isMesh && o.geometry) this.warmDepth(o, r);
       for (const m of matsOf(o)) if (!this.ready(m)) this.queue(m);
       n++;
@@ -244,6 +279,10 @@ export class MobilePerf {
     if (!this.holds.length) return;
     const keep: typeof this.holds = [];
     for (const h of this.holds) {
+      if (h.wait && !(h.wait as O & { __awCompiled?: number }).__awCompiled) {
+        if (++h.tries < 90) keep.push(h); else try { h.fn(); } catch { /* mesh already gone */ }
+        continue;
+      }
       let wait = false;
       if (props) for (const m of h.mats) {
         try {
