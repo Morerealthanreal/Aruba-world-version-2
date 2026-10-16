@@ -192,10 +192,13 @@ async function uploadSceneGeometries(page) {
       }
       meshes.push(object);
     });
-    if (!blank || !meshes.length) return;
+    const seen = (window.__awUploadedGeos ||= new WeakSet());
+    const fresh = meshes.filter((mesh) => mesh.geometry && !seen.has(mesh.geometry));
+    if (!blank || !fresh.length) return;
     const scratch = new game.scene.constructor();
     const proxies = [];
-    for (const mesh of meshes) {
+    for (const mesh of fresh) {
+      seen.add(mesh.geometry);
       const proxy = new mesh.constructor(mesh.geometry, blank);
       proxy.frustumCulled = false;
       proxy.matrixAutoUpdate = false;
@@ -303,16 +306,6 @@ test("long phone drive keeps runtime resources flat", async ({
         const stop = ROUTE[leg];
         distances.push(await driveLeg(page, stop, leg));
         await page.waitForTimeout(SETTLE_MS);
-        // Let the one-per-frame texture warmup finish so the sample is not
-        // mid-queue. Cap the wait; a queue that never drains is itself a leak
-        // and should still fail the texture budget.
-        await page
-          .waitForFunction(
-            () => !window.__aw?.mperf || window.__aw.mperf.pending() === 0,
-            undefined,
-            { timeout: 1500 },
-          )
-          .catch(() => {});
         await uploadSceneGeometries(page);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
