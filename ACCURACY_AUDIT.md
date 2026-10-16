@@ -19,7 +19,11 @@ References are visual guides only. Nothing below is a pasted photo.
 2. **Santa Cruz parish church** and **Savaneta church** are not in the landmark list. The Santa Cruz fast-food strip and Savaneta shops exist; the churches do not.
 3. **Seroe Colorado Community Church** is a pin with no building.
 4. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
-5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes. The Museum of Industry water tower shape is unverified. Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
+5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
+
+## Water tower — done in this change
+
+**Museum of Industry, San Nicolas** (OSM 7004), same origin and node names. From Bernhardstraat the old hero was a low white hall. It is now the yellow cylinder from the Commons photo: tan ribs, dark cap, a small clock on the north face, a blue glass drum on the street side, and a low yellow wing with `MUSEUM OF INDUSTRY`. The shaft is about 36 m so it reads against the one-storey town. The mural set was not edited.
 6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
 7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
 8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
