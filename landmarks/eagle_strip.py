@@ -11,7 +11,7 @@ Photos and aerials are reference only. Geometry and textures are drawn here.
 Scope is the coast from just north of Oranjestad to just south of the Palm
 Beach high-rise strip. Nothing north of lat 12.561 is touched.
 """
-import json, math, os, struct, zlib
+import json, math, os, struct, sys, zlib
 from collections import defaultdict
 from PIL import Image, ImageDraw, ImageFont
 
@@ -1663,5 +1663,561 @@ def main():
     open(MANIFEST, "w").write(json.dumps(manifest, indent=1) + "\n")
     print("manifest entries", len(manifest))
 
+# ---------------------------------------------------------------- boulevard
+# Additive only. Does not rebuild eb_north / eb_mid / eb_south or any resort.
+# The asphalt shader already wears a class-3 dash and edge line into JEI;
+# these meshes sit a few centimetres up so the paint reads at phone distance.
+
+def blvd_chunk(z):
+    if z < -3300:
+        return "eb_blvd_north"
+    if z < -2100:
+        return "eb_blvd_mid"
+    return "eb_blvd_south"
+
+def prop_height(x, z, road_h):
+    """Ground under a verge prop. A 4 m cross misses roofs without sinking
+    the trunk into the tide line the way the wide ribbon cross does."""
+    h = height_at(x, z)
+    for dx, dz in ((4, 0), (-4, 0), (0, 4), (0, -4)):
+        h = min(h, height_at(x + dx, z + dz))
+    if h < 0.25 or h > road_h + 2.6:
+        return None
+    return h
+
+def sample_jei(segs):
+    """Irausquin, south to north, one sample every 6 m inside the strip."""
+    samples = []
+    prev = None
+    z = -1000.0
+    while z > -4500.0:
+        cands = []
+        for x1, za, x2, zb, w in segs:
+            dz = zb - za
+            if abs(dz) < 0.8:
+                continue
+            t = (z - za) / dz
+            if not (0 <= t <= 1):
+                continue
+            x = x1 + (x2 - x1) * t
+            if not in_strip(x, z):
+                continue
+            cands.append((x, w if w >= 6.0 else 7.6))
+        if cands:
+            if prev is None:
+                x, w = cands[0]
+            else:
+                near = [c for c in cands if abs(c[0] - prev) < 28]
+                pick = near or cands
+                x, w = min(pick, key=lambda c: abs(c[0] - prev))
+                if abs(x - prev) > 28:
+                    prev = None
+            if prev is None or abs(x - prev) <= 28:
+                samples.append((x, z, w))
+                prev = x
+        z -= 6.0
+    out = []
+    for i, (x, z, w) in enumerate(samples):
+        if 0 < i < len(samples) - 1:
+            dx = samples[i + 1][0] - samples[i - 1][0]
+            dz = samples[i + 1][1] - samples[i - 1][1]
+        elif i == 0 and len(samples) > 1:
+            dx = samples[1][0] - x
+            dz = samples[1][1] - z
+        else:
+            dx = x - samples[i - 1][0]
+            dz = z - samples[i - 1][1]
+        L = math.hypot(dx, dz) or 1
+        dx, dz = dx / L, dz / L
+        a, b = (-dz, dx), (dz, -dx)
+        wx, wz = a if a[0] <= b[0] else b
+        out.append({
+            "x": x, "z": z, "dx": dx, "dz": dz, "wx": wx, "wz": wz,
+            "w": w, "h": height_at(x, z), "chunk": blvd_chunk(z),
+        })
+    return out
+
+def build_palm(lod):
+    trunk, leaf = M(), M()
+    pole(trunk, 5.8 if lod == 0 else 5.4, 0.15, 5 if lod == 0 else 4)
+    n = 6 if lod == 0 else 3
+    for i in range(n):
+        ang = i / n * math.tau + (0.25 if lod else 0)
+        c, s = math.cos(ang), math.sin(ang)
+        w = 0.26
+        y = 5.35
+        length = 2.5
+        a = leaf.v(c * 0.2 + -s * w, y, s * 0.2 + c * w, 0, 1, 0, 0, 0)
+        b = leaf.v(c * 0.2 - -s * w, y, s * 0.2 - c * w, 0, 1, 0, 1, 0)
+        d = leaf.v(c * length + -s * w * 0.25, y - 1.25, s * length + c * w * 0.25, 0, 1, 0, 0, 1)
+        e = leaf.v(c * length - -s * w * 0.25, y - 1.25, s * length - c * w * 0.25, 0, 1, 0, 1, 1)
+        leaf.quad(a, b, e, d)
+    return trunk, leaf
+
+def build_grape(lod):
+    m = M()
+    ico(m, 0, 0.62, 0, 1.2, 0.48, 1.15)
+    if lod == 0:
+        ico(m, 0.55, 0.4, 0.25, 0.72, 0.32, 0.68)
+    return m
+
+def build_shelter():
+    posts, roof = M(), M()
+    for x in (-0.55, 0.55):
+        for z in (-1.25, 1.25):
+            solid_box(posts, x - 0.05, 0, z - 0.05, x + 0.05, 2.28, z + 0.05)
+    solid_box(posts, -1.05, 0.42, 0.28, 1.05, 0.52, 0.62)
+    solid_box(roof, -1.5, 2.28, -0.85, 1.5, 2.4, 0.9)
+    return posts, roof
+
+def build_bus_board():
+    """Board on the road face of the shelter. Local -X points at the road
+    when yaw is 0 and the stop sits on the inland side of a northbound road."""
+    m = M()
+    w, y0 = 0.72, 1.92
+    a = m.v(-0.64, y0, -w / 2, -1, 0, 0, 0, 0)
+    b = m.v(-0.64, y0, w / 2, -1, 0, 0, 1, 0)
+    c = m.v(-0.64, y0 + 0.24, w / 2, -1, 0, 0, 1, 1)
+    d = m.v(-0.64, y0 + 0.24, -w / 2, -1, 0, 0, 0, 1)
+    m.quad(a, b, c, d)
+    return m
+
+def build_pavilion():
+    posts, roof = M(), M()
+    s = 1.7
+    for x in (-s, s):
+        for z in (-s, s):
+            solid_box(posts, x - 0.07, 0, z - 0.07, x + 0.07, 2.45, z + 0.07)
+    e = 2.35
+    y = 2.42
+    peak = roof.v(0, 3.15, 0, 0, 1, 0, 0.5, 1)
+    ring = [(-e, y, -e), (e, y, -e), (e, y, e), (-e, y, e)]
+    ids = [roof.v(x, yy, z, 0, 0.7, 0, 0, 0) for x, yy, z in ring]
+    for i in range(4):
+        roof.tri(peak, ids[i], ids[(i + 1) % 4])
+        # soffit, so the underside isn't a missing face from the sand
+        roof.tri(ids[(i + 1) % 4], ids[i], roof.v(0, 2.42, 0, 0, -1, 0, 0.5, 0))
+    return posts, roof
+
+def build_shower():
+    pad, metal = M(), M()
+    solid_box(pad, -0.4, 0, -0.4, 0.4, 0.06, 0.4)
+    pole(metal, 2.15, 0.045, 5)
+    solid_box(metal, -0.04, 2.05, -0.04, 0.42, 2.14, 0.04)
+    solid_box(metal, 0.32, 1.92, -0.06, 0.42, 2.08, 0.06)
+    return pad, metal
+
+def build_turtle_sign():
+    post, board = M(), M()
+    pole(post, 1.25, 0.045, 4)
+    # Local +X faces the road (the reader). u=0 is the reader's left.
+    w, y0 = 0.96, 1.05
+    a = board.v(0.02, y0, w / 2, 1, 0, 0, 0, 0)
+    b = board.v(0.02, y0, -w / 2, 1, 0, 0, 1, 0)
+    c = board.v(0.02, y0 + 0.28, -w / 2, 1, 0, 0, 1, 1)
+    d = board.v(0.02, y0 + 0.28, w / 2, 1, 0, 0, 0, 1)
+    board.quad(a, b, c, d)
+    return post, board
+
+def sand_distance(x, z):
+    """Metres west of the centreline before the surface drops onto open sand."""
+    for d in range(8, 96, 4):
+        if height_at(x - d, z) < 1.25:
+            return d
+    return None
+
+def stall_stripes(mesh, poly, ox, oz, lift=0.16):
+    if len(poly) < 4:
+        return 0
+    cx, cz = centroid(poly)
+    sxx = szz = sxz = 0.0
+    for x, z in poly:
+        dx, dz = x - cx, z - cz
+        sxx += dx * dx
+        szz += dz * dz
+        sxz += dx * dz
+    ang = 0.5 * math.atan2(2 * sxz, sxx - szz)
+    ux, uz = math.cos(ang), math.sin(ang)
+    vx, vz = -uz, ux
+    pu = [(x - cx) * ux + (z - cz) * uz for x, z in poly]
+    pv = [(x - cx) * vx + (z - cz) * vz for x, z in poly]
+    umin, umax = min(pu), max(pu)
+    vmin, vmax = min(pv), max(pv)
+    if umax - umin < vmax - vmin:
+        ux, uz, vx, vz = vx, vz, ux, uz
+        umin, umax, vmin, vmax = vmin, vmax, umin, umax
+    length, depth = umax - umin, vmax - vmin
+    if length < 8 or depth < 3.5:
+        return 0
+    h = min(ground_height(x, z) for x, z in poly)
+    if h > 12 or h < 0.2:
+        return 0
+    v0 = vmin + depth * 0.14
+    v1 = vmax - depth * 0.14
+    n = max(2, min(int(length // 2.8), 12))
+    for i in range(n):
+        u = umin + length * (i + 1) / (n + 1)
+        x1 = cx + ux * u + vx * v0
+        z1 = cz + uz * u + vz * v0
+        x2 = cx + ux * u + vx * v1
+        z2 = cz + uz * u + vz * v1
+        ribbon(mesh, [(x1, z1), (x2, z2)], 0.1, lift, ox, oz, [h, h])
+    return n
+
+def curb_pad(sample, side, along, deep):
+    """Rectangle off the asphalt. side +1 is seaward, -1 is inland."""
+    half_w = sample["w"] * 0.5
+    off = side * (half_w + 3.6 + deep * 0.5)
+    cx = sample["x"] + sample["wx"] * off
+    cz = sample["z"] + sample["wz"] * off
+    ax, az = sample["dx"] * along * 0.5, sample["dz"] * along * 0.5
+    px, pz = sample["wx"] * side * deep * 0.5, sample["wz"] * side * deep * 0.5
+    poly = [
+        (cx - ax - px, cz - az - pz),
+        (cx + ax - px, cz + az - pz),
+        (cx + ax + px, cz + az + pz),
+        (cx - ax + px, cz - az + pz),
+    ]
+    return ensure_ccw(poly)
+
+def face_yaw(dx, dz):
+    """Yaw that maps local +X onto the XZ direction (dx, dz)."""
+    return math.atan2(-dz, dx)
+
+def blvd():
+    segs = jei_points()
+    samples = sample_jei(segs)
+    print("blvd samples", len(samples))
+    if len(samples) < 20:
+        print("blvd: not enough centreline")
+        return
+    manifest = json.loads(open(MANIFEST).read())
+    blocked = []
+    for e in manifest:
+        i = e.get("id") or ""
+        if e.get("x") is None:
+            continue
+        if i.startswith("eb_fofoti") or i == "eaglebeach_fx":
+            blocked.append((e["x"], e["z"]))
+    parking, _paths = osm_ground(segs)
+    parking = [p for p in parking if in_strip(centroid(p)[0], centroid(p)[1])]
+
+    bags = defaultdict(lambda: dict(
+        samples=[], palms=[], grapes=[], shelters=[], boards=[],
+        pavilions=[], showers=[], turtles=[], stalls_polys=[], pads=[],
+    ))
+    for s in samples:
+        bags[s["chunk"]]["samples"].append(s)
+
+    def too_close(x, z, extra=()):
+        return any(hypot(x - bx, z - bz) < 12 for bx, bz in blocked + list(extra))
+
+    def on_lot(x, z):
+        return any(pip(x, z, poly) for poly in parking)
+
+    # palms and sea grape along the verge
+    acc = 0.0
+    next_palm_w, next_palm_e, next_grape = 0.0, 14.0, 6.0
+    for i, s in enumerate(samples):
+        if i:
+            acc += hypot(s["x"] - samples[i - 1]["x"], s["z"] - samples[i - 1]["z"])
+        bag = bags[s["chunk"]]
+        if acc >= next_palm_w:
+            next_palm_w = acc + 28.0
+            off = s["w"] * 0.5 + 10.0
+            x, z = s["x"] + s["wx"] * off, s["z"] + s["wz"] * off
+            h = prop_height(x, z, s["h"])
+            if h is not None and in_strip(x, z) and not too_close(x, z) and not on_lot(x, z):
+                yaw = ((hash((round(x), round(z))) % 50) - 25) / 40
+                sc = 0.86 + (abs(hash((round(z), 3)) ) % 30) / 100
+                bag["palms"].append((x, z, h, yaw, sc))
+        if acc >= next_palm_e:
+            next_palm_e = acc + 44.0
+            off = -(s["w"] * 0.5 + 6.5)
+            x, z = s["x"] + s["wx"] * off, s["z"] + s["wz"] * off
+            h = prop_height(x, z, s["h"])
+            if h is not None and in_strip(x, z) and not too_close(x, z) and not on_lot(x, z):
+                yaw = ((hash((round(x * 2), round(z))) % 40) - 20) / 35
+                bag["palms"].append((x, z, h, yaw, 0.9))
+        if acc >= next_grape:
+            next_grape = acc + 22.0
+            off = s["w"] * 0.5 + 7.5
+            x, z = s["x"] + s["wx"] * off, s["z"] + s["wz"] * off
+            h = prop_height(x, z, s["h"])
+            if h is not None and in_strip(x, z) and not on_lot(x, z):
+                sc = 0.8 + (abs(hash((round(x), round(z * 2)))) % 25) / 80
+                bag["grapes"].append((x, z, h, (hash(round(z)) % 20) / 10, sc))
+
+    # bus shelters on the inland sidewalk, at the public stretches
+    for z_stop in (-1580, -2140, -2560, -3080, -3520, -3868):
+        s = min(samples, key=lambda p: abs(p["z"] - z_stop))
+        if abs(s["z"] - z_stop) > 40:
+            continue
+        off = -(s["w"] * 0.5 + 3.8)
+        x, z = s["x"] + s["wx"] * off, s["z"] + s["wz"] * off
+        h = prop_height(x, z, s["h"])
+        if h is None or on_lot(x, z):
+            continue
+        # local -X faces the road, which is the seaward direction from an inland stop
+        yaw = face_yaw(s["wx"], s["wz"]) + math.pi
+        bags[s["chunk"]]["shelters"].append((x, z, h, yaw, 1.0))
+
+    # public pavilions and showers on the open sand
+    # (z, how far back from the sand line toward the road)
+    for z_p, back, n_pav, n_sh in (
+        (-3896, 16, 3, 2),   # Eagle Beach access, just inland of the fofoti
+        (-3188, 14, 1, 1),   # open gap south of La Cabana, toward Manchebo
+        (-1664, 14, 1, 1),   # Druif
+    ):
+        s = min(samples, key=lambda p: abs(p["z"] - z_p))
+        if sand_distance(s["x"], s["z"]) is None:
+            print("  no sand", z_p)
+            continue
+        placed = []
+        for k in range(n_pav):
+            shift = (k - (n_pav - 1) / 2.0) * 16.0
+            ss = min(samples, key=lambda p: abs(p["z"] - (z_p + shift)))
+            d = sand_distance(ss["x"], ss["z"])
+            if not d:
+                continue
+            # sand_distance walks due west, which is the shoreline on this coast
+            x = ss["x"] - (d - back)
+            z = ss["z"]
+            h = prop_height(x, z, ss["h"])
+            if h is None or too_close(x, z):
+                print("  pavilion skipped", round(x), round(z), h)
+                continue
+            yaw = face_yaw(ss["dx"], ss["dz"])
+            bags[ss["chunk"]]["pavilions"].append((x, z, h, yaw, 1.0))
+            placed.append((x, z, ss))
+        for k in range(n_sh):
+            if not placed:
+                break
+            x, z, ss = placed[min(k, len(placed) - 1)]
+            hx = x + 4.2
+            hz = z + (4 if k else -4)
+            h = prop_height(hx, hz, ss["h"])
+            if h is None:
+                continue
+            bags[ss["chunk"]]["showers"].append((hx, hz, h, 0.0, 1.0))
+        print(f"  beach z {z_p}: pavilions {len(placed)}")
+
+    # turtle boards on the dry sand, facing the boulevard
+    acc = 0.0
+    next_sign = 80.0
+    for i, s in enumerate(samples):
+        if i:
+            acc += hypot(s["x"] - samples[i - 1]["x"], s["z"] - samples[i - 1]["z"])
+        if acc < next_sign:
+            continue
+        dist = sand_distance(s["x"], s["z"])
+        if not dist or not (20 <= dist <= 78):
+            continue
+        x = s["x"] - (dist - 10)
+        z = s["z"]
+        h = prop_height(x, z, s["h"])
+        if h is None or too_close(x, z):
+            continue
+        # local +X toward the road (opposite of seaward)
+        yaw = face_yaw(-s["wx"], -s["wz"])
+        bags[s["chunk"]]["turtles"].append((x, z, h, yaw, 1.0))
+        next_sign = acc + 220.0
+
+    # stall paint on the lots the kits already pave, plus a curb pad where
+    # the public access has no OSM lot against the boulevard
+    for poly in parking:
+        cz = centroid(poly)[1]
+        bags[blvd_chunk(cz)]["stalls_polys"].append(poly)
+    for z_pad, side in ((-3848, -1), (-2420, -1), (-1588, -1)):
+        s = min(samples, key=lambda p: abs(p["z"] - z_pad))
+        poly = curb_pad(s, side, 18.0, 9.0)
+        ccx, ccz = centroid(poly)
+        if any(hypot(ccx - centroid(p)[0], ccz - centroid(p)[1]) < 26 for p in parking):
+            print("  pad skipped, lot nearby", round(ccx), round(ccz))
+            continue
+        if any(pip(x, z, q) for x, z in poly for q in parking):
+            print("  pad overlaps lot", round(ccx), round(ccz))
+            continue
+        if prop_height(ccx, ccz, s["h"]) is None:
+            print("  pad height skipped", round(ccx), round(ccz))
+            continue
+        bags[s["chunk"]]["pads"].append(poly)
+        print("  pad", round(ccx), round(ccz))
+
+    bus_png = sign_png("BUS", (252, 196, 32), (24, 24, 22))
+    turtle_png = sign_png("TURTLE NESTING", (232, 186, 36), (36, 36, 28))
+
+    def inst(g, mesh_i, items, ox, oz):
+        if not items:
+            return None
+        tr, ro, sc = [], [], []
+        for x, z, h, yaw, s in items:
+            tr += [x - ox, h - height_at(ox, oz), z - oz]
+            ro += list(yaw_quat(yaw))
+            sc += [s, s, s]
+        return g.add_inst(mesh_i, tr, ro, sc)
+
+    for name, bag in bags.items():
+        pts = bag["samples"]
+        if len(pts) < 4:
+            continue
+        ox = sum(p["x"] for p in pts) / len(pts)
+        oz = sum(p["z"] for p in pts) / len(pts)
+        g = G()
+        bark_m = g.color_mat("bark", (98, 74, 48))
+        leaf_m = g.color_mat("palm", (42, 108, 56))
+        grape_m = g.color_mat("grape", (96, 118, 90))
+        post_m = g.color_mat("post", (138, 140, 142))
+        roof_m = g.color_mat("roof", (32, 102, 168))
+        wood_m = g.color_mat("wood", (142, 108, 70))
+        canvas_m = g.color_mat("canvas", (232, 226, 208))
+        metal_m = g.color_mat("metal", (170, 174, 176))
+        pad_m = g.color_mat("spad", (176, 170, 156))
+        line_m = g.color_mat("line", (242, 242, 236))
+        bike_m = g.color_mat("bike", (186, 58, 46))
+        lot_m = g.color_mat("lot", (168, 166, 160), 0.9)
+        stall_m = g.color_mat("stalls", (236, 234, 228))
+        bus_m = g.tex_mat("bus", bus_png, False)
+        turt_m = g.tex_mat("turtle", turtle_png, False)
+
+        nodes_hi, nodes_lo = [], []
+        for lod, bucket in ((0, nodes_hi), (1, nodes_lo)):
+            trunk, frond = build_palm(lod)
+            tm = g.add_mesh(f"{name}_ptr{lod}", [(trunk.p, trunk.n, trunk.u, trunk.i, bark_m)])
+            fm = g.add_mesh(f"{name}_pfr{lod}", [(frond.p, frond.n, frond.u, frond.i, leaf_m)])
+            grape = build_grape(lod)
+            gm = g.add_mesh(f"{name}_grp{lod}", [(grape.p, grape.n, grape.u, grape.i, grape_m)])
+            sp, sr = build_shelter()
+            sm = g.add_mesh(f"{name}_sht{lod}", [(sp.p, sp.n, sp.u, sp.i, post_m)])
+            rm = g.add_mesh(f"{name}_srf{lod}", [(sr.p, sr.n, sr.u, sr.i, roof_m)])
+            pp, pr = build_pavilion()
+            pm = g.add_mesh(f"{name}_pvp{lod}", [(pp.p, pp.n, pp.u, pp.i, wood_m)])
+            qm = g.add_mesh(f"{name}_pvr{lod}", [(pr.p, pr.n, pr.u, pr.i, canvas_m)])
+            for mesh_i, items in (
+                (tm, bag["palms"]), (fm, bag["palms"]), (gm, bag["grapes"]),
+                (sm, bag["shelters"]), (rm, bag["shelters"]),
+                (pm, bag["pavilions"]), (qm, bag["pavilions"]),
+            ):
+                n = inst(g, mesh_i, items, ox, oz)
+                if n is not None:
+                    bucket.append(n)
+            if lod == 0:
+                board = build_bus_board()
+                bm = g.add_mesh(name + "_bus", [(board.p, board.n, board.u, board.i, bus_m)])
+                shpad, shmet = build_shower()
+                hm = g.add_mesh(name + "_shw", [(shpad.p, shpad.n, shpad.u, shpad.i, pad_m)])
+                mm = g.add_mesh(name + "_shm", [(shmet.p, shmet.n, shmet.u, shmet.i, metal_m)])
+                tpost, tboard = build_turtle_sign()
+                tpm = g.add_mesh(name + "_tpo", [(tpost.p, tpost.n, tpost.u, tpost.i, wood_m)])
+                tbm = g.add_mesh(name + "_tbo", [(tboard.p, tboard.n, tboard.u, tboard.i, turt_m)])
+                for mesh_i, items in (
+                    (bm, bag["shelters"]), (hm, bag["showers"]), (mm, bag["showers"]),
+                    (tpm, bag["turtles"]), (tbm, bag["turtles"]),
+                ):
+                    n = inst(g, mesh_i, items, ox, oz)
+                    if n is not None:
+                        bucket.append(n)
+
+        lines, dashes, bike = M(), M(), M()
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+            if hypot(b["x"] - a["x"], b["z"] - a["z"]) > 18:
+                continue
+            for side in (1, -1):
+                ribbon(lines, [
+                    (a["x"] + a["wx"] * side * (a["w"] * 0.5 - 0.5), a["z"] + a["wz"] * side * (a["w"] * 0.5 - 0.5)),
+                    (b["x"] + b["wx"] * side * (b["w"] * 0.5 - 0.5), b["z"] + b["wz"] * side * (b["w"] * 0.5 - 0.5)),
+                ], 0.12, 0.16, ox, oz, [a["h"], b["h"]])
+            ribbon(bike, [
+                (a["x"] + a["wx"] * (a["w"] * 0.5 + 4.8), a["z"] + a["wz"] * (a["w"] * 0.5 + 4.8)),
+                (b["x"] + b["wx"] * (b["w"] * 0.5 + 4.8), b["z"] + b["wz"] * (b["w"] * 0.5 + 4.8)),
+            ], 1.6, 0.11, ox, oz, [a["h"], b["h"]])
+        # dashed centre: 3 m paint, 6 m gap, measured along the samples
+        dist = 0.0
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+            step = hypot(b["x"] - a["x"], b["z"] - a["z"])
+            if step > 18:
+                dist = 0.0
+                continue
+            if (dist % 9.0) < 3.0:
+                ribbon(dashes, [(a["x"], a["z"]), (b["x"], b["z"])], 0.12, 0.17, ox, oz, [a["h"], b["h"]])
+            dist += step
+
+        stalls = M()
+        lots = M()
+        nstall = 0
+        for poly in bag["stalls_polys"]:
+            nstall += stall_stripes(stalls, poly, ox, oz)
+        for poly in bag["pads"]:
+            fan(lots, poly, 0.07, ox, oz)
+            nstall += stall_stripes(stalls, poly, ox, oz, 0.16)
+
+        gnode = []
+        def add_ground(mesh, mat, tag):
+            if mesh.empty():
+                return
+            mi = g.add_mesh(name + tag, [(mesh.p, mesh.n, mesh.u, mesh.i, mat)])
+            g.nodes.append({"mesh": mi})
+            gnode.append(len(g.nodes) - 1)
+        add_ground(lines, line_m, "_line")
+        add_ground(dashes, line_m, "_dash")
+        add_ground(bike, bike_m, "_bike")
+        add_ground(lots, lot_m, "_lot")
+        add_ground(stalls, stall_m, "_stall")
+        # lod1 keeps the cycle track (the big read) and drops the fine paint
+        bike_node = gnode[2] if len(gnode) > 2 and not bike.empty() else None
+        nodes_hi = nodes_hi + gnode
+        if bike_node is not None:
+            nodes_lo = nodes_lo + [bike_node]
+        g.nodes.append({"name": name + "_lod0", "children": nodes_hi})
+        hi_i = len(g.nodes) - 1
+        g.nodes.append({"name": name + "_lod1", "children": nodes_lo})
+        lo_i = len(g.nodes) - 1
+        data = g.pack([hi_i, lo_i])
+        open(os.path.join(HERO, name + ".glb"), "wb").write(data)
+        tris = {
+            name + "_lod0": len(bag["palms"]) * 28 + len(bag["grapes"]) * 40 + len(bag["shelters"]) * 36
+            + len(bag["pavilions"]) * 28 + len(lines.i) // 3 + len(dashes.i) // 3 + len(bike.i) // 3
+            + nstall * 2,
+            name + "_lod1": len(bag["palms"]) * 14 + len(bag["grapes"]) * 20 + len(bag["shelters"]) * 20
+            + len(bag["pavilions"]) * 16 + len(bike.i) // 3,
+        }
+        entry = {
+            "id": name, "k": name,
+            "name": "J.E. Irausquin boulevard",
+            "status": "eagle-blvd",
+            "x": round(ox, 2), "z": round(oz, 2), "y": 0, "rotation": 0,
+            "glb": f"models/hero/{name}.glb",
+            "lod": {"hi": name + "_lod0", "lo": name + "_lod1", "switch_m": 640},
+            "tris": tris, "textures": 2, "hide_footprint": [], "hide": [],
+            "sign": False, "kind": "replace", "new_place": False,
+            "geo_source": "OSM J.E. Irausquin centreline and amenity=parking polygons",
+            "ref_sources": (
+                "Boulevard matched to street level along J.E. Irausquin: white edge lines and a "
+                "dashed centre line, a red cycle track on the beach side outside the sidewalk, "
+                "blue-roofed bus shelters at the public stretches, royal palms and sea grape on "
+                "the verge, stall paint on the existing lots, open canvas pavilions and showers "
+                "at Eagle Beach plus a lighter set toward Manchebo and Druif, and yellow "
+                "turtle-nesting boards on the sand. The class-3 road shader already fades a dash "
+                "into the asphalt; these ribbons sit just above it. Overpass was not reachable, "
+                "so the shelters sit at the public accesses rather than on a fresh bus_stop extract. "
+                "Geometry and the sign textures are original."
+            ),
+            "frame": "glb origin = chunk centroid on J.E. Irausquin; generated by landmarks/eagle_strip.py blvd",
+            "cat": "landmark",
+        }
+        manifest = [e for e in manifest if e.get("id") != name]
+        manifest.append(entry)
+        print(f"  {name} palms {len(bag['palms'])} grape {len(bag['grapes'])} stops {len(bag['shelters'])} "
+              f"pav {len(bag['pavilions'])} shower {len(bag['showers'])} turtle {len(bag['turtles'])} "
+              f"stalls {nstall} pads {len(bag['pads'])} {os.path.getsize(os.path.join(HERO, name + '.glb')) // 1024}kb")
+
+    open(MANIFEST, "w").write(json.dumps(manifest, indent=1))
+    print("manifest", len(manifest))
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "blvd":
+        blvd()
+    else:
+        main()
