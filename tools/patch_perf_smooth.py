@@ -9,6 +9,9 @@
 - Terrain LOD downgrades wait 15% past the threshold; upgrades stay immediate.
 - The dispose-distance scan no longer copies regions.values() every frame.
 - GTAO's alpha-mesh hide list is walked in 1.2 ms slices instead of a full scene traverse.
+- disposeRegion frees the street-sign canvas atlas (one per streamed region). The mesh is
+  named signs; shared pole/fence/hedge materials are left alone. __awGone stops a later
+  initTexture from allocating the same atlas again.
 """
 import os
 P = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../game/assets/index-D_YJh5Nn.js')
@@ -83,6 +86,18 @@ if 'for(let t of[...this.regions.values()])' in s:
         "for(let t of[...this.regions.values()]){",
         "for(let t of this.regions.values()){",
         "regionsSpread")
+
+if 'x.__awGone' not in s:
+    rep(
+        "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(e=>{e.geometry&&e.geometry.dispose()}));for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();e.hf?.dispose(),e.splat?.dispose(),e.mat?.dispose(),e.wmat?.dispose(),",
+        "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(t=>{t.geometry&&t.geometry.dispose();"
+        "if(t.name===`signs`&&t.material&&!Array.isArray(t.material)){let m=t.material,x=m.map;"
+        "if(x&&!x.__awGone)x.__awGone=1,x.dispose();"
+        "if(m.emissiveMap&&m.emissiveMap!==x&&!m.emissiveMap.__awGone)m.emissiveMap.__awGone=1,m.emissiveMap.dispose();"
+        "m.map=null,m.emissiveMap=null}}));"
+        "if(e.signTex&&!e.signTex.__awGone)e.signTex.__awGone=1,e.signTex.dispose();e.signTex=null;"
+        "for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();e.hf?.dispose(),e.splat?.dispose(),e.mat?.dispose(),e.wmat?.dispose(),",
+        "signAtlas")
 
 if 'e.__awQ' not in s:
     rep(
