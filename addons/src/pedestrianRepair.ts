@@ -108,7 +108,7 @@ function parentHairToHead(
   const cz = -0.006;
   const rx = 0.104;
   const ry = 0.108;
-  const rz = 0.116;
+  const rz = 0.100;
   const stacks = 8;
   const slices = 16;
   const thetaMax = Math.PI * 0.52;
@@ -193,10 +193,10 @@ function parentHairToHead(
 
   // Bangs. A short tube across the forehead, in front of the scalp and above the eyes.
   addLock([
-    [-0.062, 0.102, 0.030],
-    [-0.028, 0.092, 0.048],
-    [0.028, 0.090, 0.050],
-    [0.062, 0.102, 0.030],
+    [-0.062, 0.104, 0.012],
+    [-0.028, 0.096, 0.024],
+    [0.028, 0.094, 0.026],
+    [0.062, 0.104, 0.012],
   ], [0.026, 0.030, 0.030, 0.026], 8, 0.58);
   // Volume behind the head, then down the back. +Z is the face, so this stays negative.
   addLock([
@@ -258,12 +258,12 @@ function parentHeadShell(
     { y: 0.070, rx: 0.078, front: 0.104, back: -0.068, nose: 0.000 },
     { y: 0.054, rx: 0.074, front: 0.112, back: -0.064, nose: 0.000 },
     { y: 0.040, rx: 0.066, front: 0.098, back: -0.060, nose: 0.000 },
-    { y: 0.024, rx: 0.058, front: 0.100, back: -0.052, nose: 0.014 },
-    { y: 0.008, rx: 0.052, front: 0.096, back: -0.046, nose: 0.030 },
-    { y: -0.006, rx: 0.048, front: 0.090, back: -0.042, nose: 0.048 },
-    { y: -0.020, rx: 0.046, front: 0.086, back: -0.040, nose: 0.022 },
-    { y: -0.036, rx: 0.046, front: 0.086, back: -0.040, nose: 0.024 },
-    { y: -0.052, rx: 0.044, front: 0.084, back: -0.042, nose: 0.034 },
+    { y: 0.024, rx: 0.058, front: 0.096, back: -0.052, nose: 0.020 },
+    { y: 0.008, rx: 0.052, front: 0.090, back: -0.046, nose: 0.046 },
+    { y: -0.006, rx: 0.048, front: 0.084, back: -0.042, nose: 0.074 },
+    { y: -0.020, rx: 0.046, front: 0.082, back: -0.040, nose: 0.036 },
+    { y: -0.036, rx: 0.046, front: 0.082, back: -0.040, nose: 0.040 },
+    { y: -0.052, rx: 0.044, front: 0.080, back: -0.042, nose: 0.062 },
     { y: -0.070, rx: 0.046, front: 0.076, back: -0.046, nose: 0.010 },
     { y: -0.100, rx: 0.052, front: 0.056, back: -0.050, nose: 0.000 },
     { y: -0.145, rx: 0.056, front: 0.050, back: -0.054, nose: 0.000 },
@@ -282,7 +282,7 @@ function parentHeadShell(
     for (let s = 0; s < slices; s++) {
       const ang = (s / slices) * Math.PI * 2;
       const ahead = Math.max(0, Math.sin(ang));
-      const nose = ahead * ahead * ahead * ahead * ring.nose;
+      const nose = ahead * ahead * ahead * ring.nose;
       push(Math.cos(ang) * ring.rx, ring.y, zc + Math.sin(ang) * rz + nose);
     }
   }
