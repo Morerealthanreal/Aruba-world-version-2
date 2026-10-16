@@ -39,6 +39,7 @@ import { Turbo } from "./turbo";
 import { Fly } from "./fly";
 import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
+import { NorthCoast } from "./northCoast";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
@@ -88,11 +89,16 @@ async function main() {
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
+  const north = params.get("north") !== "0" ? new NorthCoast(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } if (!ul.querySelector(".aw-loco")) { const li3 = document.createElement("li"); li3.className = "aw-loco"; li3.innerHTML = 'On-foot walk and run: <a href="https://quaternius.com/packs/universalanimationlibrary.html" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> (CC0)'; ul.appendChild(li3); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
+  }
+  { // north-coast ground-photo references (Commons). Not used as textures.
+    const addNorth = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (ul.querySelector(".aw-north")) return true; const li = document.createElement("li"); li.className = "aw-north"; li.innerHTML = 'North-coast landmark references: <a href="https://commons.wikimedia.org/wiki/File:Alto_Vista_Chapel_A.jpg" target="_blank" rel="noopener">Alto Vista Chapel</a> by Musicfan1077 (CC BY-SA 4.0), <a href="https://commons.wikimedia.org/wiki/File:Bushiribana_Gold_Mill_Ruins_Aruba.jpg" target="_blank" rel="noopener">Bushiribana</a> by Paulhaberstroh (CC BY-SA 4.0), <a href="https://commons.wikimedia.org/wiki/File:Collapsed_portion_of_natural_bridge,_Aruba.JPG" target="_blank" rel="noopener">collapsed Natural Bridge</a> by Sunnya343 (CC BY-SA 3.0), <a href="https://commons.wikimedia.org/wiki/File:ArubaNaturalBabyBridge.JPG" target="_blank" rel="noopener">Baby Bridge</a> by PrasadGondi (CC BY-SA 3.0), <a href="https://commons.wikimedia.org/wiki/File:Ayo_Rock_Formations,_Aruba_01.jpg" target="_blank" rel="noopener">Ayo</a> by Ginelly.Q (CC0)'; ul.appendChild(li); return true; };
+    if (!addNorth()) { let n = 0; const t = setInterval(() => { if (addNorth() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
   if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
@@ -105,7 +111,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, north, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -127,6 +133,7 @@ async function main() {
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (golf) golf.frame();
+    if (north) north.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
