@@ -54798,7 +54798,7 @@
    "switch_m": 850
   },
   "tris": {
-   "nd_stm_m7_m5_lod0": 31346,
+   "nd_stm_m7_m5_lod0": 31286,
    "nd_stm_m7_m5_lod1": 7063
   },
   "textures": 0,
@@ -54841,7 +54841,7 @@
    "switch_m": 420
   },
   "tris": {
-   "nd_stn_m7_m5_00_lod0": 3123,
+   "nd_stn_m7_m5_00_lod0": 3063,
    "nd_stn_m7_m5_00_lod1": 7
   },
   "textures": 0,
