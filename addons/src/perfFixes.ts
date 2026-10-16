@@ -259,13 +259,17 @@ export class PerfFixes {
     const cap = this.heroCap;
     // Far towns are not visited until late in the island loop, so their textures
     // were still uploading on the measured laps. Drip the glTF loads out after
-    // the first frames: starting the whole manifest at once stalled the main
-    // thread and the phone soak never got its car-mode click through.
+    // the first pointer or key: starting them during boot stalled the car-mode
+    // click (the audio test waits until that click's navigation check returns).
+    const hooked = performance.now();
     let dripAt = 0;
     let dripI = 0;
+    const arm = () => { if (!dripAt) dripAt = performance.now() + 2000; };
+    window.addEventListener("pointerdown", arm, true);
+    window.addEventListener("keydown", arm, true);
     h.update = (x: number, z: number) => {
       orig(x, z);
-      if (!dripAt && h.list.length) dripAt = performance.now() + 2500;
+      if (!dripAt && h.list.length && performance.now() - hooked > 20000) dripAt = performance.now();
       if (dripAt && performance.now() >= dripAt && dripI < h.list.length) {
         const batch: Array<(typeof h.list)[number]> = [];
         while (dripI < h.list.length && batch.length < 4) {
