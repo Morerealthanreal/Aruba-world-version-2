@@ -51,6 +51,11 @@ export class MobilePerf {
   private queued = new WeakSet<object>();
   private syncTries = new WeakMap<object, number>();
   private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
+  /** Materials whose programs are finalized. One lookup per draw, no property walk. */
+  private hotMat = new WeakSet<object>();
+  private deferRec = new WeakMap<object, { frame: number; n: number }>();
+  private noted = new WeakSet<object>();
+  private frameN = 0;
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
     const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
@@ -58,9 +63,22 @@ export class MobilePerf {
       const orig = A.update.bind(A);
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
     }
+    // A mesh that shows up inside this frame's update is drawn before the pump can warm it.
+    // Skip that draw (it was not on screen last frame) and warm it before the next paint.
+    if (this.incremental) {
+      const renderer = g.renderer as unknown as { renderBufferDirect: (...a: unknown[]) => unknown };
+      const origRBD = renderer.renderBufferDirect.bind(renderer);
+      renderer.renderBufferDirect = (...args: unknown[]) => {
+        const material = args[3] as (Mat & { isMeshDepthMaterial?: boolean; isMeshDistanceMaterial?: boolean }) | null | undefined;
+        const object = args[4] as O;
+        if (material && !material.isMeshDepthMaterial && !material.isMeshDistanceMaterial && !this.hotMat.has(material) && this.deferDraw(material, object)) return;
+        return origRBD(...args);
+      };
+    }
   }
   /** Phone shadow cadence only. Walking and compiling here was a steady tax on every streaming frame. */
   beforeRender() {
+    this.frameN++;
     if (!this.on) return;
     const r = this.g.renderer as unknown as R;
     r.shadowMap.autoUpdate = false;
@@ -149,7 +167,7 @@ export class MobilePerf {
       if (lk !== this.lightKey) {
         const first = this.lightKey === "";
         this.lightKey = lk;
-        if (!first) { this.keys.clear(); this.depthMats.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; }
+        if (!first) { this.keys.clear(); this.depthMats.clear(); this.seen = new WeakSet(); this.childN = new WeakMap(); this.stack.length = 0; this.hotMat = new WeakSet(); this.deferRec = new WeakMap(); this.noted = new WeakSet(); }
       }
     }
     const push = (o: O | undefined | null) => {
@@ -195,6 +213,26 @@ export class MobilePerf {
     }
     if (add) this.pend.push(o);
   }
+  /**
+   * A material with no finalized program is not drawn yet. The pump compiles and uploads it
+   * before the next frame. After a couple of frames, draw anyway so a variant we cannot
+   * match does not leave a hole in the world.
+   */
+  private deferDraw(m: Mat, o: O): boolean {
+    if (this.ready(m)) { this.hotMat.add(m); return false; }
+    let rec = this.deferRec.get(m);
+    if (!rec) this.deferRec.set(m, (rec = { frame: this.frameN, n: 1 }));
+    else if (rec.frame !== this.frameN) { rec.frame = this.frameN; rec.n++; }
+    if (rec.n > 2) return false;
+    this.note(o);
+    return true;
+  }
+  private note(o: O) {
+    if (!o || this.noted.has(o)) return;
+    this.noted.add(o);
+    if (!this.seen.has(o)) this.consider(o);
+    else this.pend.push(o);
+  }
   private pump(max: number) {
     const r = this.g.renderer as unknown as R;
     if (!r.compile || !this.pend.length) return;
@@ -202,6 +240,7 @@ export class MobilePerf {
     const scene = this.g.scene as unknown as O;
     while (this.pend.length && objs.length < max) {
       const o = this.pend.shift()!;
+      this.noted.delete(o);
       if (!o.parent && o !== scene) continue;
       objs.push(o);
     }
