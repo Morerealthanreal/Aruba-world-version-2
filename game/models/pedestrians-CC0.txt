@@ -21,7 +21,8 @@ Project modifications
 
 The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
 
-- Retain only the Idle_Standing and Walk_Relaxed skeletal clips.
+- The LOD files retain Idle_Standing and Walk_Relaxed as a fallback.
+  The live walk, run, and idle cycles are the separate locomotion.glb clips.
 - Add opaque layered hair cards and, for the dress variant, an opaque rigged
   flowing skirt.
 - Bake skin, face, hair, and fabric into a hand-painted 4x4 texture atlas.
@@ -34,4 +35,6 @@ card parented to the head of the two or three closest people, within about
 8 m. Each card is 126 triangles, so a crowd adds at most a few hundred
 triangles. They are not part of the Innerscene or MakeHuman sources.
 
-No Quaternius character assets are used by these files.
+The character meshes are not Quaternius bodies. The walk, run, and idle
+cycles in locomotion.glb are retargeted from the Quaternius Universal
+Animation Library (CC0). See CREDITS.md.
