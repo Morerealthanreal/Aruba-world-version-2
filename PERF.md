@@ -181,3 +181,24 @@ and A's veg.setRegions (~7 ms per built region).
 ### Rebase on main dbf35eb (r257-r260b: Faro Blanco balustrade, California Lighthouse lot, +5 shop signs, data cache bump)
 - Same --exec regeneration; only generated-file conflicts. Bundles byte-identical to a fresh rebuild / re-patch,
   typecheck clean, cache versions bumped (-pf11).
+
+## Round 5 (fast drive, 21 km)
+
+Same harness (`measure.mjs --drive --frames=5400 --to=9000,8000`, phone SwiftShader, fixed 1/30 s). Before is r262. After is this branch on r286 (audio, radio, downtown), so it is not a single-variable diff. 5401 frames, route length 21001 m.
+
+The hitch that showed up as ~3500 draws for a handful of frames is gone: cells and kits are copied in the tile pump and stay hidden until that copy exists. `getProgramInfoLog` for programs we warmed runs in that pump, after the link is ready. A few shadow programs still finalize on the first draw.
+
+| metric | low before | low after | med before | med after |
+|---|---|---|---|---|
+| raw frame p50 / p95 / p99 / max (ms) | 6.0 / 11.7 / 20.4 / 1112 | 7.5 / 12.0 / 17.2 / 615 | 7.3 / 12.9 / 23.0 / 1639 | 6.0 / 11.4 / 17.0 / 1120 |
+| raw frames >16 / >33 / >50 ms | 87 / 33 / 32 | 59 / 27 / 27 | 105 / 32 / 31 | 58 / 33 / 32 |
+| CPU frame p50 / p95 / p99 / max (ms) | 5.7 / 11.0 / 16.9 / 321 | 7.3 / 10.9 / 14.4 / 291 | 7.1 / 11.9 / 17.9 / 431 | 5.9 / 10.3 / 13.9 / 108 |
+| CPU frames >33 / >50 ms | 3 / 2 | 3 / 2 | 6 / 5 | 1 / 1 |
+| shader compile total / max (ms) | 8538 / 926 | 7874 / 753 | 10702 / 1615 | 16546 / 1108 |
+| texture upload total / max (ms) | 6472 / 1084 | 6459 / 584 | 7261 / 790 | 7480 / 617 |
+| draw spikes (calls > 1500) | 30 | 0 | 34 | 0 |
+| draw calls avg / max | 291 / 3762 | 280 / 582 | 317 / 3504 | 298 / 1174 |
+| triangles max | 3.07M | 1.11M | 2.96M | 1.34M |
+| alloc MB/frame | 0.98 | 0.93 | 1.00 | 0.98 |
+
+Gap (wall time from one animation callback to the next) was not recorded on the before run. After, gap p50 is 212 ms on low and 307 ms on med; that is SwiftShader present delay plus the pump, not a phone frame time. Phone soak (`tests/long-drive-soak.spec.js`, low) passes. The high project is skipped by the test.
