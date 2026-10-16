@@ -96,6 +96,7 @@ async function main() {
   if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
   // texture pre-upload is on unless ?preup=0; it only queues textures of meshes the warm-up actually sees
   const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") !== "0") : null;
+  if (turbo && mperf) turbo.primeShaders(mperf);
   const ovm = params.get("ovmerge") !== "0" && g.real ? new OvMerge(g.real as never) : null;
   const tmerge = params.get("tmerge") !== "0" && g.real ? new TerrMerge(g.real as never) : null;
   const bbatch = params.get("bbatch") !== "0" && params.get("bmerge") !== "0" ? new BldBatch(g, (perf ? perf.mobile : touch) ? 2 : 3, +(params.get("bbshell") || Infinity)) : null;
