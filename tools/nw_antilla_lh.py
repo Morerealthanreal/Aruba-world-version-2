@@ -38,16 +38,26 @@ MANIFEST = os.path.join(ROOT, "game", "data", "hero", "manifest.json")
 HERO = os.path.join(ROOT, "game", "models", "hero")
 GOLF = os.path.join(ROOT, "game", "data", "real", "tds_golf.json")
 
-# Engine shaft: Cylinder(top 2.3, bottom 3.3, height 27) centred at local y=13.5,
-# group placed at heightAt-0.4. A hero with y=0 sits on heightAt, so hero y = engine y - 0.4.
-ENGINE_DROP = 0.4
-OUT = 0.20
-TOWER = (-8840.0, -10365.0)
+# The drawn tower is a lathe at Th=[-8840.4, -10364.9], group y = heightAt-0.3,
+# rotated 180°. Profile radii are the lathe points (not the unused 2.3/3.3 cylinder).
+TOWER = (-8840.4, -10364.9)
 GROUNDS = (-8875.2, -10343.45)
+# (height, radius) of the engine lathe, bottom to the gallery flare.
+LATHE = (
+    (0.0, 4.30),
+    (1.4, 4.30),
+    (1.6, 3.70),
+    (4.0, 3.55),
+    (25.5, 2.75),
+    (26.2, 2.75),
+    (26.6, 3.00),
+    (27.0, 3.35),
+    (27.45, 3.35),
+)
 
 # Pale rubble, the colour the coast notes already use, lightened one step so the
 # shaft reads as the cream tower in the Arashi photo rather than white cobbles.
-SHAFT = (0.89, 0.83, 0.71)
+SHAFT = (0.93, 0.85, 0.70)
 BASE = (0.80, 0.74, 0.62)
 BAND = (0.72, 0.65, 0.53)
 JAMB = (0.60, 0.54, 0.44)
@@ -55,6 +65,7 @@ DOOR = (0.13, 0.09, 0.07)
 IRON = (0.09, 0.10, 0.11)
 WIN = (0.08, 0.09, 0.10)
 HULK = (0.15, 0.10, 0.07)
+ORIGIN_Y = 0.0
 
 
 def _cross(a, b):
@@ -165,9 +176,19 @@ def radial_box(mesh, ang, r0, r1, y0, y1, half_w):
     obox(mesh, c, rad, up, tan, (r1 - r0) * 0.5, (y1 - y0) * 0.5, half_w)
 
 
-def shell_r(y_hero):
-    y_e = y_hero + ENGINE_DROP
-    return 3.3 - y_e / 27.0 + OUT
+def lathe_r(y):
+    if y <= LATHE[0][0]:
+        return LATHE[0][1]
+    for (y0, r0), (y1, r1) in zip(LATHE, LATHE[1:]):
+        if y <= y1:
+            t = (y - y0) / (y1 - y0) if y1 != y0 else 0.0
+            return r0 + (r1 - r0) * t
+    return LATHE[-1][1]
+
+
+def skin_r(y, sides):
+    """Vertex radius whose flat facets stay outside the stone lathe."""
+    return (lathe_r(y) + 0.14) / math.cos(math.pi / sides)
 
 
 def build_antilla():
@@ -242,15 +263,12 @@ def build_antilla():
 
 
 def build_lighthouse():
+    global ORIGIN_Y
     door_ang = math.atan2(GROUNDS[1] - TOWER[1], GROUNDS[0] - TOWER[0])
-    # Bury the base into the downhill side of the hill so the door is not floating.
-    cx, cz = TOWER
-    center_h = coast.mesh_height(cx, cz)
-    low = 0.0
-    for i in range(16):
-        a = math.tau * i / 16
-        low = min(low, coast.mesh_height(cx + math.cos(a) * 4.3, cz + math.sin(a) * 4.3) - center_h)
-    base_bottom = min(-0.45, low - 0.15)
+    hill = coast.height(TOWER[0], TOWER[1])
+    # Same origin as the engine group (heightAt - 0.3). A falsy y snaps too early
+    # and leaves the skin inside the lathe.
+    ORIGIN_Y = round(hill - 0.3, 2)
 
     model = Model("nw_lh_close")
     model.material("shaft", SHAFT, 0.94)
@@ -263,55 +281,39 @@ def build_lighthouse():
 
     def add_shell(lod, sides, detail):
         shaft = model.mesh(lod, "shaft")
-        base = model.mesh(lod, "base")
-        # Foundation and the step the engine plinth (radius 4) sits inside.
-        frustum(base, base_bottom, 0.32, 4.50, 4.22, sides, caps=True)
-        frustum(base, 0.32, 0.98, 4.08, 3.70, sides, caps=True)
-        y_shaft0, y_shaft1 = 0.90, 26.52
-        frustum(
-            shaft,
-            y_shaft0,
-            y_shaft1,
-            shell_r(y_shaft0),
-            shell_r(y_shaft1),
-            sides + 2,
-            caps=False,
-        )
-        # Cream collar over the engine's white gallery cone (engine y 27.0-27.6).
-        collar = model.mesh(lod, "shaft")
-        annulus(collar, 26.48, 27.18, 2.48, 3.46, sides)
+        cuts = (0.02, 1.35, 1.65, 4.0, 25.4, 26.2, 26.6, 27.15) if detail else (0.02, 1.4, 25.5, 27.15)
+        for y0, y1 in zip(cuts, cuts[1:]):
+            frustum(shaft, y0, y1, skin_r(y0, sides), skin_r(y1, sides), sides, caps=False)
+        annulus(shaft, 27.05, 27.58, 2.50, skin_r(27.2, max(8, sides)), max(8, sides - 4))
+        r_door = lathe_r(2.7)
         door = model.mesh(lod, "door")
-        radial_box(door, door_ang, 3.38, 3.64, 0.18, 2.52, 0.40)
+        radial_box(door, door_ang, r_door + 0.04, r_door + 0.48, 1.58, 4.12, 0.56)
+        iron = model.mesh(lod, "iron")
+        posts = 8 if detail else 4
+        for k in range(posts):
+            ang = door_ang + k * math.tau / posts
+            radial_box(iron, ang, 3.62, 3.84, 27.42, 28.9, 0.065 if detail else 0.09)
+        frustum(iron, 28.58, 28.76, 3.78, 3.78, 12 if detail else 8, caps=False)
         if not detail:
-            iron = model.mesh(lod, "iron")
-            for k in range(4):
-                ang = door_ang + k * math.tau / 4
-                radial_box(iron, ang, 3.48, 3.66, 27.05, 28.20, 0.07)
-            frustum(iron, 27.85, 28.02, 3.52, 3.52, 8, caps=False)
             return
         jamb = model.mesh(lod, "jamb")
-        radial_box(jamb, door_ang, 3.22, 3.50, 0.02, 2.88, 0.62)
+        radial_box(jamb, door_ang, r_door - 0.04, r_door + 0.30, 1.42, 4.32, 0.76)
         win = model.mesh(lod, "win")
-        for k, (dy, dang) in enumerate(((6.6, 0.0), (11.2, 1.7), (16.0, 3.3), (21.2, 4.8))):
-            r = shell_r(dy)
-            radial_box(win, door_ang + dang, r + 0.03, r + 0.16, dy - 0.42, dy + 0.42, 0.26)
+        for dy, dang in ((7.2, 0.2), (12.0, 1.9), (16.8, 3.5), (21.4, 5.0)):
+            r = skin_r(dy, sides)
+            radial_box(win, door_ang + dang, r + 0.03, r + 0.2, dy - 0.5, dy + 0.5, 0.30)
         band = model.mesh(lod, "band")
-        for y in (5.4, 12.6, 19.8):
-            r = shell_r(y)
-            annulus(band, y - 0.11, y + 0.11, r + 0.015, r + 0.07, 10)
+        for y in (6.4, 13.2, 20.4):
+            r = skin_r(y, 12)
+            annulus(band, y - 0.11, y + 0.11, r + 0.02, r + 0.09, 12)
         stone = model.mesh(lod, "base")
         for k in range(8):
             ang = k * math.tau / 8 + 0.2
-            radial_box(stone, ang, 2.70, 3.38, 26.05, 26.55, 0.22)
-        iron = model.mesh(lod, "iron")
-        for k in range(8):
-            ang = door_ang + k * math.tau / 8
-            radial_box(iron, ang, 3.50, 3.68, 27.08, 28.28, 0.055)
-        frustum(iron, 27.42, 27.56, 3.58, 3.58, 12, caps=False)
-        frustum(iron, 28.02, 28.16, 3.58, 3.58, 12, caps=False)
+            radial_box(stone, ang, 2.95, skin_r(26.3, sides), 26.2, 26.9, 0.22)
+        frustum(iron, 27.9, 28.08, 3.78, 3.78, 12, caps=False)
 
-    add_shell(0, 12, True)
-    add_shell(1, 8, False)
+    add_shell(0, 16, True)
+    add_shell(1, 10, False)
     path = os.path.join(HERO, "nw_lh_close.glb")
     info = write_glb(model, path)
     check_glb(path)
@@ -320,14 +322,14 @@ def build_lighthouse():
         for mesh in model.lod[lod].values():
             for x, y, z in mesh.pos:
                 far = max(far, math.hypot(x, y, z))
-                if math.hypot(x, z) > 6.0:
+                if math.hypot(x, z) > 7.5:
                     raise SystemExit(f"lighthouse vertex {x:.2f},{z:.2f} leaves the tower")
     if far >= 640:
         raise SystemExit(f"lighthouse far {far:.1f}")
     _assert_off_golf()
     print(
         f"nw_lh_close lod {info['lod0']}/{info['lod1']} far {far:.1f} m  "
-        f"base_bottom {base_bottom:.2f} door {math.degrees(door_ang):.0f} deg"
+        f"origin_y {ORIGIN_Y:.2f} door {math.degrees(door_ang):.0f} deg"
     )
     return info["lod0"], info["lod1"]
 
@@ -418,7 +420,7 @@ def splice_manifest(antilla_tris, lh_tris):
         "status": "v1-nw-coast",
         "x": TOWER[0],
         "z": TOWER[1],
-        "y": 0,
+        "y": ORIGIN_Y,
         "rotation": 0,
         "glb": "models/hero/nw_lh_close.glb",
         "lod": {
@@ -441,12 +443,12 @@ def splice_manifest(antilla_tris, lh_tris):
             "California Lighthouse, Noord. Ground view from Arashi (pale cream tapered shaft, "
             "small dark windows, a gallery with a metal rail, dark lantern) and the close lot "
             "(stone base, dark door facing the grounds, Faro Blanco to the southwest). The engine "
-            "shaft stays; this skin is cream rubble 0.2 m outside it so the white cobble map does not "
-            "show up close, with the door and an iron rail on the gallery. Lantern and dome stay the "
-            "engine model. Nothing is added on the Tierra del Sol fairways."
+            "lathe stays; this skin sits just outside that profile so the white cobble map does not "
+            "show up close, with a dark door on the grounds side and an iron rail outside the white "
+            "gallery posts. Lantern and dome stay the engine model. Nothing is added on the Tierra del Sol fairways."
         ),
         "frame": (
-            "glb origin = monument (world x,z), y snapped to the DEM; "
+            "glb origin = engine tower (world x,z) and the engine group height; "
             "glTF +X = world x, +Z = world z, Y up; generated by tools/nw_antilla_lh.py"
         ),
         "cat": "landmark",
@@ -469,8 +471,8 @@ def splice_manifest(antilla_tris, lh_tris):
     if ant["new_place"] is not True or ant["sign"] is not False:
         raise SystemExit("antilla pin flags changed")
     lh = parsed[-1]
-    if lh["name"] != "" or lh["new_place"] is not False or lh["sign"] is not False or lh["y"] != 0:
-        raise SystemExit("lighthouse hero would create a second pin or miss the DEM snap")
+    if lh["name"] != "" or lh["new_place"] is not False or lh["sign"] is not False or lh["y"] != ORIGIN_Y:
+        raise SystemExit("lighthouse hero would create a second pin or miss the engine height")
     # Every other object byte-identical aside from the antilla block and the append.
     for old, new in zip(before, parsed[:-1]):
         if old["id"] == "nw_antilla":
