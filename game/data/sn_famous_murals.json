@@ -1,0 +1,312 @@
+{
+ "atlas": "textures/sn_famous_atlas.jpg",
+ "atlas_px": [
+  2048,
+  604
+ ],
+ "note": "Famous San Nicolas and Oranjestad walls. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "crazy",
+   "name": "The Crazy Life",
+   "artist": "Aruba Art Fair collective",
+   "year": 2017,
+   "address": "Doormanstraat, San Nicolas",
+   "lat": 12.4357908,
+   "lng": -69.912014,
+   "bld": 9081,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 7,
+   "wall_len": 8.77,
+   "center": [
+    6306.45,
+    9307.24
+   ],
+   "p0": [
+    6306.99,
+    9302.95
+   ],
+   "p1": [
+    6305.91,
+    9311.53
+   ],
+   "normal": [
+    -0.9921,
+    -0.1254
+   ],
+   "width": 8.65,
+   "height": 3.0,
+   "uv": [
+    0.451172,
+    0.652318,
+    0.746582,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13072 (12.4357908, -69.912014), Doormanstraat, created 23 Nov 2017"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "bargestraat",
+   "name": "Bargestraat mural",
+   "artist": "Aruba Art Fair",
+   "year": 2016,
+   "address": "Bargestraat, San Nicolas",
+   "lat": 12.4357187,
+   "lng": -69.9102015,
+   "bld": 11550,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 4,
+   "wall_len": 15.5,
+   "center": [
+    6491.9,
+    9317.21
+   ],
+   "p0": [
+    6491.01,
+    9324.85
+   ],
+   "p1": [
+    6492.79,
+    9309.57
+   ],
+   "normal": [
+    0.9932,
+    0.1161
+   ],
+   "width": 15.38,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.317881,
+    0.500977,
+    0.649007
+   ],
+   "sources": [
+    "Street Art Cities marker 13077 (12.4357187, -69.9102015), Bargestraat, created 23 Nov 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "stuyvesant",
+   "name": "Stuyvesantstraat mural",
+   "artist": "Aruba Art Fair",
+   "year": 2016,
+   "address": "Stuyvesantstraat, San Nicolas",
+   "lat": 12.4349448,
+   "lng": -69.9101217,
+   "bld": 11588,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 12.32,
+   "center": [
+    6509.05,
+    9396.03
+   ],
+   "p0": [
+    6510.19,
+    9390.04
+   ],
+   "p1": [
+    6507.91,
+    9402.02
+   ],
+   "normal": [
+    -0.9824,
+    -0.1867
+   ],
+   "width": 12.2,
+   "height": 3.0,
+   "uv": [
+    0.501953,
+    0.317881,
+    0.898926,
+    0.649007
+   ],
+   "sources": [
+    "Street Art Cities marker 13084 (12.4349448, -69.9101217), Stuyvesantstraat, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "emporium",
+   "name": "The Emporium wall",
+   "artist": "Aruba Art Fair",
+   "year": 2016,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, The Emporium",
+   "lat": 12.4352014,
+   "lng": -69.9099474,
+   "bld": 4081,
+   "bld_name": "The Emporium",
+   "bld_h": 3.4,
+   "wall_i": 4,
+   "wall_len": 13.54,
+   "center": [
+    6518.73,
+    9377.83
+   ],
+   "p0": [
+    6523.14,
+    9382.89
+   ],
+   "p1": [
+    6514.31,
+    9372.78
+   ],
+   "normal": [
+    0.7535,
+    -0.6575
+   ],
+   "width": 13.42,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.0,
+    0.415039,
+    0.31457
+   ],
+   "sources": [
+    "Street Art Cities marker 13087 (12.4352014, -69.9099474), Zeppenfeldstraat 9, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "mo",
+   "name": "Mo Mohammed",
+   "artist": "Chemis",
+   "year": 2016,
+   "address": "van Renselaerstraat, Caribbean Union block",
+   "lat": 12.43506,
+   "lng": -69.909537,
+   "bld": 4082,
+   "bld_name": "Caribbean Union",
+   "bld_h": 3.4,
+   "wall_i": 4,
+   "wall_len": 13.28,
+   "center": [
+    6565.75,
+    9384.11
+   ],
+   "p0": [
+    6565.01,
+    9390.65
+   ],
+   "p1": [
+    6566.49,
+    9377.57
+   ],
+   "normal": [
+    0.9936,
+    0.1129
+   ],
+   "width": 13.16,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.652318,
+    0.450195,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13090 (12.43506, -69.909537), van Renselaerstraat, created 23 Nov 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "saffron",
+   "name": "Cursed Saffron",
+   "artist": "Nimia Geerman (Bunny Hop)",
+   "year": 2023,
+   "address": "Emmastraat, Oranjestad",
+   "lat": 12.51845,
+   "lng": -70.02895,
+   "bld": 45164,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 7.9,
+   "center": [
+    -6407.65,
+    179.2
+   ],
+   "p0": [
+    -6403.76,
+    179.3
+   ],
+   "p1": [
+    -6411.54,
+    179.1
+   ],
+   "normal": [
+    0.0253,
+    -0.9997
+   ],
+   "width": 7.78,
+   "height": 3.0,
+   "uv": [
+    0.747559,
+    0.701987,
+    0.975586,
+    1.0
+   ],
+   "sources": [
+    "Public photo reference: Cursed Saffron mural on Emmastraat, Oranjestad, by Nimia Geerman (Bunny Hop), 2023"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "holambra",
+   "name": "Holambra Street mural",
+   "artist": "Local Oranjestad artists",
+   "year": 2020,
+   "address": "Holambra near Caya G.F. Betico Croes, Oranjestad",
+   "lat": 12.51735,
+   "lng": -70.03165,
+   "bld": 47966,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 4.75,
+   "center": [
+    -6703.13,
+    289.3
+   ],
+   "p0": [
+    -6705.37,
+    288.71
+   ],
+   "p1": [
+    -6700.88,
+    289.88
+   ],
+   "normal": [
+    -0.2524,
+    0.9676
+   ],
+   "width": 4.63,
+   "height": 3.0,
+   "uv": [
+    0.416016,
+    0.033113,
+    0.544434,
+    0.31457
+   ],
+   "sources": [
+    "Holambra Street mural district, Oranjestad (island travel guides; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}
