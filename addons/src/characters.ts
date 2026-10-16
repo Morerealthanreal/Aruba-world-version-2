@@ -9,6 +9,7 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { repairCharacterGeometry } from "./pedestrianRepair";
 
 type Shader = {
   uniforms: Record<string, { value: unknown }>;
@@ -304,6 +305,12 @@ export function prepareCharacterSource(gl: GLTF): CharacterMetrics {
     for (const mesh of skins) mesh.parent?.remove(mesh);
     parent.add(merged);
   }
+
+  gl.scene.updateMatrixWorld(true);
+  gl.scene.traverse((object) => {
+    const skinned = object as SkinnedMesh;
+    if (skinned.isSkinnedMesh) repairCharacterGeometry(skinned);
+  });
 
   let draws = 0;
   let triangleCount = 0;
