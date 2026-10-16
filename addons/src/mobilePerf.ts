@@ -40,7 +40,12 @@ export class MobilePerf {
   private stack: O[] = []; private childN = new WeakMap<object, number>(); private lc = 0;
   private depthMat = new MeshDepthMaterial(); private depthMesh = new Mesh(); private empty = new BufferGeometry();
   private depthKeys = new Set<string>();
-  stats = { compiles: 0, objs: 0, reps: 0, uploads: 0, depth: 0 };
+  stats = { compiles: 0, objs: 0, reps: 0, uploads: 0, depth: 0, synced: 0 };
+  private synced = new WeakSet<object>();
+  private syncQ: Mat[] = [];
+  private queued = new WeakSet<object>();
+  private syncTries = new WeakMap<object, number>();
+  private holds: { fn: () => void; mats: Mat[]; tries: number }[] = [];
   constructor(private g: AGame, mobile: boolean, private incremental = true, private preUpload = true) {
     this.on = mobile;
     const A = g.real as unknown as { update?: (...a: number[]) => unknown } | null;
@@ -76,9 +81,30 @@ export class MobilePerf {
     this.seed();
     this.walk(1.2);
     this.pump(2);
+    // getUniforms (the first-draw stall) runs here, outside the animation callback
+    this.sync(8);
     if (this.preUpload && this.texQ.length) this.upload(1);
   }
-  pending() { return this.pend.length + this.stack.length + this.inflight + (this.busy ? 1 : 0); }
+  /**
+   * Link `obj`'s program now and run `onReady` once getUniforms has populated it.
+   * onReady is synchronous when that program was already finalized. The draw-time
+   * getProgramInfoLog otherwise waits for the driver, so callers keep a new mesh
+   * off the camera layer until then.
+   */
+  prime(obj: O, onReady?: () => void) {
+    if (!this.incremental) { onReady?.(); return; }
+    const r = this.g.renderer as unknown as R;
+    if (r.compile) this.compileObject(obj, r);
+    if (obj.castShadow && obj.isMesh && obj.geometry) this.warmDepth(obj, r);
+    const mats = matsOf(obj);
+    if (obj.castShadow) mats.push(this.depthMat as unknown as Mat);
+    const pending: Mat[] = [];
+    for (const m of mats) if (m && !this.ready(m)) pending.push(m);
+    for (const m of pending) this.queue(m);
+    if (!pending.length) { onReady?.(); return; }
+    if (onReady) this.holds.push({ fn: onReady, mats: pending, tries: 0 });
+  }
+  pending() { return this.pend.length + this.stack.length + this.inflight + this.syncQ.length + this.holds.length + (this.busy ? 1 : 0); }
   private full(dt: number) {
     if ((this.t -= dt) > 0) return;
     const r = this.g.renderer as unknown as R;
@@ -164,10 +190,71 @@ export class MobilePerf {
       if (!o.parent && o !== (this.g.scene as unknown as O)) continue;
       const reps = [o];
       const root = { traverse: (cb: (o: O) => void) => { for (const x of reps) cb(x); }, traverseVisible: () => {} };
-      try { r.compile(root, this.g.camera, this.g.scene); this.stats.compiles++; this.stats.reps++; } catch { /* program failed; the real draw will report it */ }
+      this.compileObject(o, r);
       if (o.castShadow && o.isMesh && o.geometry) this.warmDepth(o, r);
+      for (const m of matsOf(o)) if (!this.ready(m)) this.queue(m);
       n++;
     }
+  }
+  private compileObject(o: O, r: R) {
+    if (!r.compile) return;
+    const reps = [o];
+    const root = { traverse: (cb: (o: O) => void) => { for (const x of reps) cb(x); }, traverseVisible: () => {} };
+    try { r.compile(root, this.g.camera, this.g.scene); this.stats.compiles++; this.stats.reps++; } catch { /* program failed; the real draw will report it */ }
+  }
+  private queue(m: Mat) {
+    if (!m || this.queued.has(m)) return;
+    this.queued.add(m); this.syncQ.push(m);
+  }
+  /** Finalize programs whose link has finished. Skips any that are still compiling — getUniforms would block. */
+  private sync(budget: number) {
+    const props = (this.g.renderer as unknown as { properties?: { get(m: object): { currentProgram?: Prog } } }).properties;
+    if (!props || (!this.syncQ.length && !this.holds.length)) { this.flush(props); return; }
+    const t0 = performance.now();
+    const again: Mat[] = [];
+    const q = this.syncQ;
+    this.syncQ = [];
+    let n = 0;
+    for (const m of q) {
+      this.queued.delete(m);
+      if (n >= 2 || performance.now() - t0 > budget) { again.push(m); continue; }
+      let prog: Prog | undefined;
+      try { prog = props.get(m).currentProgram; } catch { continue; }
+      if (!prog || this.synced.has(prog)) continue;
+      let done = true;
+      try { done = prog.isReady(); } catch { done = false; }
+      // A few non-blocking polls, then finalize here anyway. Some drivers only finish the
+      // link inside getProgramInfoLog, and that has to happen outside the animation callback.
+      if (!done && (this.syncTries.get(m) || 0) < 8) { this.syncTries.set(m, (this.syncTries.get(m) || 0) + 1); again.push(m); continue; }
+      try { prog.getUniforms(); } catch { /* broken program; don't retry every pump */ }
+      this.synced.add(prog); this.stats.synced++; n++;
+    }
+    for (const m of again) this.queue(m);
+    this.flush(props);
+  }
+  private ready(m: Mat) {
+    const props = (this.g.renderer as unknown as { properties?: { get(m: object): { currentProgram?: Prog } } }).properties;
+    if (!props) return true;
+    try {
+      const p = props.get(m).currentProgram;
+      return !p || this.synced.has(p);
+    } catch { return true; }
+  }
+  private flush(props?: { get(m: object): { currentProgram?: Prog } }) {
+    if (!this.holds.length) return;
+    const keep: typeof this.holds = [];
+    for (const h of this.holds) {
+      let wait = false;
+      if (props) for (const m of h.mats) {
+        try {
+          const p = props.get(m).currentProgram;
+          if (p && !this.synced.has(p)) wait = true;
+        } catch { /* disposed */ }
+      }
+      if (wait && ++h.tries < 45) { keep.push(h); continue; }
+      try { h.fn(); } catch { /* mesh already gone */ }
+    }
+    this.holds = keep;
   }
   // Shadow passes use one shared MeshDepthMaterial (alpha-tested materials clone it). Compiling the
   // shared variant here starts that link with the game's program cache; a mismatch only adds an unused program.
@@ -181,9 +268,15 @@ export class MobilePerf {
     mesh.castShadow = true; mesh.visible = true; mesh.frustumCulled = false;
     mesh.isBatchedMesh = !!o.isBatchedMesh; mesh.isInstancedMesh = !!o.isInstancedMesh; mesh.isSkinnedMesh = !!o.isSkinnedMesh;
     try { r.compile!(mesh, this.g.camera, this.g.scene); this.stats.depth++; } catch { /* depth variant is best-effort */ }
+    if (!this.ready(this.depthMat as unknown as Mat)) this.queue(this.depthMat as unknown as Mat);
     mesh.isBatchedMesh = false; mesh.isInstancedMesh = false; mesh.isSkinnedMesh = false;
     mesh.geometry = this.empty;
   }
+}
+type Prog = { isReady: () => boolean; getUniforms: () => unknown };
+function matsOf(o: { material?: Mat | Mat[] }) {
+  if (!o.material) return [];
+  return Array.isArray(o.material) ? o.material.filter(Boolean) : [o.material];
 }
 function sig(m: Mat, f: string, lights: string) {
   let d = "";
