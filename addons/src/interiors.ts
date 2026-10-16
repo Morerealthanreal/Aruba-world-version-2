@@ -7,6 +7,7 @@ import { Group, Vector2, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
+import { buildMcdonalds, MCD_DOOR_HALF, MCD_DOOR_TOP, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "./interiors/mcdonalds";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -64,6 +65,35 @@ function placePastechi(): Place {
   };
 }
 
+function placeMcdonalds(): Place {
+  const world = worldFrame(mcdLocal, MCD_X, MCD_Z, 0);
+  world.poly = MCD_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "mcd1",
+    x: MCD_X,
+    z: MCD_Z,
+    rot: 0,
+    local: mcdLocal,
+    world,
+    doorHalf: MCD_DOOR_HALF,
+    doorTop: MCD_DOOR_TOP,
+    wall: 0.34,
+    obs: MCD_OBS,
+    show: 90,
+    hide: 120,
+    build: buildMcdonalds,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -74,7 +104,7 @@ const DOOR_FRAG = `
 export class Interiors {
   places: Place[];
   constructor(private g: AGame) {
-    this.places = [placePastechi()];
+    this.places = [placePastechi(), placeMcdonalds()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
