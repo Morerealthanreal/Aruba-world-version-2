@@ -94,6 +94,84 @@ const shots = [
     eye: [-7550, 78, 280],
     look: [-7350, 4, 40],
   },
+  {
+    name: "promenade",
+    stand: [-7446, 109],
+    eye: [-7446, 2.0, 109],
+    look: [-7426, 2.4, 126],
+  },
+  {
+    name: "marina",
+    stand: [-7420, 120],
+    eye: [-7440, 2.1, 135],
+    look: [-7510, 1.4, 155],
+  },
+  {
+    name: "ren-mall",
+    stand: [-7424, 121],
+    eye: [-7424, 2.0, 121],
+    look: [-7415, 5, 110],
+  },
+  {
+    name: "royal-plaza-street",
+    stand: [-7618, -19],
+    eye: [-7618, 2.0, -19],
+    look: [-7609, 5, -30],
+  },
+  {
+    name: "marketplace",
+    stand: [-7190, 300],
+    eye: [-7205, 2.1, 285],
+    look: [-7295, 6, 358],
+  },
+  {
+    name: "seaport",
+    stand: [-7640, -45],
+    eye: [-7640, 2.0, -45],
+    look: [-7647, 4.5, -35],
+  },
+  {
+    name: "havenstraat",
+    stand: [-7510, -51],
+    eye: [-7510, 2.0, -51],
+    look: [-7506, 4, -62],
+  },
+  {
+    name: "schelpstraat",
+    stand: [-7524, -132],
+    eye: [-7524, 2.0, -132],
+    look: [-7528, 4, -120],
+  },
+  {
+    name: "wilhelminastraat",
+    stand: [-7250, 83],
+    eye: [-7250, 2.0, 83],
+    look: [-7254, 4, 94],
+  },
+  {
+    name: "klipstraat",
+    stand: [-7200, 42],
+    eye: [-7200, 2.0, 42],
+    look: [-7198, 4, 30],
+  },
+  {
+    name: "tram-main",
+    stand: [-6986, 28],
+    eye: [-6986, 2.0, 28],
+    look: [-7000, 2.2, 16],
+  },
+  {
+    name: "surfside",
+    stand: [-6432, 1444],
+    eye: [-6432, 2.0, 1444],
+    look: [-6492, 1.4, 1456],
+  },
+  {
+    name: "coast-road",
+    stand: [-6440, 1048],
+    eye: [-6455, 2.2, 1025],
+    look: [-6365, 3.2, 1135],
+  },
 ];
 
 async function shoot(shot) {
