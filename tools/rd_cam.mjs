@@ -96,8 +96,8 @@ await shot("inside", {
   lx: door.x + I.x * 4, lz: door.z + I.z * 4, ly: 1.6,
 });
 await shot("desk", {
-  cx: door.x + I.x * 5.2 + U.x * -3.4, cz: door.z + I.z * 5.2 + U.z * -3.4, cy: 1.55,
-  lx: door.x + I.x * 9.6 + U.x * 0.4, lz: door.z + I.z * 9.6 + U.z * 0.4, ly: 1.5,
+  cx: door.x + I.x * 6.4 + U.x * -0.6, cz: door.z + I.z * 6.4 + U.z * -0.6, cy: 1.45,
+  lx: door.x + I.x * 11.1, lz: door.z + I.z * 11.1, ly: 1.7,
 });
 
 if (label === "after") {

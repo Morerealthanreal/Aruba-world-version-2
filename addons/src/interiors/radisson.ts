@@ -142,8 +142,8 @@ function addDeskBoard(b: Builder, f: Frame, d: number, a0: number, a1: number, y
       pt(f, a1, inward, y1), pt(f, a0, inward, y1),
     ], normal, [1, 1, 1], uv);
   };
-  face(d, [-f.nx, 0, -f.nz], [[0, 0], [1, 0], [1, 1], [0, 1]]);
-  face(d - 0.04, [f.nx, 0, f.nz], [[1, 0], [0, 0], [0, 1], [1, 1]]);
+  face(d, [-f.nx, 0, -f.nz], [[1, 0], [0, 0], [0, 1], [1, 1]]);
+  face(d - 0.04, [f.nx, 0, f.nz], [[0, 0], [1, 0], [1, 1], [0, 1]]);
 }
 
 /** Clover board on the west side of the counter. Same facing as the Hard Rock menu. */
