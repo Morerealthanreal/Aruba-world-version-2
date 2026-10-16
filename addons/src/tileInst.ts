@@ -13,7 +13,7 @@
 // r192: with pools (instPool.ts, default on, ?ipool=0 off) the buckets of every region that share a
 // (kind, geometry, material) draw from one InstancedMesh instead of one per region.
 import { InstancedBufferAttribute, InstancedMesh, Matrix4, type BufferGeometry, type Material, type Object3D } from "three";
-import { Pool } from "./instPool";
+import { Pool, touchRange } from "./instPool";
 
 type IM = Object3D & { isInstancedMesh: true; count: number; geometry: BufferGeometry; material: Material; instanceMatrix: { array: Float32Array }; instanceColor: { array: Float32Array } | null };
 type Q = Record<string, unknown>;
@@ -148,8 +148,9 @@ export class TileInstances {
         b.im.count = c;
         b.im.visible = c > 0;
         if (c > 0) {
-          b.im.instanceMatrix.clearUpdateRanges(); b.im.instanceMatrix.addUpdateRange(0, c * 16); b.im.instanceMatrix.needsUpdate = true;
-          if (b.im.instanceColor) { b.im.instanceColor.clearUpdateRanges(); b.im.instanceColor.addUpdateRange(0, c * 3); b.im.instanceColor.needsUpdate = true; }
+          const mr = (b as unknown as { _mr?: { start: number; count: number }; _cr?: { start: number; count: number } });
+          touchRange(b.im.instanceMatrix as unknown as { updateRanges: { start: number; count: number }[]; needsUpdate: boolean }, mr._mr || (mr._mr = { start: 0, count: 0 }), c * 16);
+          if (b.im.instanceColor) touchRange(b.im.instanceColor as unknown as { updateRanges: { start: number; count: number }[]; needsUpdate: boolean }, mr._cr || (mr._cr = { start: 0, count: 0 }), c * 3);
         }
       }
     }
@@ -159,7 +160,8 @@ export class TileInstances {
   /** Per frame, after A's update. x/z = A's streaming focus (player). */
   update(regions: Map<string, Reg>, x: number, z: number) {
     if (this.job && (!this.job.r.group || !this.job.r.group.parent)) { this.live.add(this.job.r); this.job.r.__awInst = this.job.out; this.job = null; }
-    const fr = this.job ? this.job.r : [...regions.values()].find((r) => !r.__awInst && r.state === "built");
+    let fr = this.job ? this.job.r : undefined;
+    if (!fr) for (const r of regions.values()) if (!r.__awInst && r.state === "built") { fr = r; break; }
     if (fr && this.fold(fr, 3)) this.live.add(fr); // one region at a time, sliced
     // regions A disposed (disposeRegion detaches the group): free our instance buffers / leave the pools
     for (const r of this.live) if (!r.group || !r.group.parent) {

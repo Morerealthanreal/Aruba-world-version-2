@@ -51,5 +51,8 @@ export class JobPump {
     }
     const ms = performance.now() - t0;
     this.stats.ticks++; if (ms > this.stats.maxMs) this.stats.maxMs = ms;
+    // new meshes exist now; start their program links before the next frame draws them
+    const mp = (window as unknown as { __aw?: { mperf?: { afterJobs?: () => void } } }).__aw?.mperf;
+    if (mp && mp.afterJobs) mp.afterJobs();
   }
 }
