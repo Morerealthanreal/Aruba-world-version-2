@@ -7,6 +7,7 @@ import {
   Quaternion, Sphere, SphereGeometry, SRGBColorSpace, Vector3,
 } from "three";
 import type { Box, Frame as Vol } from "./volume";
+import { frameFromEdge } from "./volume";
 import { box, Builder, pt, type Frame } from "./geom";
 
 export const PASTECHI_X = -7087.55;
@@ -20,23 +21,16 @@ export const PASTECHI_POLY: [number, number][] = [
   [-7090.8, 16.0],
 ];
 
-// The hero mesh is the axis-aligned box around that footprint, not the quad
-// itself. Street face is the south wall (local z = -8.625), sign centred at x = 0.94.
-export const pastechiLocal: Vol = {
-  mx: 0,
-  mz: -8.625,
-  ux: 1,
-  uz: 0,
-  nx: 0,
-  nz: 1,
-  halfW: 5.05,
-  depth: 17.3,
-  minX: -7,
-  maxX: 7,
-  minZ: -11,
-  maxZ: 10,
-  doorAt: 0.94,
-};
+// Hero wall corners (GLB, metres from the footprint centroid). The street face
+// is the south edge; the sign sits in the middle of it.
+const CORNERS: [number, number][] = [
+  [-5.05, 7.775],
+  [3.25, 8.675],
+  [5.05, -7.826],
+  [-3.25, -8.625],
+];
+export const pastechiLocal: Vol = frameFromEdge(CORNERS, 2, 3);
+pastechiLocal.doorAt = 0;
 
 const RED: [number, number, number] = [0.82, 0.1, 0.11];
 const RED_D: [number, number, number] = [0.62, 0.06, 0.07];
@@ -52,15 +46,15 @@ const GOLD: [number, number, number] = [0.86, 0.58, 0.16];
 /** Solids the walker cannot pass. along / inward metres in the shop frame.
  *  The aisle through the open front (along ≈ 0.94) stays clear. */
 export const PASTECHI_OBS: Box[] = [
-  { a0: -4.35, a1: -0.2, d0: 2.75, d1: 4.2 },
-  { a0: -2.25, a1: -0.55, d0: 2.15, d1: 2.9 },
-  { a0: 1.9, a1: 2.85, d0: 1.2, d1: 2.2 },
-  { a0: -3.2, a1: -2.2, d0: 5.3, d1: 6.3 },
-  { a0: 2.0, a1: 3.0, d0: 5.9, d1: 6.9 },
-  { a0: -3.0, a1: -2.0, d0: 9.3, d1: 10.3 },
-  { a0: 1.5, a1: 2.5, d0: 10.1, d1: 11.1 },
-  { a0: -0.95, a1: 0.15, d0: 12.3, d1: 13.3 },
-  { a0: -4.3, a1: -0.45, d0: 14.2, d1: 16.05 },
+  { a0: -3.6, a1: -0.35, d0: 2.6, d1: 4.05 },
+  { a0: -2.4, a1: -0.6, d0: 2.05, d1: 2.75 },
+  { a0: 1.85, a1: 2.85, d0: 1.15, d1: 2.15 },
+  { a0: -2.9, a1: -1.9, d0: 4.9, d1: 5.9 },
+  { a0: 1.3, a1: 2.3, d0: 5.7, d1: 6.7 },
+  { a0: -2.7, a1: -1.7, d0: 8.7, d1: 9.7 },
+  { a0: 1.05, a1: 2.05, d0: 9.5, d1: 10.5 },
+  { a0: -2.2, a1: -1.2, d0: 11.9, d1: 12.9 },
+  { a0: -3.5, a1: -0.45, d0: 14.3, d1: 15.9 },
 ];
 
 const ident: Frame = { mx: 0, mz: 0, ux: 1, uz: 0, nx: 0, nz: 1 };
@@ -138,12 +132,15 @@ function menuTexture() {
 }
 
 function addMenu(b: Builder, f: Frame, a: number, d: number, y0: number, y1: number, halfW: number) {
-  const p0 = pt(f, a - halfW, d, y0);
-  const p1 = pt(f, a + halfW, d, y0);
-  const p2 = pt(f, a + halfW, d, y1);
-  const p3 = pt(f, a - halfW, d, y1);
-  // faces the street (normal -inward) so guests and the open front both read it
-  b.quad([p0, p1, p2, p3], [-f.nx, 0, -f.nz], [1, 1, 1], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  const quad = (depth: number, normal: [number, number, number], uv: [[number, number], [number, number], [number, number], [number, number]]) => {
+    b.quad([
+      pt(f, a - halfW, depth, y0), pt(f, a + halfW, depth, y0),
+      pt(f, a + halfW, depth, y1), pt(f, a - halfW, depth, y1),
+    ], normal, [1, 1, 1], uv);
+  };
+  // street side, then the room side a couple of centimetres further in
+  quad(d, [-f.nx, 0, -f.nz], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  quad(d + 0.02, [f.nx, 0, f.nz], [[1, 0], [0, 0], [0, 1], [1, 1]]);
 }
 
 const up = new Vector3(0, 1, 0);
@@ -180,13 +177,13 @@ export function buildPastechi(group: Group, f: Frame) {
   }
   // threshold just outside the open front
   shell.quad(
-    [pt(f, -1.6, -0.55, 0.03), pt(f, 3.5, -0.55, 0.03), pt(f, 3.5, 0.18, 0.03), pt(f, -1.6, 0.18, 0.03)],
+    [pt(f, -2.25, -0.5, 0.03), pt(f, 2.25, -0.5, 0.03), pt(f, 2.25, 0.16, 0.03), pt(f, -2.25, 0.16, 0.03)],
     [0, 1, 0], TILE_B,
   );
 
   // ceiling and two warm light panels (unlit material, so these read as the shop lights)
   shell.quad(
-    [pt(f, -hw + 0.2, 0.3, 3.5), pt(f, hw - 0.2, 0.3, 3.5), pt(f, hw - 0.2, depth - 0.3, 3.5), pt(f, -hw + 0.2, depth - 0.3, 3.5)],
+    [pt(f, -hw + 0.28, 0.5, 3.42), pt(f, hw - 0.28, 0.5, 3.42), pt(f, hw - 0.28, depth - 0.35, 3.42), pt(f, -hw + 0.28, depth - 0.35, 3.42)],
     [0, -1, 0], [0.93, 0.92, 0.88],
   );
   for (const d of [2.2, 8.2]) {
@@ -196,36 +193,31 @@ export function buildPastechi(group: Group, f: Frame) {
     );
   }
 
-  // interior liners. Front is open under the sign: two piers and a header.
-  const liner = 0.08;
-  const doorL = -1.68, doorR = 3.56;
-  box(shell, f, -hw + 0.06, -hw + 0.06 + liner, 0.15, depth - 0.12, 0.05, 3.42, CREAM);
-  box(shell, f, hw - 0.06 - liner, hw - 0.06, 0.15, depth - 0.12, 0.05, 3.42, CREAM);
-  box(shell, f, -hw + 0.12, hw - 0.12, depth - 0.16, depth - 0.16 + liner, 0.05, 3.42, CREAM);
-  box(shell, f, -hw + 0.1, doorL, 0.02, 0.02 + liner, 0.02, 3.42, CREAM);
-  box(shell, f, doorR, hw - 0.1, 0.02, 0.02 + liner, 0.02, 3.42, CREAM);
-  box(shell, f, doorL, doorR, 0.02, 0.02 + liner, 2.42, 3.42, CREAM);
-  box(shell, f, -hw + 0.15, hw - 0.15, 0.12, 0.15, 3.05, 3.38, GREEN);
-  box(shell, f, doorL, doorR, 0.04, 0.1, 2.4, 2.56, GREEN);
-  box(shell, f, -hw + 0.12, doorL, 0.02, 0.1, 0.02, 0.16, RED);
-  box(shell, f, doorR, hw - 0.12, 0.02, 0.1, 0.02, 0.16, RED);
+  // Liners follow the slanted walls, inset so they sit inside the hero shell.
+  // The sign is on the street face above y 2.7; the opening stops below it.
+  const liner = 0.12;
+  const doorL = -2.4, doorR = 2.4;
+  box(shell, f, -hw + 0.18, -hw + 0.18 + liner, 0.4, depth - 0.25, 0.05, 3.52, CREAM);
+  box(shell, f, hw - 0.18 - liner, hw - 0.18, 0.4, depth - 0.25, 0.05, 3.52, CREAM);
+  box(shell, f, -hw + 0.25, hw - 0.25, depth - 0.3, depth - 0.3 + liner, 0.05, 3.52, CREAM);
+  box(shell, f, -hw + 0.2, doorL, 0.2, 0.2 + liner, 0.02, 2.22, CREAM);
+  box(shell, f, doorR, hw - 0.2, 0.2, 0.2 + liner, 0.02, 2.22, CREAM);
+  box(shell, f, doorL, doorR, 0.2, 0.2 + liner, 2.08, 2.26, CREAM);
+  box(shell, f, -hw + 0.22, doorL, 0.22, 0.32, 0.02, 0.14, RED);
+  box(shell, f, doorR, hw - 0.22, 0.22, 0.32, 0.02, 0.14, RED);
+  box(shell, f, doorL, doorR, 0.18, 0.3, 2.1, 2.24, GREEN);
 
-  // jambs a few centimetres proud of the red wall, under the existing sign
-  box(shell, f, doorL - 0.1, doorL + 0.1, -0.14, 0.16, 0, 2.52, CREAM);
-  box(shell, f, doorR - 0.1, doorR + 0.1, -0.14, 0.16, 0, 2.52, CREAM);
-  box(shell, f, doorL - 0.1, doorR + 0.1, -0.14, 0.16, 2.36, 2.56, CREAM);
-
-  // counter on the west side of the opening; the centre aisle stays walkable
-  box(shell, f, -4.2, -0.3, 2.9, 4.05, 0.04, 1.0, WOOD);
-  box(shell, f, -4.25, -0.25, 2.85, 4.1, 1.0, 1.06, TOP);
-  box(shell, f, -4.15, -0.35, 2.85, 2.96, 0.48, 0.98, GREEN);
-  box(shell, f, -2.15, -0.65, 2.25, 2.85, 1.06, 1.14, STEEL);
-  box(shell, f, -2.05, -0.75, 2.32, 2.78, 1.14, 1.18, GOLD);
+  // counter on one side of the opening; the centre aisle stays walkable
+  box(shell, f, -3.45, -0.45, 2.75, 3.9, 0.04, 1.0, WOOD);
+  box(shell, f, -3.5, -0.4, 2.7, 3.95, 1.0, 1.06, TOP);
+  box(shell, f, -3.4, -0.5, 2.7, 2.82, 0.48, 0.98, GREEN);
+  box(shell, f, -2.25, -0.7, 2.15, 2.7, 1.06, 1.14, STEEL);
+  box(shell, f, -2.15, -0.8, 2.22, 2.62, 1.14, 1.18, GOLD);
 
   // back kitchen counter
-  box(shell, f, -4.15, -0.55, 14.4, 15.9, 0.04, 0.92, STEEL);
-  box(shell, f, -3.2, -1.4, 14.6, 15.5, 0.92, 0.98, [0.2, 0.18, 0.16]);
-  box(shell, f, -3.0, -1.6, 14.75, 15.3, 0.98, 1.06, [1, 0.42, 0.08]);
+  box(shell, f, -3.4, -0.55, 14.4, 15.75, 0.04, 0.92, STEEL);
+  box(shell, f, -2.6, -1.2, 14.55, 15.4, 0.92, 0.98, [0.2, 0.18, 0.16]);
+  box(shell, f, -2.45, -1.35, 14.7, 15.2, 0.98, 1.06, [1, 0.42, 0.08]);
 
   // ceiling fan (static blades; the hub reads as the fans guests mention)
   box(shell, f, -0.08, 0.08, 7.9, 8.06, 3.15, 3.42, STEEL);
@@ -234,9 +226,6 @@ export function buildPastechi(group: Group, f: Frame) {
 
   const shellGeo = shell.geometry();
   const shellMat = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide });
-  shellMat.polygonOffset = true;
-  shellMat.polygonOffsetFactor = -2;
-  shellMat.polygonOffsetUnits = -2;
   const shellMesh = new Mesh(shellGeo, shellMat);
   shellMesh.name = "aw:pastechi:shell";
   shellMesh.castShadow = false;
@@ -246,7 +235,7 @@ export function buildPastechi(group: Group, f: Frame) {
   const tex = menuTexture();
   if (tex) {
     const boards = new Builder();
-    addMenu(boards, f, -2.15, 4.12, 1.42, 2.68, 1.15);
+    addMenu(boards, f, -1.9, 3.92, 1.4, 2.65, 1.05);
     addMenu(boards, f, 0.4, depth - 0.2, 1.35, 2.6, 1.05);
     const menu = new Mesh(boards.geometry(), new MeshBasicMaterial({ map: tex, side: DoubleSide }));
     menu.name = "aw:pastechi:menu";
@@ -258,7 +247,7 @@ export function buildPastechi(group: Group, f: Frame) {
   // glass warmer, open on the street side so the pastries read
   const glass = new Builder();
   const gcol: [number, number, number] = [0.75, 0.9, 0.95];
-  const y0 = 1.18, y1 = 1.48, a0 = -2.1, a1 = -0.7, d0 = 2.28, d1 = 2.82;
+  const y0 = 1.18, y1 = 1.48, a0 = -2.2, a1 = -0.75, d0 = 2.18, d1 = 2.66;
   glass.quad([pt(f, a0, d0, y1), pt(f, a1, d0, y1), pt(f, a1, d1, y1), pt(f, a0, d1, y1)], [0, 1, 0], gcol);
   glass.quad([pt(f, a0, d1, y0), pt(f, a0, d1, y1), pt(f, a0, d0, y1), pt(f, a0, d0, y0)], [-f.ux, 0, -f.uz], gcol);
   glass.quad([pt(f, a1, d0, y0), pt(f, a1, d0, y1), pt(f, a1, d1, y1), pt(f, a1, d1, y0)], [f.ux, 0, f.uz], gcol);
@@ -283,12 +272,12 @@ export function buildPastechi(group: Group, f: Frame) {
   tables.frustumCulled = false;
 
   const spots: [number, number][] = [
-    [2.35, 1.7],
-    [-2.7, 5.8],
-    [2.5, 6.4],
-    [-2.5, 9.8],
-    [2.0, 10.6],
-    [-0.4, 12.8],
+    [2.35, 1.65],
+    [-2.4, 5.4],
+    [1.8, 6.2],
+    [-2.2, 9.2],
+    [1.55, 10.0],
+    [-1.7, 12.4],
   ];
   spots.forEach(([a, d], i) => {
     sit(tables, i, f, a, d, [0, 1]);
@@ -317,8 +306,8 @@ export function buildPastechi(group: Group, f: Frame) {
   pastry.frustumCulled = false;
   const pscl = new Vector3(1.35, 0.45, 0.95);
   let pi = 0;
-  for (const a of [-1.85, -1.55, -1.25, -0.95]) {
-    for (const d of [2.42, 2.64]) {
+  for (const a of [-1.95, -1.6, -1.25, -0.9]) {
+    for (const d of [2.3, 2.52]) {
       const p = pt(f, a, d, 1.28);
       pos.set(p[0], p[1], p[2]);
       quat.setFromAxisAngle(up, a * 0.4);

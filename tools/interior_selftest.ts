@@ -4,7 +4,7 @@ import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } fr
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
-const doorHalf = 2.55;
+const doorHalf = 2.35;
 const wall = 0.34;
 const doorAt = world.doorAt ?? 0;
 
@@ -21,9 +21,9 @@ const cases: [string, number, number, boolean][] = [
   ["camera", doorAt, 13.4, true],
   ["counter", -2.2, 3.4, false],
   ["display", -1.4, 2.5, false],
-  ["front table", 2.35, 1.7, false],
-  ["side wall", 4.9, 3, false],
-  ["pier", -4.2, 0.05, false],
+  ["front table", 2.35, 1.65, false],
+  ["side wall", 4.0, 3, false],
+  ["pier", -3.6, 0.05, false],
   ["kitchen", -2, 15, false],
   ["too far out", doorAt, -3, false],
   ["east of building", 6.2, 4, false],
