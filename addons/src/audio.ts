@@ -96,7 +96,11 @@ export class WorldAudio {
     this.syncButtons();
     this.mountSetting(0);
     this.mountCredit(0);
-    addEventListener("pointerdown", () => { if (!this.muted) this.start(); }, { once: true });
+    // Capture, and keep listening until start() succeeds. A control that stops
+    // the event, or a first gesture that throws, used to consume the only chance
+    // and later taps never armed the engine.
+    const arm = () => { if (!this.muted) this.start(); };
+    addEventListener("pointerdown", arm, true);
     addEventListener("keydown", (e) => this.onKey(e, true));
     addEventListener("keyup", (e) => this.onKey(e, false));
     addEventListener("blur", () => { this.keyFwd = false; this.keyBrk = false; });

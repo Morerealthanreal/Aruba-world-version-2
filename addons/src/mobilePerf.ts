@@ -118,6 +118,7 @@ export class MobilePerf {
     let n = 0;
     while (this.texQ.length && n < max && performance.now() - t0 < 2) {
       const t = this.texQ.shift()!, img = t.image as { complete?: boolean } | null | undefined;
+      if ((t as Tex & { __awDead?: number }).__awDead) continue;
       if (t.version === 0 || !img || img.complete === false) { this.texQ.push(t); break; }
       if (r.properties.get(t).__version === t.version) continue;
       try { r.initTexture(t); } catch { /* image not ready */ }
@@ -175,7 +176,14 @@ export class MobilePerf {
       if (!this.keys.has(k)) { this.keys.add(k); add = true; }
       if (this.preUpload && o.visible) for (const slot of TEX) {
         const t = (m as unknown as Record<string, Tex | null>)[slot];
-        if (t && t.isTexture && !t.isCubeTexture && !this.seenTex.has(t)) { this.seenTex.add(t); this.texQ.push(t); }
+        if (t && t.isTexture && !t.isCubeTexture && !this.seenTex.has(t)) {
+          this.seenTex.add(t);
+          const tex = t as Tex & { __awDead?: number; addEventListener?: (type: string, fn: () => void) => void };
+          // A region dispose can fire while this texture is still queued. Uploading
+          // it afterwards creates a WebGL texture that nothing will delete.
+          tex.addEventListener?.("dispose", () => { tex.__awDead = 1; });
+          this.texQ.push(t);
+        }
       }
     }
     if (add) this.pend.push(o);

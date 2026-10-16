@@ -172,26 +172,26 @@ async function driveLeg(page, stop, leg) {
 
 // Renderer.info only counts geometries that have been drawn. Region rebuilds swap in
 // new chunk and road geometries while the previous copy was never drawn, so the GPU
-// count climbs even though the live scene does not. Draw every current geometry once,
-// including ones under a hidden parent, with a map-less material and LOD selection
-// paused, so a later dispose releases the upload.
+// count climbs even though the live scene does not. Draw those plain meshes once,
+// with a map-less material and LOD selection paused, so a later dispose releases
+// the upload. Instanced and batched meshes, and cells already copied into a batch,
+// are left alone: forcing them on screen kept WebGL buffer copies alive after the
+// mesh was removed.
 async function uploadSceneGeometries(page) {
   await page.evaluate(() => {
     const game = window.game;
     const saved = [];
     const lods = [];
     let blank = null;
-    const drawable = (object) =>
-      object.geometry && (object.isMesh || object.isPoints || object.isLine);
+    const skip = (object) =>
+      object.isInstancedMesh ||
+      object.isBatchedMesh ||
+      object.isSkinnedMesh ||
+      object.userData?.__awHid;
     game.scene.traverse((object) => {
       if (object.isLOD) lods.push(object);
-      if (
-        !blank &&
-        drawable(object) &&
-        object.material &&
-        !Array.isArray(object.material) &&
-        object.material.clone
-      ) {
+      if (!object.geometry || !(object.isMesh || object.isPoints || object.isLine) || skip(object)) return;
+      if (!blank && object.material && !Array.isArray(object.material) && object.material.clone) {
         blank = object.material.clone();
         for (const key of [
           "map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap",
@@ -204,15 +204,12 @@ async function uploadSceneGeometries(page) {
         frustumCulled: object.frustumCulled,
         material: object.material,
         onBeforeRender: object.onBeforeRender,
-        drawable: drawable(object),
       });
     });
     const nop = () => {};
     const sceneBefore = game.scene.onBeforeRender;
     const sceneAfter = game.scene.onAfterRender;
     try {
-      // Hidden ancestors and inactive LOD levels never reach the GPU, so a later
-      // dispose does not decrement the renderer count when that mesh is finally drawn.
       game.scene.onBeforeRender = nop;
       game.scene.onAfterRender = nop;
       for (const lod of lods) {
@@ -223,7 +220,7 @@ async function uploadSceneGeometries(page) {
         item.object.visible = true;
         item.object.frustumCulled = false;
         item.object.onBeforeRender = nop;
-        if (item.drawable && blank) item.object.material = blank;
+        if (blank) item.object.material = blank;
       }
       game.renderer.render(game.scene, game.camera);
     } finally {
@@ -232,10 +229,11 @@ async function uploadSceneGeometries(page) {
       for (const item of saved) {
         item.object.visible = item.visible;
         item.object.frustumCulled = item.frustumCulled;
-        if (item.drawable) item.object.material = item.material;
+        item.object.material = item.material;
         item.object.onBeforeRender = item.onBeforeRender;
       }
       for (const lod of lods) lod.update = lod.userData.awUpdate;
+      if (blank) blank.dispose();
     }
   });
 }
