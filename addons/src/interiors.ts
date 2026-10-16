@@ -601,13 +601,20 @@ export class Interiors {
     if (!entry?._g) return;
     const doorOn = p.doorOn, uU = p.uU, uN = p.uN, uM = p.uM, uY = p.uY;
     const half = { value: p.doorHalf }, top = { value: p.doorTop }, side = { value: p.doorSide };
+    let found = 0;
     entry._g.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh || !mesh.material) return;
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const mat of mats) this.patchMat(mat, p.cut, doorOn, uU, uN, uM, uY, half, top, side);
+      for (const mat of mats) {
+        if (p.cut.indexOf(mat.name || "") < 0) continue;
+        found++;
+        this.patchMat(mat, p.cut, doorOn, uU, uN, uM, uY, half, top, side);
+      }
     });
-    p.patched = true;
+    // The hero group can exist before its wall meshes arrive. Keep trying
+    // until a material we actually cut is on the model.
+    if (p.cut.length === 0 || found > 0) p.patched = true;
   }
 
   private patchMat(
