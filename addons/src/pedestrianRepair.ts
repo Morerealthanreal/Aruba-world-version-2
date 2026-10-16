@@ -274,27 +274,42 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     quad(4, 5, 1, 0);
     quad(3, 2, 6, 7);
 
-    const leg = (hip: Vector3, knee: Vector3, foot: Vector3, thighI: number, calfI: number) => {
+    const bulb = (center: Vector3, radius: number, bone: number) => {
+      const up = center.clone();
+      up.y += radius * 0.45;
+      const down = center.clone();
+      down.y -= radius * 0.45;
+      addTube(
+        [up, center.clone(), down],
+        [radius * 0.82, radius, radius * 0.82],
+        8, skinTile,
+        () => [bone, 0, 0, 0],
+        () => [1, 0, 0, 0],
+      );
+    };
+    const leg = (hip: Vector3, knee: Vector3, foot: Vector3, thighI: number, calfI: number, footI: number) => {
       const belowHip = hip.clone().lerp(knee, 0.02);
-      const overKnee = knee.clone().lerp(foot, 0.18);
-      const intoShoe = foot.clone().lerp(knee, -0.22);
+      const overKnee = knee.clone().lerp(foot, 0.22);
+      const intoShoe = foot.clone().lerp(knee, -0.35);
       addTube(
         [belowHip, knee.clone().lerp(hip, 0.35), overKnee],
-        [0.078, 0.062, 0.055],
+        [0.078, 0.064, 0.058],
         8, skinTile,
         () => [thighI, 0, 0, 0],
         () => [1, 0, 0, 0],
       );
       addTube(
-        [knee.clone().lerp(hip, 0.16), knee.clone().lerp(foot, 0.45), intoShoe],
-        [0.058, 0.048, 0.046],
+        [knee.clone().lerp(hip, 0.2), knee.clone().lerp(foot, 0.5), intoShoe],
+        [0.06, 0.05, 0.048],
         8, skinTile,
         () => [calfI, 0, 0, 0],
         () => [1, 0, 0, 0],
       );
+      bulb(knee, 0.062, thighI);
+      bulb(foot, 0.05, footI);
     };
-    leg(thighL, calfL, footL, thighLI, calfLI);
-    leg(thighR, calfR, footR, thighRI, calfRI);
+    leg(thighL, calfL, footL, thighLI, calfLI, names.get("foot_l")!);
+    leg(thighR, calfR, footR, thighRI, calfRI, names.get("foot_r")!);
   }
 
   if (longHair) {
