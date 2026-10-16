@@ -566,14 +566,18 @@ KITES = [
 
 
 def add_buoy(b: B, x, z, scale=1.0, lod1=True):
-    y = 0.40
-    r = 0.55 * scale
-    b.cyl(0, "buoy", x, y - 0.05, z, r, y + r * 0.95, r * 0.92, 10)
-    b.cyl(0, "buoyw", x, y + r * 0.15, z, r * 1.05, y + r * 0.48, r * 1.05, 10)
-    b.beam(0, "spar", (x, y + r * 0.4, z), (x, y + 1.7 * scale, z), 0.035 * scale, 0.035 * scale)
+    """Float plus a tall spar. The sea draws over anything under the horizon, so the spar has to reach the sky."""
+    y = 0.45
+    r = 0.62 * scale
+    b.cyl(0, "buoy", x, y - 0.02, z, r, y + r * 0.95, r * 0.9, 10)
+    b.cyl(0, "buoyw", x, y + r * 0.18, z, r * 1.05, y + r * 0.5, r * 1.05, 10)
+    top = y + 3.6 * scale
+    b.beam(0, "spar", (x, y + r * 0.3, z), (x, top, z), 0.045 * max(scale, 0.8), 0.045 * max(scale, 0.8))
+    b.box(0, "buoy", x, top - 0.7 * scale, z - 0.02, x + 0.55 * scale, top - 0.08, z + 0.02)
     if lod1:
-        s = r
-        b.box(1, "buoy", x - s, y - s * 0.2, z - s, x + s, y + s * 1.3, z + s)
+        s = max(r, 0.45)
+        b.box(1, "buoy", x - s, y, z - s, x + s, y + s * 1.2, z + s)
+        b.box(1, "spar", x - 0.08, y + s, z - 0.08, x + 0.08, top, z + 0.08)
 
 
 def add_divi(b: B, x, z, lean=1.7, h=3.4, yaw=math.pi):
@@ -696,23 +700,23 @@ def sand_sheet(b: B, mat, x0, z0, x1, z1, step, hmin, hmax, near_roads, roads, r
 
 
 def steps_west(b: B, x, z, n, run, width, rise):
-    """Concrete steps descending toward the sea (negative X), embedded in the slope."""
+    """Thin treads descending west. Thickness stays at the riser so a steep DEM cannot turn a step into a pillar."""
+    prev = None
+    thick = max(0.28, rise)
     for i in range(n):
         x1 = x - i * run
         x0 = x1 - run
-        top = None
-        # tread wants to step down, but stay glued to the ground
-        g = min(height(x0, z), height(x1, z), height((x0 + x1) / 2, z - width * 0.3), height((x0 + x1) / 2, z + width * 0.3))
-        gmax = max(height(x0, z), height(x1, z))
-        top = gmax + 0.08 - i * 0.02
-        # keep a visible riser against the previous tread
-        if i == 0:
-            top = max(top, g + 0.34)
-        bot = min(g, top - rise) - 0.08
-        if top - bot < 0.2:
-            bot = top - 0.28
+        g_back = height(x1, z)
+        g_mid = height((x0 + x1) * 0.5, z)
+        top = max(g_back, g_mid) + 0.04
+        if prev is not None:
+            top = min(top, prev - 0.05)
+        if top < 0.16:
+            break
+        bot = top - thick
         b.box(0, "conc", x0, bot, z - width / 2, x1, top, z + width / 2)
         b.box(1, "conc", x0, bot, z - width / 2, x1, top, z + width / 2)
+        prev = top
 
 
 def rock_arm(b: B, x, z, dx, dz, n=4):
@@ -784,7 +788,9 @@ def build():
     buildings = load_buildings()
     entries = []
 
-    # --- lighthouse tower on the DEM peak nearest the OSM node ---
+    # The monument tower already stands at the sea-shader point (-8840, -10365).
+    # A second shaft on the DEM peak reads as a duplicate, so this pass keeps that
+    # tower and only adds the dune scrub plus a low wall on the west viewpoint.
     node = ll(12.61377, -70.05135)
     best = None
     for dz in range(-36, 37, 2):
@@ -794,72 +800,12 @@ def build():
             if best is None or h > best[0]:
                 best = (h, x, z)
     ox, oz = best[1], best[2]
-    print(f"lighthouse peak {ox:.1f},{oz:.1f} h={best[0]:.2f} osm {node[0]:.1f},{node[1]:.1f}")
-    b = B(ox, oz, best[0])
-    b.mat("stone", STONE, 0.9)
-    b.mat("white", WHITE, 0.7)
-    b.mat("dome", DOME, 0.45)
-    b.mat("glass", GLASS, 0.25)
-    b.mat("door", DOOR, 0.8)
-    b.mat("rail", RAIL, 0.55)
-    b.mat("rock", ROCK, 0.95)
-    b.mat("rockw", ROCK_W, 0.95)
-    g = best[0]
-    # octagonal podium via a 8-side cylinder, then the tapered shaft
-    b.cyl(0, "stone", ox, g - 0.3, oz, 5.6, g + 1.15, 5.35, 8)
-    b.cyl(0, "stone", ox, g + 1.15, oz, 4.7, g + 2.35, 4.45, 8)
-    b.cyl(0, "stone", ox, g + 2.35, oz, 3.45, g + 24.0, 2.45, 16)
-    b.cyl(1, "stone", ox, g - 0.2, oz, 4.2, g + 24.0, 2.55, 8)
-    # door facing south (the lot is south of the peak, +Z)
-    b.box(0, "door", ox - 0.55, g + 0.05, oz + 4.15, ox + 0.55, g + 2.15, oz + 4.55)
-    for wy in (8.5, 14.5, 20.0):
-        b.box(0, "glass", ox + 3.15, g + wy, oz - 0.28, ox + 3.45, g + wy + 0.7, oz + 0.28)
-        b.box(0, "glass", ox - 0.28, g + wy + 1.5, oz - 3.35, ox + 0.28, g + wy + 2.15, oz - 3.05)
-    b.deck(0, "white", ox, g + 23.85, oz, 2.2, 3.85, 16, 0.28)
-    b.deck(1, "white", ox, g + 23.9, oz, 2.3, 3.6, 8, 0.3)
-    for i in range(12):
-        t = math.tau * i / 12
-        px, pz = ox + math.cos(t) * 3.55, oz + math.sin(t) * 3.55
-        b.box(0, "rail", px - 0.05, g + 24.15, pz - 0.05, px + 0.05, g + 25.05, pz + 0.05)
-    b.deck(0, "rail", ox, g + 24.95, oz, 3.35, 3.6, 12, 0.08)
-    b.cyl(0, "glass", ox, g + 24.7, oz, 2.05, g + 27.7, 1.9, 12)
-    b.cyl(0, "white", ox, g + 24.55, oz, 2.2, g + 24.85, 2.2, 12)
-    for i in range(8):
-        t = math.tau * i / 8
-        px, pz = ox + math.cos(t) * 2.05, oz + math.sin(t) * 2.05
-        b.box(0, "white", px - 0.06, g + 24.8, pz - 0.06, px + 0.06, g + 27.6, pz + 0.06)
-    b.deck(0, "white", ox, g + 27.65, oz, 1.5, 2.7, 12, 0.22)
-    b.cyl(0, "dome", ox, g + 27.9, oz, 2.15, g + 30.15, 0.18, 12)
-    b.cyl(0, "dome", ox, g + 30.15, oz, 0.28, g + 30.7, 0.28, 8)
-    b.cyl(1, "dome", ox, g + 24.2, oz, 2.3, g + 29.5, 0.25, 8)
-    # rubble skirt so the podium meets the slope, plus a low viewpoint wall to the west
-    for i in range(10):
-        t = math.tau * i / 10 + 0.2
-        rad = 6.4 + (i % 3) * 0.45
-        px, pz = ox + math.cos(t) * rad, oz + math.sin(t) * rad
-        tg = height(px, pz)
-        top = max(tg + 0.7, g + 0.15)
-        b.box_yaw(0, "rock" if i % 2 == 0 else "rockw", px, min(tg, g) - 0.25, pz, 1.15, top - min(tg, g) + 0.25, 0.85, t)
-    # viewpoint wall, west rim
-    for i in range(5):
-        pz = oz - 6 + i * 2.4
-        px = ox - 8.5
-        tg = height(px, pz)
-        b.box(0, "stone", px - 0.28, tg - 0.2, pz - 1.05, px + 0.28, tg + 0.85, pz + 1.05)
-    b.box(1, "stone", ox - 9, g - 1.5, oz - 7, ox - 8, g + 0.4, oz + 6)
-    tris = b.save(os.path.join(HERO, "nw_lh_tower.glb"), "nw_lh_tower")
-    entries.append(
-        entry(
-            "nw_lh_tower",
-            ox,
-            oz,
-            tris,
-            900,
-            "Wikipedia California Lighthouse: pale rubble-stone tower, octagonal basement, double gallery and lantern, 30 m, on Hudishibana. OSM node 540121391 snapped onto the DEM peak. Lantern is the dark metal cage visitors photograph; shaft is warm limestone rather than pure white.",
-            name="California Lighthouse",
-            new_place=True,
-        )
-    )
+    monument = (-8840.0, -10365.0)
+    print(f"lighthouse hill {ox:.1f},{oz:.1f} h={best[0]:.2f} monument {monument[0]:.0f},{monument[1]:.0f}")
+    tower_glb = os.path.join(HERO, "nw_lh_tower.glb")
+    if os.path.exists(tower_glb):
+        os.remove(tower_glb)
+
 
     # --- dune scrub around the hill, clear of the road, the lot, and the golf course ---
     b = B(ox, oz, best[0])
@@ -867,7 +813,9 @@ def build():
     b.mat("leaf0", LEAF, 0.85)
     b.mat("leaf1", LEAF_D, 0.85)
     b.mat("cact", CACT, 0.8)
-    avoid = [(-8870, -10340, 28), (-8858, -10350, 8), (ox, oz, 8)]
+    b.mat("stone", STONE, 0.92)
+    # lot, coconut stand, and the existing monument shaft
+    avoid = [(-8870, -10340, 28), (-8858, -10350, 8), (monument[0], monument[1], 11), (ox, oz, 6)]
     planted = {"divi": 0, "cact": 0, "grape": 0}
     for iz, z in enumerate(range(-10540, -10230, 16)):
         for ix, x in enumerate(range(-8960, -8740, 15)):
@@ -897,6 +845,15 @@ def build():
     add_cactus(b, ox - 12, oz + 10, h=2.4, arms=3)
     add_cactus(b, ox + 10, oz + 26, h=1.8, arms=2)
     add_grape(b, ox - 22, oz + 8, 1.3)
+    # low wall on the west viewpoint, beside the monument, not a second tower
+    for i in range(4):
+        pz = monument[1] - 3 + i * 2.5
+        px = monument[0] - 10
+        tg = height(px, pz)
+        if tg < 12:
+            continue
+        b.box(0, "stone", px - 0.28, tg - 0.15, pz - 1.05, px + 0.28, tg + 0.75, pz + 1.05)
+        b.box(1, "stone", px - 0.28, tg - 0.1, pz - 1.05, px + 0.28, tg + 0.55, pz + 1.05)
     print("dunes", planted, "tris pending")
     tris = b.save(os.path.join(HERO, "nw_lh_dunes.glb"), "nw_lh_dunes")
     entries.append(
@@ -920,7 +877,7 @@ def build():
     # Bow toward the northwest. Four buoys along about 100 m of the 120 m wreck.
     heading = (-0.72, -0.69)
     for t in (-50, -16, 16, 50):
-        add_buoy(b, ax + heading[0] * t, az + heading[1] * t, scale=1.35)
+        add_buoy(b, ax + heading[0] * t, az + heading[1] * t, scale=1.7)
     tris = b.save(os.path.join(HERO, "nw_antilla.glb"), "nw_antilla")
     entries.append(
         entry(
@@ -963,8 +920,8 @@ def build():
         gpad = height(pad_x, tz)
         b.box(0, "rock", pad_x - 1.6, gpad - 0.08, tz - 7, pad_x + 1.6, gpad + 0.06, tz + 7)
         b.box(1, "rock", pad_x - 1.6, gpad - 0.05, tz - 7, pad_x + 1.6, gpad + 0.05, tz + 7)
-    add_cactus(b, tx + 4, tz - 6, h=1.5, arms=2)
-    add_cactus(b, tx + 2, tz + 7, h=1.2, arms=2)
+    add_cactus(b, tx + 12, tz - 14, h=1.5, arms=2)
+    add_cactus(b, tx + 9, tz + 12, h=1.2, arms=2)
     add_divi(b, tx + 8, tz + 3, lean=1.5, h=2.8, yaw=math.pi)
     tris = b.save(os.path.join(HERO, "nw_tres.glb"), "nw_tres")
     entries.append(
@@ -1004,27 +961,30 @@ def build():
             break
         x -= 1
     print(f"  boca cliff x={cliff:.0f} h={height(cliff, bz):.2f}")
-    # Eight treads down the face, from the lip to the water.
-    lip = cliff + 4
-    lip_h = height(lip, bz)
-    for i in range(8):
-        x1 = lip - i * 1.15
-        x0 = x1 - 1.15
-        top = lip_h - i * 0.42
-        if top < 0.2:
+    # Only where the shelf is still gentle. Past the lip the rendered slope falls
+    # faster than a point sample, and a tread there floats in the air.
+    x1 = cliff + 5.5
+    placed = 0
+    while placed < 5 and x1 > cliff + 0.4:
+        x0 = x1 - 0.75
+        g1, g0 = height(x1, bz), height(x0, bz)
+        if g1 - g0 > 0.55 or g0 < 0.4:
             break
-        g0 = min(height(x0, bz), height(x1, bz), height(x0, bz - 1), height(x1, bz + 1))
-        bot = min(g0, top - 0.42) - 0.08
-        b.box(0, "conc", x0, bot, bz - 1.2, x1, top, bz + 1.2)
-        if i % 2 == 0:
-            b.box(1, "conc", x0, bot, bz - 1.1, x1, top, bz + 1.1)
+        top = min(g1, g0) + 0.08
+        b.box(0, "conc", x0, top - 0.26, bz - 1.0, x1, top, bz + 1.0)
+        if placed % 2 == 0:
+            b.box(1, "conc", x0, top - 0.22, bz - 0.9, x1, top, bz + 0.9)
+        placed += 1
+        x1 = x0
+    print(f"  boca steps {placed}")
     rock_arm(b, cliff + 2, bz - 5, -1.1, -0.15, 5)
     rock_arm(b, cliff + 1, bz + 5, -1.05, 0.12, 4)
     # sand pocket at the foot of the cliff, just above the water
     foot = cliff - 2
-    gsand = max(0.25, height(foot, bz))
-    b.box(0, "sand", foot - 6, 0.12, bz - 5, foot + 2, gsand + 0.1, bz + 4)
-    b.box(1, "sand", foot - 5, 0.15, bz - 4, foot + 1, gsand + 0.08, bz + 3)
+    gsand = height(foot, bz)
+    sand_top = 0.26 if gsand < 0.15 else min(gsand + 0.05, 0.65)
+    b.box(0, "sand", foot - 4, sand_top - 0.1, bz - 3.5, foot + 1.2, sand_top, bz + 3)
+    b.box(1, "sand", foot - 3, sand_top - 0.08, bz - 2.8, foot + 0.6, sand_top, bz + 2.4)
     wx = cliff - 1
     while wx > cliff - 30 and height(wx, bz) > 0.05:
         wx -= 2
@@ -1083,9 +1043,9 @@ def build():
         wx -= 2
     add_buoy(b, wx - 5, cz - 2, 0.7)
     add_buoy(b, wx - 3, cz + 3.5, 0.65, lod1=False)
-    add_grape(b, cx + 8, cz - 3, 1.15)
-    add_divi(b, cx + 12, cz + 4, 1.7, 3.0, math.pi)
-    add_cactus(b, cx + 6, cz + 6, 1.3, 2)
+    add_grape(b, cx + 9, cz - 5, 1.15)
+    add_divi(b, cx + 18, cz + 9, 1.7, 3.0, math.pi)
+    add_cactus(b, cx + 14, cz + 2, 1.3, 2)
     tris = b.save(os.path.join(HERO, "nw_malmok_cove.glb"), "nw_malmok_cove")
     entries.append(
         entry(
@@ -1117,24 +1077,37 @@ def build():
         b.mat(f"hut{i}", rgb, 0.84)
     for i, rgb in enumerate(KITES):
         b.mat(f"kite{i}", rgb, 0.55)
+    def on_house(x, z, road):
+        for bld in buildings:
+            if bld["cx"] > road + 6 or abs(bld["cz"] - z) > 30:
+                continue
+            xs = [p[0] for p in bld["p"]]
+            zs = [p[1] for p in bld["p"]]
+            if min(xs) - 3 <= x <= max(xs) + 3 and min(zs) - 3 <= z <= max(zs) + 3:
+                return True
+        return False
+
     huts = []
-    z = hz - 280
-    while z < hz + 220 and len(huts) < 8:
+    # Open sand, seaward of the beach houses and clear of the sail rack.
+    for z in (-7400, -7364, -7332, -7296, -7236, -7204):
         rd = road_x(roads, z, {"Avenida Nelson O. Oduber", "L.G. Smith Boulevard"})
-        if rd:
-            x = rd[0] - 16
-            for _ in range(24):
-                if 0.6 <= height(x, z) <= 1.35:
-                    break
-                x -= 3
-            # On the sand, seaward of the carriageway, clear of the existing sail rack.
+        if not rd:
+            continue
+        x = rd[0] - 14
+        placed = None
+        for _ in range(30):
+            h = height(x, z)
             if (
-                0.55 <= height(x, z) <= 1.5
-                and rd[0] - 70 <= x <= rd[0] - 14
-                and math.hypot(x + 8260, z + 7260) > 26
+                x <= rd[0] - 16
+                and not on_house(x, z, rd[0])
+                and 0.55 <= h <= 1.4
+                and math.hypot(x + 8260, z + 7260) > 14
             ):
-                huts.append((x, z))
-        z += 52
+                placed = x
+                break
+            x -= 2.5
+        if placed is not None and dist_roads(roads, placed, z, COAST) >= 9:
+            huts.append((placed, z))
     print("  huts", [(round(p[0], 1), round(p[1], 1)) for p in huts])
     for i, (x, z) in enumerate(huts):
         roof = "thatch" if i % 2 == 0 else "metal"
@@ -1146,22 +1119,7 @@ def build():
     add_divi(b, hx + 6, hz + 30, 2.1, 3.5, math.pi)
     add_divi(b, hx - 4, hz - 80, 1.8, 3.2, math.pi)
     add_cactus(b, hx + 10, hz - 20, 1.8, 2)
-    sand_sheet(
-        b,
-        "sand",
-        hx - 70,
-        hz - 180,
-        hx + 15,
-        hz + 140,
-        12,
-        0.35,
-        1.55,
-        True,
-        roads,
-        {"Avenida Nelson O. Oduber", "L.G. Smith Boulevard"},
-    )
-    # lod1 stand-ins for the kites were boxes; huts already wrote lod1. Add a sand lod1 slab.
-    b.box(1, "sand", hx - 40, height(hx, hz) - 0.05, hz - 80, hx, height(hx, hz) + 0.05, hz + 60)
+    # The beach is already sand. A second sheet leaves a hard white rectangle.
     tris = b.save(os.path.join(HERO, "nw_hadi.glb"), "nw_hadi")
     entries.append(
         entry(
@@ -1205,11 +1163,19 @@ def build():
             continue
         gnd = best[0]
         yaw = 0.04 * ((k % 3) - 1)
-        for sx, sz in ((-1.6, -1.6), (1.6, -1.6), (-1.6, 1.6), (1.6, 1.6)):
-            b.box_yaw(0, "wood", x + sx, gnd - 0.1, z + sz, 0.08, 2.2, 0.08, yaw)
-        b.box_yaw(0, "thatch", x, gnd + 2.1, z, 2.55, 0.32, 2.55, yaw)
-        b.box_yaw(0, "thatch", x, gnd + 2.35, z, 1.35, 0.2, 1.35, yaw)
-        b.box_yaw(1, "thatch", x, gnd + 2.05, z, 2.4, 0.4, 2.4, yaw)
+        c, s = math.cos(yaw), math.sin(yaw)
+        for sx, sz in ((-1.7, -1.7), (1.7, -1.7), (-1.7, 1.7), (1.7, 1.7)):
+            px = x + sx * c - sz * s
+            pz = z + sx * s + sz * c
+            b.box(0, "wood", px - 0.08, gnd - 0.08, pz - 0.08, px + 0.08, gnd + 2.15, pz + 0.08)
+        roof = [
+            (x - 2.45 * c + 2.45 * s, z - 2.45 * s - 2.45 * c),
+            (x + 2.45 * c + 2.45 * s, z + 2.45 * s - 2.45 * c),
+            (x + 2.45 * c - 2.45 * s, z + 2.45 * s + 2.45 * c),
+            (x - 2.45 * c - 2.45 * s, z - 2.45 * s + 2.45 * c),
+        ]
+        b.hip(0, "thatch", roof, gnd + 2.05, 0.9)
+        b.box_yaw(1, "thatch", x, gnd + 2.05, z, 2.3, 0.5, 2.3, yaw)
         palapas += 1
     print(f"  palapas {palapas}")
     sand_sheet(b, "sand", arx - 95, arz - 90, arx - 40, arz + 55, 10, 0.3, 2.0, True, roads, COAST)
@@ -1400,8 +1366,8 @@ def build():
 
     # manifest
     data = json.loads(open(MANIFEST).read())
-    ids = {e["id"] for e in entries}
-    data = [e for e in data if e.get("id") not in ids]
+    # Replace every nw_ entry so a dropped model (the duplicate tower) leaves the manifest.
+    data = [e for e in data if not str(e.get("id", "")).startswith("nw_")]
     data.extend(entries)
     out = json.dumps(data, indent=1)
     if not out.endswith("\n"):
