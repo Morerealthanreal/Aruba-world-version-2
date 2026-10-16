@@ -526,6 +526,13 @@ def patch_manifest(stair, fontein, conchi):
     )
     if n:
         text = text2
+    text2, n = re.subn(
+        r'("id": "conchi",\n  "k": "conchi",\n  "name": "Conchi \(Natural Pool\)",\n  "status": "accuracy-b2",\n  "x": 4498.86,\n  "z": -495.46,\n  "y": )0,',
+        r'\g<1>-0.35,',
+        text, count=1,
+    )
+    if n:
+        text = text2
     text, n = re.subn(
         r'"hooiberg_steps_lod0": \d+,\n   "hooiberg_steps_lod1": \d+',
         f'"hooiberg_steps_lod0": {stair["lod0"]},\n   "hooiberg_steps_lod1": {stair["lod1"]}',

@@ -60703,7 +60703,7 @@
   "status": "accuracy-b2",
   "x": 4498.86,
   "z": -495.46,
-  "y": 0,
+  "y": -0.35,
   "rotation": 0,
   "glb": "models/hero/conchi.glb",
   "lod": {
