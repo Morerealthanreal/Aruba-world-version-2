@@ -48,6 +48,7 @@ import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
+import { holdMissingHeroes } from "./missingHeroes";
 
 // Set synchronously so the minified-bundle hooks can preserve stock handling when
 // either the whole add-on suite or just the motorcycle pass is disabled.
@@ -58,6 +59,7 @@ async function main() {
   if (params.get("addons") === "0") return;
   if (params.get("hud") !== "0") mountHud();
   const g = await whenGameReady();
+  holdMissingHeroes(g.real as never);
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
