@@ -63097,5 +63097,35 @@
   "ref_sources": "Ground photos Commons 'Community Church Seroe Colorado' 2018: white walls, steep red gables, stone buttresses, round window, small sunday-school chapel. OSM way 97566669.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
+ },
+ {
+  "id": "eb_dusk",
+  "k": "eb_dusk",
+  "name": "Eagle Beach dusk lights, shallows, and sea grape",
+  "status": "eagle-strip",
+  "x": -9522.2,
+  "z": -3414.32,
+  "y": 0,
+  "rotation": 0,
+  "glb": "models/hero/eb_dusk.glb",
+  "lod": {
+   "hi": "eb_dusk_lod0",
+   "lo": "eb_dusk_lod1",
+   "switch_m": 380
+  },
+  "tris": {
+   "eb_dusk_lod0": 5868,
+   "eb_dusk_lod1": 4588
+  },
+  "textures": 0,
+  "hide_footprint": [],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "Esri World Imagery shore and dune along Eagle Beach and Manchebo",
+  "ref_sources": "Sea grape is the low round bush on the dune between the sand and J.E. Irausquin, placed where the aerial is dark green and clear of the fofoti. A colour sheet in the shallows shadowed the dry sand, so the beach grain and the island water shader stay as they are. Hotel windows sit on the beach face of each resort hero. Boulevard lamps and the palapa-bar strings are emissive glow, the same cheap night read used elsewhere on the map. Existing resort heroes and the fofoti sets are left in place. Original geometry.",
+  "frame": "glb origin = centroid of the sea grape and the shallow samples; landmarks/eagle_dusk.py",
+  "cat": "landmark"
  }
 ]
