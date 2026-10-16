@@ -13,28 +13,21 @@ References are visual guides only. Nothing below is a pasted photo.
 5. **Zeerovers, Savaneta** (OSM way 639821170). Same origin and footprint. Open roof, posts, picnic tables, blue `ZEEROVERS` sign toward the road. Neighbouring beach buildings still crowd the road approach.
 6. **Arikok visitor centre** (OSM way 169938948). Same origin and footprint. The old high LOD used an uncoloured white wall. Walls are now stone, with a dark plinth, a deep eave, and a sign reading `PARKE NACIONAL ARIKOK`.
 
-## Batch 2 — PR #31, not in this branch
+## Owned, still wrong (next batches)
 
-Queued for shipping on `cursor/accuracy-churches-caves-8f38`. Not edited here, and not present on this branch: Hooiberg raised to 165 m with the stairs reseated, Santa Cruz / Savaneta / Seroe Colorado churches, Fontein, Quadirikiri, Natural Pool, and the owned-highway centre dashes.
+1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
+2. **Santa Cruz parish church** and **Savaneta church** are not in the landmark list. The Santa Cruz fast-food strip and Savaneta shops exist; the churches do not.
+3. **Seroe Colorado Community Church** is a pin with no building.
+4. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
+5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
 
-## Batch 3 — done in this change
+## Water tower — done in this change
 
-1. **Nicolaas Store, San Nicolas Main Street.** Main Street is B. van der Veen Zeppenfeldstraat. The store is the yellow two-storey corner from the Commons photo: white cornice and pilasters, pink-red hip roof, brown upper windows, `NICOLAAS STORE` on the street face, and the turquoise one-storey neighbour. `sn_*` murals, including the Alankar facade next door, were not edited.
-2. **Charlie's block.** Charlie's Bar is unchanged. The OSM shop lots immediately west (Giordano, Collexion, Dragon, Chong's) and east (Laura's, Union Caribe, Chica Cafe) that are not in the `sn_murals` hide list are now one-storey pastel fronts with awnings. The mural lots stay with their owner.
-3. **Refinery skyline.** Columns, a tall stack with a dark cap and a flare, and three white tanks sit on the OSM chimney cluster east of town (origin 8000, 10600) so the skyline loads from San Nicolas and from the Rodgers Beach road. It does not replace `sn_solarpark`.
-4. **Baby Beach and Rodgers Beach.** Thatch palapas (and a few pale rocks) on the sand east of Rum Reef, clear of Rum Reef, Big Mama, Secrets and the lettered wall. Rodgers Beach has palapas on the land side of the lagoon and three small fishing boats pulled up on the sand, at the same height as the beach so they do not hang over the lagoon. Those existing beach heroes were not replaced.
-5. **Cunucu houses.** One street-facing house on the main road of Paradera, Piedra Plat, Tanki Leendert, Sabana Basora and Pos Chiquito: coloured walls, red or orange hip roof, porch, low fence with white caps. The Tanki house has a cactus row. This is a sample of the driver's view, not a replacement for every lot. San Nicolas keeps its existing house kit.
-6. **Balashi brewery.** Same origin and footprint. White hall, blue fascia, `BALASHI` sign toward the road, fermenters, beer-garden canopy. The fence, roadside sign and comms tower heroes are unchanged.
-7. **WEB Balashi.** `web_balashi_tanks` was already a tank farm (about 3,000 triangles) and was left in place. A roadside gate on the Balashi W.E.B. road reads `W.E.B. BALASHI`.
-8. **Highway sidewalks and curbs.** `sw=1` on 169 owned class 3+ segments at least 6.5 m wide that are not underground and not roundabout aprons, outside Noord, Palm/Eagle and the hotel strip. Town streets that already had sidewalks were left as they were. On Watty Vos the built road shows the curb as a dark edge beside the white line. The paver strip is close in colour to the sand shoulder.
-
-## Owned, still open
-
-1. **Museum of Industry water tower** (`museumindustry`, OSM 7004) already has a model. Its shape was not rechecked from the road in this pass.
-2. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
-3. **Rest of Main Street and the inland towns.** Only Nicolaas plus the Charlie's block, and one cunucu house per inland town, were built. Most other lots are still generic masses or the San Nicolas house kit.
-4. **Refinery up close.** The skyline reads at a distance. Individual pipe racks and the harbour were not modelled.
-5. **Open Arikok highway.** Wide owned class-3 segments through the park got the same curb flag as the town approaches. A desert stretch may want a shoulder rather than a town sidewalk; check from the driver's seat and narrow it if it looks wrong.
+**Museum of Industry, San Nicolas** (OSM 7004), same origin and node names. From Bernhardstraat the old hero was a low white hall. It is now the yellow cylinder from the Commons photo: tan ribs, dark cap, a small clock on the north face, a blue glass drum on the street side, and a low yellow wing with `MUSEUM OF INDUSTRY`. The shaft is about 36 m so it reads against the one-storey town. The mural set was not edited.
+6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
+7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
+8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
+9. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
 
 ## Off limits — for their owners
 
