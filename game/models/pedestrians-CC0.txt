@@ -23,7 +23,8 @@ The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
 
 - The LOD files retain Idle_Standing and Walk_Relaxed as a fallback.
   The live walk, run, and idle cycles are the separate locomotion.glb clips.
-- The long hair cards are replaced at load with a solid head-skinned volume.
+- The long hair cards are replaced at load with a volume parented to the head bone.
+  A neck weighted to the neck bone joins the head to the shoulders.
   The dress cone is replaced with a short thigh-weighted skirt and visible legs.
 - Bake skin, face, hair, and fabric into a hand-painted 4x4 texture atlas.
 - Add near and reduced mid-distance mesh LODs.

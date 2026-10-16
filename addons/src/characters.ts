@@ -178,21 +178,34 @@ function faceCardMaterial(kind: number): MeshBasicMaterial {
   });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uAwCrop = { value: crop };
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying float vAwCard;`,
+      )
+      .replace(
+        "#include <project_vertex>",
+        `#include <project_vertex>
+vAwCard = normalize(mat3(modelViewMatrix) * vec3(0.0, 0.0, 1.0)).z;`,
+      );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
         `#include <common>
-uniform vec4 uAwCrop;`,
+uniform vec4 uAwCrop;
+varying float vAwCard;`,
       )
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
 vec2 awC = vMapUv - vec2(0.5, 0.46);
+if (vAwCard > -0.45) discard;
 if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
 diffuseColor = vec4(texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb, 1.0);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v1";
+  material.customProgramCacheKey = () => "aw-face-card-v2";
   faceCardMaterials[kind] = material;
   return material;
 }
@@ -331,7 +344,7 @@ function tileCondition(tiles: unknown, variable: string) {
   return tiles.map((tile) => `abs(${variable} - ${Number(tile).toFixed(1)}) < 0.25`).join(" || ");
 }
 
-function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, phase: number) {
+function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, phase: number, hairVolume = false) {
   const material = source.clone();
   const metadata = source.userData.awPainterly as {
     grid?: number;
@@ -383,7 +396,8 @@ uniform float uAwPedTime;
 uniform float uAwPedPhase;
 uniform vec3 uAwSunDir;
 uniform mat4 uAwHeadInv;
-varying vec3 vAwHead;`,
+varying vec3 vAwHead;
+varying float vAwFaceDot;`,
       )
       .replace(
         "#include <begin_vertex>",
@@ -405,7 +419,9 @@ if (${dressVertex}) {
       .replace(
         "#include <project_vertex>",
         `#include <project_vertex>
-vAwHead = (uAwHeadInv * vec4(transformed, 1.0)).xyz;`,
+vAwHead = (uAwHeadInv * vec4(transformed, 1.0)).xyz;
+vec3 awCamHead = (uAwHeadInv * inverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
+vAwFaceDot = awCamHead.z / max(length(awCamHead), 0.001);`,
       );
     s.fragmentShader = s.fragmentShader
       .replace(
@@ -418,7 +434,8 @@ uniform vec3 uAwPedBottom;
 uniform vec3 uAwPedDress;
 uniform vec3 uAwSunDir;
 uniform float uAwPortrait;
-varying vec3 vAwHead;`,
+varying vec3 vAwHead;
+varying float vAwFaceDot;`,
       )
       .replace(
         "#include <map_fragment>",
@@ -430,7 +447,7 @@ if (uAwPortrait > 0.5) {
   float awOval = (awP.x * awP.x) / 0.003844 + (awP.y * awP.y) / 0.007744;
   awFace = smoothstep(0.015, 0.06, vAwHead.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
   float awCut = (awP.x * awP.x) / 0.0036 + (awP.y * awP.y) / 0.0196;
-  if (awCut < 1.0 && vAwHead.z > -0.04 && vAwHead.y > -0.082) discard;
+  if (${hairVolume ? "false" : "awCut < 1.0 && vAwHead.z > -0.04 && vAwHead.y > -0.082 && vAwFaceDot > 0.42"}) discard;
 }
 if (${skinFragment}) {
   diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
@@ -466,7 +483,7 @@ if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v6:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v7:${hairVolume ? "hair" : "body"}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -483,7 +500,7 @@ export function styleCharacter(
     const mesh = object as Mesh;
     if (!mesh.isMesh) return;
     const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
-    const { material, uniforms } = paintMaterial(source, palette, phase);
+    const { material, uniforms } = paintMaterial(source, palette, phase, mesh.name === "aw:hair");
     mesh.material = material;
     mesh.castShadow = false;
     mesh.receiveShadow = true;

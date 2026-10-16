@@ -5,7 +5,7 @@
 import {
   AnimationMixer, Group, type AnimationAction, type Object3D, type SkinnedMesh,
 } from "three";
-import { createLoco, loadLocomotion, slewYaw, stepLoco, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
+import { createLoco, loadLocomotion, slewYaw, stepLoco, straightenDress, swingFemaleArms, type Loco, type LocoClips } from "./locomotion";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
@@ -315,6 +315,7 @@ export class PedestrianCrowds {
         if (dt > 0) {
           stepLoco(rig.loco, walker.speed, dt, walker.height);
           if (rig.kind === 0 || rig.kind === 1) swingFemaleArms(rig.inner, rig.loco);
+          if (rig.kind === 1) straightenDress(rig.inner, rig.loco);
         }
       } else if (rig.walk && dt > 0) {
         rig.walk.timeScale = 0.85 + walker.speed * 0.18;

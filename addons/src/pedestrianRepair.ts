@@ -3,8 +3,8 @@
 // a stack of flat cards. Both are rebuilt on the merged skin so every clone
 // shares the result. The walk clip itself is unchanged — the player uses it.
 import {
-  BufferGeometry, Float32BufferAttribute, Matrix4, Uint16BufferAttribute, Vector3,
-  type SkinnedMesh,
+  BufferGeometry, Float32BufferAttribute, Matrix4, Mesh, Uint16BufferAttribute, Vector3,
+  type Material, type SkinnedMesh,
 } from "three";
 
 type Tiles = { grid?: number; tiles?: Record<string, number[]> };
@@ -17,6 +17,76 @@ const _meshInv = new Matrix4();
 
 function tileOf(u: number, v: number, grid: number) {
   return Math.floor(u * grid) + grid * Math.floor(v * grid);
+}
+
+/**
+ * Hair volume parented to the head bone, in that bone's local space
+ * (+Y up the skull, +Z out of the face). The shell covers the scalp and
+ * falls from the occiput. It stays off the face, so it cannot sit on the
+ * shoulders or cross in front of the nose.
+ */
+function parentHairToHead(
+  headBone: SkinnedMesh["skeleton"]["bones"][number],
+  material: Material | Material[],
+  hairTile: number,
+  grid: number,
+) {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const sides = 9;
+  const a0 = Math.PI * 0.78;
+  const a1 = Math.PI * 2.22;
+  const rings = 10;
+  const centerAt = (t: number) => {
+    const y = 0.145 - t * 0.52;
+    const settle = Math.sin(Math.min(t, 0.4) / 0.4 * Math.PI * 0.5);
+    const z = 0.01 - settle * 0.07 - Math.max(0, t - 0.4) * 0.05;
+    const radius = t < 0.36 ? 0.09 - t * 0.015 : Math.max(0.03, 0.084 - (t - 0.36) * 0.08);
+    return { y, z, radius };
+  };
+  const push = (x: number, y: number, z: number, along: number, around: number) => {
+    const id = positions.length / 3;
+    positions.push(x, y, z);
+    const tex = tileUV(hairTile, grid, around, along);
+    uvs.push(tex[0], tex[1]);
+    return id;
+  };
+  for (let i = 0; i <= rings; i++) {
+    const t = i / rings;
+    const c = centerAt(t);
+    for (let s = 0; s < sides; s++) {
+      const u = s / (sides - 1);
+      const ang = a0 + u * (a1 - a0);
+      push(Math.cos(ang) * c.radius * 1.02, c.y, c.z + Math.sin(ang) * c.radius, t, u);
+    }
+  }
+  for (let i = 0; i < rings; i++) {
+    for (let s = 0; s < sides - 1; s++) {
+      const a = i * sides + s;
+      const b = a + 1;
+      const c = a + sides;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const crown = centerAt(0);
+  const cap = push(0, crown.y + 0.025, crown.z - 0.01, 0, 0.5);
+  for (let s = 0; s < sides - 1; s++) indices.push(cap, s + 1, s);
+
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const hair = new Mesh(geo, material);
+  hair.name = "aw:hair";
+  hair.frustumCulled = false;
+  hair.castShadow = false;
+  hair.receiveShadow = true;
+  const previous = headBone.children.find((child) => child.name === "aw:hair");
+  if (previous) headBone.remove(previous);
+  headBone.add(hair);
 }
 
 function tileUV(tile: number, grid: number, around: number, along: number): [number, number] {
@@ -116,9 +186,13 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
   const triCount = indexAttr.count / 3;
   const dropHair = new Set<number>();
   const dropDress = new Set<number>();
+  const dropSliver = new Set<number>();
   for (let t = 0; t < triCount; t++) {
     const a = indexAttr.getX(t * 3);
     const tile = tileOf(uv.getX(a), uv.getY(a), grid);
+    // Eyebrow and eyelash cards sit just proud of the face and read as a
+    // thin sliver from the side. The portrait card carries those features.
+    if (tile === 0 || tile === 1) dropSliver.add(t);
     if (dressTiles.has(tile)) {
       dressTris++;
       dropDress.add(t);
@@ -156,7 +230,7 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     return id;
   };
   for (let t = 0; t < triCount; t++) {
-    if (dropDress.has(t)) continue;
+    if (dropDress.has(t) || dropSliver.has(t)) continue;
     if (longHair && dropHair.has(t)) continue;
     indices.push(take(indexAttr.getX(t * 3)), take(indexAttr.getY(t * 3)), take(indexAttr.getZ(t * 3)));
   }
@@ -312,42 +386,30 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     leg(thighR, calfR, footR, thighRI, calfRI, names.get("foot_r")!);
   }
 
-  if (longHair) {
-    const onlyHead = () => [head, 0, 0, 0];
-    const full = () => [1, 0, 0, 0];
-    const segments = 11;
+  // The skull mesh never reaches the back of the neck, so the head reads as
+  // floating. A short neck, weighted to the neck bone, closes that gap.
+  const neckI = names.get("neck_01");
+  const neckP = bonePos("neck_01");
+  if (neckI !== undefined && neckP) {
+    const axis = headP.clone().sub(neckP);
+    const length = axis.length() || 0.1;
+    const up = axis.multiplyScalar(1 / length);
+    const rings = 5;
     const centers: Vector3[] = [];
     const radii: number[] = [];
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const wave = Math.sin(t * Math.PI * 2.6) * 0.045;
-      // Starts on the crown and sweeps down the back, so the scalp is covered.
-      const crown = Math.cos(t * Math.PI * 0.5);
-      centers.push(new Vector3(
-        headP.x,
-        headP.y + 0.15 * crown + 0.02 - t * 0.62,
-        headP.z + 0.03 - t * 0.22 + wave * t,
-      ));
-      radii.push(0.07 * (1 - t * 0.35) + 0.02);
+    for (let i = 0; i <= rings; i++) {
+      const t = i / rings;
+      centers.push(neckP.clone().addScaledVector(up, length * (0.02 + t * 0.9)));
+      radii.push(0.046 + t * 0.008);
     }
-    addTube(centers, radii, 8, hairTile, onlyHead, full);
-    const lock = (side: number) => {
-      const pts: Vector3[] = [];
-      const rs: number[] = [];
-      for (let i = 0; i <= 7; i++) {
-        const t = i / 7;
-        pts.push(new Vector3(
-          headP.x + side * (0.11 + t * 0.012),
-          headP.y + 0.05 - t * 0.48,
-          headP.z - 0.01 + Math.sin(t * Math.PI * 2) * 0.016,
-        ));
-        rs.push(0.03 * (1 - t * 0.25));
-      }
-      addTube(pts, rs, 6, hairTile, onlyHead, full);
-    };
-    lock(1);
-    lock(-1);
+    addTube(
+      centers, radii, 10, skinTile,
+      () => [neckI, head, 0, 0],
+      (t) => [1 - t * 0.8, t * 0.8, 0, 0],
+    );
   }
+
+  if (longHair) parentHairToHead(mesh.skeleton.bones[head], mesh.material, hairTile, grid);
 
   const offset = pos.length / 3;
   for (const value of acc.pos) pos.push(value);
@@ -370,7 +432,7 @@ export function repairCharacterGeometry(mesh: SkinnedMesh) {
     "[aw-characters] clothing",
     mesh.name || "skin",
     dressTris ? "skirt+legs" : "no-skirt",
-    longHair ? "solid-hair" : "hair-kept",
+    longHair ? "head-hair" : "hair-kept",
     "tris", Math.round(indices.length / 3),
   );
 }

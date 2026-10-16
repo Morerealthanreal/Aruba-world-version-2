@@ -166,6 +166,21 @@ export function swingFemaleArms(root: Object3D, loco: Loco) {
   turn("lowerarm_r", swing * 0.16);
 }
 
+/**
+ * The shared walk pitches Maya's short spine forward, so the dress reads as a
+ * hunch. A local counter-rotation on the lower spine stands her up. The clip
+ * and the player are unchanged. Negative local X tips this rig backward.
+ */
+export function straightenDress(root: Object3D, loco: Loco) {
+  const moving = loco.weights.walk + loco.weights.run;
+  if (moving < 0.12) return;
+  const running = loco.weights.run > loco.weights.walk;
+  const lift = (running ? -0.1 : -0.18) * Math.min(1, moving / 0.5);
+  _armQuat.setFromAxisAngle(_armAxis, lift);
+  const spine = root.getObjectByName("spine_01");
+  if (spine) spine.quaternion.multiply(_armQuat);
+}
+
 /** Turn toward a heading without snapping. Radians. */
 export function slewYaw(current: number, target: number, speed: number, dt: number) {
   let delta = target - current;
