@@ -1210,7 +1210,8 @@ def build():
     if cx:
         bx, bz = cx + 16.0, cz
         # Face the open side toward the sea (local -z ~ west, -x).
-        add_bar(nb, bx, bz, yaw=math.atan2(0.15, -1.0))
+        # Local -z is the open side. Point it west, at the water.
+        add_bar(nb, bx, bz, yaw=math.atan2(-1.0, -0.08))
         print("arashi bar", round(bx, 1), round(bz, 1), "h", round(mesh_height(bx, bz), 2))
     rf = road_frame(roads_hold, -9888)
     if rf:
@@ -1252,17 +1253,18 @@ def build():
         # hadicurari_fx occupies about x -8284..-8229, z -7297..-7246.
         if (x - 3.2) < -8223 and (x + 3.2) > -8290 and (z - 2.6) < -7240 and (z + 2.6) > -7303:
             continue
-        # Open toward the sea. Sea is -x, so yaw ~ pi (local -z aims west if yaw is atan2(0,-1)=pi).
+        # Open side is local -z. atan2(-1, -0.08) aims that side west, toward the sea.
         roofs = ("thatch", "tin", "rust", "thatch")
-        add_hut(sb, x, z, math.pi * 0.92, f"hut{i % len(HUT_C)}", roofs[i % 4])
+        yaw = math.atan2(-1.0, -0.08) + ((i % 3) - 1) * 0.05
+        add_hut(sb, x, z, yaw, f"hut{i % len(HUT_C)}", roofs[i % 4])
         hut_n += 1
         print(" hut", round(x, 1), z, "h", round(h, 2))
     # In the gap between huts, seaward of the row, clear of the sail rack.
     cz = -7338.0
     cx = coast_x(cz)
     if cx:
-        bx = cx + 11
-        add_bar(sb, bx, cz, math.pi * 0.95)
+        bx = cx + 14
+        add_bar(sb, bx, cz, math.atan2(-1.0, -0.08))
         print("huts bar", round(bx, 1), cz, "h", round(mesh_height(bx, cz), 2))
     rf = road_frame(roads_hold, -7288)
     if rf:
