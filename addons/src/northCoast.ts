@@ -42,18 +42,18 @@ const SHOW = 1100;
 const CELL = 8;
 const DIRT_MAX = 1400;
 const STATIC_V = 4500;
-const YEL = 0xf2e29a;
+const YEL = 0xf4e4a4;
 const WHITE = 0xf7f5f0;
 const DOOR = 0x6b3e2c;
-const SPIRE = 0x232826;
-const DARK = 0x34383c;
-const DARKER = 0x2a2e32;
-const LIMESTONE = 0xd2c4a8;
-const CLIFF = 0x6a5b4a;
-const ARCH = 0xb08960;
-const ARCH_DARK = 0x7a5c42;
+const SPIRE = 0x101210;
+const DARK = 0x16181a;
+const DARKER = 0x101214;
+const LIMESTONE = 0x5e5348;
+const CLIFF = 0x3a3028;
+const ARCH = 0x4a3426;
+const ARCH_DARK = 0x2c2016;
 const BENCH = 0xf3e7a8;
-const ROCK_COL = [0xc4a882, 0xb49678, 0xa89080, 0xd2c0a4, 0x8f8478];
+const ROCK_COL = [0x6a5440, 0x584432, 0x7a6248, 0x4a3c2e, 0x806850];
 const CACTUS_COL = [0x3d6b38, 0x4a7840, 0x2f5a30];
 const CAIRN_COL = [0x8d8680, 0xa09890, 0x6f6a64];
 
@@ -175,7 +175,7 @@ export class NorthCoast {
     this.sNor = this.built.geometry.getAttribute("normal").array as Float32Array;
     this.sCol = this.built.geometry.getAttribute("color").array as Float32Array;
     this.sIdx = this.built.geometry.getIndex()!.array as Uint32Array;
-    this.rocks = this.blank(new SphereGeometry(1, 5, 4).translate(0, 1, 0), 0xffffff, 28);
+    this.rocks = this.blank(new SphereGeometry(1, 6, 5).translate(0, 0.82, 0), 0xffffff, 28);
     this.cairns = this.blank(this.cairnGeo(), 0xffffff, 18);
     this.crosses = this.blank(this.crossGeo(), 0xf4f1ea, 8);
     this.cacti = this.blank(this.cactusGeo(), 0xffffff, 16);
@@ -414,7 +414,7 @@ export class NorthCoast {
     this.box(sx, ridge + 3.85, sz, 0.48, 0.08, 0.08, 0, SPIRE);
     for (const side of [-1, 1]) {
       for (let row = 0; row < 3; row++) {
-        this.box(cx + side * 4.3, base + 0.28, z1 + 2.4 + row * 2.5, 2.5, 0.42, 0.62, 0, BENCH);
+        this.box(cx + side * 3.6, base + 0.32, z1 + 3.2 + row * 2.6, 3.1, 0.5, 0.7, 0, BENCH);
       }
     }
     this.yardWall(cx, cz, base);
@@ -494,7 +494,7 @@ export class NorthCoast {
         const ya = this.hAt(a[0], a[1]), yb = this.hAt(b[0], b[1]);
         if (!Number.isFinite(ya) || !Number.isFinite(yb)) continue;
         this.quad([a[0], ya - 2.4, a[1]], [b[0], yb - 2.4, b[1]], [b[0], yb - 0.15, b[1]], [a[0], ya - 0.15, a[1]], CLIFF);
-        this.quad([a[0], ya - 0.15, a[1]], [b[0], yb - 0.15, b[1]], [b[0], yb + 1.15, b[1]], [a[0], ya + 1.15, a[1]], LIMESTONE);
+        this.quad([a[0], ya - 0.15, a[1]], [b[0], yb - 0.15, b[1]], [b[0], yb + 2.4, b[1]], [a[0], ya + 2.4, a[1]], LIMESTONE);
         drew = true;
       }
     }
@@ -524,19 +524,12 @@ export class NorthCoast {
       if (Number.isFinite(h) && y - h > drop) { drop = y - h; dx = Math.cos(a); dz = Math.sin(a); }
     }
     const px = -dz, pz = dx;
-    const top = y + 4.5;
-    const sill = y + 0.25;
-    const deck = y + 2.55;
-    const place = (along: number, through: number, sx: number, sy: number, sz: number, hex: number) => {
-      this.oriented(at[0] + px * along + dx * through, (sy < 0 ? top : sill) + Math.abs(sy) * 0.5, at[1] + pz * along + dz * through, sx, Math.abs(sy), sz, px, pz, hex);
-    };
-    // Abutments and a thick walkable deck, open underneath. Not a rebuilt span at the collapse.
-    this.oriented(at[0] + px * -5.6, y + 2.1, at[1] + pz * -5.6, 3.4, 4.6, 7.2, px, pz, ARCH);
-    this.oriented(at[0] + px * 5.6, y + 2.1, at[1] + pz * 5.6, 3.4, 4.6, 7.2, px, pz, ARCH);
-    this.oriented(at[0], deck + 0.95, at[1], 14.6, 1.9, 7.4, px, pz, ARCH);
-    this.oriented(at[0] + dx * 0.2, deck - 0.15, at[1] + dz * 0.2, 7.2, 0.45, 5.4, px, pz, ARCH_DARK);
-    place(0, 2.2, 2.2, 0.7, 1.6, 0xc4a27a);
-    place(-3.2, -1.4, 1.4, 0.55, 1.2, 0x9a7048);
+    // Low coral arch: a thick deck on two abutments, open underneath. The collapsed span stays a gap.
+    this.oriented(at[0] + px * -4.6, y + 1.35, at[1] + pz * -4.6, 2.6, 3.1, 5.4, px, pz, ARCH);
+    this.oriented(at[0] + px * 4.6, y + 1.35, at[1] + pz * 4.6, 2.6, 3.1, 5.4, px, pz, ARCH);
+    this.oriented(at[0], y + 2.55, at[1], 12.2, 1.15, 5.6, px, pz, ARCH);
+    this.oriented(at[0], y + 1.85, at[1], 6.4, 0.35, 4.2, px, pz, ARCH_DARK);
+    this.oriented(at[0] + px * 1.5 + dx * 1.6, y + 3.2, at[1] + pz * 1.5 + dz * 1.6, 1.8, 0.55, 1.3, px, pz, 0x8c6844);
   }
 
   private oriented(cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, px: number, pz: number, hex: number) {
@@ -562,7 +555,7 @@ export class NorthCoast {
       this.rocks.setColorAt(i, this.tint);
     });
     this.cairnN = this.place(this.cairns, d.cairns, this.cairnOn, this.cairnN, (i, r, y) => {
-      const s = r[3] ?? 1;
+      const s = (r[3] ?? 1) * 2.15;
       this.setInst(this.cairns, i, r[0], y, r[1], r[2] ?? 0, s, s, s);
       this.tint.setHex(CAIRN_COL[i % CAIRN_COL.length]);
       this.cairns.setColorAt(i, this.tint);
@@ -604,11 +597,32 @@ export class NorthCoast {
   private hideFootprints() {
     const hero = this.world.hero;
     if (!hero || !this.data || this.hid) return;
-    for (const ring of [this.data.chapel.ring, this.data.ruin.ring]) {
-      hero.polys.push(ring);
-      hero.pts.push(centroid(ring));
+    const chapel = this.data.chapel.ring;
+    const ruin = this.data.ruin.ring;
+    hero.polys.push(chapel);
+    hero.pts.push(centroid(chapel));
+    hero.polys.push(ruin);
+    const grown = this.grow(openRing(ruin), 16);
+    hero.polys.push(grown);
+    const c = centroid(ruin);
+    hero.pts.push(c);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      hero.pts.push([c[0] + Math.cos(a) * 9, c[1] + Math.sin(a) * 9]);
     }
     this.hid = true;
+  }
+
+  private grow(ring: Pt[], extra: number): Ring {
+    const c = centroid(ring);
+    const out: Ring = [];
+    for (const p of ring) {
+      const dx = p[0] - c[0], dz = p[1] - c[1];
+      const L = Math.hypot(dx, dz) || 1;
+      out.push([p[0] + (dx / L) * extra, p[1] + (dz / L) * extra]);
+    }
+    if (out.length) out.push(out[0]);
+    return out;
   }
 
   private fillMask() {

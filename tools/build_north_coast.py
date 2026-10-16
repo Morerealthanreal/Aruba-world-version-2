@@ -115,15 +115,16 @@ def dist(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
-def lips_from(cliff, collapse):
+def lips_from(cliff, collapse, baby):
     if not cliff:
         return []
     idx = min(range(len(cliff)), key=lambda i: dist(cliff[i], collapse))
-    if dist(cliff[idx], collapse) > 55:
+    if dist(cliff[idx], collapse) > 40:
         return []
     chains = []
-    for span in (range(max(0, idx - 7), idx), range(idx + 1, min(len(cliff), idx + 8))):
-        pts = [cliff[i] for i in span if dist(cliff[i], collapse) > 7]
+    # Keep the broken lip at the collapse. The baby arch sits further along this cliff.
+    for span in (range(max(0, idx - 5), idx), range(idx + 1, min(len(cliff), idx + 6))):
+        pts = [cliff[i] for i in span if 6 < dist(cliff[i], collapse) < 24 and dist(cliff[i], baby) > 16]
         if len(pts) >= 2:
             chains.append(pts)
     return chains
@@ -154,7 +155,7 @@ def main():
             raw.append((x, z, g["lat"], g["lon"]))
         roads.extend(clip_lines(raw))
 
-    lips = lips_from(cliff_a, collapse) + lips_from(cliff_b, collapse)
+    lips = lips_from(cliff_a, collapse, baby) + lips_from(cliff_b, collapse, baby)
 
     # Ayo boulders: a loose field inside the mapped park, a few of them stacked.
     rocks = []
