@@ -5,7 +5,9 @@ Rebuilds resort heroes on their OSM footprints (colours, roofs, gables, signs)
 and adds instanced fofoti, palapas and umbrellas beside the heroes already on
 main. Existing models stay: their roofs, colours and signs are not replaced,
 and the Fofoti Trees & Palapas set is not removed. Kits also drape the boulevard
-sidewalk, beach-access paths and roadside parking.
+sidewalk, beach-access paths and roadside parking. A separate set of heroes
+adds the resort pools, decks, loungers and a few beach chairs. Those are new
+meshes; they do not rewrite a hero that is already on main.
 
 Photos and aerials are reference only. Geometry and textures are drawn here.
 Scope is the coast from just north of Oranjestad to just south of the Palm
@@ -1484,6 +1486,453 @@ def restore_main(manifest, ids):
             print("restored", i, len(data))
     return out
 
+# ---------------------------------------------------------------- pools and beach detail
+# New heroes only. Named low-rise pools from the region tiles, plus a deck,
+# loungers, one thatch cabana, and a few sand chairs. Nothing here rewrites
+# a resort, palapa, or fofoti that is already on main.
+POOL_SITES = (
+    ("amsterdam", -9180.2, -3847.9, 125),
+    ("lacabana", -9138.2, -3480.4, 120),
+    ("lacabana", -9163.5, -3537.5, 80),
+    ("costalinda", -9903.6, -2592.0, 110),
+    ("bucuti", -9955.2, -2438.7, 100),
+    ("manchebo", -10036.1, -2306.0, 75),
+    ("divi", -9355.7, -2065.7, 155),
+    ("tamarijn", -9326.8, -1707.4, 155),
+    ("druif", -9275.3, -1325.3, 120),
+)
+# keep_main heroes. A pool polygon that lands on one of these is left alone
+# so the water cannot paint over a sign or a roof we promised to keep.
+KEEP_CLEAR = ((-9002.5, -3448.4, 30.0), (-9435.8, -3202.7, 24.0), (-9677.5, -2863.1, 20.0))
+# (name, start x on the resort side, z). Chairs sit just in from the tide line.
+BEACH_CHAIRS = (
+    ("amsterdam", -9180.0, -3848.0),
+    ("lacabana", -9160.0, -3505.0),
+    ("costalinda", -9904.0, -2592.0),
+    ("bucuti", -9955.0, -2438.0),
+    ("manchebo", -10036.0, -2306.0),
+    ("divi", -9356.0, -2066.0),
+    ("tamarijn", -9327.0, -1760.0),
+    ("druif", -9275.0, -1500.0),
+    ("druif", -9275.0, -1280.0),
+)
+
+def _point_in_tri(p, a, b, c):
+    def sign(p1, p2, p3):
+        return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
+    d1, d2, d3 = sign(p, a, b), sign(p, b, c), sign(p, c, a)
+    neg = d1 < -1e-7 or d2 < -1e-7 or d3 < -1e-7
+    pos = d1 > 1e-7 or d2 > 1e-7 or d3 > 1e-7
+    return not (neg and pos)
+
+def triangulate(poly):
+    """Ear-clip a CCW ring. None if it will not cover the polygon."""
+    idx = list(range(len(poly)))
+    tris = []
+    guard = 0
+    limit = len(poly) * len(poly) + 8
+    while len(idx) > 3 and guard < limit:
+        guard += 1
+        n = len(idx)
+        clipped = False
+        for i in range(n):
+            ia, ib, ic = idx[(i - 1) % n], idx[i], idx[(i + 1) % n]
+            ax, az = poly[ib][0] - poly[ia][0], poly[ib][1] - poly[ia][1]
+            bx, bz = poly[ic][0] - poly[ib][0], poly[ic][1] - poly[ib][1]
+            if ax * bz - az * bx <= 1e-6:
+                continue
+            tri = (poly[ia], poly[ib], poly[ic])
+            if any(_point_in_tri(poly[j], *tri) for j in idx if j not in (ia, ib, ic)):
+                continue
+            tris.append((ia, ib, ic))
+            del idx[i]
+            clipped = True
+            break
+        if not clipped:
+            return None
+    if len(idx) == 3:
+        tris.append((idx[0], idx[1], idx[2]))
+    if len(tris) != len(poly) - 2:
+        return None
+    return tris
+
+def _add_band(mesh, poly, y, inner, outer, outside=None):
+    """Stone ring outside the coping the game already draws (about 0.45m).
+
+    Long edges are split so a piece that would cross a building footprint
+    is dropped and the rest of the deck stays. `outside(x, z)` is in the
+    same space as `poly` and rejects a sample that lands on a building.
+    """
+    n = len(poly)
+    for i in range(n):
+        x1, z1 = poly[i]
+        x2, z2 = poly[(i + 1) % n]
+        dx, dz = x2 - x1, z2 - z1
+        L = hypot(dx, dz)
+        if L < 0.35:
+            continue
+        nx, nz = dz / L, -dx / L
+        steps = max(1, int(L / 1.25))
+        for s in range(steps):
+            t0, t1 = s / steps, (s + 1) / steps
+            ax, az = x1 + dx * t0, z1 + dz * t0
+            bx, bz = x1 + dx * t1, z1 + dz * t1
+            corners = (
+                (ax + nx * inner, az + nz * inner),
+                (bx + nx * inner, bz + nz * inner),
+                (bx + nx * outer, bz + nz * outer),
+                (ax + nx * outer, az + nz * outer),
+            )
+            mx = (corners[2][0] + corners[3][0]) * 0.5
+            mz = (corners[2][1] + corners[3][1]) * 0.5
+            if pip(mx, mz, poly):
+                continue
+            if outside and any(not outside(px, pz) for px, pz in corners + ((mx, mz),)):
+                continue
+            a = mesh.v(corners[0][0], y, corners[0][1], 0, 1, 0, 0, 0)
+            b = mesh.v(corners[1][0], y, corners[1][1], 0, 1, 0, 1, 0)
+            c = mesh.v(corners[2][0], y, corners[2][1], 0, 1, 0, 1, 1)
+            d = mesh.v(corners[3][0], y, corners[3][1], 0, 1, 0, 0, 1)
+            mesh.quad(a, b, c, d)
+
+def oriented_box(mesh, cx, y0, cz, tx, tz, hl, hy, hw):
+    L = hypot(tx, tz) or 1.0
+    tx, tz = tx / L, tz / L
+    sx, sz = tz, -tx
+    y1 = y0 + hy
+    def corner(sl, sw, y):
+        return (cx + tx * hl * sl + sx * hw * sw, y, cz + tz * hl * sl + sz * hw * sw)
+    faces = (
+        ((-1, -1, y1), (1, -1, y1), (1, 1, y1), (-1, 1, y1), (0, 1, 0)),
+        ((-1, -1, y0), (-1, 1, y0), (1, 1, y0), (1, -1, y0), (0, -1, 0)),
+        ((1, -1, y0), (1, -1, y1), (1, 1, y1), (1, 1, y0), (tx, 0, tz)),
+        ((-1, 1, y0), (-1, 1, y1), (-1, -1, y1), (-1, -1, y0), (-tx, 0, -tz)),
+        ((-1, 1, y0), (1, 1, y0), (1, 1, y1), (-1, 1, y1), (sx, 0, sz)),
+        ((1, -1, y0), (-1, -1, y0), (-1, -1, y1), (1, -1, y1), (-sx, 0, -sz)),
+    )
+    for c0, c1, c2, c3, nm in faces:
+        ia = mesh.v(*corner(*c0), *nm, 0, 0)
+        ib = mesh.v(*corner(*c1), *nm, 1, 0)
+        ic = mesh.v(*corner(*c2), *nm, 1, 1)
+        id_ = mesh.v(*corner(*c3), *nm, 0, 1)
+        mesh.quad(ia, ib, ic, id_)
+
+def _add_cone(mesh, x, y0, y1, z, r, sides=8):
+    top = mesh.v(x, y1, z, 0, 1, 0, 0.5, 1)
+    ring = []
+    for i in range(sides):
+        a = i / sides * math.tau
+        px, pz = math.cos(a) * r, math.sin(a) * r
+        ln = math.hypot(px, pz) or 1.0
+        ring.append(mesh.v(x + px, y0, z + pz, px / ln, 0.45, pz / ln, i / sides, 0))
+    for i in range(sides):
+        mesh.tri(top, ring[i], ring[(i + 1) % sides])
+
+def _near(x, z, pts, dist):
+    d2 = dist * dist
+    for px, pz in pts:
+        dx, dz = x - px, z - pz
+        if dx * dx + dz * dz < d2:
+            return True
+    return False
+
+def _kit_instances(manifest):
+    """World positions of the fofoti, palapas and umbrellas already instanced."""
+    by = {e.get("id"): e for e in manifest}
+    pts = []
+    for name in ("eb_north", "eb_mid", "eb_south"):
+        e = by.get(name)
+        if not e:
+            continue
+        path = os.path.join(GAME, e["glb"].lstrip("./"))
+        if not os.path.exists(path):
+            continue
+        data = open(path, "rb").read()
+        length = struct.unpack_from("<I", data, 12)[0]
+        js = json.loads(data[20:20 + length])
+        off = 20 + length
+        blen, _btype = struct.unpack_from("<I4s", data, off)
+        blob = data[off + 8:off + 8 + blen]
+        ox, oz = e["x"], e["z"]
+        for n in js.get("nodes", []):
+            ext = ((n.get("extensions") or {}).get("EXT_mesh_gpu_instancing") or {}).get("attributes") or {}
+            if "TRANSLATION" not in ext:
+                continue
+            acc = js["accessors"][ext["TRANSLATION"]]
+            bv = js["bufferViews"][acc["bufferView"]]
+            start = bv.get("byteOffset", 0) + acc.get("byteOffset", 0)
+            raw = blob[start:start + acc["count"] * 12]
+            for i in range(0, acc["count"] * 12, 12):
+                x, _y, z = struct.unpack_from("<fff", raw, i)
+                pts.append((round(x + ox, 1), round(z + oz, 1)))
+    return list({p for p in pts})
+
+def _load_pool_rings():
+    rings = []
+    for rx in range(0, 3):
+        for rz in range(6, 12):
+            fn = os.path.join(GAME, f"data/real/r_{rx}_{rz}.json")
+            if not os.path.exists(fn):
+                continue
+            for p in json.loads(open(fn).read()).get("pools") or []:
+                poly = [(a[0], a[1]) for a in p if isinstance(a, (list, tuple)) and len(a) >= 2]
+                if len(poly) >= 3:
+                    rings.append(poly)
+    return rings
+
+def select_pools(buildings):
+    chosen = []
+    for poly in _load_pool_rings():
+        if len(poly) > 64:
+            poly = poly[::2] + [poly[-1]]
+        poly = ensure_ccw(poly)
+        ar = area(poly)
+        if ar < 40 or ar > 2500:
+            continue
+        cx, cz = centroid(poly)
+        if not in_strip(cx, cz):
+            continue
+        if any(hypot(cx - kx, cz - kz) < rad for kx, kz, rad in KEEP_CLEAR):
+            continue
+        best, bd = None, 1e9
+        for name, ax, az, rad in POOL_SITES:
+            d = hypot(cx - ax, cz - az)
+            if d < rad and d < bd:
+                best, bd = name, d
+        if not best:
+            continue
+        if any(b["area"] < 5000 and pip(cx, cz, b["poly"]) for b in buildings):
+            continue
+        h_c = height_at(cx, cz)
+        hs = [height_at(x, z) for x, z in poly]
+        hs.append(h_c)
+        hs.sort()
+        # The game already lays pool water on the lowest ring sample.
+        # A roof pixel at the centroid must not lift the deck onto that roof.
+        if hs[-1] - hs[0] > 8.0:
+            continue
+        h = hs[0]
+        if not (-1.0 < h < 14.0):
+            continue
+        chosen.append({
+            "name": best, "poly": poly, "cx": cx, "cz": cz, "area": ar,
+            "h": h, "d": bd, "buried": False,
+        })
+    chosen.sort(key=lambda p: -p["area"])
+    kept, per = [], defaultdict(int)
+    for p in chosen:
+        if any(hypot(p["cx"] - q["cx"], p["cz"] - q["cz"]) < 8 for q in kept):
+            continue
+        if per[p["name"]] >= 3:
+            continue
+        per[p["name"]] += 1
+        kept.append(p)
+    return kept
+
+def add_pool_detail(manifest):
+    """Write eb_pool_* heroes and append them. Resort GLBs are not opened."""
+    buildings = load_buildings()
+    pools = select_pools(buildings)
+    print("pools", len(pools), ", ".join(sorted({p["name"] for p in pools})))
+    for p in pools:
+        print(f"  {p['name']:12} area={p['area']:.0f} h={p['h']:.2f} buried={p['buried']} @ {p['cx']:.0f},{p['cz']:.0f}")
+    old_p, old_t = load_old_props()
+    blocked = [(x, z) for x, z in old_p + old_t]
+    blocked += _kit_instances(manifest)
+    segs = jei_points()
+    chairs, umbrellas, cabanas = [], [], []
+    cabana_names = set()
+    for p in sorted(pools, key=lambda t: -t["area"]):
+        if p["name"] in cabana_names or p["area"] < 140:
+            continue
+        poly = p["poly"]
+        best = None
+        for i in range(len(poly)):
+            x1, z1 = poly[i]
+            x2, z2 = poly[(i + 1) % len(poly)]
+            L = hypot(x2 - x1, z2 - z1)
+            if best is None or L > best[0]:
+                dx, dz = x2 - x1, z2 - z1
+                nx, nz = dz / (L or 1), -dx / (L or 1)
+                best = (L, (x1 + x2) / 2 + nx * 3.8, (z1 + z2) / 2 + nz * 3.8, nx, nz)
+        if not best:
+            continue
+        x, z = best[1], best[2]
+        if pip(x, z, poly) or _near(x, z, blocked, 11) or abs(height_at(x, z) - p["h"]) > 1.6:
+            continue
+        cabanas.append((x, z, p["h"]))
+        cabana_names.add(p["name"])
+        blocked.append((x, z))
+    for p in pools:
+        poly = p["poly"]
+        edges = []
+        for i in range(len(poly)):
+            x1, z1 = poly[i]
+            x2, z2 = poly[(i + 1) % len(poly)]
+            L = hypot(x2 - x1, z2 - z1)
+            if L < 7:
+                continue
+            dx, dz = (x2 - x1) / L, (z2 - z1) / L
+            nx, nz = dz, -dx
+            edges.append((L, dx, dz, nx, nz, x1, z1))
+        edges.sort(reverse=True)
+        placed = 0
+        for L, dx, dz, nx, nz, x1, z1 in edges[:2]:
+            for t in (0.32, 0.68):
+                if placed >= 4:
+                    break
+                x, z = x1 + dx * L * t + nx * 2.3, z1 + dz * L * t + nz * 2.3
+                if pip(x, z, poly) or abs(height_at(x, z) - p["h"]) > 1.3:
+                    continue
+                if any(b["area"] < 5000 and pip(x, z, b["poly"]) for b in buildings):
+                    continue
+                chairs.append((x, z, p["h"], dx, dz))
+                placed += 1
+    for name, ax, z in BEACH_CHAIRS:
+        # Palapas already stand about 12m in from the tide line. Chairs go
+        # on the open sand just seaward of that row, in the gaps.
+        shore = shore_x(z, segs)
+        if shore is None:
+            x = ax
+            shore = None
+            for _ in range(90):
+                x -= 4
+                if height_at(x, z) < 0.18:
+                    shore = x
+                    break
+        if shore is None:
+            continue
+        x = shore + 6
+        if not (0.2 < height_at(x, z) < 2.6) or nearest_jei(x, z, segs) < 16:
+            continue
+        if _near(x, z, blocked, 4.5) or any(hypot(x - p["cx"], z - p["cz"]) < 14 for p in pools):
+            continue
+        group = []
+        for dz in (-2.6, 0.0, 2.6):
+            zz = z + dz
+            if 0.2 < height_at(x, zz) < 2.6 and not _near(x, zz, blocked, 4.2):
+                group.append((x, zz, height_at(x, zz), 0.0, 1.0))
+        if len(group) < 2:
+            continue
+        chairs.extend(group)
+        ux, uz = x - 2.2, z
+        if not _near(ux, uz, blocked, 4.5) and 0.15 < height_at(ux, uz) < 2.6:
+            umbrellas.append((ux, uz, height_at(ux, uz)))
+            blocked.append((ux, uz))
+        for c in group:
+            blocked.append((c[0], c[1]))
+        print(f"  beach {name} @ {x:.0f},{z:.0f} chairs {len(group)}")
+    bags = defaultdict(lambda: dict(pools=[], chairs=[], umbrellas=[], cabanas=[]))
+    for p in pools:
+        bags[chunk_of(p["cz"])]["pools"].append(p)
+    for c in chairs:
+        bags[chunk_of(c[1])]["chairs"].append(c)
+    for u in umbrellas:
+        bags[chunk_of(u[1])]["umbrellas"].append(u)
+    for c in cabanas:
+        bags[chunk_of(c[1])]["cabanas"].append(c)
+    manifest = [e for e in manifest if not str(e.get("id", "")).startswith("eb_pool_")]
+    for name, bag in bags.items():
+        if not (bag["pools"] or bag["chairs"]):
+            continue
+        pts = [(p["cx"], p["cz"]) for p in bag["pools"]] + [(c[0], c[1]) for c in bag["chairs"]]
+        ox = sum(p[0] for p in pts) / len(pts)
+        oz = sum(p[1] for p in pts) / len(pts)
+        base = height_at(ox, oz)
+        def ly(h):
+            return h - base
+        g = G()
+        # Water and the narrow coping are drawn by the game from the same
+        # pool polygons. A second sheet z-fights that water, so this hero
+        # only adds the deck outside the lip, the loungers, and the shade.
+        deck_m = g.color_mat("deck", (206, 196, 176), 0.9)
+        cush_m = g.color_mat("cushion", (250, 250, 248), 0.7)
+        towel_cols = ((40, 148, 168), (196, 84, 62), (224, 176, 58), (250, 250, 248))
+        towel_m = [g.color_mat("towel%d" % i, c, 0.65) for i, c in enumerate(towel_cols)]
+        towels = M()
+        wood_m = g.color_mat("chairwood", (146, 112, 74), 0.8)
+        thatch_m = g.color_mat("cabthatch", (176, 138, 78), 0.85)
+        cloth_m = g.color_mat("bcloth", (248, 248, 246), 0.45)
+        deck = M()
+        cush, wood, thatch, cloth = M(), M(), M(), M()
+        lo = M()
+        def deck_outside(x, z, ox=ox, oz=oz):
+            # World point. Small footprints only: a resort outline can wrap
+            # a courtyard, and the pool centroid test already rejected rings
+            # whose centre sits inside a house.
+            wx, wz = x + ox, z + oz
+            for b in buildings:
+                if b["area"] >= 5000:
+                    continue
+                if abs(b["cx"] - wx) > 50 or abs(b["cz"] - wz) > 50:
+                    continue
+                if pip(wx, wz, b["poly"]):
+                    return False
+            return True
+        for p in bag["pools"]:
+            local = [(x - ox, z - oz) for x, z in p["poly"]]
+            y = ly(p["h"])
+            # Water and coping stay with the game's own pool mesh. A second
+            # sheet was floating on the sand at Costa Linda, where the aerial
+            # has no pool and live draws none.
+            _add_band(lo, local, y + 0.08, 0.62, 2.35, deck_outside)
+            _add_band(deck, local, y + 0.08, 0.62, 2.35, deck_outside)
+        for ci, (x, z, h, tx, tz) in enumerate(bag["chairs"]):
+            oriented_box(wood, x - ox, ly(h) + 0.09, z - oz, tx, tz, 0.98, 0.2, 0.34)
+            oriented_box(cush, x - ox, ly(h) + 0.29, z - oz, tx, tz, 0.94, 0.08, 0.31)
+            oriented_box(cush, x - ox + tx * 0.62, ly(h) + 0.39, z - oz + tz * 0.62, tx, tz, 0.26, 0.07, 0.29)
+            oriented_box(towels, x - ox - tx * 0.15, ly(h) + 0.38, z - oz - tz * 0.15, tx, tz, 0.55, 0.025, 0.28)
+        for x, z, h in bag["cabanas"]:
+            solid_box(wood, x - ox - 0.07, ly(h), z - oz - 0.07, x - ox + 0.07, ly(h) + 2.25, z - oz + 0.07)
+            _add_cone(thatch, x - ox, ly(h) + 2.05, ly(h) + 3.15, z - oz, 1.85, 8)
+        for x, z, h in bag["umbrellas"]:
+            solid_box(wood, x - ox - 0.03, ly(h), z - oz - 0.03, x - ox + 0.03, ly(h) + 2.05, z - oz + 0.03)
+            _add_cone(cloth, x - ox, ly(h) + 1.82, ly(h) + 2.22, z - oz, 1.2, 8)
+        prims = []
+        for mesh, mat in (
+            (deck, deck_m),
+            (cush, cush_m), (towels, towel_m[0]), (wood, wood_m), (thatch, thatch_m), (cloth, cloth_m),
+        ):
+            if not mesh.empty():
+                prims.append((mesh.p, mesh.n, mesh.u, mesh.i, mat))
+        lo_prims = []
+        if not lo.empty():
+            lo_prims.append((lo.p, lo.n, lo.u, lo.i, deck_m))
+        if not lo_prims:
+            lo_prims = prims[:1]
+        hid = "eb_pool_" + (name[3:] if name.startswith("eb_") else name)
+        mi = g.add_mesh(hid + "_lod0", prims)
+        li = g.add_mesh(hid + "_lod1", lo_prims)
+        g.nodes.append({"name": hid + "_lod0", "mesh": mi})
+        g.nodes.append({"name": hid + "_lod1", "mesh": li})
+        data = g.pack([0, 1])
+        path = os.path.join(HERO, hid + ".glb")
+        open(path, "wb").write(data)
+        tris = {
+            hid + "_lod0": sum(len(p[3]) // 3 for p in prims),
+            hid + "_lod1": sum(len(p[3]) // 3 for p in lo_prims),
+        }
+        manifest.append({
+            "id": hid, "k": hid, "name": "",
+            "status": "eagle-strip pools",
+            "x": round(ox, 2), "z": round(oz, 2), "y": 0, "rotation": 0,
+            "glb": f"models/hero/{hid}.glb",
+            "lod": {"hi": hid + "_lod0", "lo": hid + "_lod1", "switch_m": 220},
+            "tris": tris, "textures": 0, "hide_footprint": [], "hide": [],
+            "sign": False, "kind": "replace", "new_place": False,
+            "geo_source": "OSM swimming-pool polygons on the Eagle / Manchebo / Druif low-rise strip",
+            "ref_sources": (
+                "The game already draws the swimming-pool water and coping from the mapped outlines. "
+                "This hero adds the stone deck, white loungers and a thatch cabana around Amsterdam Manor, "
+                "La Cabana, Costa Linda, Bucuti & Tara, Manchebo, Divi Aruba, Tamarijn and Druif "
+                "(Divi Dutch Village), plus a few sand chairs seaward of those resorts. "
+                "Existing resort, palapa and fofoti heroes are not modified."
+            ),
+            "frame": "glb origin = pool centroid; generated by landmarks/eagle_strip.py",
+        })
+        print(f"  wrote {hid} tris {tris} {os.path.getsize(path) // 1024}kb")
+    return manifest
+
 # ---------------------------------------------------------------- main
 def main():
     buildings = load_buildings()
@@ -1660,8 +2109,18 @@ def main():
     print("preserving", len(preserved), "main prop heroes")
     keep = [r["id"] for r in RESORTS if r.get("keep_main")]
     manifest = restore_main(manifest, keep + preserved)
+    manifest = add_pool_detail(manifest)
     open(MANIFEST, "w").write(json.dumps(manifest, indent=1) + "\n")
     print("manifest entries", len(manifest))
 
 if __name__ == "__main__":
-    main()
+    # Pools are additive. EAGLE_POOLS_ONLY writes just those heroes so a
+    # re-run does not rebuild the resort meshes already on main.
+    if os.environ.get("EAGLE_POOLS_ONLY"):
+        manifest = json.loads(open(MANIFEST).read())
+        manifest = add_pool_detail(manifest)
+        # Same bytes as the rest of the file: indent 1, no extra trailing newline.
+        open(MANIFEST, "w").write(json.dumps(manifest, indent=1))
+        print("manifest entries", len(manifest))
+    else:
+        main()
