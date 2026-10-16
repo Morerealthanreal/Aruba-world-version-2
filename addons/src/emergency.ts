@@ -7,9 +7,9 @@
 //  - police (KPA Aruba): white body, blue side stripe, red/blue bar
 //  - ambulance: white body, red stripe, red/white bar; fire: red body, white stripe, red bar
 // Bars switch on for random stretches (15-40 s on, 10-35 s off) and flash (bloom on MED/HIGH).
-// Siren (WebAudio, nearest active vehicle within 160 m) is OFF by default: A has no audio, so it is
-// opt-in from Settings ("Siren sound", stored aw_siren=1). ?emerg=0 disables everything,
-// ?emerg=force makes every car an emergency vehicle (screenshots/tests).
+// Sirens are not played from here. WorldAudio plays a police wail and an ambulance hi-lo only
+// while those vehicles are responding to a crash (see audio.ts). Ambient traffic stays silent.
+// ?emerg=0 disables everything, ?emerg=force makes every car an emergency vehicle (screenshots/tests).
 import { Box3, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Mesh, MeshBasicMaterial, Raycaster, Vector3, type Material, type Object3D } from "three";
 import type { AGame } from "./env";
 import { params } from "./env";
@@ -70,15 +70,11 @@ export class Emergency {
   stats = { police: 0, amb: 0, fire: 0, active: 0, rolls: 0 };
   private st = new Map<Object3D, St>();
   private force = params.get("emerg") === "force";
-  private audio: { ctx: AudioContext; osc: OscillatorNode; gain: GainNode } | null = null;
-  private siren = false;
   private time = 0;
   private night = -1;
 
   constructor(private g: AGame) {
     void loadEv();
-    try { this.siren = localStorage.getItem("aw_siren") === "1"; } catch { /* private mode */ }
-    this.mountToggle(0);
   }
 
   private pickRole(): Role | null {
@@ -148,14 +144,13 @@ export class Emergency {
     if (k !== this.night) { this.night = k; evNight(k); }
     const A = this.g.real as unknown as { amb?: { cars: Car[] } } | null;
     const cars = A?.amb?.cars; if (!cars) return;
-    const cam = this.g.camera.position;
-    let near: { d: number; s: St } | null = null; let active = 0;
+    let active = 0;
     for (const c of cars) {
       let s = this.st.get(c.g);
       if (!s) { s = { role: null, rd: null, on: false, t: 0, ph: 0 }; this.st.set(c.g, s); }
       if (c.rd && c.rd !== s.rd) { s.rd = c.rd; this.apply(c, s, this.pickRole()); }
       else if ((s.role === "police" || s.role === "amb") && !s.model && evReady()) this.apply(c, s, s.role); // rolled before ev.glb loaded
-      if (s.role && s.model) { if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; } flashBar(s.model, this.time, s.ph, s.on && c.g.visible); if (s.on && c.g.visible) { active++; const d = c.g.position.distanceTo(cam); if (d < 160 && (!near || d < near.d)) near = { d, s }; } continue; }
+      if (s.role && s.model) { if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; } flashBar(s.model, this.time, s.ph, s.on && c.g.visible); if (s.on && c.g.visible) active++; continue; }
       if (!s.role || !s.bar) continue;
       if ((s.t -= dt) <= 0) { s.on = !s.on; s.t = s.on ? 15 + Math.random() * 25 : 10 + Math.random() * 25; }
       const L = LIVERY[s.role];
@@ -168,55 +163,11 @@ export class Emergency {
         const leftOn = k < 4 && (k & 1) === 0, rightOn = k >= 4 && (k & 1) === 0;
         lm.color.copy(leftOn ? L.a : DIM).multiplyScalar(leftOn ? 3 : 1);
         rm.color.copy(rightOn ? L.b : DIM).multiplyScalar(rightOn ? 3 : 1);
-        const d = c.g.position.distanceTo(cam);
-        if (d < 160 && (!near || d < near.d)) near = { d, s };
       } else { lm.color.copy(DIM); rm.color.copy(DIM); }
     }
     this.stats.active = active;
-    this.sound(near);
   }
 
+  /** Distance to the crash-scene police unit. Audio falls back to this if the model is not in the tree yet. */
   ext: { d: number; ph: number } | null = null;
-  private sound(near0: { d: number; s: St } | null) {
-    let near = near0;
-    if (this.ext && (!near || this.ext.d < near.d)) near = { d: this.ext.d, s: { role: "police", rd: null, on: true, t: 0, ph: this.ext.ph } };
-    if (!this.siren || !this.audio) { if (this.audio) this.audio.gain.gain.value = 0; return; }
-    const { ctx, osc, gain } = this.audio, t = ctx.currentTime;
-    if (!near || document.hidden) { gain.gain.setTargetAtTime(0, t, 0.1); return; }
-    const role = near.s.role!;
-    // police: wail sweep 650-1450 Hz over 4 s; ambulance/fire: hi-lo 960/770 Hz
-    const ph = (this.time + near.s.ph) % 4;
-    const f = role === "police" ? 650 + 800 * (ph < 2 ? ph / 2 : (4 - ph) / 2) : ((this.time * 1.4) % 1 < 0.5 ? 960 : 770);
-    osc.frequency.setTargetAtTime(f, t, 0.02);
-    gain.gain.setTargetAtTime(0.07 * Math.max(0, 1 - near.d / 160) ** 1.5, t, 0.08);
-  }
-
-  private startAudio() {
-    if (this.audio) { void this.audio.ctx.resume(); return; }
-    try {
-      const ctx = new AudioContext(), osc = ctx.createOscillator(), gain = ctx.createGain();
-      osc.type = "sawtooth"; gain.gain.value = 0;
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2200;
-      osc.connect(lp).connect(gain).connect(ctx.destination); osc.start();
-      this.audio = { ctx, osc, gain };
-    } catch { this.audio = null; }
-  }
-
-  private mountToggle(tries: number) {
-    const box = document.getElementById("awtime");
-    if (!box) { if (tries < 60) setTimeout(() => this.mountToggle(tries + 1), 500); return; }
-    const lbl = document.createElement("div"); lbl.className = "lbl"; lbl.textContent = "Siren sound";
-    const row = document.createElement("div"); row.className = "row";
-    const b = document.createElement("button"); b.id = "awsiren";
-    const label = () => { b.textContent = this.siren ? "Sirens: ON" : "Sirens: OFF"; };
-    label();
-    b.onclick = () => {
-      this.siren = !this.siren; label();
-      try { localStorage.setItem("aw_siren", this.siren ? "1" : "0"); } catch { /* ignore */ }
-      if (this.siren) this.startAudio(); else if (this.audio) void this.audio.ctx.suspend();
-    };
-    row.appendChild(b); box.append(lbl, row);
-    // a stored ON needs a user gesture before audio can start
-    if (this.siren) addEventListener("pointerdown", () => this.startAudio(), { once: true });
-  }
 }

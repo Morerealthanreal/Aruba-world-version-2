@@ -1,0 +1,18 @@
+Audio
+=====
+
+All gameplay audio shipped with this pass is original procedural synthesis
+written for Aruba World. No third-party recordings, samples, or sound fonts
+are used.
+
+  Player car engine        original harmonic cycle + exhaust layer     CC0 1.0
+  Player sportbike engine  original V4-style cycle + exhaust layer     CC0 1.0
+  Crash impact             original synthesised thump and crunch       CC0 1.0
+  Police wail              original two-sine sweep                     CC0 1.0
+  Ambulance hi-lo          original two-sine crossfade                 CC0 1.0
+  Turbo roar and whoosh    original noise, sub oscillators, sweep      CC0 1.0
+  Beach and city beds      original looped noise                       CC0 1.0
+
+CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+
+The same notice is added to the in-game Credits list.
