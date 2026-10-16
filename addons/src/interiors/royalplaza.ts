@@ -1,7 +1,8 @@
 // Royal Plaza Mall, the Havenstraat front in Oranjestad.
 // A bay under a yellow awning opens into a short hall: red and blue shop
 // counters, a yellow stand, and a Royal Plaza board. The pink facade, white
-// arches, gold trim, dome, and the coloured awnings stay.
+// arches, gold trim, dome, and the coloured awnings stay. The procedural
+// monument shell on this footprint is cut with the same doorway.
 // No photographs are used as textures.
 import {
   CanvasTexture, DoubleSide, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial,

@@ -3,7 +3,7 @@
 // hero wall. Footprint collision stays solid everywhere except that doorway
 // and the walkable floor (counters and tables still block).
 // Off with ?interiors=0. Far away nothing is built and the door shader is off.
-import { Group, Vector2, type Material, type Mesh, type Object3D } from "three";
+import { Group, Raycaster, Vector2, Vector3, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
@@ -52,6 +52,12 @@ type Place = {
   patched: boolean;
   /** Terrain sample for the floor. Defaults to the hero centroid. */
   floorAt?: { x: number; z: number };
+  /** The procedural monument shell shares this wall. Cut the same doorway through it. */
+  shell?: boolean;
+  shellDone?: boolean;
+  shellQuiet?: number;
+  shellTries?: number;
+  shellTick?: number;
 };
 
 function placePastechi(): Place {
@@ -473,10 +479,12 @@ function placeRoyalplaza(): Place {
     world,
     doorHalf: RP_DOOR_HALF,
     doorTop: RP_DOOR_TOP,
-    doorSide: 0.5,
+    // The monument shell's piers stand about 2.4 m inside the pink wall.
+    doorSide: 2.8,
     wall: 0.34,
     obs: RP_OBS,
     cut: ["ground"],
+    shell: true,
     show: 100,
     hide: 130,
     floorAt: { x: -7545.39, z: -63.2 },
@@ -503,6 +511,9 @@ export class Interiors {
   places: Place[];
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
+  private shellRay = new Raycaster();
+  private shellFrom = new Vector3();
+  private shellDir = new Vector3();
   constructor(private g: AGame) {
     this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHyatt(), placeHilton(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall(), placeRoyalplaza()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
@@ -552,6 +563,7 @@ export class Interiors {
         const door = on ? 1 : 0;
         if (p.doorOn.value !== door) p.doorOn.value = door;
         if (!p.patched && dist < p.show + 40) this.patchHero(p);
+        if (p.shell && !p.shellDone && dist < p.show + 40) this.patchShell(p);
         // Terrain can still be the fallback height when the room is first built.
         this.settleFloor(p);
       }
@@ -599,8 +611,6 @@ export class Interiors {
     const hero = (this.g.real as unknown as { hero?: { list?: Array<{ k?: string; id?: string; _g?: Object3D }> } }).hero;
     const entry = hero?.list?.find((n) => n.k === p.id || n.id === p.id);
     if (!entry?._g) return;
-    const doorOn = p.doorOn, uU = p.uU, uN = p.uN, uM = p.uM, uY = p.uY;
-    const half = { value: p.doorHalf }, top = { value: p.doorTop }, side = { value: p.doorSide };
     let found = 0;
     entry._g.traverse((o) => {
       const mesh = o as Mesh;
@@ -608,8 +618,7 @@ export class Interiors {
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       for (const mat of mats) {
         if (p.cut.indexOf(mat.name || "") < 0) continue;
-        found++;
-        this.patchMat(mat, p.cut, doorOn, uU, uN, uM, uY, half, top, side);
+        if (this.patchMat(mat, p, "door-" + (mat.name || ""))) found++;
       }
     });
     // The hero group can exist before its wall meshes arrive. Keep trying
@@ -617,23 +626,73 @@ export class Interiors {
     if (p.cut.length === 0 || found > 0) p.patched = true;
   }
 
-  private patchMat(
-    mat: Material,
-    cut: string[],
-    doorOn: { value: number },
-    uU: { value: Vector2 },
-    uN: { value: Vector2 },
-    uM: { value: Vector2 },
-    uY: { value: number },
-    half: { value: number },
-    top: { value: number },
-    side: { value: number },
-  ) {
-    const name = mat.name || "";
-    if (cut.indexOf(name) < 0) return;
+  /**
+   * The Royal Plaza hero wall is already open. A procedural monument draws a
+   * second pink shell on the same footprint, and that shell is what the street
+   * sees. Rays through the doorway pick the materials to cut. The discard is
+   * the same world-space rectangle, so the rest of the mall stays.
+   */
+  private patchShell(p: Place) {
+    p.shellTick = (p.shellTick ?? 0) + 1;
+    if ((p.shellTick ?? 0) % 15 !== 0) return;
+    const mon = (this.g.real as unknown as { mon?: { group?: Object3D } }).mon?.group;
+    if (!mon) return;
+    mon.updateMatrixWorld(true);
+    p.shellTries = (p.shellTries ?? 0) + 1;
+    if ((p.shellTries ?? 0) > 40) { p.shellDone = true; return; }
+    const U = p.uU.value, N = p.uN.value, M = p.uM.value;
+    this.shellDir.set(N.x, 0, N.y);
+    const y0 = p.uY.value;
+    const near: Mesh[] = [];
+    mon.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh || !mesh.geometry) return;
+      const geo = mesh.geometry;
+      if (!geo.boundingSphere) geo.computeBoundingSphere();
+      const bs = geo.boundingSphere;
+      if (!bs) return;
+      const e = mesh.matrixWorld.elements;
+      const cx = e[0] * bs.center.x + e[4] * bs.center.y + e[8] * bs.center.z + e[12];
+      const cz = e[2] * bs.center.x + e[6] * bs.center.y + e[10] * bs.center.z + e[14];
+      if (Math.hypot(cx - M.x, cz - M.y) - bs.radius > 4) return;
+      near.push(mesh);
+    });
+    let added = 0, seen = 0;
+    for (let ia = -2; ia <= 2; ia++) {
+      const along = ia * p.doorHalf * 0.46;
+      for (let k = 0; k < 4; k++) {
+        const iy = 0.4 + k * Math.max(0.4, (p.doorTop - 0.7) / 3);
+        this.shellFrom.set(M.x + U.x * along - N.x * 1.4, y0 + iy, M.y + U.y * along - N.y * 1.4);
+        this.shellRay.set(this.shellFrom, this.shellDir);
+        this.shellRay.far = 1.4 + p.doorSide + 0.5;
+        const hits = near.length ? this.shellRay.intersectObjects(near, false) : [];
+        for (let h = 0; h < hits.length; h++) {
+          const hit = hits[h];
+          const alongH = (hit.point.x - M.x) * U.x + (hit.point.z - M.y) * U.y;
+          const sideH = (hit.point.x - M.x) * N.x + (hit.point.z - M.y) * N.y;
+          if (Math.abs(alongH) > p.doorHalf + 0.08) continue;
+          if (sideH < -1.15 || sideH > p.doorSide + 0.08) continue;
+          if (hit.point.y < y0 - 0.2 || hit.point.y > y0 + p.doorTop + 0.05) continue;
+          const mesh = hit.object as Mesh;
+          if (!mesh.isMesh || !mesh.material) continue;
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (let m = 0; m < mats.length; m++) if (this.patchMat(mats[m], p, "door-shell-" + p.id)) added++;
+          seen++;
+        }
+      }
+    }
+    if (seen > 0 && added === 0) p.shellQuiet = (p.shellQuiet ?? 0) + 1;
+    else p.shellQuiet = 0;
+    if ((p.shellQuiet ?? 0) >= 4) p.shellDone = true;
+  }
+
+  private patchMat(mat: Material, p: Place, key: string) {
+    if (mat.userData["aw:" + key]) return false;
+    const doorOn = p.doorOn, uU = p.uU, uN = p.uN, uM = p.uM, uY = p.uY;
+    const half = { value: p.doorHalf }, top = { value: p.doorTop }, side = { value: p.doorSide };
     this.rebake.set(mat, 4);
     mat.needsUpdate = true;
-    chainPatch(mat, "door-" + name, (s: Shader) => {
+    chainPatch(mat, key, (s: Shader) => {
       if (!s.vertexShader.includes("#include <begin_vertex>")) return;
       if (!s.fragmentShader.includes("#include <clipping_planes_fragment>")) return;
       s.uniforms.awDoorOn = doorOn;

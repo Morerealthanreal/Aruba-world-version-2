@@ -53,10 +53,17 @@ for (let i = 0; i < 45; i++) {
     const rz = Math.floor((w.z - M.Z0) / M.RS);
     let region = "";
     for (const r of window.game.real.regions.values()) if (r.rx === rx && r.rz === rz) region = r.state;
-    return { hi, lo, sign, region, rx, rz, has: !!hero };
+    let shell = false;
+    const mon = window.game.real.mon && window.game.real.mon.group;
+    if (mon) mon.traverse((o) => {
+      const mats = o.material ? [].concat(o.material) : [];
+      for (const m of mats) if (m.userData && m.userData["aw:door-shell-royalplaza"]) shell = true;
+    });
+    return { hi, lo, sign, region, rx, rz, has: !!hero, shell, version: window.__aw && window.__aw.version };
   });
   log("wait " + i + " " + JSON.stringify(st));
-  if (st.hi && st.sign > 8 && st.region === "built") { ready = true; break; }
+  const shellOk = label !== "after" || st.shell;
+  if (st.hi && st.sign > 8 && st.region === "built" && shellOk) { ready = true; break; }
   await page.waitForTimeout(4000);
 }
 if (!ready) {
