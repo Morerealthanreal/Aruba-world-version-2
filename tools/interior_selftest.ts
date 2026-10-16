@@ -9,6 +9,7 @@ import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/sr
 import { HY_DOOR_HALF, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "../addons/src/interiors/hyatt";
 import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
 import { MR_DOOR_HALF, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "../addons/src/interiors/marriott";
+import { SF_DOOR_HALF, SF_OBS, SF_POLY, SF_X, SF_Z, sfLocal } from "../addons/src/interiors/senorfrogs";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -352,4 +353,41 @@ if (!isOpen(mr, MR_OBS, -8051.9, -6782, MR_DOOR_HALF, mWall)) console.log("ok mr
 else { console.log("FAIL mr drive opened"); bad++; }
 if (!bad) console.log("mr aisle clear");
 console.log("mr door", mr.mx.toFixed(2), mr.mz.toFixed(2), "n", mr.nx.toFixed(3), mr.nz.toFixed(3));
+
+const sf = worldFrame(sfLocal, SF_X, SF_Z, 0);
+sf.poly = SF_POLY;
+function sfAt(a: number, d: number) {
+  const x = sf.mx + sf.ux * a + sf.nx * d;
+  const z = sf.mz + sf.uz * a + sf.nz * d;
+  return isOpen(sf, SF_OBS, x, z, SF_DOOR_HALF, mWall);
+}
+const sfCases: [string, number, number, boolean][] = [
+  ["sf door", 0, 0.3, true],
+  ["sf sidewalk", 0, -0.9, true],
+  ["sf aisle", 0, 3.5, true],
+  ["sf bar", 0, 6.4, false],
+  ["sf chair", -3.6, 3.4, false],
+  ["sf outside", 0, -3, false],
+  ["sf jamb", 2.6, 0.15, false],
+  ["sf past", 0, 12, false],
+  ["sf side", 6.2, 3, false],
+];
+for (const [name, a, d, want] of sfCases) {
+  const got = sfAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 5.2; d += 0.25) {
+  if (!sfAt(0, d)) {
+    console.log("FAIL sf aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(sf, SF_OBS, -8199.7, -5312.2, SF_DOOR_HALF, mWall)) console.log("ok sf road stays shut");
+else { console.log("FAIL sf road opened"); bad++; }
+if (!bad) console.log("sf aisle clear");
+console.log("sf door", sf.mx.toFixed(2), sf.mz.toFixed(2), "n", sf.nx.toFixed(3), sf.nz.toFixed(3));
 process.exit(bad ? 1 : 0);
