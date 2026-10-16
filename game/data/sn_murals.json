@@ -214,30 +214,30 @@
    "name": "Iguana",
    "artist": "Bordalo II",
    "year": 2016,
-   "address": "Stuyvesantstraat side: long south wall of the block the published pin falls inside",
+   "address": "Long street wall of the block the Stuyvesantstraat pin falls inside (the rendered facade on that side)",
    "lat": 12.4346819,
    "lng": -69.9099513,
    "bld": 11592,
    "bld_name": "",
    "bld_h": 3.7,
-   "wall_i": 2,
-   "wall_len": 36.21,
-   "gps_dist_m": 6.81,
+   "wall_i": 0,
+   "wall_len": 36.11,
+   "gps_dist_m": 13.16,
    "center": [
-    6529.48,
-    9424.98
+    6524.78,
+    9444.38
    ],
    "p0": [
-    6537.27,
-    9426.79
+    6516.98,
+    9442.57
    ],
    "p1": [
-    6521.72,
-    9423.03
+    6532.53,
+    9446.33
    ],
    "normal": [
-    0.2347,
-    -0.9721
+    -0.2354,
+    0.9719
    ],
    "width": 16.0,
    "height": 3.3,

@@ -168,8 +168,8 @@ SPECS = [
         "artist": "Bordalo II",
         "year": 2016,
         "lat": 12.4346819, "lng": -69.9099513,
-        "address": "Stuyvesantstraat side: long south wall of the block the published pin falls inside",
-        "bld": 11592, "wall": 2,
+        "address": "Long street wall of the block the Stuyvesantstraat pin falls inside (the rendered facade on that side)",
+        "bld": 11592, "wall": 0,
         "wm": 16.0, "hm": 3.3,
         "pw": 960, "ph": 198,
         "sources": [
