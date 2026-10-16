@@ -21,9 +21,9 @@ function tileOf(u: number, v: number, grid: number) {
 
 /**
  * Long hair parented to the head bone, in that bone's local space
- * (+Y up the skull, +Z out of the face). A crown covers the skull, with
- * bangs over the forehead. Thick locks fall behind and over the shoulders.
- * The eyes stay clear.
+ * (+Y up the skull, +Z out of the face). A rounded crown covers the skull.
+ * Thin locks start on that skull, follow it, then fall behind the shoulders.
+ * Bangs stay over the forehead. The eyes stay clear.
  */
 function parentHairToHead(
   headBone: SkinnedMesh["skeleton"]["bones"][number],
@@ -109,16 +109,18 @@ function parentHairToHead(
   const rx = 0.104;
   const ry = 0.108;
   const rz = 0.100;
-  const stacks = 8;
-  const slices = 16;
+  const stacks = 12;
+  const slices = 24;
   const thetaMax = Math.PI * 0.52;
   const stride = slices + 1;
   // Open only below the brow so the bangs cover the forehead. Eyes sit lower.
-  const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.42 && theta > 1.46;
+  // Open the face from the hairline down. Thin bangs cover that band, so the
+  // crown rim does not sit on the brow as a thick ledge.
+  const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.2 && theta > 1.12;
   const shells: { start: number; kept: boolean[][] }[] = [];
   for (const shell of [
     { scale: 1, along: 0.02, out: true },
-    { scale: 0.72, along: 0.48, out: false },
+    { scale: 0.88, along: 0.48, out: false },
   ]) {
     const start = positions.length / 3;
     for (let j = 0; j <= stacks; j++) {
@@ -191,37 +193,84 @@ function parentHairToHead(
     }
   }
 
-  // Bangs. A short tube across the forehead, in front of the scalp and above the eyes.
-  addLock([
-    [-0.062, 0.104, 0.012],
-    [-0.028, 0.096, 0.024],
-    [0.028, 0.094, 0.026],
-    [0.062, 0.104, 0.012],
-  ], [0.026, 0.030, 0.030, 0.026], 8, 0.58);
-  // Volume behind the head, then down the back. +Z is the face, so this stays negative.
-  addLock([
-    [0.00, 0.06, -0.07],
-    [0.01, -0.04, -0.12],
-    [-0.02, -0.16, -0.14],
-    [0.02, -0.30, -0.13],
-    [-0.01, -0.44, -0.12],
-    [0.00, -0.56, -0.11],
-  ], [0.072, 0.070, 0.062, 0.050, 0.038, 0.026], 10, 0.06);
-  // Side locks leave the temple, cross over the shoulder, and hang down the back.
-  addLock([
-    [-0.055, 0.08, -0.01],
-    [-0.085, 0.02, -0.05],
-    [-0.105, -0.10, -0.09],
-    [-0.095, -0.26, -0.12],
-    [-0.075, -0.44, -0.11],
-  ], [0.046, 0.044, 0.038, 0.028, 0.018], 8, 0.16);
-  addLock([
-    [0.055, 0.08, -0.01],
-    [0.088, 0.01, -0.05],
-    [0.108, -0.12, -0.09],
-    [0.096, -0.28, -0.12],
-    [0.074, -0.46, -0.11],
-  ], [0.046, 0.044, 0.038, 0.028, 0.018], 8, 0.20);
+  // Point on the scalp, pushed out along the ellipsoid normal so layers sit on the skull.
+  const onSkull = (phi: number, theta: number, lift: number) => {
+    const st = Math.sin(theta);
+    const ct = Math.cos(theta);
+    const cp = Math.cos(phi);
+    const sp = Math.sin(phi);
+    let nx = cp * st / rx;
+    let ny = ct / ry;
+    let nz = sp * st / rz;
+    const nl = Math.hypot(nx, ny, nz) || 1;
+    nx /= nl; ny /= nl; nz /= nl;
+    return [
+      cx + cp * st * rx + nx * lift,
+      cy + ct * ry + ny * lift,
+      cz + sp * st * rz + nz * lift,
+    ];
+  };
+  // Rounded shells on one path down the back of the skull. Shared centerline,
+  // two lifts, so the fall is a layered volume instead of separate ropes.
+  // addLock's ring is round; 12 sides keeps a 3 cm radius smooth.
+  const roundedFall = (lift: number, radius: number, tail: number, along0: number, sides: number) => {
+    const centers: number[][] = [];
+    const radii: number[] = [];
+    const skullSteps = 8;
+    for (let i = 0; i < skullSteps; i++) {
+      const t = i / (skullSteps - 1);
+      const theta = 0.36 + t * 1.48;
+      const point = onSkull(-Math.PI / 2, theta, lift);
+      point[0] += Math.sin(t * Math.PI) * 0.006;
+      centers.push(point);
+      radii.push(radius * (1 - t * 0.08));
+    }
+    const last = centers[centers.length - 1];
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 6;
+      centers.push([
+        last[0] * (1 - t) + Math.sin(t * 2.2) * 0.01,
+        last[1] - tail * t,
+        last[2] * (1 - t) - 0.12 * t,
+      ]);
+      radii.push(Math.max(0.012, radius * (0.9 - t * 0.55)));
+    }
+    addLock(centers, radii, sides, along0);
+  };
+  roundedFall(0.006, 0.026, 0.58, 0.02, 12);
+  roundedFall(0.018, 0.020, 0.46, 0.18, 12);
+  roundedFall(0.012, 0.016, 0.36, 0.30, 10);
+  // Bangs are two arcs lying on the forehead, tapered at the temples.
+  const shellFront = (y: number) => {
+    const samples = [
+      [0.150, 0.012], [0.134, 0.050], [0.118, 0.076], [0.104, 0.092],
+      [0.090, 0.102], [0.076, 0.110],
+    ];
+    if (y >= samples[0][0]) return samples[0][1];
+    for (let i = 0; i < samples.length - 1; i++) {
+      const [y0, z0] = samples[i];
+      const [y1, z1] = samples[i + 1];
+      if (y <= y0 && y >= y1) return z0 + (z1 - z0) * ((y0 - y) / (y0 - y1));
+    }
+    return samples[samples.length - 1][1];
+  };
+  for (const layer of [
+    { ySide: 0.150, yMid: 0.116, lift: 0.003, radius: 0.011, along: 0.62 },
+    { ySide: 0.140, yMid: 0.106, lift: 0.006, radius: 0.008, along: 0.74 },
+  ]) {
+    const centers: number[][] = [];
+    const radii: number[] = [];
+    const steps = 8;
+    for (let s = 0; s < steps; s++) {
+      const t = s / (steps - 1);
+      const x = -0.058 + t * 0.116;
+      const arch = Math.sin(t * Math.PI);
+      const y = layer.ySide + (layer.yMid - layer.ySide) * arch;
+      centers.push([x, y, shellFront(y) + layer.lift]);
+      radii.push(layer.radius * (0.4 + 0.6 * arch));
+    }
+    addLock(centers, radii, 8, layer.along);
+  }
 
   const geo = new BufferGeometry();
   geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
@@ -247,29 +296,39 @@ function parentHeadShell(
   const uvs: number[] = [];
   const indices: number[] = [];
   // Head-local profile, crown to the neck join. +Z is out of the face.
-  // `front` is the cheek plane. `nose` is extra +Z on the centerline only,
-  // so the side silhouette gains a brow, a nose, and a chin. The last rings
-  // still meet the shoulders.
+  // `front` is the centerline. Brow, nose, lips, and chin are one slope,
+  // a few millimeters per ring, so the side silhouette does not step.
+  // The tip stays behind the portrait card (about z 0.16) and still leads
+  // the brow after the walk pitches the head down.
   const rings = [
-    { y: 0.150, rx: 0.010, front: 0.016, back: -0.010, nose: 0.000 },
-    { y: 0.128, rx: 0.055, front: 0.072, back: -0.058, nose: 0.000 },
-    { y: 0.106, rx: 0.070, front: 0.090, back: -0.070, nose: 0.000 },
-    { y: 0.088, rx: 0.076, front: 0.098, back: -0.070, nose: 0.000 },
-    { y: 0.070, rx: 0.078, front: 0.104, back: -0.068, nose: 0.000 },
-    { y: 0.054, rx: 0.074, front: 0.112, back: -0.064, nose: 0.000 },
-    { y: 0.040, rx: 0.066, front: 0.098, back: -0.060, nose: 0.000 },
-    { y: 0.024, rx: 0.058, front: 0.096, back: -0.052, nose: 0.020 },
-    { y: 0.008, rx: 0.052, front: 0.090, back: -0.046, nose: 0.046 },
-    { y: -0.006, rx: 0.048, front: 0.084, back: -0.042, nose: 0.074 },
-    { y: -0.020, rx: 0.046, front: 0.082, back: -0.040, nose: 0.036 },
-    { y: -0.036, rx: 0.046, front: 0.082, back: -0.040, nose: 0.040 },
-    { y: -0.052, rx: 0.044, front: 0.080, back: -0.042, nose: 0.062 },
-    { y: -0.070, rx: 0.046, front: 0.076, back: -0.046, nose: 0.010 },
-    { y: -0.100, rx: 0.052, front: 0.056, back: -0.050, nose: 0.000 },
-    { y: -0.145, rx: 0.056, front: 0.050, back: -0.054, nose: 0.000 },
-    { y: -0.190, rx: 0.060, front: 0.048, back: -0.060, nose: 0.000 },
+    { y: 0.150, rx: 0.012, front: 0.012, back: -0.008 },
+    { y: 0.134, rx: 0.050, front: 0.050, back: -0.042 },
+    { y: 0.118, rx: 0.066, front: 0.076, back: -0.060 },
+    { y: 0.104, rx: 0.074, front: 0.092, back: -0.068 },
+    { y: 0.090, rx: 0.077, front: 0.102, back: -0.070 },
+    { y: 0.076, rx: 0.078, front: 0.110, back: -0.070 },
+    { y: 0.064, rx: 0.076, front: 0.114, back: -0.068 },
+    { y: 0.052, rx: 0.072, front: 0.118, back: -0.064 },
+    { y: 0.040, rx: 0.066, front: 0.124, back: -0.060 },
+    { y: 0.028, rx: 0.060, front: 0.132, back: -0.056 },
+    { y: 0.016, rx: 0.056, front: 0.140, back: -0.052 },
+    { y: 0.006, rx: 0.052, front: 0.146, back: -0.048 },
+    { y: -0.004, rx: 0.050, front: 0.150, back: -0.046 },
+    { y: -0.014, rx: 0.048, front: 0.146, back: -0.044 },
+    { y: -0.024, rx: 0.048, front: 0.140, back: -0.044 },
+    { y: -0.034, rx: 0.047, front: 0.134, back: -0.044 },
+    { y: -0.044, rx: 0.046, front: 0.132, back: -0.046 },
+    { y: -0.054, rx: 0.046, front: 0.138, back: -0.048 },
+    { y: -0.064, rx: 0.047, front: 0.144, back: -0.050 },
+    { y: -0.076, rx: 0.048, front: 0.138, back: -0.052 },
+    { y: -0.090, rx: 0.050, front: 0.128, back: -0.054 },
+    { y: -0.106, rx: 0.052, front: 0.114, back: -0.056 },
+    { y: -0.124, rx: 0.054, front: 0.096, back: -0.058 },
+    { y: -0.144, rx: 0.056, front: 0.078, back: -0.058 },
+    { y: -0.166, rx: 0.058, front: 0.060, back: -0.060 },
+    { y: -0.190, rx: 0.060, front: 0.048, back: -0.060 },
   ];
-  const slices = 22;
+  const slices = 28;
   const push = (x: number, y: number, z: number) => {
     const id = positions.length / 3;
     positions.push(x, y, z);
@@ -281,9 +340,7 @@ function parentHeadShell(
     const zc = (ring.front + ring.back) * 0.5;
     for (let s = 0; s < slices; s++) {
       const ang = (s / slices) * Math.PI * 2;
-      const ahead = Math.max(0, Math.sin(ang));
-      const nose = ahead * ahead * ahead * ring.nose;
-      push(Math.cos(ang) * ring.rx, ring.y, zc + Math.sin(ang) * rz + nose);
+      push(Math.cos(ang) * ring.rx, ring.y, zc + Math.sin(ang) * rz);
     }
   }
   for (let j = 0; j < rings.length - 1; j++) {
