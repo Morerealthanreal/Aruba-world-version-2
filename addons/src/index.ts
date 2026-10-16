@@ -41,6 +41,7 @@ import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
 import { TierraResort } from "./tdsResort";
+import { WestSites } from "./westSites";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
@@ -91,12 +92,17 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+  const west = params.get("west") !== "0" ? new WestSites(g) : null;
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } if (!ul.querySelector(".aw-loco")) { const li3 = document.createElement("li"); li3.className = "aw-loco"; li3.innerHTML = 'On-foot walk and run: <a href="https://quaternius.com/packs/universalanimationlibrary.html" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> (CC0)'; ul.appendChild(li3); } if (!ul.querySelector(".aw-tds")) { const li4 = document.createElement("li"); li4.className = "aw-tds"; li4.innerHTML = 'Tierra del Sol gate: <a href="https://commons.wikimedia.org/wiki/File:GCV_Aruba_way_to_arribe_to_the_villas_-_panoramio.jpg" target="_blank" rel="noopener">Kallistoaua</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>'; ul.appendChild(li4); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
+  }
+  { // west-coast and interior ground-photo references (Commons). Not used as textures.
+    const addWest = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (ul.querySelector(".aw-west")) return true; const li = document.createElement("li"); li.className = "aw-west"; li.innerHTML = 'Casibari, Andicuri, Daimari and Boca Prins references: <a href="https://commons.wikimedia.org/wiki/File:Casibari_Rock_Formations_04.jpg" target="_blank" rel="noopener">Casibari</a> by Rarends297 (CC0), <a href="https://commons.wikimedia.org/wiki/File:Andicuri_Beach_na_costa_noordoost_di_Aruba_(Andicuri_Beach)_17.jpg" target="_blank" rel="noopener">Andicuri Beach</a> by Rarends297 (CC0), <a href="https://commons.wikimedia.org/wiki/File:ARIKOK_NATIONAL_PARK_-_DAIMARI_BAY_-_panoramio.jpg" target="_blank" rel="noopener">Daimari Bay</a> by James Martins (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>), <a href="https://commons.wikimedia.org/wiki/File:View_of_the_sand_dunes_of_Boca_Prins,_Aruba_01.jpg" target="_blank" rel="noopener">Boca Prins dunes</a> by Ginelly.Q (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>)'; ul.appendChild(li); return true; };
+    if (!addWest()) { let n = 0; const t = setInterval(() => { if (addWest() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
   if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
@@ -109,7 +115,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, west, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -133,6 +139,7 @@ async function main() {
     if (golf) golf.frame();
     if (sn) sn.update();
     if (resort) resort.frame();
+    if (west) west.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);
     if (look) look.update(uNight.value);
