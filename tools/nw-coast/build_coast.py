@@ -1312,8 +1312,11 @@ def build():
         if not rd:
             continue
         dx = bld["cx"] - rd[0]
-        # Lots sit back from the carriageway; the first row is about 30–45 m inland.
-        if not (28 < dx < 46):
+        # Lots sit back from the carriageway. The coloured boxes in the
+        # street view are 31–57 m inland; a 46 m cutoff left that row up.
+        if not (28 < dx < 60):
+            continue
+        if (bld["h"] or 0) >= 8:
             continue
         if dist_roads(roads, bld["cx"], bld["cz"], COAST - {"Avenida Nelson O. Oduber"}) + 8 < dx:
             continue
@@ -1321,8 +1324,7 @@ def build():
         if not pt:
             continue
         bub.append((bld, pt, rd, dx))
-    bub.sort(key=lambda t: t[3])
-    bub = bub[:8]
+    bub.sort(key=lambda t: t[0]["cz"])
     print(f"bubali houses {len(bub)}")
     if bub:
         vx = sum(t[1][0] for t in bub) / len(bub)
