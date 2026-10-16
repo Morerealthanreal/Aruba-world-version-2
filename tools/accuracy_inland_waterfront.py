@@ -827,10 +827,12 @@ def main():
 
     info, origin = build_hooiberg()
     print("hooiberg_base", info, "at", origin)
+    # The OSM house sitting on the shelf is the lot the trailhead replaces.
+    hooi_hide = [(-2721.6, 585.2), (-2720.7, 601.8), (-2712.3, 601.4), (-2713.1, 584.8)]
     entries.append(manifest_entry(
-        "hooiberg_base", "Hooiberg", origin[0], origin[1], info, 320, "landmark", None,
+        "hooiberg_base", "Hooiberg", origin[0], origin[1], info, 320, "landmark", hooi_hide,
         "Trailhead at the foot of Hooiberg: stone wall, green shelter, HOOIBERG sign, cactus and watapana. Commons 'Hooiberg hill parking lot' and 'Hooiberg hill staircase'. Stairs and summit heroes are not moved.",
-        new_place=True))
+        textures=1, new_place=True))
 
     gate = build_marines()
     print("marines_gate", gate)

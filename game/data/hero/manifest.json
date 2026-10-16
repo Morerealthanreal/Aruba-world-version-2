@@ -61117,8 +61117,8 @@
    "hooiberg_base_lod0": 218,
    "hooiberg_base_lod1": 108
   },
-  "textures": 0,
-  "hide_footprint": null,
+  "textures": 1,
+  "hide_footprint": [[-2721.6, 585.2], [-2720.7, 601.8], [-2712.3, 601.4], [-2713.1, 584.8]],
   "hide": [],
   "sign": false,
   "kind": "replace",
