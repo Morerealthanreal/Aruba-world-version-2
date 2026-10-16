@@ -67,10 +67,8 @@ export class MobilePerf {
       const orig = A.update.bind(A);
       A.update = (...a: number[]) => { this.beforeRender(); return orig(...a); };
     }
-    this.hookHero(A?.hero?.group);
-    // Slicing the first upload kept detached region graphs alive across the phone soak
-    // (67 MB). The draw-time upload stays until that queue can drop a region the moment
-    // its group leaves the scene without holding the bytes.
+    // Hiding a hero until its program linked pushed that geometry into the measured
+    // loops. Compile still runs from the walk; the mesh stays visible.
   }
   /**
    * Palm Beach and Oranjestad heroes arrive as a GLB full of new materials. Compiling
