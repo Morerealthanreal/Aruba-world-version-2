@@ -142,7 +142,11 @@ async function installListenerProbe(page) {
   });
 }
 
-async function driveLeg(page, stop, leg) {
+// Same straight distance every cycle. A timed steer changes heading with frame rate,
+// so later cycles were rendering a few new LOD geometries and tripping the phone budget.
+const DRIVE_M = 70;
+
+async function driveLeg(page, stop) {
   const start = await page.evaluate(({ lat, lon }) => {
     const game = window.game;
     const point = game.fromLL(lat, lon);
@@ -152,22 +156,50 @@ async function driveLeg(page, stop, leg) {
   }, stop);
 
   await page.keyboard.down("w");
-  const steer = leg % 2 ? "a" : "d";
-  await page.keyboard.down(steer);
-  await page.waitForTimeout(Math.min(450, STOP_MS));
-  await page.keyboard.up(steer);
-  await page.waitForTimeout(Math.max(0, STOP_MS - 450));
+  const started = Date.now();
+  let distance = 0;
+  while (Date.now() - started < STOP_MS) {
+    distance = await page.evaluate(({ x, z }) => {
+      const car = window.game.S.car;
+      return Math.hypot(car.x - x, car.z - z);
+    }, start);
+    if (distance >= DRIVE_M) break;
+    await page.waitForTimeout(100);
+  }
   await page.keyboard.up("w");
 
-  const finish = await page.evaluate(() => ({
-    x: window.game.S.car.x,
-    z: window.game.S.car.z,
-  }));
   await page.evaluate(
     ({ x, z, h }) => window.game.teleport("car", x, z, h),
     start,
   );
-  return Math.hypot(finish.x - start.x, finish.z - start.z);
+  return distance;
+}
+
+// Sample after in-flight region loads stop changing the renderer count. The
+// stream queue never stays empty, so this watches the count itself and gives up.
+async function waitGeometrySettled(page) {
+  await page.evaluate(() => {
+    window.__awGeoHold = { n: -1, since: 0 };
+  });
+  try {
+    await page.waitForFunction(
+      () => {
+        const n = window.game.renderer.info.memory.geometries;
+        const hold = window.__awGeoHold;
+        const now = performance.now();
+        if (hold.n !== n) {
+          hold.n = n;
+          hold.since = now;
+          return false;
+        }
+        return now - hold.since >= 600;
+      },
+      undefined,
+      { timeout: 3000 },
+    );
+  } catch {
+    // Still changing; the sample records whatever is resident.
+  }
 }
 
 async function sampleResources(page, cdp, cycle, stop) {
@@ -247,8 +279,9 @@ test("long phone drive keeps runtime resources flat", async ({
     for (let cycle = 0; cycle < TOTAL_CYCLES; cycle++) {
       for (let leg = 0; leg < ROUTE.length; leg++) {
         const stop = ROUTE[leg];
-        distances.push(await driveLeg(page, stop, leg));
+        distances.push(await driveLeg(page, stop));
         await page.waitForTimeout(SETTLE_MS);
+        await waitGeometrySettled(page);
         const sample = await sampleResources(page, cdp, cycle, stop.name);
         samples.push(sample);
         expect(sample.contextLost, "WebGL context was lost").toBe(false);
