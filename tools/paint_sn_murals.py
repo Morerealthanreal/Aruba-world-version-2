@@ -222,6 +222,7 @@ SPECS = [
         "bld": 4079, "wall": 1,
         # House-kit windows stand 0.13 m off this wall. Sit the paint in front of them.
         "lift": 0.24,
+        "anchor": "mid",
         "sharp": True,
         "wm": 14.8, "hm": 3.2,
         "pw": 1600, "ph": 720,
@@ -1371,7 +1372,7 @@ def main():
                 height = max_h
                 width = height * aspect
             half = width / 2 / w["len"]
-            t_c = min(1 - half, max(half, t))
+            t_c = 0.5 if spec.get("anchor") == "mid" else min(1 - half, max(half, t))
         cx = w["ax"] + (w["bx"] - w["ax"]) * t_c
         cz = w["az"] + (w["bz"] - w["az"]) * t_c
         dx, dz = (w["bx"] - w["ax"]) / w["len"], (w["bz"] - w["az"]) / w["len"]
