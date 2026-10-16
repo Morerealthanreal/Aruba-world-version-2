@@ -44,6 +44,7 @@ import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
+import { Interiors } from "./interiors";
 
 // Set synchronously so the minified-bundle hooks can preserve stock handling when
 // either the whole add-on suite or just the motorcycle pass is disabled.
@@ -86,6 +87,7 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
+  const interiors = params.get("interiors") !== "0" ? new Interiors(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
@@ -99,7 +101,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, version: "0.12.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, interiors, version: "0.13.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -134,6 +136,7 @@ async function main() {
     if (bmerge) bmerge.frame();
     if (bbatch) bbatch.frame();
     if (mwf) mwf.frame(Math.min(dt, 0.1));
+    if (interiors) interiors.update();
     tickUI();
     requestAnimationFrame(loop);
   };
