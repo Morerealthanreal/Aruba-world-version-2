@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 
 const phase = process.argv[2] || "before";
 const only = new Set((process.argv[3] || "").split(",").filter(Boolean));
-const outDir = `/opt/cursor/artifacts/oranjestad/${phase}`;
+const outDir = `/opt/cursor/artifacts/oranjestad-street/${phase}`;
 await mkdir(outDir, { recursive: true });
 
 const browser = await puppeteer.launch({
@@ -42,9 +42,33 @@ console.log("ready");
 const shots = [
   {
     name: "mainstreet",
-    stand: [-7080, 18],
-    eye: [-7080, 2.1, 12],
-    look: [-7280, 4.2, -8],
+    stand: [-7054, 15],
+    eye: [-7054, 2.1, 15],
+    look: [-7220, 3.2, -4],
+  },
+  {
+    name: "wilhelminastraat",
+    stand: [-7180, 110],
+    eye: [-7180, 2.0, 110],
+    look: [-7085, 3.4, 145],
+  },
+  {
+    name: "wilhelm-shops",
+    stand: [-7116, 158],
+    eye: [-7116, 1.8, 158],
+    look: [-7078, 3.0, 148],
+  },
+  {
+    name: "fort-close",
+    stand: [-7162, 232],
+    eye: [-7162, 1.8, 232],
+    look: [-7132, 8, 252],
+  },
+  {
+    name: "padu",
+    stand: [-7240, 150],
+    eye: [-7240, 2.0, 150],
+    look: [-7212, 2.4, 168],
   },
   {
     name: "mainstreet-east",
