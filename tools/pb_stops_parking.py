@@ -321,6 +321,67 @@ def near_junction(pts, x, z):
     return False
 
 
+def road_frame(roads, z):
+    hit = center_at(roads, z)
+    if hit is None:
+        return None
+    rx, w, sw, dx, dz = hit
+    length = math.hypot(dx, dz) or 1.0
+    tx, tz = dx / length, dz / length
+    ex, ez = -tz, tx
+    if ex < 0:
+        ex, ez = -ex, -ez
+    return {"x": rx, "z": z, "w": w, "sw": sw, "tx": tx, "tz": tz, "ex": ex, "ez": ez}
+
+
+def beach_side(frame, x, z):
+    """Metres toward the sea from the centreline. Positive is the beach shoulder."""
+    return -((x - frame["x"]) * frame["ex"] + (z - frame["z"]) * frame["ez"])
+
+
+def off_pavement(roads, x, z, margin=0.45):
+    frame = road_frame(roads, z)
+    if frame is None:
+        return True
+    return abs(beach_side(frame, x, z)) > frame["w"] / 2 + margin
+
+
+def shoulder_cells(roads, ring, gap=2.4):
+    """One row just outside the beach curb, along the lot's length.
+
+    The street_side ways are drawn on top of the travel lane. Parking belongs
+    on the shoulder, not in the asphalt.
+    """
+    zs = [pt[1] for pt in ring]
+    z0, z1 = min(zs), max(zs)
+    cells = []
+    z = z0 + gap * 0.5
+    while z < z1 - 0.2:
+        frame = road_frame(roads, z)
+        z += gap
+        if frame is None:
+            continue
+        dist = frame["w"] / 2 + 1.7
+        cells.append((frame["x"] - frame["ex"] * dist, frame["z"] - frame["ez"] * dist))
+    return cells
+
+
+def beach_polygon(roads, z0, z1, inner, outer):
+    """Rectangle on the beach side of the curb. inner/outer are metres past it."""
+
+    def corner(z, past):
+        frame = road_frame(roads, z)
+        if frame is None:
+            return None
+        dist = frame["w"] / 2 + past
+        return (frame["x"] - frame["ex"] * dist, frame["z"] - frame["ez"] * dist)
+
+    pts = [corner(z0, inner), corner(z1, inner), corner(z1, outer), corner(z0, outer)]
+    if any(pt is None for pt in pts):
+        return None
+    return pts
+
+
 def local(x, y, z, origin):
     ox, oz, y0 = origin
     return (x - ox, y - y0, z - oz)
@@ -572,7 +633,8 @@ def add_shop(meshes, ring, origin, lod):
     xs = [p[0] for p in ring]
     zs = [p[1] for p in ring]
     cx, cz = sum(xs) / len(xs), sum(zs) / len(zs)
-    g = mesh_height(cx, cz)
+    # Seat the slab on the low side so the beach wall does not float.
+    g = min(mesh_height(x, z) for x, z in ring)
     if g < 0.3:
         return False
     wall_h = 3.05
@@ -602,11 +664,11 @@ def add_shop(meshes, ring, origin, lod):
     e3 = local(x0, ye, z1, origin)
     r0 = local(xm, yp, z0, origin)
     r1 = local(xm, yp, z1, origin)
-    # West and east slopes, then the two gable ends.
-    roof.quad(e0, r0, r1, e3)
-    roof.quad(e1, e2, r1, r0)
-    roof.tri(e0, e1, r0)
-    roof.tri(e2, e3, r1)
+    # Outward slopes: west face looks to the sea, east face inland, gables north and south.
+    roof.quad(e0, e3, r1, r0)
+    roof.quad(e1, r0, r1, e2)
+    roof.tri(e0, r0, e1)
+    roof.tri(e2, r1, e3)
     # Blue fascia on the beach (west) wall, then a door and two windows.
     west = min(xs)
     box(blue, *local(west - 0.06, g + wall_h - 0.18, cz, origin), 0.08, 0.28, (max(zs) - min(zs)) * 0.92)
@@ -623,7 +685,7 @@ def seg_of(z):
     return SEGMENTS[-1][0]
 
 
-def build(sid, samples, buildings, golf, junctions, stops, lots, shop):
+def build(sid, samples, buildings, golf, junctions, stops, lots, shop, roads):
     if not samples:
         raise SystemExit(f"{sid} has no samples")
     mid = samples[len(samples) // 2]
@@ -715,47 +777,64 @@ def build(sid, samples, buildings, golf, junctions, stops, lots, shop):
             print("  missed stop", label, sx, sz)
 
     car_i = 0
-    for name, _kind, ring in lots:
+    for name, kind, ring in lots:
         cz = sum(p[1] for p in ring) / len(ring)
         if seg_of(cz) != sid:
             continue
-        cells = [c for c in lot_cells(ring) if not blocked(buildings, golf, c[0], c[1])]
+        raw = shoulder_cells(roads, ring) if kind in ("lane", "street") else lot_cells(ring)
+        cells = []
+        for x, z in raw:
+            if blocked(buildings, golf, x, z):
+                continue
+            if kind == "surface" and not off_pavement(roads, x, z):
+                continue
+            frame = road_frame(roads, z)
+            if frame is not None and beach_side(frame, x, z) < frame["w"] / 2 + 0.3:
+                print("  on road", name, round(x, 1), round(z, 1))
+                continue
+            cells.append((x, z))
+        placed = []
         for x, z in cells:
             if gravel_cell(model.mesh(0, gravel), x, z, origin):
+                placed.append((x, z))
                 counts["gravel"] += 1
-        if cells:
-            xs = [p[0] for p in ring]
-            zs = [p[1] for p in ring]
+        if placed:
+            xs = [p[0] for p in placed]
+            zs = [p[1] for p in placed]
             box(
                 model.mesh(1, gravel),
-                *local(sum(xs) / len(xs), mesh_height(sum(xs) / len(xs), sum(zs) / len(zs)) + 0.08, sum(zs) / len(zs), origin),
-                max(xs) - min(xs),
+                *local(
+                    sum(xs) / len(xs),
+                    mesh_height(sum(xs) / len(xs), sum(zs) / len(zs)) + 0.08,
+                    sum(zs) / len(zs),
+                    origin,
+                ),
+                max(xs) - min(xs) + 2.2,
                 0.08,
-                max(zs) - min(zs),
+                max(zs) - min(zs) + 2.2,
             )
-        # A few cars on the longer axis of the lot.
+        # A few cars along the shoulder.
         best = min(samples, key=lambda s: abs(s["z"] - cz)) if samples else None
-        ncar = 3 if len(cells) > 18 else 2
-        for k in range(min(ncar, len(cells))):
-            x, z = cells[len(cells) * (k + 1) // (ncar + 1)]
+        ncar = 3 if len(placed) > 14 else 2
+        for k in range(min(ncar, len(placed))):
+            x, z = placed[len(placed) * (k + 1) // (ncar + 1)]
             if best is None:
                 continue
             add_car(model.mesh(0, car_mats[car_i % 4]), model.mesh(0, glass), x, z, best["tx"], best["tz"], origin)
             box(model.mesh(1, car_mats[car_i % 4]), *local(x, mesh_height(x, z) + 0.4, z, origin), 1.7, 0.7, 3.4)
             car_i += 1
             counts["car"] += 1
-        # P board on the inland side of the lot.
-        if best is not None and cells:
-            ex, ez = -best["tz"], best["tx"]
-            if ex < 0:
-                ex, ez = -ex, -ez
-            cx = sum(p[0] for p in ring) / len(ring)
-            sign_x = cx + ex * 1.2
-            sign_z = cz
-            if not blocked(buildings, golf, sign_x, sign_z):
-                if add_sign(
+        # P board on the inland shoulder, facing the road.
+        if best is not None and placed:
+            czp = sum(p[1] for p in placed) / len(placed)
+            frame = road_frame(roads, czp)
+            if frame is not None:
+                dist = frame["w"] / 2 + 2.8
+                sign_x = frame["x"] + frame["ex"] * dist
+                sign_z = frame["z"] + frame["ez"] * dist
+                if not blocked(buildings, golf, sign_x, sign_z) and add_sign(
                     (model.mesh(0, wood), model.mesh(0, blue), model.mesh(0, white)),
-                    sign_x, sign_z, best["tx"], best["tz"], "P", BLUE, WHITE, origin, tall=1.55,
+                    sign_x, sign_z, frame["tx"], frame["tz"], "P", BLUE, WHITE, origin, tall=1.55,
                 ):
                     box(model.mesh(1, blue), *local(sign_x, mesh_height(sign_x, sign_z) + 1.5, sign_z, origin), 0.5, 0.5, 0.08)
                     counts["sign"] += 1
@@ -909,14 +988,25 @@ def main():
         "Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, "
         "Tres Trapi, Boca Catalina, Arashi Beach. "
         "OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 "
-        "are the Malmok and Boca Catalina beach-side lots. "
+        "are the Malmok and Boca Catalina beach-side lots, drawn on the beach shoulder "
+        "so the street_side ways do not cover the travel lane. "
+        "OSM node 3426955091 is the Boca Catalina street-side pull-off beside the stair. "
         "The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low "
         "orange-roof shop in the lighthouse-hill view of the lot. "
         "pb_busstops already covers the hotel frontage; those shelters are left in place."
     )
+    lots = list(LOTS)
+    # The stair pull-off sits just north of the Boca Catalina steps. South of
+    # z=-9540 the centreline jogs and the shoulder would run into the stair.
+    boca_pull = beach_polygon(roads, -9562.0, -9540.0, 1.0, 5.4)
+    if boca_pull:
+        lots.append(("boca_access", "surface", boca_pull))
     entries = []
     for sid, _z0, _z1 in SEGMENTS:
-        info, origin, = build(sid, groups[sid], buildings, golf, junctions, STOPS, LOTS, SHOP if sid == "nw_rd_arashi" else None)
+        info, origin, = build(
+            sid, groups[sid], buildings, golf, junctions, STOPS, lots,
+            SHOP if sid == "nw_rd_arashi" else None, roads,
+        )
         hide = SHOP if sid == "nw_rd_arashi" else None
         entries.append(manifest_entry(sid, origin, info, refs, hide))
     patch_manifest(entries)

@@ -66011,7 +66011,7 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_north_lod0": 7096,
+   "nw_rd_north_lod0": 7082,
    "nw_rd_north_lod1": 3336
   },
   "textures": 0,
@@ -66021,7 +66021,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM coast-road centreline, bus_stop nodes, and parking ways north of the Palm Beach hotels",
-  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
+  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots, drawn on the beach shoulder so the street_side ways do not cover the travel lane. OSM node 3426955091 is the Boca Catalina street-side pull-off beside the stair. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
   "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
   "cat": "landmark"
  },
@@ -66041,8 +66041,8 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_mid_lod0": 5142,
-   "nw_rd_mid_lod1": 2436
+   "nw_rd_mid_lod0": 5152,
+   "nw_rd_mid_lod1": 2448
   },
   "textures": 0,
   "hide_footprint": null,
@@ -66051,7 +66051,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM coast-road centreline, bus_stop nodes, and parking ways north of the Palm Beach hotels",
-  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
+  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots, drawn on the beach shoulder so the street_side ways do not cover the travel lane. OSM node 3426955091 is the Boca Catalina street-side pull-off beside the stair. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
   "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
   "cat": "landmark"
  },
@@ -66071,8 +66071,8 @@
    "switch_m": 600
   },
   "tris": {
-   "nw_rd_boca_lod0": 500,
-   "nw_rd_boca_lod1": 144
+   "nw_rd_boca_lod0": 586,
+   "nw_rd_boca_lod1": 192
   },
   "textures": 0,
   "hide_footprint": null,
@@ -66081,7 +66081,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM coast-road centreline, bus_stop nodes, and parking ways north of the Palm Beach hotels",
-  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
+  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots, drawn on the beach shoulder so the street_side ways do not cover the travel lane. OSM node 3426955091 is the Boca Catalina street-side pull-off beside the stair. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
   "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
   "cat": "landmark"
  },
@@ -66144,7 +66144,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM coast-road centreline, bus_stop nodes, and parking ways north of the Palm Beach hotels",
-  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
+  "ref_sources": "OSM bus_stop nodes on the L10 corridor north of the hotels: Hadicurari Beach, Fisherman's Hut, Malmok 458, Malmok Zuid, Malmok Beach, Tres Trapi, Boca Catalina, Arashi Beach. OSM parking ways 1167230838, 916189109, 916189104, 916189095, 1186199867, 1186199868 are the Malmok and Boca Catalina beach-side lots, drawn on the beach shoulder so the street_side ways do not cover the travel lane. OSM node 3426955091 is the Boca Catalina street-side pull-off beside the stair. The Arashi commercial box (OSM building, flat roof, h 6.9) is rebuilt as the low orange-roof shop in the lighthouse-hill view of the lot. pb_busstops already covers the hotel frontage; those shelters are left in place.",
   "frame": "glb origin = road sample (world x,z); glTF +X = world x, +Z = world z, Y up; y is the DEM height at the origin",
   "cat": "landmark"
  }
