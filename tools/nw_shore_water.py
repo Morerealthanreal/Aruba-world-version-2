@@ -34,8 +34,8 @@ MANIFEST = os.path.join(ROOT, "game", "data", "hero", "manifest.json")
 X0, Z0 = -10800.0, -11800.0
 LAT0, LON0 = 12.52, -69.97
 Y0 = 0.35
-SHEET_Y = 0.12
-FOAM_Y = 0.22
+SHEET_Y = 0.07
+FOAM_Y = 0.13
 FAR_MAX = 620.0
 
 PALE = (0.25, 0.78, 0.73)
@@ -88,8 +88,14 @@ def height(x: float, z: float) -> float:
     return (h00 * (1 - d) + h10 * d) * (1 - f) + (h01 * (1 - d) + h11 * d) * f
 
 
+_SHORE: dict[float, float | None] = {}
+
+
 def shore_x(z: float) -> float | None:
     """First land encountered walking east from deep water."""
+    key = round(z, 1)
+    if key in _SHORE:
+        return _SHORE[key]
     x = -9800.0
     prev = height(x, z)
     while x < -8200.0:
@@ -97,9 +103,12 @@ def shore_x(z: float) -> float | None:
         h = height(nxt, z)
         if prev <= 0.18 and h > 0.18:
             t = (0.18 - prev) / (h - prev + 1e-9)
-            return x + t * 2.0
+            hit = x + t * 2.0
+            _SHORE[key] = hit
+            return hit
         prev = h
         x = nxt
+    _SHORE[key] = None
     return None
 
 
@@ -111,17 +120,6 @@ def slope_width(z: float, shore: float) -> float:
     return 70.0
 
 
-def hsh(ix: int, iz: int) -> int:
-    n = (ix * 374761393 + iz * 668265263) & 0xFFFFFFFF
-    n = (n ^ (n >> 13)) * 1274126177 & 0xFFFFFFFF
-    return (n ^ (n >> 16)) & 0xFFFF
-
-
-def clump(ix: int, iz: int) -> bool:
-    """Dark reef blobs a couple of cells across, stable across the two LODs."""
-    return math.sin(ix * 0.62 + 1.4) * math.sin(iz * 0.51 + 0.3) > 0.62
-
-
 class Hero:
     def __init__(self, name: str, ox: float, oz: float):
         self.name = name
@@ -131,13 +129,15 @@ class Hero:
         self.model = Model(name)
         self.far = 0.0
         self.seen: set[tuple] = set()
+        # Sheet colours blend over the live sea so the ripple stays visible.
+        # Boats, rocks and buoys stay opaque.
         specs = {
-            "pale": (PALE, 0.38),
-            "aqua": (AQUA, 0.4),
-            "aqua2": (AQUA2, 0.42),
-            "reef": (REEF, 0.55),
-            "deep": (DEEP, 0.5),
-            "foam": (FOAM, 0.62),
+            "pale": (PALE, 0.38, 0.55),
+            "aqua": (AQUA, 0.4, 0.4),
+            "aqua2": (AQUA2, 0.42, 0.4),
+            "reef": (REEF, 0.55, 0.72),
+            "deep": (DEEP, 0.5, 0.72),
+            "foam": (FOAM, 0.62, 1.0),
             "rock": (ROCK, 0.86),
             "rockw": (ROCK_W, 0.7),
             "hull": (HULL, 0.4),
@@ -149,12 +149,14 @@ class Hero:
             "buoy": (BUOY, 0.42),
             "buoyw": (BUOY_W, 0.38),
             "spar": (SPAR, 0.5),
-            "line": (LINE, 0.7),
+            "line": (LINE, 0.7, 1.0),
         }
-        for mat, (rgb, rough) in specs.items():
+        for mat, spec in specs.items():
             if "water" in mat:
                 raise SystemExit(mat)
-            self.model.material(mat, rgb, rough)
+            rgb, rough = spec[0], spec[1]
+            alpha = spec[2] if len(spec) > 2 else 1.0
+            self.model.material(mat, rgb, rough, alpha=alpha)
 
     def note(self, x: float, z: float) -> None:
         self.far = max(self.far, math.hypot(x - self.ox, z - self.oz))
@@ -216,95 +218,118 @@ def near_any(x: float, z: float, pts: list[tuple[float, float, float]]) -> bool:
     return False
 
 
+# Dark reef as a few ovals, not a per-cell checker. dz/offshore are metres from the beach node.
+REEF_BARS = {
+    "malmok": ((-22.0, 44.0, 15.0, 7.0), (24.0, 60.0, 16.0, 7.5), (50.0, 32.0, 9.0, 4.5), (-48.0, 28.0, 8.0, 4.0)),
+    "boca": ((0.0, 26.0, 8.0, 4.5), (-30.0, 14.0, 7.0, 3.5)),
+    "arashi": ((-55.0, 30.0, 16.0, 5.5), (12.0, 38.0, 12.0, 4.5), (58.0, 22.0, 9.0, 3.5)),
+}
+
+
+def reef_bar(kind: str, x: float, z: float, notch: float) -> bool:
+    for dz, off, rz, rx in REEF_BARS[kind]:
+        zc = notch + dz
+        shore = shore_x(zc)
+        if shore is None:
+            continue
+        cx = shore - off
+        if ((x - cx) / rx) ** 2 + ((z - zc) / rz) ** 2 <= 1.0:
+            return True
+    return False
+
+
 def water_row(kind: str, z: float, shore: float, notch: float) -> tuple[float, float, bool]:
     """Inner gap (metres offshore where sheets start), outer reach, and whether this row is rock."""
     sl = slope_width(z, shore)
-    wobble = 6.0 * math.sin(z * 0.047) + 3.5 * math.sin(z * 0.12)
+    wobble = 8.0 * math.sin(z * 0.037) + 4.0 * math.sin(z * 0.11)
+    edge = 1.8 * math.sin(z * 0.17) + 1.1 * math.sin(z * 0.29)
     dist = abs(z - notch)
     steep = sl < 14.0
     if kind == "malmok":
-        rock = steep or 9.0 < dist < 26.0
-        if dist < 36.0:
-            # Wide sand-bottom under the moored boats.
-            return (5.5 if rock else 6.5), 100.0 + wobble, rock
+        inner = 5.0 + edge
+        if dist < 40.0:
+            return inner, 98.0 + wobble, steep
         if dist < 78.0:
-            return 7.5, 48.0 + wobble * 0.6, rock
-        return 8.0, 32.0 + wobble * 0.4, rock or steep
+            return inner + 1.0, 50.0 + wobble * 0.5, steep
+        return inner + 1.5, 34.0 + wobble * 0.35, steep
     if kind == "boca":
-        # Steep limestone all along the stair, but the bowl in front of it is sand-bottom turquoise.
-        # Dark water and foam belong on the headlands, not in the cove.
-        if dist < 18.0:
-            return 5.0, 58.0 + wobble * 0.45, False
-        if steep or dist < 52.0:
-            return 4.0, 26.0 + wobble * 0.3, True
-        return 6.5, 34.0 + wobble * 0.4, False
-    # Arashi: a wide sand shelf, a few authored rocks, no cliff.
-    return 7.0, 64.0 + wobble, False
+        # A short band along the stair, and a darker ribbon on the limestone. A wide slab
+        # reads as a rectangle from the cliff top, so the open cove stays the live sea.
+        if dist < 22.0:
+            return 3.8 + edge * 0.25, 22.0 + wobble * 0.15, False
+        if steep or dist < 55.0:
+            return 3.2, 11.0 + 2.2 * math.sin(z * 0.21), True
+        return 4.5, 16.0, False
+    return 5.5 + edge, 58.0 + wobble * 0.7, False
 
 
-def sheet_mat(kind: str, rock: bool, d: float, outer: float, ix: int, iz: int) -> str | None:
-    if rock and d < 18.0:
-        return "reef" if hsh(ix, iz) % 4 else "deep"
-    feather = (d - (outer - 12.0)) / 12.0
-    if feather > 0.05 and (hsh(ix, iz) % 7) < feather * 6.0:
-        return None
-    if clump(ix, iz) and d > 12.0:
+def sheet_mat(kind: str, rock: bool, d: float, x: float, z: float, notch: float) -> str:
+    """Two shore-parallel colours plus a few reef ovals. No per-cell noise and no holes."""
+    if rock and d < 16.0:
         return "reef"
-    if kind == "malmok":
-        # Boats sit 48–76 m out and should still be in turquoise, not the open-sea navy.
-        if d < 32.0:
-            return "pale"
-        if d < 62.0:
-            return "aqua"
-        if d < outer - 8.0:
-            return "aqua2"
-        return "deep"
-    if d < outer * 0.36:
-        return "pale"
-    if d < outer * 0.66:
-        return "aqua"
-    if d < outer * 0.88:
-        return "aqua2"
-    return "deep"
+    if reef_bar(kind, x, z, notch) and d > 10.0:
+        return "reef"
+    # Malmok boats sit 48–76 m out, still in the turquoise rather than the open sea.
+    split = 46.0 + 4.0 * math.sin(z * 0.041) if kind == "malmok" else 30.0 + 3.0 * math.sin(z * 0.05)
+    return "pale" if d < split else "aqua"
 
 
 def emit_water(hero: Hero, kind: str, z0: float, z1: float, notch: float, blocks: list[tuple[float, float, float]], step: float, lod: int) -> int:
-    n = 0
-    z = z0
-    while z < z1 - 0.4:
-        zn = min(z + step, z1)
-        if zn - z < 0.8:
-            break
-        zc = (z + zn) * 0.5
+    """Lattice sheets that share edges, then merged into shore-parallel runs.
+
+    Boca is skipped: from the cliff a colour slab reads as a panel. The cove keeps
+    the live sea, and this hero only adds the cliff wash and the in-water rocks.
+    """
+    if kind == "boca":
+        return 0
+    cells: dict[tuple[int, int], str] = {}
+    iz0 = math.floor(z0 / step)
+    iz1 = math.floor((z1 - 0.01) / step)
+    for iz in range(iz0, iz1 + 1):
+        zc = (iz + 0.5) * step
+        if zc < z0 or zc > z1:
+            continue
         shore = shore_x(zc)
         if shore is None:
-            z = zn
             continue
         inner, outer, rock = water_row(kind, zc, shore, notch)
         if outer < inner + step:
-            z = zn
             continue
-        x_east = shore - inner
-        x_west = shore - outer
-        x = x_east
-        while x > x_west + 0.6:
-            xn = max(x_west, x - step)
-            if x - xn < 0.6:
-                break
-            xc = (x + xn) * 0.5
-            d = shore - xc
-            if height(xc, zc) > 0.05:
-                x = xn
+        ix0 = math.floor((shore - outer) / step)
+        ix1 = math.floor((shore - inner) / step)
+        for ix in range(ix0, ix1 + 1):
+            x0 = ix * step
+            x1 = x0 + step
+            xc = x0 + step * 0.5
+            if x1 > shore - inner:
+                continue
+            if xc < shore - outer:
+                continue
+            if height(xc, zc) > 0.4:
                 continue
             if near_any(xc, zc, blocks):
-                x = xn
                 continue
-            mat = sheet_mat(kind, rock, d, outer, int(math.floor(xc / 4.0)), int(math.floor(zc / 4.0)))
-            if mat:
-                hero.sheet(lod, mat, xn, z, x, zn, SHEET_Y)
-                n += 1
-            x = xn
-        z = zn
+            d = shore - xc
+            cells[(ix, iz)] = sheet_mat(kind, rock, d, xc, zc, notch)
+    n = 0
+    rows: dict[int, list[tuple[int, str]]] = {}
+    for (ix, iz), mat in cells.items():
+        rows.setdefault(iz, []).append((ix, mat))
+    for iz, row in rows.items():
+        row.sort()
+        z_a = iz * step
+        z_b = z_a + step
+        i = 0
+        while i < len(row):
+            ix, mat = row[i]
+            j = i + 1
+            while j < len(row) and row[j][0] == row[j - 1][0] + 1 and row[j][1] == mat:
+                j += 1
+            x_a = ix * step
+            x_b = row[j - 1][0] * step + step
+            hero.sheet(lod, mat, x_a, z_a, x_b, z_b, SHEET_Y)
+            n += 1
+            i = j
     return n
 
 
@@ -319,8 +344,8 @@ def add_rock(hero: Hero, x: float, z: float, sx: float, top: float, sz: float, y
     hero.add_obox(0, "rockw", x, top - 0.08, z, sx * 0.72, 0.1, sz * 0.72, yaw)
     hero.add_obox(1, "rock", x, cy, z, sx, top * 0.85, sz, yaw)
     # Wash on the shore side of the nub (east, +x).
-    add_foam(hero, x + sx * 0.55 + 0.8, z, 1.8, 1.15, (0, 1))
-    add_foam(hero, x + 0.3, z + sz * 0.35, 1.2, 0.8, (0,))
+    add_foam(hero, x + sx * 0.45 + 0.7, z, 1.15, 0.7, (0, 1))
+    add_foam(hero, x + 0.2, z + sz * 0.3, 0.8, 0.5, (0,))
 
 
 def place_rocks(spec: list[tuple[float, float, float, float, float, float]], notch_z: float, avoid: list[tuple[float, float, float]]) -> list[tuple[float, float, float]]:
@@ -342,7 +367,7 @@ def place_rocks(spec: list[tuple[float, float, float, float, float, float]], not
             continue
         placed.append((x, z, sx, top, sz, yaw))
         avoid.append((x, z, max(sx, sz) * 0.5 + 2.2))
-    return [(p[0], p[1], max(p[2], p[4]) * 0.55 + 1.6) for p in placed], placed
+    return [(p[0], p[1], max(p[2], p[4]) * 0.42) for p in placed], placed
 
 
 def add_buoy(hero: Hero, x: float, z: float, scale: float = 1.0, flag: bool = True) -> None:
@@ -488,8 +513,9 @@ def build_beach(name: str, kind: str, z0: float, z1: float, notch: float, blocks
     anchor = (shore + 8.0, notch)
     ox, oz = pick_origin(pts, anchor)
     hero = Hero(name, ox, oz)
-    n0 = emit_water(hero, kind, z0, z1, notch, blocks, 4.0, 0)
-    n1 = emit_water(hero, kind, z0, z1, notch, blocks, 8.0, 1)
+    # Rocks stay in the blocks list so a sheet does not cut through a nub.
+    n0 = emit_water(hero, kind, z0, z1, notch, blocks, 3.0, 0)
+    n1 = emit_water(hero, kind, z0, z1, notch, blocks, 6.0, 1)
     info = {
         "shore": shore,
         "origin": (ox, oz),
@@ -653,9 +679,7 @@ def cliff_foam(hero: Hero, z0: float, z1: float, notch: float) -> int:
         shore = shore_x(z)
         if shore is not None:
             if slope_width(z, shore) < 14.0:
-                add_foam(hero, shore - 2.6, z, 1.7, 1.05, (0, 1) if n % 2 == 0 else (0,))
-                if n % 2 == 0:
-                    add_foam(hero, shore - 3.5, z + 1.3, 1.15, 0.7, (0,))
+                add_foam(hero, shore - 2.3, z, 1.15, 0.65, (0, 1) if n % 2 == 0 else (0,))
                 n += 1
         z += 7.5
     return n
@@ -801,7 +825,7 @@ def main() -> None:
             hero_b.ox,
             hero_b.oz,
             tri_b,
-            "Boca Catalina cove: turquoise in the stair bowl, dark water against the limestone, foam on the cliff waterline. The existing stair, sand pocket and two swim buoys stay where they are.",
+            "Boca Catalina cove: cliff wash and a few dark rocks in the water. The bowl keeps the live sea, because a colour slab read as a panel from the stair. The stair, sand pocket and two swim buoys stay where they are.",
         ),
         entry(
             "nw_sw_arashi",

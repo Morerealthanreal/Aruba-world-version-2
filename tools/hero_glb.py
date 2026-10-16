@@ -127,8 +127,8 @@ class Model:
         self.mats = {}  # name -> (rgba, roughness, double, emissive or None, has_tex)
         self.lod = [{}, {}]  # lod -> mat name -> Mesh
 
-    def material(self, name, rgb, rough=0.85, double=False, emissive=None, textured=False):
-        self.mats[name] = (tuple(rgb) + (1,), rough, double, emissive, textured)
+    def material(self, name, rgb, rough=0.85, double=False, emissive=None, textured=False, alpha=1.0):
+        self.mats[name] = (tuple(rgb) + (float(alpha),), rough, double, emissive, textured)
         return name
 
     def mesh(self, lod, mat):
@@ -177,6 +177,9 @@ def write_glb(model: Model, path, images=None):
                 "metallicFactor": 0,
             },
         }
+        # Opaque stays the default. A blend sheet tints the sea instead of painting a flat decal.
+        if rgba[3] < 0.999:
+            m["alphaMode"] = "BLEND"
         if double:
             m["doubleSided"] = True
         if textured and image_views:
