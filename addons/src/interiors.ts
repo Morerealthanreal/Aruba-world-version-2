@@ -3,7 +3,7 @@
 // hero wall. Footprint collision stays solid everywhere except that doorway
 // and the walkable floor (counters and tables still block).
 // Off with ?interiors=0. Far away nothing is built and the door shader is off.
-import { Group, Vector2, Vector4, type Material, type Mesh, type Object3D } from "three";
+import { Group, Raycaster, Vector2, Vector3, Vector4, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
@@ -19,6 +19,7 @@ import { buildSenorfrogs, SF_DOOR_HALF, SF_DOOR_TOP, SF_OBS, SF_POLY, SF_X, SF_Z
 import { buildMoomba, MB_DOOR_HALF, MB_DOOR_TOP, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "./interiors/moomba";
 import { buildGiannis, GN_DOOR_HALF, GN_DOOR_TOP, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "./interiors/giannis";
 import { buildRenmall, RN_DOOR_HALF, RN_DOOR_TOP, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "./interiors/renmall";
+import { buildRoyalplaza, RP_DOOR_HALF, RP_DOOR_TOP, RP_OBS, RP_POLY, RP_X, RP_Z, rpLocal } from "./interiors/royalplaza";
 import { ROOM_BACK, ROOM_FRONT, ROOM_SIDE, inRoom, isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -51,6 +52,12 @@ type Place = {
   patched: boolean;
   /** Terrain sample for the floor. Defaults to the hero centroid. */
   floorAt?: { x: number; z: number };
+  /** A procedural monument shell shares this wall. Cut the same doorway through it. */
+  shell?: boolean;
+  shellDone?: boolean;
+  shellQuiet?: number;
+  shellTries?: number;
+  shellTick?: number;
 };
 
 function placePastechi(): Place {
@@ -461,6 +468,40 @@ function placeRenmall(): Place {
   };
 }
 
+function placeRoyalplaza(): Place {
+  const world = worldFrame(rpLocal, RP_X, RP_Z, 0);
+  world.poly = RP_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "royalplaza",
+    x: RP_X,
+    z: RP_Z,
+    rot: 0,
+    local: rpLocal,
+    world,
+    doorHalf: RP_DOOR_HALF,
+    doorTop: RP_DOOR_TOP,
+    // The monument shell's piers stand about 2.4 m inside the pink wall.
+    doorSide: 2.8,
+    wall: 0.34,
+    obs: RP_OBS,
+    cut: ["ground"],
+    show: 100,
+    hide: 130,
+    floorAt: { x: -7545.39, z: -63.2 },
+    shell: true,
+    build: buildRoyalplaza,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 /** Local Y of each interior floor. Matches the floor quad in that place's builder. */
 function floorLift(id: string): number {
   switch (id) {
@@ -472,6 +513,7 @@ function floorLift(id: string): number {
     case "marriott": return 0.08;
     case "moomba":
     case "renmall": return 0.06;
+    case "royalplaza": return 0.05;
     default: return 0.04;
   }
 }
@@ -519,8 +561,11 @@ export class Interiors {
   private roomY = [0, 1, 2, 3].map(() => new Vector2());
   private slotIx = [0, 0, 0, 0];
   private slotD = [0, 0, 0, 0];
+  private shellRay = new Raycaster();
+  private shellFrom = new Vector3();
+  private shellDir = new Vector3();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall(), placeRoyalplaza()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
     this.wrapHeight();
@@ -570,6 +615,7 @@ export class Interiors {
         const door = on ? 1 : 0;
         if (p.doorOn.value !== door) p.doorOn.value = door;
         if (!p.patched && dist < p.show + 40) this.patchHero(p);
+        if (p.shell && !p.shellDone && dist < p.show + 40) this.patchShell(p);
         // Terrain can still be the fallback height when the room is first built.
         this.settleFloor(p);
       }
@@ -732,6 +778,69 @@ uniform vec2 awRoomY[4];`)
     if (found > 0) p.patched = true;
   }
 
+  /**
+   * The Royal Plaza hero bay is already open. A procedural monument draws a
+   * second pink shell on the same footprint, and that shell is what the street
+   * sees. Rays through the doorway pick the materials to cut.
+   */
+  private patchShell(p: Place) {
+    p.shellTick = (p.shellTick ?? 0) + 1;
+    if ((p.shellTick ?? 0) % 15 !== 0) return;
+    const mon = (this.g.real as unknown as { mon?: { group?: Object3D } }).mon?.group;
+    if (!mon) return;
+    mon.updateMatrixWorld(true);
+    p.shellTries = (p.shellTries ?? 0) + 1;
+    if ((p.shellTries ?? 0) > 40) { p.shellDone = true; return; }
+    const U = p.uU.value, N = p.uN.value, M = p.uM.value;
+    this.shellDir.set(N.x, 0, N.y);
+    const y0 = p.uY.value;
+    const near: Mesh[] = [];
+    mon.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh || !mesh.geometry) return;
+      const geo = mesh.geometry;
+      if (!geo.boundingSphere) geo.computeBoundingSphere();
+      const bs = geo.boundingSphere;
+      if (!bs) return;
+      const e = mesh.matrixWorld.elements;
+      const cx = e[0] * bs.center.x + e[4] * bs.center.y + e[8] * bs.center.z + e[12];
+      const cz = e[2] * bs.center.x + e[6] * bs.center.y + e[10] * bs.center.z + e[14];
+      if (Math.hypot(cx - M.x, cz - M.y) - bs.radius > 4) return;
+      near.push(mesh);
+    });
+    const doorOn = p.doorOn, uU = p.uU, uN = p.uN, uM = p.uM, uY = p.uY;
+    const half = { value: p.doorHalf }, top = { value: p.doorTop }, side = { value: p.doorSide };
+    let added = 0, seen = 0;
+    for (let ia = -2; ia <= 2; ia++) {
+      const along = ia * p.doorHalf * 0.46;
+      for (let k = 0; k < 4; k++) {
+        const iy = 0.4 + k * Math.max(0.4, (p.doorTop - 0.7) / 3);
+        this.shellFrom.set(M.x + U.x * along - N.x * 1.4, y0 + iy, M.y + U.y * along - N.y * 1.4);
+        this.shellRay.set(this.shellFrom, this.shellDir);
+        this.shellRay.far = 1.4 + p.doorSide + 0.5;
+        const hits = near.length ? this.shellRay.intersectObjects(near, false) : [];
+        for (let h = 0; h < hits.length; h++) {
+          const hit = hits[h];
+          const alongH = (hit.point.x - M.x) * U.x + (hit.point.z - M.y) * U.y;
+          const sideH = (hit.point.x - M.x) * N.x + (hit.point.z - M.y) * N.y;
+          if (Math.abs(alongH) > p.doorHalf + 0.08) continue;
+          if (sideH < -1.15 || sideH > p.doorSide + 0.08) continue;
+          if (hit.point.y < y0 - 0.2 || hit.point.y > y0 + p.doorTop + 0.05) continue;
+          const mesh = hit.object as Mesh;
+          if (!mesh.isMesh || !mesh.material) continue;
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (let m = 0; m < mats.length; m++) {
+            if (this.patchMat(mats[m], [], doorOn, uU, uN, uM, uY, half, top, side, "door-shell-" + p.id)) added++;
+          }
+          seen++;
+        }
+      }
+    }
+    if (seen > 0 && added === 0) p.shellQuiet = (p.shellQuiet ?? 0) + 1;
+    else p.shellQuiet = 0;
+    if ((p.shellQuiet ?? 0) >= 4) p.shellDone = true;
+  }
+
   private patchMat(
     mat: Material,
     cut: string[],
@@ -743,12 +852,15 @@ uniform vec2 awRoomY[4];`)
     half: { value: number },
     top: { value: number },
     side: { value: number },
+    key?: string,
   ) {
     const name = mat.name || "";
-    if (cut.indexOf(name) < 0) return false;
+    const id = key || ("door-" + name);
+    if (!key && cut.indexOf(name) < 0) return false;
+    if (mat.userData["aw:" + id]) return false;
     this.rebake.set(mat, 4);
     mat.needsUpdate = true;
-    chainPatch(mat, "door-" + name, (s: Shader) => {
+    chainPatch(mat, id, (s: Shader) => {
       if (!s.vertexShader.includes("#include <begin_vertex>")) return;
       if (!s.fragmentShader.includes("#include <clipping_planes_fragment>")) return;
       s.uniforms.awDoorOn = doorOn;
