@@ -1,5 +1,5 @@
 // Door-volume checks for Pastechi House. No browser, no WebGL.
-import { isOpen, worldFrame } from "../addons/src/interiors/volume";
+import { inRoom, isOpen, worldFrame } from "../addons/src/interiors/volume";
 import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "../addons/src/interiors/pastechi";
 import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
 import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
@@ -245,6 +245,15 @@ for (let d = -0.4; d <= 8; d += 0.25) {
 }
 if (!isOpen(rd, RD_OBS, -7828.8, -6088.1, RD_DOOR_HALF, mWall)) console.log("ok rd neighbour stays shut");
 else { console.log("FAIL rd neighbour opened"); bad++; }
+function rPt(a: number, d: number) {
+  return [rd.mx + rd.ux * a + rd.nx * d, rd.mz + rd.uz * a + rd.nz * d] as const;
+}
+const mound = rPt(-9, 0.2);
+if (inRoom(rd, mound[0], mound[1])) console.log("ok rd mound inside floor");
+else { console.log("FAIL rd mound outside floor"); bad++; }
+const sand = rPt(0, -2);
+if (!inRoom(rd, sand[0], sand[1])) console.log("ok rd sidewalk keeps terrain");
+else { console.log("FAIL rd sidewalk cleared"); bad++; }
 if (!bad) console.log("rd aisle clear");
 
 const ht = worldFrame(htLocal, HT_X, HT_Z, 0);
