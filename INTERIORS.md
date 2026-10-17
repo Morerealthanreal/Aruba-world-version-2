@@ -16,7 +16,8 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Señor Frog's** (Palm Beach, J.E. Irausquin Boulevard). The ground floor under the green sign opens. Inside: a yellow and green bar, a wood counter, and a menu for margaritas, nachos, and fajitas. The sign and the yellow walls stay.
 - **Moomba Beach Bar** (Palm Beach). The glass bay beside the teal MOOMBA sign opens onto the sand. Inside: a sand and teal floor, a wood bar with a teal top, bottles and glasses, stools and low tables, and boards for Painkiller, Passion Mojito, Aruba Ariba, the hamburger, fish sandwich, Caesar salad, and the day's snacks. The sign and the tan roof stay.
 - **Gianni's Ristorante Italiano** (Palm Beach, J.E. Irausquin Boulevard). The terrace under the green sign opens. Inside: a green and white tile floor, wood tables, red and green chairs, a host stand in green, white, and red, and boards for bruschetta, bucatini, puttanesca, vitello parmigiana, ossobuco, tiramisu, and the tableside spaghetti al parmigiano. The awning and the sign stay.
+- **Renaissance Mall** (Oranjestad, Havenstraat). The glass under the Aruba Aloe sign opens. Inside: a tiled hall with a terracotta runner, benches, and counters for Pier Market, Hot Look, and Aruba Aloe. The pink facade, awnings, and the street signs stay.
 
 ## Next
 
-- Renaissance mall downtown, then more shops
+- Royal Plaza mall, then more shops
