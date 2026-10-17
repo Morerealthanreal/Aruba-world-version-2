@@ -94,8 +94,10 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
-  if (params.get("snmurals") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_mural_atlas.jpg"), g.renderer);
-  if (params.get("snfamous") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_famous_atlas.jpg"), g.renderer);
+  const muralPreload: string[] = [];
+  if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
+  if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");
+  await Promise.all(muralPreload.map((p) => loadMuralAtlas(muralAtlasKey(p), g.renderer)));
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;

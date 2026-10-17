@@ -51,7 +51,7 @@ export class SnFamousMurals {
       polygonOffsetFactor: -4,
       polygonOffsetUnits: -4,
     });
-    const mesh = new THREE.Mesh(this.geometry(doc.murals, null), mat);
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     mesh.name = "aw:sn-famous-murals";
     mesh.frustumCulled = false;
     mesh.castShadow = false;
