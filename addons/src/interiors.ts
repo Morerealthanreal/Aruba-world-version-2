@@ -12,6 +12,7 @@ import { buildStarbucks, SBX_DOOR_HALF, SBX_DOOR_TOP, SBX_OBS, SBX_POLY, SBX_X, 
 import { buildPlaza, PB_DOOR_HALF, PB_DOOR_TOP, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "./interiors/plaza";
 import { buildHardrock, HR_DOOR_HALF, HR_DOOR_TOP, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "./interiors/hardrock";
 import { buildRadisson, RD_DOOR_HALF, RD_DOOR_TOP, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "./interiors/radisson";
+import { buildHilton, HT_DOOR_HALF, HT_DOOR_TOP, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "./interiors/hilton";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -230,6 +231,37 @@ function placeRadisson(): Place {
   };
 }
 
+function placeHilton(): Place {
+  const world = worldFrame(htLocal, HT_X, HT_Z, 0);
+  world.poly = HT_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "hilton",
+    x: HT_X,
+    z: HT_Z,
+    rot: 0,
+    local: htLocal,
+    world,
+    doorHalf: HT_DOOR_HALF,
+    doorTop: HT_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: HT_OBS,
+    cut: ["ground", "lwall"],
+    show: 120,
+    hide: 155,
+    build: buildHilton,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -242,7 +274,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
@@ -290,8 +322,21 @@ export class Interiors {
         const door = on ? 1 : 0;
         if (p.doorOn.value !== door) p.doorOn.value = door;
         if (!p.patched && dist < p.show + 40) this.patchHero(p);
+        // Terrain can still be the fallback height when the room is first built.
+        this.settleFloor(p);
       }
     }
+  }
+
+  /** Drop the room onto the hero once heightAt has the real ground. */
+  private settleFloor(p: Place) {
+    if (!p.group) return;
+    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(p.x, p.z);
+    if (!Number.isFinite(h) || Math.abs((h as number) - p.floorY) < 0.35) return;
+    p.group.position.y = h as number;
+    p.group.updateMatrixWorld(true);
+    p.floorY = h as number;
+    p.uY.value = h as number;
   }
 
   private ensure(p: Place) {
