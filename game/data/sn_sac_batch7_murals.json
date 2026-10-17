@@ -1,0 +1,234 @@
+{
+ "atlas": "textures/sn_sac_batch7_atlas.jpg",
+ "atlas_px": [
+  2048,
+  800
+ ],
+ "note": "SAC batch 7 San Nicolas murals. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [
+  {
+   "id": "sn_lionfish",
+   "x": 6518.5,
+   "z": 9318,
+   "why": "approximate hero within 8 m of prikichi"
+  }
+ ],
+ "murals": [
+  {
+   "id": "night_watcher",
+   "name": "Night Watcher",
+   "artist": "Farid Rueda",
+   "year": 2016,
+   "address": "Bernhardstraat 144, Korps Politie Aruba west wall",
+   "lat": 12.4357777,
+   "lng": -69.9113945,
+   "bld": 4074,
+   "bld_name": "Korps Politie Aruba - San Nicolaas",
+   "bld_h": 6.9,
+   "wall_i": 0,
+   "wall_len": 15.74,
+   "center": [
+    6369.79,
+    9310.45
+   ],
+   "p0": [
+    6362.05,
+    9309.41
+   ],
+   "p1": [
+    6377.53,
+    9311.49
+   ],
+   "normal": [
+    -0.1334,
+    0.9911
+   ],
+   "width": 15.62,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.725,
+    0.55957,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13073 (12.4357777, -69.9113945)",
+    "Wikimedia Commons police station murals (CC BY-SA 4.0; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "flamingos",
+   "name": "Flamingos",
+   "artist": "Graff Mapping and Richard Santana",
+   "year": 2016,
+   "address": "Stuyvesantstraat red street wall (Trilax corner)",
+   "lat": 12.4348557,
+   "lng": -69.9098535,
+   "bld": 11591,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.14,
+   "center": [
+    6525.17,
+    9405.7
+   ],
+   "p0": [
+    6520.33,
+    9404.41
+   ],
+   "p1": [
+    6530.02,
+    9406.98
+   ],
+   "normal": [
+    -0.2564,
+    0.9666
+   ],
+   "width": 10.02,
+   "height": 3.0,
+   "uv": [
+    0.560547,
+    0.725,
+    0.919434,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13091 (12.4348557, -69.9098535)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "iguana",
+   "name": "Iguana",
+   "artist": "Bordalo II",
+   "year": 2016,
+   "address": "Stuyvesantstraat block street wall",
+   "lat": 12.4346819,
+   "lng": -69.9099513,
+   "bld": 11592,
+   "bld_name": "",
+   "bld_h": 3.7,
+   "wall_i": 0,
+   "wall_len": 36.11,
+   "center": [
+    6534.53,
+    9446.85
+   ],
+   "p0": [
+    6517.03,
+    9442.61
+   ],
+   "p1": [
+    6552.02,
+    9451.08
+   ],
+   "normal": [
+    -0.2354,
+    0.9719
+   ],
+   "width": 35.99,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.00375,
+    1.0,
+    0.2175
+   ],
+   "sources": [
+    "Street Art Cities marker 13085 (12.4346819, -69.9099513)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "prikichi",
+   "name": "Prikichi",
+   "artist": "Garrick Marchena",
+   "year": 2017,
+   "address": "Bargestraat / Crijnssenstraat corner",
+   "lat": 12.4356834,
+   "lng": -69.9099984,
+   "bld": 11563,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 15.01,
+   "center": [
+    6521.64,
+    9317.6
+   ],
+   "p0": [
+    6514.25,
+    9316.71
+   ],
+   "p1": [
+    6529.03,
+    9318.49
+   ],
+   "normal": [
+    -0.1199,
+    0.9928
+   ],
+   "width": 14.89,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.22,
+    0.484863,
+    0.47
+   ],
+   "sources": [
+    "Street Art Cities marker 13080 (12.4356834, -69.9099984)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "melting_pot",
+   "name": "Melting Pot",
+   "artist": "Armando Goedgedrag",
+   "year": 2022,
+   "address": "Bernhardstraat beside Sam's, opposite police station",
+   "lat": 12.436172,
+   "lng": -69.911256,
+   "bld": 11606,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 16.22,
+   "center": [
+    6398.34,
+    9256.8
+   ],
+   "p0": [
+    6390.35,
+    9255.81
+   ],
+   "p1": [
+    6406.33,
+    9257.79
+   ],
+   "normal": [
+    -0.1233,
+    0.9924
+   ],
+   "width": 16.1,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.4725,
+    0.524414,
+    0.7225
+   ],
+   "sources": [
+    "Wikimedia Commons San Nicolas Murals.jpeg (CC BY-SA 4.0; camera 12.436172, -69.911256)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}
