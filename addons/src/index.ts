@@ -45,6 +45,7 @@ import { SnMurals } from "./snMurals";
 import { SnLaterMurals } from "./snLaterMurals";
 import { SnFamousMurals } from "./snFamousMurals";
 import { SnSacRecentMurals } from "./snSacRecentMurals";
+import { SnSacClassicsMurals } from "./snSacClassicsMurals";
 import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
@@ -104,12 +105,14 @@ async function main() {
   if (params.get("snlater") !== "0") muralPreload.push("textures/sn_later_atlas.jpg");
   if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");
   if (params.get("snsacrecent") !== "0") muralPreload.push("textures/sn_sac_recent_atlas.jpg");
+  if (params.get("snsacclassics") !== "0") muralPreload.push("textures/sn_sac_classics_atlas.jpg");
   await Promise.all(muralPreload.map((p) => loadMuralAtlas(muralAtlasKey(p), g.renderer)));
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const snfair = params.get("snfair") !== "0" ? new SnFairMurals(g) : null;
   const snlater = params.get("snlater") !== "0" ? new SnLaterMurals(g) : null;
   const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
   const snsacrecent = params.get("snsacrecent") !== "0" ? new SnSacRecentMurals(g) : null;
+  const snsacclassics = params.get("snsacclassics") !== "0" ? new SnSacClassicsMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
@@ -131,6 +134,7 @@ async function main() {
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
   window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacclassics, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -159,6 +163,7 @@ async function main() {
     if (snlater) snlater.update();
     if (snfamous) snfamous.update();
     if (snsacrecent) snsacrecent.update();
+    if (snsacclassics) snsacclassics.update();
     if (resort) resort.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);

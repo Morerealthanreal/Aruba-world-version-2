@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
+import { params } from "./env";
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
 // San Nicolas Art Fair murals as one shared atlas on the real OSM walls.
@@ -45,6 +46,10 @@ export class SnMurals {
     const res = await fetch("./data/sn_murals.json");
     if (!res.ok) throw new Error("sn_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
+    if (params.get("snsacclassics") !== "0") {
+      const skip = new Set(["pelican", "turtles", "alice"]);
+      doc.murals = doc.murals.filter((m) => !skip.has(m.id));
+    }
     const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
     this.atlas = tex;
     const mat = new THREE.MeshLambertMaterial({
