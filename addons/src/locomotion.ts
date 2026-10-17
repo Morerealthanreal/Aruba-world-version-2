@@ -34,9 +34,6 @@ type WalkerRig = Object3D & {
 };
 
 let loading: Promise<LocoClips> | null = null;
-const uprightQuat = new Quaternion();
-const uprightEuler = new Euler(-0.12, 0, 0, "YXZ"); // slight backward pitch to counteract forward lean
-uprightQuat.setFromEuler(uprightEuler);
 
 function clipSpeed(clip: AnimationClip, fallback: number) {
   const speed = (clip.userData as { speed?: number }).speed;
@@ -161,16 +158,46 @@ export function attachPlayerLocomotion(g: AGame) {
     void loadLocomotion(g.renderer).then((clips) => {
       const root = walker.children[0] ?? walker;
       const loco = createLoco(root, clips, 0);
-      const baseQuat = root.quaternion.clone();
+
+      // Cache spine/neck/head bones once (case-insensitive, mixamorig-aware).
+      // Corrective local pitch (negative X) counteracts the mocap forward lean
+      // so neck and head finish vertical. Amounts distributed so the upper
+      // chain straightens without over-tilting the lower torso.
+      type Corrected = { bone: Object3D; correction: Quaternion };
+      const corrected: Corrected[] = [];
+      const identity = new Quaternion();
+      const tempQuat = new Quaternion();
+
+      root.traverse((object) => {
+        if (!(object as any).isBone) return;
+        const n = object.name.toLowerCase();
+        let pitch = 0;
+        if (n.includes("head")) pitch = -0.14;
+        else if (n.includes("neck")) pitch = -0.16;
+        else if (n.includes("spine")) pitch = -0.05;
+        if (pitch === 0) return;
+        // Only correct bones the clips drive every frame, so the multiply never accumulates.
+        const driven = [clips.idle, clips.walk, clips.run].some((c: any) => c.tracks.some((t: any) => t.name === object.name + ".quaternion"));
+        if (!driven) return;
+        const q = new Quaternion().setFromEuler(new Euler(pitch, 0, 0, "YXZ"));
+        corrected.push({ bone: object, correction: q });
+      });
+
+      console.info("[aw-loco] upright bones:", corrected.map((c) => c.bone.name).join(","));
       let smoothWeight = 0;
       walker.animate = (speed: number, dt: number) => {
         stepLoco(loco, speed, dt, Math.abs(walker.scale.x) || 1);
-        // Smooth the upright correction so it blends in/out instead of snapping.
-        const target = loco.weights.walk + loco.weights.run;
+        // Full upright correction in every state, idle included.
+        const target = 1;
         const k = 1 - Math.exp(-Math.max(0, dt) * 6);
         smoothWeight += (target - smoothWeight) * k;
-        const correction = new Quaternion().copy(uprightQuat).slerp(new Quaternion(), 1 - smoothWeight);
-        root.quaternion.copy(baseQuat).multiply(correction);
+        if (smoothWeight > 0.001 && corrected.length) {
+          for (let i = 0; i < corrected.length; i++) {
+            const { bone, correction } = corrected[i];
+            tempQuat.copy(identity).slerp(correction, smoothWeight);
+            bone.quaternion.multiply(tempQuat);
+          }
+        }
       };
       walker.userData.awLoco = "on";
     }).catch((error) => {
