@@ -10,6 +10,7 @@ import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pas
 import { buildMcdonalds, MCD_DOOR_HALF, MCD_DOOR_TOP, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "./interiors/mcdonalds";
 import { buildStarbucks, SBX_DOOR_HALF, SBX_DOOR_TOP, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "./interiors/starbucks";
 import { buildPlaza, PB_DOOR_HALF, PB_DOOR_TOP, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "./interiors/plaza";
+import { buildHardrock, HR_DOOR_HALF, HR_DOOR_TOP, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "./interiors/hardrock";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -166,6 +167,37 @@ function placePlaza(): Place {
   };
 }
 
+function placeHardrock(): Place {
+  const world = worldFrame(hrLocal, HR_X, HR_Z, 0);
+  world.poly = HR_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "hardrock_pb",
+    x: HR_X,
+    z: HR_Z,
+    rot: 0,
+    local: hrLocal,
+    world,
+    doorHalf: HR_DOOR_HALF,
+    doorTop: HR_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: HR_OBS,
+    cut: ["ground", "lwall"],
+    show: 80,
+    hide: 110,
+    build: buildHardrock,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -178,7 +210,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
