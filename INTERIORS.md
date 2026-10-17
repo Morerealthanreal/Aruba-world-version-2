@@ -13,7 +13,8 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Hilton Aruba Caribbean Resort & Casino** (Palm Beach). The ground floor under the sign, on the drive, opens. Inside: a white lobby, a navy runner, a reception desk, and a board for reception, the casino, and the beach. The tower and the high sign stay.
 - **Hyatt Regency Aruba** (Palm Beach, J.E. Irausquin Boulevard). The ground floor under the HYATT REGENCY sign opens. Inside: a cream lobby, a terracotta band, a wood reception desk, and a board for reception, the casino, and the beach. The sign, balconies, and roofs stay.
 - **Aruba Marriott Resort & Stellaris Casino** (Palm Beach). The podium sits above the beach, so the walk-in lobby is the open front on the sand under the sign wall. Inside: a warm room, a burgundy runner, a wood reception desk, and a board for reception, the casino, and the beach. The tower and the Marriott sign stay.
+- **Señor Frog's** (Palm Beach, J.E. Irausquin Boulevard). The ground floor under the green sign opens. Inside: a yellow and green bar, a wood counter, and a menu for margaritas, nachos, and fajitas. The sign and the yellow walls stay.
 
 ## Next
 
-- More shops and restaurants with strong photo references (Señor Frog's, Moomba, Gianni's, then the downtown malls)
+- More shops and restaurants (Moomba, Gianni's, then the downtown malls)
