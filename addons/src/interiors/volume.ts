@@ -85,6 +85,26 @@ export function worldFrame(local: Frame, ox: number, oz: number, rot: number): F
   };
 }
 
+/** Inset of the cleared floor from the room edges, in metres. The shader uses the same front inset. */
+export const ROOM_FRONT = 0.1;
+export const ROOM_SIDE = 0.2;
+export const ROOM_BACK = 0.15;
+
+/**
+ * True when (x,z) is on the interior floor, inside the footprint.
+ * The doorway sidewalk stays outside this so the street keeps its terrain.
+ */
+export function inRoom(f: Frame, x: number, z: number): boolean {
+  if (x < f.minX || x > f.maxX || z < f.minZ || z > f.maxZ) return false;
+  const dx = x - f.mx, dz = z - f.mz;
+  const along = dx * f.ux + dz * f.uz;
+  const inward = dx * f.nx + dz * f.nz;
+  if (Math.abs(along) >= f.halfW - ROOM_SIDE) return false;
+  if (inward <= ROOM_FRONT || inward >= f.depth - ROOM_BACK) return false;
+  if (f.poly && !inPoly(f.poly, x, z)) return false;
+  return true;
+}
+
 function inPoly(poly: [number, number][], x: number, z: number): boolean {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {

@@ -3,7 +3,7 @@
 // hero wall. Footprint collision stays solid everywhere except that doorway
 // and the walkable floor (counters and tables still block).
 // Off with ?interiors=0. Far away nothing is built and the door shader is off.
-import { Group, Vector2, type Material, type Mesh, type Object3D } from "three";
+import { Group, Vector2, Vector4, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
@@ -19,7 +19,7 @@ import { buildSenorfrogs, SF_DOOR_HALF, SF_DOOR_TOP, SF_OBS, SF_POLY, SF_X, SF_Z
 import { buildMoomba, MB_DOOR_HALF, MB_DOOR_TOP, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "./interiors/moomba";
 import { buildGiannis, GN_DOOR_HALF, GN_DOOR_TOP, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "./interiors/giannis";
 import { buildRenmall, RN_DOOR_HALF, RN_DOOR_TOP, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "./interiors/renmall";
-import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
+import { ROOM_BACK, ROOM_FRONT, ROOM_SIDE, inRoom, isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
 
@@ -461,6 +461,36 @@ function placeRenmall(): Place {
   };
 }
 
+/** Local Y of each interior floor. Matches the floor quad in that place's builder. */
+function floorLift(id: string): number {
+  switch (id) {
+    case "radisson": return 1.42;
+    case "senorfrogs": return 0.52;
+    case "giannis": return 0.12;
+    case "hilton":
+    case "hyatt":
+    case "marriott": return 0.08;
+    case "moomba":
+    case "renmall": return 0.06;
+    default: return 0.04;
+  }
+}
+
+// Terrain under a visible room is discarded. Four slots cover the rooms a player
+// can stand near at once; constant indices stay valid on WebGL1.
+const ROOM_FRAG = `
+  if (awRoomOn > 0.5 && vWP.x > awRoomBox.x && vWP.x < awRoomBox.z && vWP.z > awRoomBox.y && vWP.z < awRoomBox.w) {
+    vec2 awD; float awAlong; float awIn;
+    awD = vWP.xz - awRoomA[0].xy; awAlong = dot(awD, awRoomB[0].xy); awIn = dot(awD, awRoomB[0].zw);
+    if (awRoomA[0].z >= 0.0 && abs(awAlong) < awRoomA[0].z && awIn > ${ROOM_FRONT.toFixed(2)} && awIn < awRoomA[0].w && vWP.y > awRoomY[0].x && vWP.y < awRoomY[0].y) discard;
+    awD = vWP.xz - awRoomA[1].xy; awAlong = dot(awD, awRoomB[1].xy); awIn = dot(awD, awRoomB[1].zw);
+    if (awRoomA[1].z >= 0.0 && abs(awAlong) < awRoomA[1].z && awIn > ${ROOM_FRONT.toFixed(2)} && awIn < awRoomA[1].w && vWP.y > awRoomY[1].x && vWP.y < awRoomY[1].y) discard;
+    awD = vWP.xz - awRoomA[2].xy; awAlong = dot(awD, awRoomB[2].xy); awIn = dot(awD, awRoomB[2].zw);
+    if (awRoomA[2].z >= 0.0 && abs(awAlong) < awRoomA[2].z && awIn > ${ROOM_FRONT.toFixed(2)} && awIn < awRoomA[2].w && vWP.y > awRoomY[2].x && vWP.y < awRoomY[2].y) discard;
+    awD = vWP.xz - awRoomA[3].xy; awAlong = dot(awD, awRoomB[3].xy); awIn = dot(awD, awRoomB[3].zw);
+    if (awRoomA[3].z >= 0.0 && abs(awAlong) < awRoomA[3].z && awIn > ${ROOM_FRONT.toFixed(2)} && awIn < awRoomA[3].w && vWP.y > awRoomY[3].x && vWP.y < awRoomY[3].y) discard;
+  }`;
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -468,14 +498,33 @@ const DOOR_FRAG = `
     if (abs(awSide) < awDoorSide && abs(awAlong) < awDoorHalf && vAwW.y > awDoorY - 0.15 && vAwW.y < awDoorY + awDoorTop) discard;
   }`;
 
+type RealH = {
+  heightAt: (x: number, z: number) => number;
+  terrain?: { material: (...a: unknown[]) => Material };
+  ovMat?: Material;
+  regions?: Map<string, { mat?: Material }>;
+};
+
 export class Interiors {
   places: Place[];
+  /** Terrain materials that discard the sand under a visible room. */
+  cleared = 0;
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
+  private origH: (x: number, z: number) => number = () => 0;
+  private roomOn = { value: 0 };
+  private roomBox = new Vector4(1, 1, -1, -1);
+  private roomA = [0, 1, 2, 3].map(() => new Vector4(0, 0, -1, 0));
+  private roomB = [0, 1, 2, 3].map(() => new Vector4());
+  private roomY = [0, 1, 2, 3].map(() => new Vector2());
+  private slotIx = [0, 0, 0, 0];
+  private slotD = [0, 0, 0, 0];
   constructor(private g: AGame) {
     this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
+    this.wrapHeight();
+    this.patchTerrain();
   }
 
   /** True when footprint collision should let the pedestrian through. */
@@ -525,6 +574,109 @@ export class Interiors {
         this.settleFloor(p);
       }
     }
+    this.syncRooms();
+  }
+
+  /**
+   * Walk height inside a room is the floor, so a dune in the heightmap cannot
+   * lift the player through the tiles. Samples outside the room are unchanged.
+   */
+  private wrapHeight() {
+    const real = this.g.real as unknown as RealH;
+    if (!real || typeof real.heightAt !== "function") return;
+    const orig = real.heightAt.bind(real);
+    this.origH = orig;
+    real.heightAt = (x: number, z: number) => {
+      const y = this.floorYAt(x, z);
+      return y == null ? orig(x, z) : y;
+    };
+  }
+
+  /** World Y of the floor at this point, or null when it is not inside a room. */
+  private floorYAt(x: number, z: number): number | null {
+    const ps = this.places;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      const f = p.world;
+      if (x < f.minX || x > f.maxX || z < f.minZ || z > f.maxZ) continue;
+      if (!inRoom(f, x, z)) continue;
+      const base = p.group ? p.group.position.y : this.origH(p.floorAt?.x ?? p.x, p.floorAt?.z ?? p.z);
+      if (!Number.isFinite(base)) continue;
+      return base + floorLift(p.id);
+    }
+    return null;
+  }
+
+  /** Hide terrain fragments that would poke through a visible interior floor. */
+  private syncRooms() {
+    const S = this.g.S as { mode: string; walk: { x: number; z: number }; car: { x: number; z: number }; plane: { x: number; z: number } };
+    const e = S.mode === "walk" ? S.walk : S.mode === "plane" ? S.plane : S.car;
+    const ix = this.slotIx, dd = this.slotD;
+    let n = 0;
+    const ps = this.places;
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      if (!p.group || !p.group.visible) continue;
+      const dist = (e.x - p.x) * (e.x - p.x) + (e.z - p.z) * (e.z - p.z);
+      if (n < 4) { ix[n] = i; dd[n] = dist; n++; }
+      else {
+        let w = 0;
+        for (let k = 1; k < 4; k++) if (dd[k] > dd[w]) w = k;
+        if (dist < dd[w]) { ix[w] = i; dd[w] = dist; }
+      }
+    }
+    let minX = 1, minZ = 1, maxX = -1, maxZ = -1;
+    for (let s = 0; s < 4; s++) {
+      if (s >= n) { this.roomA[s].z = -1; continue; }
+      const p = ps[ix[s]];
+      const f = p.world;
+      const fy = p.group!.position.y + floorLift(p.id);
+      this.roomA[s].set(f.mx, f.mz, f.halfW - ROOM_SIDE, f.depth - ROOM_BACK);
+      this.roomB[s].set(f.ux, f.uz, f.nx, f.nz);
+      this.roomY[s].set(fy - 8, fy + 5);
+      if (s === 0 || f.minX < minX) minX = f.minX;
+      if (s === 0 || f.minZ < minZ) minZ = f.minZ;
+      if (s === 0 || f.maxX > maxX) maxX = f.maxX;
+      if (s === 0 || f.maxZ > maxZ) maxZ = f.maxZ;
+    }
+    if (n > 0) this.roomBox.set(minX, minZ, maxX, maxZ);
+    this.roomOn.value = n > 0 ? 1 : 0;
+  }
+
+  private patchTerrain() {
+    const real = this.g.real as unknown as RealH;
+    const terr = (m: Material | undefined) => {
+      if (!m || (m.userData && m.userData["aw:floor-v1"])) return;
+      this.patchTerrainMat(m);
+    };
+    const fac = real?.terrain;
+    if (fac && typeof fac.material === "function") {
+      const orig = fac.material.bind(fac);
+      fac.material = (...a: unknown[]) => { const m = orig(...a); terr(m); return m; };
+    }
+    terr(real?.ovMat);
+    if (real?.regions) for (const r of real.regions.values()) terr(r.mat);
+  }
+
+  private patchTerrainMat(mat: Material) {
+    const on = this.roomOn, box = this.roomBox, A = this.roomA, B = this.roomB, Y = this.roomY;
+    chainPatch(mat, "floor-v1", (s: Shader) => {
+      if (!s.fragmentShader.includes("varying vec3 vWP;") || !s.fragmentShader.includes("void main() {")) return;
+      s.uniforms.awRoomOn = on;
+      s.uniforms.awRoomBox = { value: box };
+      s.uniforms.awRoomA = { value: A };
+      s.uniforms.awRoomB = { value: B };
+      s.uniforms.awRoomY = { value: Y };
+      s.fragmentShader = s.fragmentShader
+        .replace("varying vec3 vWP;", `varying vec3 vWP;
+uniform float awRoomOn;
+uniform vec4 awRoomBox;
+uniform vec4 awRoomA[4];
+uniform vec4 awRoomB[4];
+uniform vec2 awRoomY[4];`)
+        .replace("void main() {", "void main() {" + ROOM_FRAG);
+      this.cleared++;
+    });
   }
 
   /** Drop the room onto the hero once heightAt has the real ground. */
@@ -532,8 +684,8 @@ export class Interiors {
     if (!p.group) return;
     const ax = p.floorAt?.x ?? p.x;
     const az = p.floorAt?.z ?? p.z;
-    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(ax, az);
-    if (!Number.isFinite(h) || Math.abs((h as number) - p.floorY) < 0.35) return;
+    const h = this.origH(ax, az);
+    if (!Number.isFinite(h) || Math.abs(h - p.floorY) < 0.35) return;
     p.group.position.y = h as number;
     p.group.updateMatrixWorld(true);
     p.floorY = h as number;
@@ -543,7 +695,7 @@ export class Interiors {
   private ensure(p: Place) {
     const ax = p.floorAt?.x ?? p.x;
     const az = p.floorAt?.z ?? p.z;
-    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(ax, az);
+    const h = this.origH(ax, az);
     if (!Number.isFinite(h)) return;
     const g = new Group();
     g.name = "aw:interior:" + p.id;
