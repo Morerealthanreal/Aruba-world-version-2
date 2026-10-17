@@ -220,13 +220,15 @@ varying float vAwCard;`,
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
-vec2 awC = vMapUv - vec2(0.5, 0.46);
+vec2 awC = vMapUv - vec2(0.50, 0.42);
 if (vAwCard < 0.4) discard;
-if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
+float awEdge = (awC.x * awC.x) / 0.22 + (awC.y * awC.y) / 0.26;
+float awAlpha = 1.0 - smoothstep(0.62, 1.0, awEdge);
+if (awAlpha < 0.03) discard;
 vec3 awNeck = mix(texture2D(uAwSkinMap, uAwSkinUv).rgb * uAwPedSkin, uAwPedSkin, 0.16);
 vec3 awPaint = texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw, -0.45).rgb;
 vec3 awCheek = texture2D(map, uAwCrop.xy + uAwCheekUv * uAwCrop.zw).rgb;
-diffuseColor = vec4(awPaint * (awNeck / max(awCheek, vec3(0.045))), 1.0);
+diffuseColor = vec4(awPaint * (awNeck / max(awCheek, vec3(0.045))), awAlpha);
 float awPore = sin(vMapUv.x * 52.0) * sin(vMapUv.y * 40.0);
 diffuseColor.rgb *= 1.0 + 0.035 * awPore;`,
       )
@@ -235,14 +237,15 @@ diffuseColor.rgb *= 1.0 + 0.035 * awPore;`,
         `#include <emissivemap_fragment>
 float awNdL = dot(normalize(normal), normalize(uAwSunDir));
 float awWrap = clamp(awNdL * 0.5 + 0.55, 0.0, 1.0);
-diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * (0.78 + 0.28 * awWrap);`,
+diffuseColor.rgb *= vec3(1.10, 1.04, 0.98) * (1.24 + 0.10 * awWrap);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v7";
+  material.customProgramCacheKey = () => "aw-face-card-v10";
   material.alphaTest = 0;
   material.alphaHash = false;
-  material.transparent = false;
-  material.depthWrite = true;
+  material.transparent = true;
+  material.depthWrite = false;
+  material.userData.awPaint = true;
   return material;
 }
 
@@ -522,16 +525,17 @@ ${solidSkin ? `if (true) {
   vec3 awNeck = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
   float awU = clamp(vAwShellP.x / 0.150 + 0.50, 0.0, 1.0);
   float awV = clamp((vAwShellP.y + 0.062) / 0.188, 0.0, 1.0);
-  vec2 awC = vec2(awU, awV) - vec2(0.50, 0.48);
-  float awOval = (awC.x * awC.x) / 0.30 + (awC.y * awC.y) / 0.34;
-  awShellMask = smoothstep(0.01, 0.055, vAwShellP.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
+  vec2 awC = vec2(awU, awV) - vec2(0.50, 0.42);
+  float awOval = (awC.x * awC.x) / 0.32 + (awC.y * awC.y) / 0.50;
+  awShellMask = smoothstep(0.0, 0.04, vAwShellP.z) * (1.0 - smoothstep(0.90, 1.35, awOval));
   awShellPaint = texture2D(uAwFaceMap, uAwFaceCrop.xy + vec2(awU, awV) * uAwFaceCrop.zw, -0.45).rgb;
   vec3 awCheek = texture2D(uAwFaceMap, uAwFaceCrop.xy + uAwCheekUv * uAwFaceCrop.zw).rgb;
-  awShellPaint *= awNeck / max(awCheek, vec3(0.045));
+  vec3 awMatch = awNeck / max(awCheek, vec3(0.045));
+  awShellPaint *= awMatch;
   awShellPaint *= 1.0 + 0.04 * sin(awU * 58.0) * sin(awV * 46.0);
   diffuseColor.rgb = mix(awNeck, awShellPaint, awShellMask);
-  float awScalp = smoothstep(0.58, 0.86, awV) * (1.0 - awShellMask);
-  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, awScalp * 0.92);
+  float awHairline = smoothstep(0.72, 0.98, awV) * (1.0 - awShellMask) * smoothstep(0.0, 0.04, vAwShellP.z);
+  diffuseColor.rgb = mix(diffuseColor.rgb, awShellPaint, awHairline * 0.65);
   diffuseColor.a = 1.0;
 } else ` : ""}if (${skinFragment}) {
   vec3 awSkinLit = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
@@ -546,7 +550,7 @@ ${solidSkin ? `if (true) {
   float awAlong = fract(vMapUv.y * ${grid.toFixed(1)});
   float awFiber = 0.5 + 0.5 * sin(awAround * 25.133 + awAlong * 6.0);
   float awFine = sin(awAlong * 96.0 + awAround * 14.0);
-  vec3 awHair = uAwPedHair * (0.52 + 0.62 * awFiber);
+  vec3 awHair = uAwPedHair * (0.42 + 0.78 * awFiber);
   awHair *= 1.0 + 0.07 * awFine;
   diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedHair, awHair, 0.82);
   ${hairVolume ? "diffuseColor.a = 1.0;" : ""}
@@ -585,16 +589,16 @@ float awRim = pow(1.0 - clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0), 2.0
 float awBack = clamp(-awNdL, 0.0, 1.0);
 vec3 awGold = vec3(1.0, 0.58, 0.22);
 float awGrade = mix(0.78 + 0.28 * awWrap, 0.98 + 0.06 * awWrap, clamp(awFace, 0.0, 1.0));
-${solidSkin ? "awGrade = 0.78 + 0.28 * awWrap;" : ""}
+${solidSkin ? "awGrade = 1.24 + 0.10 * awWrap;" : ""}
 diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * awGrade;
 float awRimAmt = mix(0.16 + 0.95 * awBack, 0.05 + 0.12 * awBack, clamp(awFace, 0.0, 1.0));
-totalEmissiveRadiance += awGold * awRim * awRimAmt;
+if (!(${hairFragment})) totalEmissiveRadiance += awGold * awRim * awRimAmt;
+${solidSkin ? "totalEmissiveRadiance += diffuseColor.rgb * smoothstep(0.45, -0.25, awNdL) * 0.9;" : ""}
 if (${hairFragment} && awFace < 0.25) {
   float awAround = fract(vMapUv.x * ${grid.toFixed(1)});
   float awAlong = fract(vMapUv.y * ${grid.toFixed(1)});
   float awFiber = 0.5 + 0.5 * sin(awAround * 25.133 + awAlong * 6.0);
-  totalEmissiveRadiance += awGold * awRim * 0.18;
-  totalEmissiveRadiance += vec3(0.07, 0.05, 0.03) * awFiber * awWrap * 0.35;
+  totalEmissiveRadiance += vec3(0.055, 0.038, 0.028) * awFiber * awWrap;
 }`,
       );
   };
@@ -602,7 +606,7 @@ if (${hairFragment} && awFace < 0.25) {
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v14:${part}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v18:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -617,7 +621,7 @@ export function styleCharacter(
   const paints: CharacterPaint[] = [];
   root.traverse((object) => {
     const mesh = object as Mesh;
-    if (!mesh.isMesh) return;
+    if (!mesh.isMesh || mesh.name === "aw:face-portrait") return;
     const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
     const part = mesh.name === "aw:hair" ? "hair" : mesh.name === "aw:head-shell" ? "head" : "body";
     const { material, uniforms } = paintMaterial(source, palette, phase, part, faceKind);
