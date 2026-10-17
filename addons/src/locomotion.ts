@@ -3,7 +3,7 @@
 // (see game/models/locomotion.glb and CREDITS.md). Every visible person has
 // their own mixer so they stay out of step; the clip data is loaded once.
 import {
-  AnimationMixer, LoopRepeat,
+  AnimationMixer, LoopRepeat, Euler, Quaternion,
   type AnimationAction, type AnimationClip, type Object3D, type WebGLRenderer,
 } from "three";
 import { characterLoader } from "./characters";
@@ -34,6 +34,9 @@ type WalkerRig = Object3D & {
 };
 
 let loading: Promise<LocoClips> | null = null;
+const uprightQuat = new Quaternion();
+const uprightEuler = new Euler(-0.12, 0, 0, "YXZ"); // slight backward pitch to counteract forward lean
+uprightQuat.setFromEuler(uprightEuler);
 
 function clipSpeed(clip: AnimationClip, fallback: number) {
   const speed = (clip.userData as { speed?: number }).speed;
@@ -158,8 +161,16 @@ export function attachPlayerLocomotion(g: AGame) {
     void loadLocomotion(g.renderer).then((clips) => {
       const root = walker.children[0] ?? walker;
       const loco = createLoco(root, clips, 0);
+      const baseQuat = root.quaternion.clone();
       walker.animate = (speed: number, dt: number) => {
         stepLoco(loco, speed, dt, Math.abs(walker.scale.x) || 1);
+        // Apply a small upright correction that scales with walk weight so the character stands straighter.
+        const walkWeight = loco.weights.walk + loco.weights.run;
+        if (walkWeight > 0.05) {
+          root.quaternion.copy(baseQuat).multiply(uprightQuat);
+        } else {
+          root.quaternion.copy(baseQuat);
+        }
       };
       walker.userData.awLoco = "on";
     }).catch((error) => {
