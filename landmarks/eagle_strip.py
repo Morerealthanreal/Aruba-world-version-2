@@ -1890,6 +1890,7 @@ def add_pool_detail(manifest):
                     continue
                 if abs(b["cx"] - wx) > 60 or abs(b["cz"] - wz) > 60:
                     continue
+                # 1.6 m is the gap that keeps the slab off that wall.
                 if edge_dist(wx, wz, b["poly"]) < 1.6:
                     return False
             return True
