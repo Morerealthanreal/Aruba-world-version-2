@@ -5,6 +5,7 @@ import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal }
 import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
 import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/src/interiors/plaza";
 import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/src/interiors/hardrock";
+import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/src/interiors/radisson";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -200,4 +201,42 @@ for (let d = -0.4; d <= 6.5; d += 0.25) {
 if (!isOpen(hr, HR_OBS, -7957.6, -5466.6, HR_DOOR_HALF, mWall)) console.log("ok hr neighbour stays shut");
 else { console.log("FAIL hr neighbour opened"); bad++; }
 if (!bad) console.log("hr aisle clear");
+
+const rd = worldFrame(rdLocal, RD_X, RD_Z, 0);
+rd.poly = RD_POLY;
+function rAt(a: number, d: number) {
+  const x = rd.mx + rd.ux * a + rd.nx * d;
+  const z = rd.mz + rd.uz * a + rd.nz * d;
+  return isOpen(rd, RD_OBS, x, z, RD_DOOR_HALF, mWall);
+}
+const rdCases: [string, number, number, boolean][] = [
+  ["rd door", 0, 0.3, true],
+  ["rd sidewalk", 0, -0.9, true],
+  ["rd aisle", 0, 6, true],
+  ["rd desk", 0, 9.2, false],
+  ["rd clover", 6.8, 3.2, false],
+  ["rd chair", -6.2, 4.8, false],
+  ["rd table", -3.5, 5.85, false],
+  ["rd outside", 0, -3, false],
+  ["rd jamb", 3.8, 0.15, false],
+  ["rd past lobby", 0, 20, false],
+  ["rd side wall", 11, 4, false],
+];
+for (const [name, a, d, want] of rdCases) {
+  const got = rAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 8; d += 0.25) {
+  if (!rAt(0, d)) {
+    console.log("FAIL rd aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(rd, RD_OBS, -7828.8, -6088.1, RD_DOOR_HALF, mWall)) console.log("ok rd neighbour stays shut");
+else { console.log("FAIL rd neighbour opened"); bad++; }
+if (!bad) console.log("rd aisle clear");
 process.exit(bad ? 1 : 0);
