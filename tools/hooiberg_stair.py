@@ -118,7 +118,10 @@ def _along(p, q):
 def build_stairs():
     """Climb from the road (large local z) to the summit. Treads stay horizontal."""
     line = list(reversed(STAIR_LINE))
-    run = 0.36
+    # A 36 cm run made a pipe segment per tread, and that mesh was heavy
+    # enough to stall the phone soak when the route passes the hill.
+    # 45 cm is still a step, and the rail is one span between posts.
+    run = 0.45
     samples = _resample(line, run)
     cache = {}
     ox, oz = STEPS_ORIGIN
@@ -229,9 +232,13 @@ def build_stairs():
             h = (d[0], d[1] + 0.045, d[2])
             quad_facing(mesh, e, h, g, f, (rx * sign, 0, rz * sign))
 
-    for i in range(len(tread_y)):
-        rail_one(hi_r, i, i + 1, 0.90)
-        rail_one(hi_r, i, i + 1, 0.48)
+    span = 4
+    i = 0
+    while i < len(tread_y):
+        j = min(i + span, len(tread_y))
+        rail_one(hi_r, i, j, 0.90)
+        rail_one(hi_r, i, j, 0.48)
+        i = j
     for i in range(0, len(tread_y), 8):
         p = samples[i]
         nxt = samples[min(i + 1, len(samples) - 1)]
@@ -310,6 +317,15 @@ def patch_manifest(info, h0):
         text3 = text3.replace(old_ref, new_ref, 1)
     elif new_ref not in text3:
         raise SystemExit("ref missing")
+    text4, n = re.subn(
+        r'("id": "hooiberg_steps",[\s\S]*?"switch_m": )\d+',
+        r"\g<1>140",
+        text3,
+        count=1,
+    )
+    if n != 1:
+        raise SystemExit(f"switch patch {n}")
+    text3 = text4
     MANIFEST.write_text(text3)
     print("manifest y", y, "tris", info["lod0"], info["lod1"])
 

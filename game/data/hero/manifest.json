@@ -34236,11 +34236,11 @@
   "lod": {
    "hi": "hooiberg_steps_lod0",
    "lo": "hooiberg_steps_lod1",
-   "switch_m": 424
+   "switch_m": 140
   },
   "tris": {
-   "hooiberg_steps_lod0": 18192,
-   "hooiberg_steps_lod1": 1438
+   "hooiberg_steps_lod0": 8514,
+   "hooiberg_steps_lod1": 1150
   },
   "textures": 0,
   "hide_footprint": [
