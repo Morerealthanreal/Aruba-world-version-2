@@ -9,6 +9,10 @@ import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
 import { buildMcdonalds, MCD_DOOR_HALF, MCD_DOOR_TOP, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "./interiors/mcdonalds";
 import { buildStarbucks, SBX_DOOR_HALF, SBX_DOOR_TOP, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "./interiors/starbucks";
+import { buildPlaza, PB_DOOR_HALF, PB_DOOR_TOP, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "./interiors/plaza";
+import { buildHardrock, HR_DOOR_HALF, HR_DOOR_TOP, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "./interiors/hardrock";
+import { buildRadisson, RD_DOOR_HALF, RD_DOOR_TOP, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "./interiors/radisson";
+import { buildHilton, HT_DOOR_HALF, HT_DOOR_TOP, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "./interiors/hilton";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -22,8 +26,12 @@ type Place = {
   world: Frame;
   doorHalf: number;
   doorTop: number;
+  /** How far through the wall, in metres, the opening cuts. */
+  doorSide: number;
   wall: number;
   obs: Box[];
+  /** Hero materials the doorway is cut through. */
+  cut: string[];
   show: number;
   hide: number;
   build: (g: Group, local: Frame) => void;
@@ -50,8 +58,10 @@ function placePastechi(): Place {
     world,
     doorHalf: 2.35,
     doorTop: 2.32,
+    doorSide: 0.55,
     wall: 0.34,
     obs: PASTECHI_OBS,
+    cut: ["ground", "lwall"],
     show: 72,
     hide: 96,
     build: buildPastechi,
@@ -79,8 +89,10 @@ function placeMcdonalds(): Place {
     world,
     doorHalf: MCD_DOOR_HALF,
     doorTop: MCD_DOOR_TOP,
+    doorSide: 0.55,
     wall: 0.34,
     obs: MCD_OBS,
+    cut: ["ground", "lwall"],
     show: 90,
     hide: 120,
     build: buildMcdonalds,
@@ -108,11 +120,137 @@ function placeStarbucks(): Place {
     world,
     doorHalf: SBX_DOOR_HALF,
     doorTop: SBX_DOOR_TOP,
+    doorSide: 0.55,
     wall: 0.34,
     obs: SBX_OBS,
+    cut: ["ground", "lwall"],
     show: 90,
     hide: 120,
     build: buildStarbucks,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
+function placePlaza(): Place {
+  const world = worldFrame(pbLocal, PB_X, PB_Z, 0);
+  world.poly = PB_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "pbplaza",
+    x: PB_X,
+    z: PB_Z,
+    rot: 0,
+    local: pbLocal,
+    world,
+    doorHalf: PB_DOOR_HALF,
+    doorTop: PB_DOOR_TOP,
+    doorSide: 1.25,
+    wall: 0.4,
+    obs: PB_OBS,
+    cut: ["glass", "rot", "ground", "lwall"],
+    show: 110,
+    hide: 140,
+    build: buildPlaza,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
+function placeHardrock(): Place {
+  const world = worldFrame(hrLocal, HR_X, HR_Z, 0);
+  world.poly = HR_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "hardrock_pb",
+    x: HR_X,
+    z: HR_Z,
+    rot: 0,
+    local: hrLocal,
+    world,
+    doorHalf: HR_DOOR_HALF,
+    doorTop: HR_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: HR_OBS,
+    cut: ["ground", "lwall"],
+    show: 80,
+    hide: 110,
+    build: buildHardrock,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
+function placeRadisson(): Place {
+  const world = worldFrame(rdLocal, RD_X, RD_Z, 0);
+  world.poly = RD_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "radisson",
+    x: RD_X,
+    z: RD_Z,
+    rot: 0,
+    local: rdLocal,
+    world,
+    doorHalf: RD_DOOR_HALF,
+    doorTop: RD_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: RD_OBS,
+    cut: ["ground", "lwall"],
+    show: 100,
+    hide: 130,
+    build: buildRadisson,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
+function placeHilton(): Place {
+  const world = worldFrame(htLocal, HT_X, HT_Z, 0);
+  world.poly = HT_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "hilton",
+    x: HT_X,
+    z: HT_Z,
+    rot: 0,
+    local: htLocal,
+    world,
+    doorHalf: HT_DOOR_HALF,
+    doorTop: HT_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: HT_OBS,
+    cut: ["ground", "lwall"],
+    show: 120,
+    hide: 155,
+    build: buildHilton,
     group: null,
     floorY: 0,
     doorOn: { value: 0 },
@@ -128,7 +266,7 @@ const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
     float awSide = dot(vAwW.xz - awDoorM, awDoorN);
-    if (abs(awSide) < 0.55 && abs(awAlong) < awDoorHalf && vAwW.y > awDoorY - 0.15 && vAwW.y < awDoorY + awDoorTop) discard;
+    if (abs(awSide) < awDoorSide && abs(awAlong) < awDoorHalf && vAwW.y > awDoorY - 0.15 && vAwW.y < awDoorY + awDoorTop) discard;
   }`;
 
 export class Interiors {
@@ -136,7 +274,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
@@ -184,8 +322,21 @@ export class Interiors {
         const door = on ? 1 : 0;
         if (p.doorOn.value !== door) p.doorOn.value = door;
         if (!p.patched && dist < p.show + 40) this.patchHero(p);
+        // Terrain can still be the fallback height when the room is first built.
+        this.settleFloor(p);
       }
     }
+  }
+
+  /** Drop the room onto the hero once heightAt has the real ground. */
+  private settleFloor(p: Place) {
+    if (!p.group) return;
+    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(p.x, p.z);
+    if (!Number.isFinite(h) || Math.abs((h as number) - p.floorY) < 0.35) return;
+    p.group.position.y = h as number;
+    p.group.updateMatrixWorld(true);
+    p.floorY = h as number;
+    p.uY.value = h as number;
   }
 
   private ensure(p: Place) {
@@ -215,19 +366,20 @@ export class Interiors {
     const entry = hero?.list?.find((n) => n.k === p.id || n.id === p.id);
     if (!entry?._g) return;
     const doorOn = p.doorOn, uU = p.uU, uN = p.uN, uM = p.uM, uY = p.uY;
-    const half = { value: p.doorHalf }, top = { value: p.doorTop };
+    const half = { value: p.doorHalf }, top = { value: p.doorTop }, side = { value: p.doorSide };
     let found = 0;
     entry._g.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh || !mesh.material) return;
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const mat of mats) if (this.patchMat(mat, doorOn, uU, uN, uM, uY, half, top)) found++;
+      for (const mat of mats) if (this.patchMat(mat, p.cut, doorOn, uU, uN, uM, uY, half, top, side)) found++;
     });
     if (found > 0) p.patched = true;
   }
 
   private patchMat(
     mat: Material,
+    cut: string[],
     doorOn: { value: number },
     uU: { value: Vector2 },
     uN: { value: Vector2 },
@@ -235,9 +387,10 @@ export class Interiors {
     uY: { value: number },
     half: { value: number },
     top: { value: number },
+    side: { value: number },
   ) {
     const name = mat.name || "";
-    if (name !== "ground" && name !== "lwall") return false;
+    if (cut.indexOf(name) < 0) return false;
     this.rebake.set(mat, 4);
     mat.needsUpdate = true;
     chainPatch(mat, "door-" + name, (s: Shader) => {
@@ -250,6 +403,7 @@ export class Interiors {
       s.uniforms.awDoorY = uY;
       s.uniforms.awDoorHalf = half;
       s.uniforms.awDoorTop = top;
+      s.uniforms.awDoorSide = side;
       s.vertexShader = s.vertexShader
         .replace("#include <common>", "#include <common>\nvarying vec3 vAwW;")
         .replace("#include <begin_vertex>", "#include <begin_vertex>\n  vAwW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
@@ -262,6 +416,7 @@ uniform vec2 awDoorM;
 uniform float awDoorY;
 uniform float awDoorHalf;
 uniform float awDoorTop;
+uniform float awDoorSide;
 varying vec3 vAwW;`)
         .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + DOOR_FRAG);
     });
