@@ -7,6 +7,7 @@ import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/sr
 import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/src/interiors/hardrock";
 import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/src/interiors/radisson";
 import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
+import { HY_DOOR_HALF, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "../addons/src/interiors/hyatt";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -277,4 +278,40 @@ if (!isOpen(ht, HT_OBS, -8241.7, -5300.3, HT_DOOR_HALF, mWall)) console.log("ok 
 else { console.log("FAIL ht drive opened"); bad++; }
 if (!bad) console.log("ht aisle clear");
 console.log("ht door", ht.mx.toFixed(2), ht.mz.toFixed(2), "n", ht.nx.toFixed(3), ht.nz.toFixed(3));
+
+const hy = worldFrame(hyLocal, HY_X, HY_Z, 0);
+hy.poly = HY_POLY;
+function yAt(a: number, d: number) {
+  const x = hy.mx + hy.ux * a + hy.nx * d;
+  const z = hy.mz + hy.uz * a + hy.nz * d;
+  return isOpen(hy, HY_OBS, x, z, HY_DOOR_HALF, mWall);
+}
+const hyCases: [string, number, number, boolean][] = [
+  ["hy door", 0, 0.3, true],
+  ["hy sidewalk", 0, -0.9, true],
+  ["hy aisle", 0, 5, true],
+  ["hy desk", 0, 8, false],
+  ["hy chair", -5.5, 4.35, false],
+  ["hy outside", 0, -3, false],
+  ["hy jamb", 3.2, 0.15, false],
+  ["hy past lobby", 0, 16, false],
+  ["hy side", 9.5, 4, false],
+];
+for (const [name, a, d, want] of hyCases) {
+  const got = yAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.8; d += 0.25) {
+  if (!yAt(0, d)) {
+    console.log("FAIL hy aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(hy, HY_OBS, -8117, -5730, HY_DOOR_HALF, mWall)) console.log("ok hy neighbour stays shut");
+else { console.log("FAIL hy neighbour opened"); bad++; }
+if (!bad) console.log("hy aisle clear");
 process.exit(bad ? 1 : 0);
