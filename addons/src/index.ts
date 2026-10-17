@@ -42,7 +42,11 @@ import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
+<<<<<<< HEAD
 import { SnLaterMurals } from "./snLaterMurals";
+=======
+import { SnFamousMurals } from "./snFamousMurals";
+>>>>>>> pr76
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
@@ -97,6 +101,7 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+<<<<<<< HEAD
   if (params.get("snmurals") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_mural_atlas.jpg"), g.renderer);
 <<<<<<< HEAD
   if (params.get("snfair") !== "0") await loadMuralAtlas(muralAtlasKey("textures/sn_fair_atlas.jpg"), g.renderer);
@@ -107,6 +112,14 @@ async function main() {
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const snlater = params.get("snlater") !== "0" ? new SnLaterMurals(g) : null;
 >>>>>>> pr43
+=======
+  const muralPreload: string[] = [];
+  if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
+  if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");
+  await Promise.all(muralPreload.map((p) => loadMuralAtlas(muralAtlasKey(p), g.renderer)));
+  const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
+  const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
+>>>>>>> pr76
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
@@ -127,7 +140,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snlater,  snfair,  bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.15.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfamous,  snlater,  snfair,  bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.15.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -153,10 +166,14 @@ async function main() {
     if (golf) golf.frame();
     if (sn) sn.update();
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (snfair) snfair.update();
 =======
     if (snlater) snlater.update();
 >>>>>>> pr43
+=======
+    if (snfamous) snfamous.update();
+>>>>>>> pr76
     if (resort) resort.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);

@@ -47,9 +47,12 @@ export class SnMurals {
     const doc = (await res.json()) as Doc;
     const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
 <<<<<<< HEAD
+<<<<<<< HEAD
     this.atlas = tex;
 =======
 >>>>>>> pr43
+=======
+>>>>>>> pr76
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       polygonOffset: true,
