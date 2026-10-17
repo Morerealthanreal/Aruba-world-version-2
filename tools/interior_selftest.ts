@@ -3,6 +3,7 @@ import { isOpen, worldFrame } from "../addons/src/interiors/volume";
 import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "../addons/src/interiors/pastechi";
 import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
 import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
+import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/src/interiors/plaza";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -126,4 +127,41 @@ for (let d = -0.5; d <= 12; d += 0.25) {
 if (!isOpen(sbx, SBX_OBS, -8069.9, -5971.2, SBX_DOOR_HALF, mWall)) console.log("ok sbx neighbour stays shut");
 else { console.log("FAIL sbx neighbour opened"); bad++; }
 if (!bad) console.log("sbx aisle clear", SBX_DOOR_AT);
+
+const pb = worldFrame(pbLocal, PB_X, PB_Z, 0);
+pb.poly = PB_POLY;
+const pbWall = 0.4;
+function pAt(a: number, d: number) {
+  const x = pb.mx + pb.ux * a + pb.nx * d;
+  const z = pb.mz + pb.uz * a + pb.nz * d;
+  return isOpen(pb, PB_OBS, x, z, PB_DOOR_HALF, pbWall);
+}
+const pbCases: [string, number, number, boolean][] = [
+  ["pb door", 0, 0.3, true],
+  ["pb sidewalk", 0, -0.9, true],
+  ["pb vestibule", 0, 4, true],
+  ["pb aisle", 0, 16, true],
+  ["pb shop", 4.4, 15.2, false],
+  ["pb cinema", 0, 20, false],
+  ["pb bench", 2.5, 14.2, false],
+  ["pb outside", 0, -3, false],
+  ["pb jamb", 3.8, 0.2, false],
+];
+for (const [name, a, d, want] of pbCases) {
+  const got = pAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.5; d <= 18; d += 0.5) {
+  if (!pAt(0, d)) {
+    console.log("FAIL pb aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(pb, PB_OBS, -7941, -6044, PB_DOOR_HALF, pbWall)) console.log("ok pb neighbour stays shut");
+else { console.log("FAIL pb neighbour opened"); bad++; }
+if (!bad) console.log("pb aisle clear");
 process.exit(bad ? 1 : 0);
