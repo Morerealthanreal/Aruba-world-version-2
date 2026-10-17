@@ -8,6 +8,7 @@ import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/sr
 import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/src/interiors/radisson";
 import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
 import { HY_DOOR_HALF, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "../addons/src/interiors/hyatt";
+import { MR_DOOR_HALF, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "../addons/src/interiors/marriott";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -314,4 +315,41 @@ for (let d = -0.4; d <= 6.8; d += 0.25) {
 if (!isOpen(hy, HY_OBS, -8117, -5730, HY_DOOR_HALF, mWall)) console.log("ok hy neighbour stays shut");
 else { console.log("FAIL hy neighbour opened"); bad++; }
 if (!bad) console.log("hy aisle clear");
+
+const mr = worldFrame(mrLocal, MR_X, MR_Z, 0);
+mr.poly = MR_POLY;
+function mrAt(a: number, d: number) {
+  const x = mr.mx + mr.ux * a + mr.nx * d;
+  const z = mr.mz + mr.uz * a + mr.nz * d;
+  return isOpen(mr, MR_OBS, x, z, MR_DOOR_HALF, mWall);
+}
+const mrCases: [string, number, number, boolean][] = [
+  ["mr door", 0, 0.3, true],
+  ["mr sidewalk", 0, -0.9, true],
+  ["mr aisle", 0, 5, true],
+  ["mr desk", 0, 8, false],
+  ["mr chair", -4.4, 4.3, false],
+  ["mr outside", 0, -3, false],
+  ["mr jamb", 3.5, 0.15, false],
+  ["mr past lobby", 0, 14, false],
+  ["mr side", 6.6, 4, false],
+];
+for (const [name, a, d, want] of mrCases) {
+  const got = mrAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.8; d += 0.25) {
+  if (!mrAt(0, d)) {
+    console.log("FAIL mr aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(mr, MR_OBS, -8051.9, -6782, MR_DOOR_HALF, mWall)) console.log("ok mr drive stays shut");
+else { console.log("FAIL mr drive opened"); bad++; }
+if (!bad) console.log("mr aisle clear");
+console.log("mr door", mr.mx.toFixed(2), mr.mz.toFixed(2), "n", mr.nx.toFixed(3), mr.nz.toFixed(3));
 process.exit(bad ? 1 : 0);

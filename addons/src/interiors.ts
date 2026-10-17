@@ -14,6 +14,7 @@ import { buildHardrock, HR_DOOR_HALF, HR_DOOR_TOP, HR_OBS, HR_POLY, HR_X, HR_Z, 
 import { buildRadisson, RD_DOOR_HALF, RD_DOOR_TOP, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "./interiors/radisson";
 import { buildHilton, HT_DOOR_HALF, HT_DOOR_TOP, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "./interiors/hilton";
 import { buildHyatt, HY_DOOR_HALF, HY_DOOR_TOP, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "./interiors/hyatt";
+import { buildMarriott, MR_DOOR_HALF, MR_DOOR_TOP, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "./interiors/marriott";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -44,6 +45,8 @@ type Place = {
   uM: { value: Vector2 };
   uY: { value: number };
   patched: boolean;
+  /** Terrain sample for the floor. Defaults to the hero centroid. */
+  floorAt?: { x: number; z: number };
 };
 
 function placePastechi(): Place {
@@ -294,6 +297,38 @@ function placeHyatt(): Place {
   };
 }
 
+function placeMarriott(): Place {
+  const world = worldFrame(mrLocal, MR_X, MR_Z, 0);
+  world.poly = MR_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "marriott",
+    x: MR_X,
+    z: MR_Z,
+    rot: 0,
+    local: mrLocal,
+    world,
+    doorHalf: MR_DOOR_HALF,
+    doorTop: MR_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: MR_OBS,
+    cut: [],
+    show: 150,
+    hide: 185,
+    floorAt: { x: -8051.89, z: -6773.95 },
+    build: buildMarriott,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -306,7 +341,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
@@ -363,7 +398,9 @@ export class Interiors {
   /** Drop the room onto the hero once heightAt has the real ground. */
   private settleFloor(p: Place) {
     if (!p.group) return;
-    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(p.x, p.z);
+    const ax = p.floorAt?.x ?? p.x;
+    const az = p.floorAt?.z ?? p.z;
+    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(ax, az);
     if (!Number.isFinite(h) || Math.abs((h as number) - p.floorY) < 0.35) return;
     p.group.position.y = h as number;
     p.group.updateMatrixWorld(true);
@@ -372,7 +409,9 @@ export class Interiors {
   }
 
   private ensure(p: Place) {
-    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(p.x, p.z);
+    const ax = p.floorAt?.x ?? p.x;
+    const az = p.floorAt?.z ?? p.z;
+    const h = (this.g.real as unknown as { heightAt?: (x: number, z: number) => number }).heightAt?.(ax, az);
     if (!Number.isFinite(h)) return;
     const g = new Group();
     g.name = "aw:interior:" + p.id;
