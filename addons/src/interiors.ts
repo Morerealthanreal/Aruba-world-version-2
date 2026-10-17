@@ -20,6 +20,7 @@ import { buildMoomba, MB_DOOR_HALF, MB_DOOR_TOP, MB_OBS, MB_POLY, MB_X, MB_Z, mb
 import { buildGiannis, GN_DOOR_HALF, GN_DOOR_TOP, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "./interiors/giannis";
 import { buildRenmall, RN_DOOR_HALF, RN_DOOR_TOP, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "./interiors/renmall";
 import { buildRoyalplaza, RP_DOOR_HALF, RP_DOOR_TOP, RP_OBS, RP_POLY, RP_X, RP_Z, rpLocal } from "./interiors/royalplaza";
+import { buildSuperfood, SU_DOOR_HALF, SU_DOOR_TOP, SU_OBS, SU_POLY, SU_X, SU_Z, suLocal } from "./interiors/superfood";
 import { ROOM_BACK, ROOM_FRONT, ROOM_SIDE, inRoom, isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -502,6 +503,38 @@ function placeRoyalplaza(): Place {
   };
 }
 
+function placeSuperfood(): Place {
+  const world = worldFrame(suLocal, SU_X, SU_Z, 0);
+  world.poly = SU_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "superfood",
+    x: SU_X,
+    z: SU_Z,
+    rot: 0,
+    local: suLocal,
+    world,
+    doorHalf: SU_DOOR_HALF,
+    doorTop: SU_DOOR_TOP,
+    doorSide: 0.55,
+    wall: 0.34,
+    obs: SU_OBS,
+    cut: ["glass", "mullion", "ground"],
+    show: 120,
+    hide: 155,
+    floorAt: { x: -8801.75, z: -3545.95 },
+    build: buildSuperfood,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 /** Local Y of each interior floor. Matches the floor quad in that place's builder. */
 function floorLift(id: string): number {
   switch (id) {
@@ -514,6 +547,7 @@ function floorLift(id: string): number {
     case "moomba":
     case "renmall": return 0.06;
     case "royalplaza": return 0.05;
+    case "superfood": return 0.06;
     default: return 0.04;
   }
 }
@@ -565,7 +599,7 @@ export class Interiors {
   private shellFrom = new Vector3();
   private shellDir = new Vector3();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall(), placeRoyalplaza()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks(), placePlaza(), placeHardrock(), placeRadisson(), placeHilton(), placeHyatt(), placeMarriott(), placeSenorfrogs(), placeMoomba(), placeGiannis(), placeRenmall(), placeRoyalplaza(), placeSuperfood()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
     this.wrapHeight();

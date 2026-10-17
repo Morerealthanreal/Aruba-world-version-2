@@ -14,6 +14,7 @@ import { MB_DOOR_HALF, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "../addons/sr
 import { GN_DOOR_HALF, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "../addons/src/interiors/giannis";
 import { RN_DOOR_HALF, RN_OBS, RN_POLY, RN_X, RN_Z, rnLocal } from "../addons/src/interiors/renmall";
 import { RP_DOOR_HALF, RP_OBS, RP_POLY, RP_X, RP_Z, rpLocal } from "../addons/src/interiors/royalplaza";
+import { SU_DOOR_HALF, SU_OBS, SU_POLY, SU_X, SU_Z, suLocal } from "../addons/src/interiors/superfood";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -563,4 +564,52 @@ if (!isOpen(rp, RP_OBS, rpRoadX, rpRoadZ, RP_DOOR_HALF, mWall)) console.log("ok 
 else { console.log("FAIL rp road opened"); bad++; }
 if (!bad) console.log("rp aisle clear");
 console.log("rp door", (rp.mx + rp.ux * rpDoor).toFixed(2), (rp.mz + rp.uz * rpDoor).toFixed(2), "n", rp.nx.toFixed(3), rp.nz.toFixed(3));
+
+const su = worldFrame(suLocal, SU_X, SU_Z, 0);
+su.poly = SU_POLY;
+const suDoor = su.doorAt ?? 0;
+function suAt(a: number, d: number) {
+  const x = su.mx + su.ux * a + su.nx * d;
+  const z = su.mz + su.uz * a + su.nz * d;
+  return isOpen(su, SU_OBS, x, z, SU_DOOR_HALF, mWall);
+}
+const suCases: [string, number, number, boolean][] = [
+  ["su door", suDoor, 0.3, true],
+  ["su sidewalk", suDoor, -0.9, true],
+  ["su aisle", suDoor, 3.6, true],
+  ["su hall", suDoor, 7.2, true],
+  ["su jacks", suDoor - 4.6, 9.4, false],
+  ["su bliss", suDoor + 4.6, 9.4, false],
+  ["su back", suDoor, 11.4, false],
+  ["su bench", suDoor - 2.6, 4.7, false],
+  ["su cart", suDoor - 5.9, 3.4, false],
+  ["su outside", suDoor, -4, false],
+  ["su jamb", suDoor + 2.8, 0.12, false],
+  ["su past", suDoor, 14, false],
+  ["su side", 7.5, 4, false],
+];
+for (const [name, a, d, want] of suCases) {
+  const got = suAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 8.3; d += 0.25) {
+  if (!suAt(suDoor, d)) {
+    console.log("FAIL su aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+const suRoadX = su.mx + su.ux * suDoor + su.nx * -12;
+const suRoadZ = su.mz + su.uz * suDoor + su.nz * -12;
+if (!isOpen(su, SU_OBS, suRoadX, suRoadZ, SU_DOOR_HALF, mWall)) console.log("ok su road stays shut");
+else { console.log("FAIL su road opened"); bad++; }
+const bayX = su.mx + su.ux * 14 + su.nx * 0.4;
+const bayZ = su.mz + su.uz * 14 + su.nz * 0.4;
+if (!isOpen(su, SU_OBS, bayX, bayZ, SU_DOOR_HALF, mWall)) console.log("ok su next bay stays shut");
+else { console.log("FAIL su next bay opened"); bad++; }
+if (!bad) console.log("su aisle clear");
+console.log("su door", (su.mx + su.ux * suDoor).toFixed(2), (su.mz + su.uz * suDoor).toFixed(2), "n", su.nx.toFixed(3), su.nz.toFixed(3));
 process.exit(bad ? 1 : 0);

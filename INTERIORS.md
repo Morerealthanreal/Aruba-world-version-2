@@ -19,7 +19,8 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Renaissance Mall** (Oranjestad, Havenstraat). The glass under the Aruba Aloe sign opens. Inside: a tiled hall with a terracotta runner, benches, and counters for Pier Market, Hot Look, and Aruba Aloe. The pink facade, awnings, and the street signs stay.
 
 - **Royal Plaza Mall** (Oranjestad, Havenstraat). The bay under the yellow awning opens. Inside: a pink and cream tiled hall, benches, and counters for gifts, jewels, and a cafe. The pink facade, white arches, gold trim, dome, and the coloured awnings stay.
+- **Super Food Plaza** (Bubali). The glass under the SUPER FOOD ENTRANCE sign opens. Inside: a red and white tiled hall, shopping carts, benches, and counters for Jack's Café, Bliss, and the supermarket. The SUPER FOOD sign, the gold columns, and the shop signs stay.
 
 ## Next
 
-- Super Food Plaza, then more shops
+- Zeerovers' dining deck, then Charlie's Bar
