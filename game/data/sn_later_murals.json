@@ -1,0 +1,183 @@
+{
+ "atlas": "textures/sn_later_atlas.jpg",
+ "atlas_px": [
+  2048,
+  816
+ ],
+ "note": "Later San Nicolas Art Fair murals. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "roots",
+   "name": "Roots in Bloom",
+   "artist": "Gomad",
+   "year": 2025,
+   "address": "Side of Decor Flower & Gift Shop, Doormanstraat at Marktstraat 2",
+   "lat": 12.4358654,
+   "lng": -69.9117461,
+   "bld": 5007,
+   "bld_name": "Decor Flower & Gift Shop",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 15.23,
+   "center": [
+    6327.67,
+    9302.72
+   ],
+   "p0": [
+    6335.14,
+    9303.71
+   ],
+   "p1": [
+    6320.2,
+    9301.73
+   ],
+   "normal": [
+    0.1313,
+    -0.9913
+   ],
+   "width": 15.07,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.002451,
+    0.588867,
+    0.296569
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "sources": [
+    "Street Art Cities marker b02175d9-c643-4e82-b966-2f32f6d1209b (12.4358654, -69.9117461), Marktstraat 2, created 17 Sep 2025"
+   ]
+  },
+  {
+   "id": "lode",
+   "name": "Lo de aqu\u00ed",
+   "artist": "Sake Ink, Fio Silva",
+   "year": 2025,
+   "address": "Caya Saint Maarten, west end of the street wall",
+   "lat": 12.4344657,
+   "lng": -69.9086234,
+   "bld": 280,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 1,
+   "wall_len": 41.02,
+   "center": [
+    6680.8,
+    9455.04
+   ],
+   "p0": [
+    6676.61,
+    9455.17
+   ],
+   "p1": [
+    6685.0,
+    9454.91
+   ],
+   "normal": [
+    0.0317,
+    0.9995
+   ],
+   "width": 8.4,
+   "height": 3.0,
+   "uv": [
+    0.351562,
+    0.681373,
+    0.707031,
+    1.0
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "sources": [
+    "Street Art Cities marker fbbc9808-bd35-448b-9a63-3c2124af1a53 (12.4344657, -69.9086234), Caya Sint Maarten, created 5 Sep 2025"
+   ]
+  },
+  {
+   "id": "defender",
+   "name": "Defender Nuestra",
+   "artist": "Jorit",
+   "year": 2017,
+   "address": "Doormanstraat face, pin across the street from Piet Heinstraat corner",
+   "lat": 12.4359427,
+   "lng": -69.9123144,
+   "bld": 9075,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 13.21,
+   "center": [
+    6270.13,
+    9283.23
+   ],
+   "p0": [
+    6263.66,
+    9282.39
+   ],
+   "p1": [
+    6276.6,
+    9284.07
+   ],
+   "normal": [
+    -0.1287,
+    0.9917
+   ],
+   "width": 13.05,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.29902,
+    0.530762,
+    0.605392
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "sources": [
+    "Street Art Cities marker 13071 (12.4359427, -69.9123144), Piet Heinstraat, created 23 Nov 2017. The pin stands in front of this Doormanstraat wall."
+   ]
+  },
+  {
+   "id": "grace",
+   "name": "Caribbean Grace",
+   "artist": "Studio Giftig",
+   "year": 2024,
+   "address": "Korps Politie Aruba, Kazernestraat bus stop, east wall",
+   "lat": 12.4358275,
+   "lng": -69.9109539,
+   "bld": 4074,
+   "bld_name": "Korps Politie Aruba - San Nicolaas",
+   "bld_h": 6.9,
+   "wall_i": 9,
+   "wall_len": 15.34,
+   "center": [
+    6404.93,
+    9307.82
+   ],
+   "p0": [
+    6403.89,
+    9315.35
+   ],
+   "p1": [
+    6405.97,
+    9300.3
+   ],
+   "normal": [
+    0.9906,
+    0.1369
+   ],
+   "width": 15.18,
+   "height": 6.77,
+   "uv": [
+    0.0,
+    0.607843,
+    0.350586,
+    1.0
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "sources": [
+    "Street Art Cities marker 81b840ae-c952-4c2b-8829-51537a3d2a7c (12.4358275, -69.9109539), Arubus stop at the San Nicolas police station, Kazernestraat, created 21 Sep 2024"
+   ]
+  }
+ ]
+}
