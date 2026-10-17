@@ -1,0 +1,228 @@
+{
+ "atlas": "textures/sn_sac_side_atlas.jpg",
+ "atlas_px": [
+  2048,
+  588
+ ],
+ "note": "SAC side-street San Nicolas murals. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "lionfish",
+   "name": "Lion Fish",
+   "artist": "Dopie",
+   "year": 2017,
+   "address": "Caya Dick Cooper, south wall",
+   "lat": 12.4348797,
+   "lng": -69.9090145,
+   "bld": 11521,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 15.1,
+   "center": [
+    6626.15,
+    9408.5
+   ],
+   "p0": [
+    6633.64,
+    9408.5
+   ],
+   "p1": [
+    6618.66,
+    9408.5
+   ],
+   "normal": [
+    -0.0,
+    -1.0
+   ],
+   "width": 14.98,
+   "height": 3.0,
+   "uv": [
+    0.356934,
+    0.659864,
+    0.844727,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13093 (12.4348797, -69.9090145)",
+    "Wikimedia Commons File:Mural Lionfish Caya Dick Cooper.jpg (CC BY-SA 4.0; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "caribbean_king_queen",
+   "name": "Caribbean King & Queen",
+   "artist": "Guache",
+   "year": 2016,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9",
+   "lat": 12.4352014,
+   "lng": -69.9099474,
+   "bld": 4079,
+   "bld_name": "La Aruba #2",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 37.85,
+   "center": [
+    6524.45,
+    9344.46
+   ],
+   "p0": [
+    6521.91,
+    9363.15
+   ],
+   "p1": [
+    6526.99,
+    9325.77
+   ],
+   "normal": [
+    0.9909,
+    0.1348
+   ],
+   "width": 37.73,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.001701,
+    1.0,
+    0.278912
+   ],
+   "sources": [
+    "Street Art Cities marker 13087 (12.4352014, -69.9099474, Zeppenfeldstraat 9)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "casa_pescador",
+   "name": "Casa Pescador Rene Hurtado",
+   "artist": "Flix Robotico",
+   "year": 2024,
+   "address": "Side street east of Main Street, San Nicolas",
+   "lat": 12.4368,
+   "lng": -69.9065,
+   "bld": 19117,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 8.7,
+   "center": [
+    6906.0,
+    9194.65
+   ],
+   "p0": [
+    6906.0,
+    9190.36
+   ],
+   "p1": [
+    6906.0,
+    9198.94
+   ],
+   "normal": [
+    -1.0,
+    0.0
+   ],
+   "width": 8.58,
+   "height": 3.0,
+   "uv": [
+    0.469727,
+    0.282313,
+    0.749023,
+    0.622449
+   ],
+   "sources": [
+    "Street Art Cities lists this under San Nicolas (marker 789a2953-5525-4226-9f6f-81183483cdf9); SAC text describes Venezuela \u2014 placement uses SN side-street OSM wall near the pin cluster."
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "robot_ship",
+   "name": "Robot Ship",
+   "artist": "Flix Robotico",
+   "year": 2024,
+   "address": "South approach toward Baby Beach",
+   "lat": 12.424526,
+   "lng": -69.881815,
+   "bld": 5633,
+   "bld_name": "Rehab Center",
+   "bld_h": 3.7,
+   "wall_i": 9,
+   "wall_len": 14.52,
+   "center": [
+    9563.92,
+    10564.1
+   ],
+   "p0": [
+    9570.81,
+    10562.02
+   ],
+   "p1": [
+    9557.03,
+    10566.19
+   ],
+   "normal": [
+    -0.2892,
+    -0.9573
+   ],
+   "width": 14.4,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.282313,
+    0.46875,
+    0.622449
+   ],
+   "sources": [
+    "Street Art Cities marker d7187b05-9ca6-43e9-8288-57a7a88bdea3 (SAC pin 12.04886 is off-island; wall fit uses south SN coast OSM face bld 5633)."
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "mujer_azul",
+   "name": "Mujer Azul",
+   "artist": "Lina Arias",
+   "year": 2018,
+   "address": "Van Renselaerstraat 2 (Emporium face)",
+   "lat": 12.435077,
+   "lng": -69.9100802,
+   "bld": 4081,
+   "bld_name": "The Emporium",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.07,
+   "center": [
+    6506.92,
+    9385.67
+   ],
+   "p0": [
+    6503.66,
+    9381.91
+   ],
+   "p1": [
+    6510.19,
+    9389.42
+   ],
+   "normal": [
+    -0.755,
+    0.6557
+   ],
+   "width": 9.95,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.62585,
+    0.355957,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13086 (12.435077, -69.9100802)",
+    "Wikimedia Commons File:Mural art in and around Mainstreet, San Nicolas Aruba 07.jpg (CC0; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}
