@@ -27,7 +27,6 @@ from build_downtown import (
     load_buildings,
     load_roads,
     point_in,
-    street_edge,
     yaw_quat,
 )
 
@@ -337,52 +336,6 @@ def add_sign(prim, world_pts, cell, S, color=(1, 1, 1)):
     prim.quad(b, a, d, c, color, ((u1, vb), (u0, vb), (u0, vt), (u1, vt)))
 
 
-def wall_band(prim, building, road, origin, color, y0, y1):
-    edge = street_edge(building["poly"], road)
-    if edge is None:
-        return None
-    _score, _i, a, b, L, outward, _d = edge
-    if L < 2.2:
-        return None
-    mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-    h = height_at(*mid)
-    if h < 1.2:
-        return None
-    along = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
-    half = min(L * 0.46, 7.0)
-    ox, oz = outward
-    push = 0.16
-    left = (mid[0] - along[0] * half + ox * push, mid[1] - along[1] * half + oz * push)
-    right = (mid[0] + along[0] * half + ox * push, mid[1] + along[1] * half + oz * push)
-    def lp(pt, y):
-        return local(pt[0], h + y, pt[1], origin)
-    bl, br = lp(left, y0), lp(right, y0)
-    tr, tl = lp(right, y1), lp(left, y1)
-    # Face the street (outward).
-    nx = (br[1] - bl[1]) * 0 + (tr[2] - br[2])  # unused, compute with cross
-    ux, uy, uz = br[0] - bl[0], br[1] - bl[1], br[2] - bl[2]
-    vx, vy, vz = tl[0] - bl[0], tl[1] - bl[1], tl[2] - bl[2]
-    # normal of bl, br, tr is along × up. We want it dotted with outward > 0.
-    # along-in-xz × (0,1,0) = (-az, 0, ax). Compare with outward.
-    face = (-uz, ux)
-    if face[0] * ox + face[1] * oz < 0:
-        bl, br, tr, tl = br, bl, tl, tr
-    prim.quad(bl, br, tr, tl, color)
-    return mid, h, along, outward, half
-
-
-def find_building(buildings, x, z):
-    for b in buildings:
-        if point_in(b["poly"], x, z):
-            return b
-    best, bd = None, 18
-    for b in buildings:
-        d = math.hypot(b["c"][0] - x, b["c"][1] - z)
-        if d < bd:
-            best, bd = b, d
-    return best
-
-
 def build_main(buildings, origin):
     g = Glb("ora_msfurn")
     g.mat("paint", rough=0.8)
@@ -529,75 +482,8 @@ def build_wilhelm(buildings, cars, origin, png, cells, S):
             box(box_p, *local(px, h + 1.4, pz, origin), 0.08, 2.8, 0.08, (0.55, 0.57, 0.60))
             g.add(box_p, "paint")
 
-    shops = [
-        ("pasa", -7077, 150, (0.32, 0.40, 0.55)),
-        ("paris", -7139, 110, (0.86, 0.80, 0.70)),
-        ("cosecha", -7255, 97, (0.93, 0.75, 0.28)),
-        ("kok", -7113, 116, (0.93, 0.92, 0.88)),
-        ("yemanja", -7237, 121, (0.55, 0.20, 0.20)),
-    ]
-    bands = Prim()
-    used = set()
-    for key, sx, sz, color in shops:
-        b = find_building(buildings, sx, sz)
-        if b is None or id(b) in used:
-            continue
-        used.add(id(b))
-        info = wall_band(bands, b, line, origin, color, 0.15, 3.15)
-        if info is None:
-            continue
-        mid, h, along, outward, half = info
-        # White trim under the sign.
-        wall_band(bands, b, line, origin, WHITE, 3.15, 3.35)
-        sw = min(half * 0.9, 2.2)
-        ox, oz = outward
-        push = 0.22
-        left = (mid[0] - along[0] * sw + ox * push, mid[1] - along[1] * sw + oz * push)
-        right = (mid[0] + along[0] * sw + ox * push, mid[1] + along[1] * sw + oz * push)
-        def lp(pt, y):
-            return local(pt[0], h + y, pt[1], origin)
-        bl, br = lp(left, 3.45), lp(right, 3.45)
-        tr, tl = lp(right, 4.15), lp(left, 4.15)
-        ux, uy, uz = br[0] - bl[0], br[1] - bl[1], br[2] - bl[2]
-        face = (-uz, ux)
-        if face[0] * ox + face[1] * oz < 0:
-            bl, br, tr, tl = br, bl, tl, tr
-        add_sign(signs, (bl, br, tr, tl), cells[key], S)
-    # The green corner beside Que Pasa, from the 2025 Wilhelminastraat 24 photo.
-    pasa = find_building(buildings, -7077, 150)
-    neighbor, nd = None, 28
-    if pasa is not None:
-        for b in buildings:
-            if b is pasa:
-                continue
-            d = math.hypot(b["c"][0] - pasa["c"][0], b["c"][1] - pasa["c"][1])
-            if d < nd and id(b) not in used:
-                neighbor, nd = b, d
-    if neighbor is not None:
-        info = wall_band(bands, neighbor, line, origin, GREEN, 0.15, 3.4)
-        if info is not None:
-            wall_band(bands, neighbor, line, origin, WHITE, 3.4, 3.6)
-            mid, h, along, outward, half = info
-            # Low white rail in front of the green house.
-            rail = Prim()
-            span = min(half, 4.0)
-            ox, oz = outward
-            posts = []
-            for t in (-span, -span / 2, 0, span / 2, span):
-                px = mid[0] + along[0] * t + ox * 0.45
-                pz = mid[1] + along[1] * t + oz * 0.45
-                if land(px, pz, buildings) is None:
-                    continue
-                posts.append((px, pz))
-                box(rail, *local(px, h + 0.45, pz, origin), 0.08, 0.9, 0.08, WHITE)
-            if len(posts) >= 2:
-                a, b = posts[0], posts[-1]
-                def lp(pt, y, nudge=0.0):
-                    return local(pt[0] + ox * nudge, h + y, pt[1] + oz * nudge, origin)
-                rail.quad(lp(a, 0.82), lp(b, 0.82), lp(b, 0.90), lp(a, 0.90), WHITE)
-                rail.quad(lp(b, 0.82, 0.04), lp(a, 0.82, 0.04), lp(a, 0.90, 0.04), lp(b, 0.90, 0.04), WHITE)
-            g.add(rail, "paint")
-    g.add(bands, "paint")
+    # Shop walls, shutters and name boards live on the facade heroes.
+    # A second colour band here used to paint over those fronts.
     g.add(signs, "sign")
     lo = Prim()
     box(lo, 0, 0.4, 0, 10, 0.3, 30, CREAM)
@@ -829,7 +715,7 @@ def main():
     save(
         g,
         "ora_wilfurn",
-        "Wilhelminastraat sidewalks, curbs, lamps, parked cars and shopfronts",
+        "Wilhelminastraat sidewalks, curbs, lamps and parked cars",
         o_wil,
         420,
     )
