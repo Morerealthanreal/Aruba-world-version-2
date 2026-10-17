@@ -18,6 +18,9 @@ export type Frame = {
   maxZ: number;
   /** Door centre, metres along the front from the frame origin. */
   doorAt?: number;
+  /** How far the open mouth reaches outside (negative) and inside the front. */
+  mouthOut?: number;
+  mouthIn?: number;
   /** World-space footprint. The room stays inside it; the mouth may cross the front edge. */
   poly?: [number, number][];
 };
@@ -77,6 +80,8 @@ export function worldFrame(local: Frame, ox: number, oz: number, rot: number): F
     depth: local.depth,
     minX: minX - 0.5, maxX: maxX + 0.5, minZ: minZ - 0.5, maxZ: maxZ + 0.5,
     doorAt: local.doorAt,
+    mouthOut: local.mouthOut,
+    mouthIn: local.mouthIn,
   };
 }
 
@@ -102,9 +107,11 @@ export function isOpen(f: Frame, obs: Box[], x: number, z: number, doorHalf: num
   const along = dx * f.ux + dz * f.uz;
   const inward = dx * f.nx + dz * f.nz;
   const doorAt = f.doorAt ?? 0;
+  const mouthOut = f.mouthOut ?? -1.25;
+  const mouthIn = f.mouthIn ?? 1.8;
   // Mouth is only the sidewalk crossing. The room is the footprint, so a
   // neighbour that shares a wall stays solid.
-  const mouth = Math.abs(along - doorAt) < doorHalf - 0.06 && inward > -1.25 && inward < 1.8;
+  const mouth = Math.abs(along - doorAt) < doorHalf - 0.06 && inward > mouthOut && inward < mouthIn;
   const room = Math.abs(along) < f.halfW - wall && inward > wall && inward < f.depth - wall
     && (!f.poly || inPoly(f.poly, x, z));
   if (!mouth && !room) return false;
