@@ -234,7 +234,7 @@ function parentHairToHead(
         last[1] - tail * t,
         last[2] * (1 - t * 0.45) - 0.012 * wave - back * t,
       ]);
-      radii.push(Math.max(0.014, radius * (0.94 - t * 0.32) * (0.88 + 0.12 * Math.sin(t * Math.PI * 2))));
+      radii.push(Math.max(0.016, radius * (0.9 - t * 0.2) * (0.72 + 0.28 * Math.sin(t * Math.PI * 3))));
     }
     addLock(centers, radii, sides, along0);
   };
@@ -246,9 +246,9 @@ function parentHairToHead(
   const fStride = fCols + 1;
   const fringeStart = positions.length / 3;
   for (let layer = 0; layer < 2; layer++) {
-    const lift = 0.002 + layer * 0.005;
     for (let j = 0; j <= fRows; j++) {
       const v = j / fRows;
+      const lift = (0.002 + layer * 0.006) * (1 - v * 0.85);
       for (let i = 0; i <= fCols; i++) {
         const u = i / fCols;
         const x = -0.062 + u * 0.124;
