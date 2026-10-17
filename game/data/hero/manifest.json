@@ -62168,8 +62168,8 @@
    "switch_m": 220
   },
   "tris": {
-   "eb_pool_south_lod0": 2030,
-   "eb_pool_south_lod1": 778
+   "eb_pool_south_lod0": 2020,
+   "eb_pool_south_lod1": 768
   },
   "textures": 0,
   "hide_footprint": [],
@@ -62186,8 +62186,8 @@
   "k": "eb_pool_mid",
   "name": "",
   "status": "eagle-strip pools",
-  "x": -10046.3,
-  "z": -2410.86,
+  "x": -10054.61,
+  "z": -2395.73,
   "y": 0,
   "rotation": 0,
   "glb": "models/hero/eb_pool_mid.glb",
@@ -62197,8 +62197,8 @@
    "switch_m": 220
   },
   "tris": {
-   "eb_pool_mid_lod0": 1288,
-   "eb_pool_mid_lod1": 392
+   "eb_pool_mid_lod0": 980,
+   "eb_pool_mid_lod1": 200
   },
   "textures": 0,
   "hide_footprint": [],
@@ -62226,8 +62226,8 @@
    "switch_m": 220
   },
   "tris": {
-   "eb_pool_north_lod0": 656,
-   "eb_pool_north_lod1": 232
+   "eb_pool_north_lod0": 646,
+   "eb_pool_north_lod1": 222
   },
   "textures": 0,
   "hide_footprint": [],
