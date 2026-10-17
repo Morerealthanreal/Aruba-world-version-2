@@ -71,24 +71,38 @@ function createFaceTexture(): Texture {
 
 const faceTextures = [createFaceTexture(), createFaceTexture(), createFaceTexture()];
 let faceLoad: Promise<void> | null = null;
+let faceRenderer: WebGLRenderer | null = null;
 
-export function loadFacePortraits(): Promise<void> {
-  if (faceLoad) return faceLoad;
-  const loader = new TextureLoader();
-  faceLoad = Promise.all(FACE_FILES.map((file, index) => loader.loadAsync(`./models/faces/${file}`).then((loaded) => {
-    const face = faceTextures[index];
-    face.image = loaded.image;
-    face.colorSpace = SRGBColorSpace;
-    face.flipY = true;
-    face.magFilter = LinearFilter;
-    face.minFilter = LinearMipmapLinearFilter;
-    face.generateMipmaps = true;
-    face.anisotropy = 4;
-    face.needsUpdate = true;
-  }).catch((error) => {
-    console.warn("[aw-characters] face portrait", file, error);
-  }))).then(() => undefined);
-  return faceLoad;
+function uploadFaceTextures() {
+  const renderer = faceRenderer;
+  if (!renderer) return;
+  for (const face of faceTextures) {
+    if (!face.image) continue;
+    try { renderer.initTexture(face); } catch { /* first draw uploads it */ }
+  }
+}
+
+export function loadFacePortraits(renderer?: WebGLRenderer): Promise<void> {
+  if (renderer) faceRenderer = renderer;
+  if (!faceLoad) {
+    const imageLoader = new TextureLoader();
+    faceLoad = Promise.all(FACE_FILES.map((file, index) => imageLoader.loadAsync(`./models/faces/${file}`).then((loaded) => {
+      const face = faceTextures[index];
+      face.image = loaded.image;
+      face.colorSpace = SRGBColorSpace;
+      face.flipY = true;
+      face.magFilter = LinearFilter;
+      face.minFilter = LinearMipmapLinearFilter;
+      face.generateMipmaps = true;
+      face.anisotropy = 4;
+      face.needsUpdate = true;
+    }).catch((error) => {
+      console.warn("[aw-characters] face portrait", file, error);
+    }))).then(() => undefined);
+  }
+  return faceLoad.then(() => {
+    uploadFaceTextures();
+  });
 }
 
 export function findCharacterFace(root: Object3D): { mesh: SkinnedMesh | null; head: Object3D | null } {
@@ -249,6 +263,18 @@ diffuseColor.rgb *= vec3(1.10, 1.04, 0.98) * (1.24 + 0.10 * awWrap);`,
   return material;
 }
 
+/** Keep off-screen people out of the fragment pass without clipping a stride or a hair tip. */
+function loosenCulling(mesh: Mesh, pad: number) {
+  const geometry = mesh.geometry;
+  if (!geometry.userData.awCull) {
+    geometry.computeBoundingSphere();
+    const sphere = geometry.boundingSphere;
+    if (sphere) sphere.radius += pad;
+    geometry.userData.awCull = 1;
+  }
+  mesh.frustumCulled = true;
+}
+
 export function attachFacePortrait(
   head: Object3D,
   faceKind: number,
@@ -259,23 +285,47 @@ export function attachFacePortrait(
   const kind = ((faceKind % 3) + 3) % 3;
   const card = new Mesh(faceCardGeometry(), faceCardMaterial(kind, skin, skinMap, skinUv));
   card.name = "aw:face-portrait";
-  card.frustumCulled = false;
+  loosenCulling(card, 0.04);
   card.renderOrder = 2;
   card.visible = false;
   head.add(card);
   return card;
 }
 
+let ktxLoader: KTX2Loader | null = null;
+let ktxReleased = false;
+
 export function characterLoader(renderer: WebGLRenderer): GLTFLoader {
   if (loader) return loader;
-  const ktx = new KTX2Loader()
+  ktxLoader = new KTX2Loader()
     .setTranscoderPath("./basis/")
-    .setWorkerLimit(2)
+    .setWorkerLimit(1)
     .detectSupport(renderer);
   loader = new GLTFLoader()
     .setMeshoptDecoder(MeshoptDecoder)
-    .setKTX2Loader(ktx);
+    .setKTX2Loader(ktxLoader);
   return loader;
+}
+
+/** Drop the basis workers once every crowd atlas has decoded. The textures stay. */
+export function releaseCharacterLoader() {
+  if (ktxReleased) return;
+  ktxReleased = true;
+  ktxLoader?.dispose();
+  ktxLoader = null;
+}
+
+function warmCharacterTextures(renderer: WebGLRenderer, root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as Mesh;
+    if (!mesh.isMesh) return;
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const material of materials) {
+      const map = (material as MeshStandardMaterial).map;
+      if (!map?.image) continue;
+      try { renderer.initTexture(map); } catch { /* first draw uploads it */ }
+    }
+  });
 }
 
 export function loadCharacterSource(
@@ -284,10 +334,11 @@ export function loadCharacterSource(
 ): Promise<PreparedCharacterSource> {
   let source = sourceCache.get(file);
   if (!source) {
-    source = characterLoader(renderer).loadAsync(`./models/${file}`).then((gl) => ({
-      gl,
-      metrics: prepareCharacterSource(gl),
-    }));
+    source = characterLoader(renderer).loadAsync(`./models/${file}`).then((gl) => {
+      const metrics = prepareCharacterSource(gl);
+      warmCharacterTextures(renderer, gl.scene);
+      return { gl, metrics };
+    });
     sourceCache.set(file, source);
   }
   return source;
@@ -629,7 +680,7 @@ export function styleCharacter(
     mesh.material = material;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
+    loosenCulling(mesh, part === "body" ? 1.1 : 0.12);
     paints.push(uniforms);
   });
   if (withPortrait) {

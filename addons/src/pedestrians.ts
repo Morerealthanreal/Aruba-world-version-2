@@ -10,7 +10,7 @@ import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
   CHARACTER_PALETTES, FACE_CARD_TRIS, findCharacterFace, loadCharacterSource, loadFacePortraits,
-  setCharacterPortrait, styleCharacter,
+  releaseCharacterLoader, setCharacterPortrait, styleCharacter,
   updateCharacterPaint, type CharacterMetrics, type CharacterPaint,
 } from "./characters";
 import type { AGame } from "./env";
@@ -102,7 +102,7 @@ export class PedestrianCrowds {
   }
 
   private loadRigs() {
-    void loadFacePortraits();
+    void loadFacePortraits(this.g.renderer);
     const sourcesPromise = Promise.all(MODEL_SPECS.map(async (spec): Promise<CharacterSource> => {
       const source = await loadCharacterSource(this.g.renderer, spec.file);
       return {
@@ -124,6 +124,7 @@ export class PedestrianCrowds {
         this.midRigs.push(this.makeRig(sources.find((source) =>
           source.level === "mid" && source.kind === kind)!, i + this.nearCap, loco));
       }
+      releaseCharacterLoader();
       console.info("[aw-peds] realistic rig LODs ready", this.nearRigs.length, this.midRigs.length, loco ? "mocap" : "fallback");
     }).catch((error) => console.warn("[aw-peds] realistic rig LODs", error));
   }
