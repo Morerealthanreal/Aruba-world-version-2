@@ -63098,4 +63098,248 @@
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  }
+,
+ {
+  "id": "para_house_a",
+  "k": "para_house_a",
+  "name": "",
+  "status": "accuracy-paradera",
+  "x": -4389.9,
+  "z": -1185.85,
+  "y": 30.8,
+  "rotation": 0,
+  "glb": "models/hero/para_house_a.glb",
+  "lod": {
+   "hi": "para_house_a_lod0",
+   "lo": "para_house_a_lod1",
+   "switch_m": 160
+  },
+  "tris": {
+   "para_house_a_lod0": 414,
+   "para_house_a_lod1": 114
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -4395.9,
+    -1181.0
+   ],
+   [
+    -4384.9,
+    -1180.0
+   ],
+   [
+    -4383.9,
+    -1190.7
+   ],
+   [
+    -4394.9,
+    -1191.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM building footprint",
+  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "house"
+ },
+ {
+  "id": "para_house_b",
+  "k": "para_house_b",
+  "name": "",
+  "status": "accuracy-paradera",
+  "x": -4323.77,
+  "z": -1669.85,
+  "y": 33.28,
+  "rotation": 0,
+  "glb": "models/hero/para_house_b.glb",
+  "lod": {
+   "hi": "para_house_b_lod0",
+   "lo": "para_house_b_lod1",
+   "switch_m": 160
+  },
+  "tris": {
+   "para_house_b_lod0": 366,
+   "para_house_b_lod1": 114
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -4328.2,
+    -1676.4
+   ],
+   [
+    -4328.1,
+    -1663.3
+   ],
+   [
+    -4319.3,
+    -1663.3
+   ],
+   [
+    -4319.5,
+    -1676.4
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM building footprint",
+  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "house"
+ },
+ {
+  "id": "para_house_c",
+  "k": "para_house_c",
+  "name": "",
+  "status": "accuracy-paradera",
+  "x": -4323.23,
+  "z": -1568.6,
+  "y": 34.32,
+  "rotation": 0,
+  "glb": "models/hero/para_house_c.glb",
+  "lod": {
+   "hi": "para_house_c_lod0",
+   "lo": "para_house_c_lod1",
+   "switch_m": 160
+  },
+  "tris": {
+   "para_house_c_lod0": 414,
+   "para_house_c_lod1": 114
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -4332.7,
+    -1574.1
+   ],
+   [
+    -4332.6,
+    -1564.5
+   ],
+   [
+    -4320.2,
+    -1564.6
+   ],
+   [
+    -4320.2,
+    -1567.0
+   ],
+   [
+    -4316.8,
+    -1567.1
+   ],
+   [
+    -4316.9,
+    -1574.3
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM building footprint",
+  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "house"
+ },
+ {
+  "id": "para_house_d",
+  "k": "para_house_d",
+  "name": "",
+  "status": "accuracy-paradera",
+  "x": -4274.02,
+  "z": -1598.85,
+  "y": 35.41,
+  "rotation": 0,
+  "glb": "models/hero/para_house_d.glb",
+  "lod": {
+   "hi": "para_house_d_lod0",
+   "lo": "para_house_d_lod1",
+   "switch_m": 160
+  },
+  "tris": {
+   "para_house_d_lod0": 366,
+   "para_house_d_lod1": 114
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -4281.2,
+    -1593.7
+   ],
+   [
+    -4267.0,
+    -1593.5
+   ],
+   [
+    -4266.8,
+    -1604.0
+   ],
+   [
+    -4281.1,
+    -1604.2
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM building footprint",
+  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "house"
+ },
+ {
+  "id": "para_house_e",
+  "k": "para_house_e",
+  "name": "",
+  "status": "accuracy-paradera",
+  "x": -4272.0,
+  "z": -1695.3,
+  "y": 31.3,
+  "rotation": 0,
+  "glb": "models/hero/para_house_e.glb",
+  "lod": {
+   "hi": "para_house_e_lod0",
+   "lo": "para_house_e_lod1",
+   "switch_m": 160
+  },
+  "tris": {
+   "para_house_e_lod0": 414,
+   "para_house_e_lod1": 114
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    -4277.3,
+    -1701.0
+   ],
+   [
+    -4276.2,
+    -1688.7
+   ],
+   [
+    -4266.7,
+    -1689.6
+   ],
+   [
+    -4267.8,
+    -1701.9
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM building footprint",
+  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "house"
+ }
 ]
