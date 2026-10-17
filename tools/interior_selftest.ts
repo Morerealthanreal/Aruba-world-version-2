@@ -1,6 +1,7 @@
 // Door-volume checks for Pastechi House. No browser, no WebGL.
 import { isOpen, worldFrame } from "../addons/src/interiors/volume";
 import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "../addons/src/interiors/pastechi";
+import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -45,4 +46,47 @@ for (let d = -1; d <= 12.2; d += 0.25) {
   }
 }
 if (!bad) console.log("aisle clear", doorAt);
+
+const mcd = worldFrame(mcdLocal, MCD_X, MCD_Z, 0);
+mcd.poly = MCD_POLY;
+const mWall = 0.34;
+function mAt(a: number, d: number) {
+  const x = mcd.mx + mcd.ux * a + mcd.nx * d;
+  const z = mcd.mz + mcd.uz * a + mcd.nz * d;
+  return isOpen(mcd, MCD_OBS, x, z, MCD_DOOR_HALF, mWall);
+}
+const mcdCases: [string, number, number, boolean][] = [
+  ["mcd door", MCD_DOOR_AT, 0.2, true],
+  ["mcd sidewalk", MCD_DOOR_AT, -0.9, true],
+  ["mcd aisle", MCD_DOOR_AT, 8, true],
+  ["mcd camera", MCD_DOOR_AT, 12.2, true],
+  ["mcd side aisle", -6.2, 6, true],
+  ["mcd counter", 0.4, 3.6, false],
+  ["mcd kiosk", -4.1, 2.2, false],
+  ["mcd table", -7.3, 5.6, false],
+  ["mcd kitchen", 0, 14, false],
+  ["mcd west wall", 8.6, 4, false],
+  ["mcd east wall", -8.7, 4, false],
+  ["mcd outside", MCD_DOOR_AT, -3, false],
+  ["mcd jamb", -7.9, 0.05, false],
+];
+for (const [name, a, d, want] of mcdCases) {
+  const got = mAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (const line of [MCD_DOOR_AT, -6.2]) {
+  for (let d = -0.5; d <= 12.4; d += 0.25) {
+    if (!mAt(line, d)) {
+      console.log("FAIL mcd aisle blocked", line, "inward", d);
+      bad++;
+      break;
+    }
+  }
+}
+if (!isOpen(mcd, MCD_OBS, -8005.9, -5486.8, MCD_DOOR_HALF, mWall)) console.log("ok mcd neighbour stays shut");
+else { console.log("FAIL neighbour opened"); bad++; }
+if (!bad) console.log("mcd aisle clear", MCD_DOOR_AT);
 process.exit(bad ? 1 : 0);
