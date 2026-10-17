@@ -63097,5 +63097,35 @@
   "ref_sources": "Ground photos Commons 'Community Church Seroe Colorado' 2018: white walls, steep red gables, stone buttresses, round window, small sunday-school chapel. OSM way 97566669.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
+ },
+ {
+  "id": "watty_lane_dashes",
+  "k": "watty_lane_dashes",
+  "name": "",
+  "status": "accuracy-highway",
+  "x": -4579.28,
+  "z": 744.9,
+  "y": 17.8,
+  "rotation": 0,
+  "glb": "models/hero/watty_lane_dashes.glb",
+  "lod": {
+   "hi": "watty_lane_dashes_lod0",
+   "lo": "watty_lane_dashes_lod1",
+   "switch_m": 120
+  },
+  "tris": {
+   "watty_lane_dashes_lod0": 1272,
+   "watty_lane_dashes_lod1": 432
+  },
+  "textures": 0,
+  "hide_footprint": null,
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "Centreline of the owned Avenida Edgar J. (Watty) Vos carriageway (964 m, 106 dashes)",
+  "ref_sources": "Airport-end Watty Vos is a one-way class-4 road about 7.6 m wide, two lanes. The asphalt shader already paints the edge lines and withholds the broken line on one-way roads. These dashes are the lane line between the two lanes, on the stretch inside -5600<x<-4000 and -300<z<2000. Noord and the hotel strip are outside that box. The asphalt shader was not edited.",
+  "frame": "glb origin = dash-run centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "road"
  }
 ]

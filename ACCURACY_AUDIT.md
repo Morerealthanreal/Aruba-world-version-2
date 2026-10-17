@@ -30,7 +30,7 @@ References are visual guides only. Nothing below is a pasted photo.
 **Museum of Industry, San Nicolas** (OSM 7004), same origin and node names. From Bernhardstraat the old hero was a low white hall. It is now the yellow cylinder from the Commons photo: tan ribs, dark cap, a small clock on the north face, a blue glass drum on the street side, and a low yellow wing with `MUSEUM OF INDUSTRY`. The shaft is about 36 m so it reads against the one-storey town. The mural set was not edited.
 6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
 7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
-8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
+8. **Route 1, the Sasaki road, Watty Vos Boulevard.** The airport end of Watty Vos (the one-way 7.6 m carriageway inside -5600<x<-4000 and -300<z<2000) now has the white lane dash the shader skips on one-way roads (`watty_lane_dashes`). Edge lines were already drawn. Roundabout aprons, Route 1, and the Sasaki road are still unchecked. Noord and the hotel strip were not edited. `rb_monolith`, `rb_chevron` and the Sasaki station were left as they are.
 9. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
 
 ## Off limits — for their owners
