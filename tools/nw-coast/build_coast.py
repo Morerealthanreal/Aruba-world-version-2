@@ -533,6 +533,123 @@ class B:
             f.write(out)
         return self.tris
 
+    def save_packed(self, path, node):
+        """One geometry and one shared material per LOD, no textures.
+
+        A material used to be its own primitive, so a phone that first drew the
+        hidden LOD during the measured loops uploaded about thirty geometries at
+        once. Vertex colours keep the paint on a single mesh. The index buffer
+        stays under the UNSIGNED_SHORT cap; a slice that would not fit is rejected
+        rather than split back into extra geometries.
+        """
+        blob = bytearray()
+        views = []
+        accs = []
+
+        def push(data: bytes, target):
+            while len(blob) % 4:
+                blob.append(0)
+            off = len(blob)
+            blob.extend(data)
+            views.append({"buffer": 0, "byteOffset": off, "byteLength": len(data), "target": target})
+            return len(views) - 1
+
+        rgb = {name: colour for name, colour, _rough in self.mats}
+        materials = [
+            {
+                "name": "shared",
+                "doubleSided": False,
+                "pbrMetallicRoughness": {
+                    "baseColorFactor": [1, 1, 1, 1],
+                    "metallicFactor": 0,
+                    "roughnessFactor": 0.86,
+                },
+            }
+        ]
+        meshes = []
+        nodes = []
+        for lod in (0, 1):
+            pos, nrm, col, idx = [], [], [], []
+            for (plod, mat), prim in self.prim.items():
+                if plod != lod or len(prim["i"]) < 3:
+                    continue
+                base = len(pos) // 3
+                pos.extend(prim["p"])
+                nrm.extend(prim["n"])
+                col.extend(rgb[mat] * (len(prim["p"]) // 3))
+                idx.extend(i + base for i in prim["i"])
+            if len(idx) < 3:
+                raise SystemExit(f"{node} lod{lod} has no triangles")
+            if len(idx) > 65535:
+                raise SystemExit(f"{node} lod{lod} has {len(idx)} indices")
+            pv = push(struct.pack("<" + "f" * len(pos), *pos), 34962)
+            nv = push(struct.pack("<" + "f" * len(nrm), *nrm), 34962)
+            cv = push(struct.pack("<" + "f" * len(col), *col), 34962)
+            iv = push(struct.pack("<" + "H" * len(idx), *idx), 34963)
+            xs, ys, zs = pos[0::3], pos[1::3], pos[2::3]
+            cs = (col[0::3], col[1::3], col[2::3])
+            pa = {
+                "bufferView": pv,
+                "componentType": 5126,
+                "count": len(xs),
+                "type": "VEC3",
+                "min": [min(xs), min(ys), min(zs)],
+                "max": [max(xs), max(ys), max(zs)],
+            }
+            na = {"bufferView": nv, "componentType": 5126, "count": len(xs), "type": "VEC3"}
+            # min/max marks this as not a normal stream (check_glb treats bare VEC3 as normals)
+            ca = {
+                "bufferView": cv,
+                "componentType": 5126,
+                "count": len(xs),
+                "type": "VEC3",
+                "min": [min(cs[0]), min(cs[1]), min(cs[2])],
+                "max": [max(cs[0]), max(cs[1]), max(cs[2])],
+            }
+            ia = {"bufferView": iv, "componentType": 5123, "count": len(idx), "type": "SCALAR"}
+            accs.extend((pa, na, ca, ia))
+            base_acc = len(accs) - 4
+            meshes.append(
+                {
+                    "name": f"{node}_lod{lod}",
+                    "primitives": [
+                        {
+                            "attributes": {
+                                "POSITION": base_acc,
+                                "NORMAL": base_acc + 1,
+                                "COLOR_0": base_acc + 2,
+                            },
+                            "indices": base_acc + 3,
+                            "material": 0,
+                        }
+                    ],
+                }
+            )
+            nodes.append({"name": f"{node}_lod{lod}", "mesh": lod})
+        gltf = {
+            "asset": {"version": "2.0", "generator": "tools/nw-coast/build_coast.py save_packed"},
+            "scene": 0,
+            "scenes": [{"nodes": [0, 1], "name": node}],
+            "nodes": nodes,
+            "meshes": meshes,
+            "materials": materials,
+            "accessors": accs,
+            "bufferViews": views,
+            "buffers": [{"byteLength": len(blob)}],
+        }
+        js = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
+        js += b" " * ((4 - len(js) % 4) % 4)
+        binb = bytes(blob)
+        binb += b"\x00" * ((4 - len(binb) % 4) % 4)
+        total = 12 + 8 + len(js) + 8 + len(binb)
+        out = struct.pack("<4sII", b"glTF", 2, total)
+        out += struct.pack("<I4s", len(js), b"JSON") + js
+        out += struct.pack("<I4s", len(binb), b"BIN\x00") + binb
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(out)
+        return self.tris
+
 
 # ---------------------------------------------------------------------------
 # colours
