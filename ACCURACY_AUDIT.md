@@ -23,7 +23,7 @@ References are visual guides only. Nothing below is a pasted photo.
 
 1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
 2. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
-3. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
+3. **San Nicolas town, non-mural.** The bar row just east of Charlie's on B. van der Veen Zeppenfeldstraat (Nano's, Shirley's, Hoolo, Bongo Bar, and the two lots between Nano's and Shirley's) is now painted one- and two-storey shopfronts with awnings (`snmain_bars`). Charlie's, Fan Bar, Nicolaas Store, and the `sn_*` mural set were not edited. The rest of Main Street west of Charlie's, and most side streets, are still generic massing.
 
 ## Water tower — done in this change
 

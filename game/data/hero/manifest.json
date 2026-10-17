@@ -63097,5 +63097,68 @@
   "ref_sources": "Ground photos Commons 'Community Church Seroe Colorado' 2018: white walls, steep red gables, stone buttresses, round window, small sunday-school chapel. OSM way 97566669.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
+ },
+ {
+  "id": "snmain_bars",
+  "k": "snmain_bars",
+  "name": "",
+  "status": "accuracy-sn-bars",
+  "x": 6942.83,
+  "z": 9661.86,
+  "y": 13.21,
+  "rotation": 0,
+  "glb": "models/hero/snmain_bars.glb",
+  "lod": {
+   "hi": "snmain_bars_lod0",
+   "lo": "snmain_bars_lod1",
+   "switch_m": 150
+  },
+  "tris": {
+   "snmain_bars_lod0": 168,
+   "snmain_bars_lod1": 60
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    6927.1,
+    9664.2
+   ],
+   [
+    6931.1,
+    9650.7
+   ],
+   [
+    6937.6,
+    9652.6
+   ],
+   [
+    6958.1,
+    9658.8
+   ],
+   [
+    6953.8,
+    9673.0
+   ],
+   [
+    6949.1,
+    9671.6
+   ],
+   [
+    6944.5,
+    9670.2
+   ],
+   [
+    6933.2,
+    9666.5
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
+  "ref_sources": "B. van der Veen Zeppenfeldstraat east of Charlie's Bar is a row of one-storey bars and shops: painted concrete, a metal awning, a dark doorway. These four OSM lots (Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar) were still generic massing. Charlie's, Fan Bar, and the sn_* mural set are unchanged. Geometry only, not a photo.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "store"
  }
 ]
