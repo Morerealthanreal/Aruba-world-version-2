@@ -11,6 +11,7 @@ import { HY_DOOR_HALF, HY_OBS, HY_POLY, HY_X, HY_Z, hyLocal } from "../addons/sr
 import { MR_DOOR_HALF, MR_OBS, MR_POLY, MR_X, MR_Z, mrLocal } from "../addons/src/interiors/marriott";
 import { SF_DOOR_HALF, SF_OBS, SF_POLY, SF_X, SF_Z, sfLocal } from "../addons/src/interiors/senorfrogs";
 import { MB_DOOR_HALF, MB_OBS, MB_POLY, MB_X, MB_Z, mbLocal } from "../addons/src/interiors/moomba";
+import { GN_DOOR_HALF, GN_OBS, GN_POLY, GN_X, GN_Z, gnLocal } from "../addons/src/interiors/giannis";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -430,4 +431,40 @@ if (!isOpen(mb, MB_OBS, -8104.0, -6377.4, MB_DOOR_HALF, mWall)) console.log("ok 
 else { console.log("FAIL mb road opened"); bad++; }
 if (!bad) console.log("mb aisle clear");
 console.log("mb door", mb.mx.toFixed(2), mb.mz.toFixed(2), "n", mb.nx.toFixed(3), mb.nz.toFixed(3));
+
+const gn = worldFrame(gnLocal, GN_X, GN_Z, 0);
+gn.poly = GN_POLY;
+function gnAt(a: number, d: number) {
+  const x = gn.mx + gn.ux * a + gn.nx * d;
+  const z = gn.mz + gn.uz * a + gn.nz * d;
+  return isOpen(gn, GN_OBS, x, z, GN_DOOR_HALF, mWall);
+}
+const gnCases: [string, number, number, boolean][] = [
+  ["gn door", 0, 0.3, true],
+  ["gn sidewalk", 0, -0.9, true],
+  ["gn aisle", 0, 2.2, true],
+  ["gn stand", 0, 5.9, false],
+  ["gn table", 0, 3.9, false],
+  ["gn outside", 0, -3, false],
+  ["gn jamb", 2.9, 0.15, false],
+  ["gn past", 0, 10, false],
+];
+for (const [name, a, d, want] of gnCases) {
+  const got = gnAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 2.8; d += 0.25) {
+  if (!gnAt(0, d)) {
+    console.log("FAIL gn aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(gn, GN_OBS, -8172.8, -5383.5, GN_DOOR_HALF, mWall)) console.log("ok gn road stays shut");
+else { console.log("FAIL gn road opened"); bad++; }
+if (!bad) console.log("gn aisle clear");
+console.log("gn door", gn.mx.toFixed(2), gn.mz.toFixed(2), "n", gn.nx.toFixed(3), gn.nz.toFixed(3));
 process.exit(bad ? 1 : 0);

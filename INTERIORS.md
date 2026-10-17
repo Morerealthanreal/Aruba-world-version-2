@@ -15,7 +15,8 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Aruba Marriott Resort & Stellaris Casino** (Palm Beach). The podium sits above the beach, so the walk-in lobby is the open front on the sand under the sign wall. Inside: a warm room, a burgundy runner, a wood reception desk, and a board for reception, the casino, and the beach. The tower and the Marriott sign stay.
 - **Señor Frog's** (Palm Beach, J.E. Irausquin Boulevard). The ground floor under the green sign opens. Inside: a yellow and green bar, a wood counter, and a menu for margaritas, nachos, and fajitas. The sign and the yellow walls stay.
 - **Moomba Beach Bar** (Palm Beach). The glass bay beside the teal MOOMBA sign opens onto the sand. Inside: a sand and teal floor, a wood bar with a teal top, bottles and glasses, stools and low tables, and boards for Painkiller, Passion Mojito, Aruba Ariba, the hamburger, fish sandwich, Caesar salad, and the day's snacks. The sign and the tan roof stay.
+- **Gianni's Ristorante Italiano** (Palm Beach, J.E. Irausquin Boulevard). The terrace under the green sign opens. Inside: a green and white tile floor, wood tables, red and green chairs, a host stand in green, white, and red, and boards for bruschetta, bucatini, puttanesca, vitello parmigiana, ossobuco, tiramisu, and the tableside spaghetti al parmigiano. The awning and the sign stay.
 
 ## Next
 
-- Gianni's, then the downtown malls
+- Renaissance mall downtown, then more shops
