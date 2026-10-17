@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Arikok cave mouths: Fontein and Quadirikiri.
 
-Each is a limestone face with the opening cut into it. The dark part is the
-recess behind the lip, not a box standing on the sand. Fontein keeps the
-gate across its one mouth. Quadirikiri has two open mouths and the two roof
-holes the cave is known for. No photo textures. Conchi is a later change.
+A limestone hillside with the opening cut into it. The dark face sits back
+under a brow, with rock jambs beside it, so the hole is what you see from
+the road. Fontein keeps a gate and its mouth is offset along the face so
+the tree on the OSM node is not standing in the doorway. Quadirikiri has
+two mouths and two holes in the crest. No photo textures. Conchi is later.
 """
 import json
 import math
@@ -75,7 +76,7 @@ def quad_facing(mesh, a, b, c, d, outward):
         mesh.quad(a, b, c, d)
 
 
-def wedge(mesh, x_face, x_back, z0, z1, y_face, y_back, y0=-1.6):
+def wedge(mesh, x_face, x_back, z0, z1, y_face, y_back, y0=-2.2):
     """Sloping mass. The road-facing side is +X. Base is buried."""
     fl, fr = (x_face, y_face, z0), (x_face, y_face, z1)
     bl, br = (x_back, y_back, z0), (x_back, y_back, z1)
@@ -125,6 +126,69 @@ def rotate_model(model, ang):
             mesh.nrm = [(n[0] * c - n[2] * s, n[1], n[0] * s + n[2] * c) for n in mesh.nrm]
 
 
+def shoulders(hi, hid, half, mouths, height, depth):
+    """Rock either side of the openings. The face stays a wall; the skyline
+    is a separate row of blocks so there is no shed roof."""
+    ordered = sorted(mouths, key=lambda m: m[0])
+    spans = []
+    cursor = -half
+    for z, w, _mh in ordered:
+        left = z - w / 2 - 1.05
+        if left - cursor > 0.4:
+            spans.append((cursor, left))
+        cursor = z + w / 2 + 1.05
+    if half - cursor > 0.4:
+        spans.append((cursor, half))
+    for z0, z1 in spans:
+        span = z1 - z0
+        pieces = 3 if span > 5 else 2 if span > 2.4 else 1
+        for i in range(pieces):
+            a = z0 + span * i / pieces
+            b = z0 + span * (i + 1) / pieces
+            mid = (a + b) / 2
+            jump = (i * 2 + int(abs(mid))) % 3
+            face_h = height * (0.8 + 0.14 * jump)
+            wedge(hi, 0.15, -depth, a, b, face_h, face_h * 0.9)
+            for seam in (1.2, 2.5):
+                if seam < face_h - 0.6:
+                    G.box(hid, 0.42, seam, mid, 0.4, 0.16, (b - a) * 0.72)
+            G.box(hi, 0.45, face_h * 0.45, mid, 0.6, 0.36, (b - a) * 0.5)
+
+
+def crest(hi, hic, half, height, depth, skylights):
+    """A few bulges on the crest, plus the roof pits. Not a battlement row."""
+    knob(hi, -0.6, height * 0.82, -half * 0.35, 2.0, 1.15, 1.7)
+    knob(hi, -1.6, height * 0.95, half * 0.05, 1.6, 1.35, 2.1)
+    knob(hi, -0.8, height * 0.7, half * 0.48, 2.3, 0.85, 1.5)
+    for z, w in skylights:
+        G.box(hic, -depth * 0.22, height * 0.5, z, w * 0.6, 1.6, w * 0.6)
+
+
+def opening(hi, hic, hil, hig, z, w, mh, depth, gate, steps=False):
+    """Dark mouth under a thick shelf. Upper corners are rock, so it is not a rectangle."""
+    lip = 1.45
+    recede = min(4.0, depth * 0.5)
+    front = lip - 0.45
+    G.box(hic, front - recede / 2, mh * 0.42, z, recede, mh * 0.84, w * 0.78)
+    # Shelf, not a sloping roof. Underside sits just over the hole.
+    G.box(hi, lip + 0.15, mh + 0.7, z, 2.4, 1.35, w + 2.4)
+    for side in (-1, 1):
+        G.box(hi, lip - 0.05, mh * 0.5, z + side * (w / 2 + 0.2), 1.5, mh * 1.15, 1.05)
+        # Rock in the top corners, pulling the hole toward an arch.
+        G.box(hi, lip - 0.15, mh * 0.78, z + side * (w * 0.28), 1.7, mh * 0.48, w * 0.24)
+    wedge(hil, lip + 3.6, 0.2, z - w * 0.7, z + w * 0.7, 0.05, 0.4, y0=-1.7)
+    if steps:
+        for s in range(4):
+            G.box(hil, lip + 0.9 + s * 0.48, 0.16 + s * 0.16, z, 0.48, 0.18, w * 0.42)
+    if gate:
+        gx = lip - 0.2
+        span = w * 0.62
+        for k in range(5):
+            zz = z - span / 2 + k * (span / 4)
+            G.box(hig, gx, mh * 0.4, zz, 0.05, mh * 0.72, 0.07)
+        G.box(hig, gx, 0.18, z, 0.05, 0.07, span)
+
+
 def build_cave(name, lat, lon, mouths, length, height, depth, gate=False, skylights=()):
     """mouths: (z, width, mouth_height). Local +X is turned toward the road."""
     cx, cz = from_ll(lat, lon)
@@ -133,12 +197,12 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate=False, skylig
     print(f"  {name} road {road[3]!r} {road[2]:.0f} m" if road else f"  {name} no road")
 
     model = G.Model(name)
-    # Warm and dark. Brighter limestone was lighting as a white shed.
-    rock = model.material("rock", (0.22, 0.19, 0.16), rough=0.94)
-    strata = model.material("strata", (0.13, 0.11, 0.09), rough=0.96)
-    talus = model.material("talus", (0.30, 0.26, 0.21), rough=0.9)
-    cave = model.material("cave", (0.02, 0.018, 0.016), rough=1.0)
-    gate_c = model.material("gate", (0.07, 0.07, 0.065), rough=0.55)
+    # Kept in the band that renders as tan limestone. Brighter reads as a white shed.
+    rock = model.material("rock", (0.23, 0.18, 0.13), rough=0.94)
+    strata = model.material("strata", (0.12, 0.09, 0.07), rough=0.96)
+    talus = model.material("talus", (0.27, 0.21, 0.14), rough=0.9)
+    cave = model.material("cave", (0.015, 0.012, 0.01), rough=1.0)
+    gate_c = model.material("gate", (0.16, 0.16, 0.15), rough=0.5)
     hi = model.mesh(0, rock)
     lo = model.mesh(1, rock)
     hid = model.mesh(0, strata)
@@ -148,63 +212,17 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate=False, skylig
     hig = model.mesh(0, gate_c)
 
     half = length / 2
-    # Sort mouths and fill the cliff in spans, leaving each mouth as a gap.
-    ordered = sorted(mouths, key=lambda m: m[0])
-    spans = []
-    cursor = -half
-    for z, w, mh in ordered:
-        left = z - w / 2
-        if left - cursor > 0.4:
-            spans.append((cursor, left))
-        cursor = z + w / 2
-    if half - cursor > 0.4:
-        spans.append((cursor, half))
+    shoulders(hi, hid, half, mouths, height, depth)
+    crest(hi, hic, half, height, depth, skylights)
+    widest = max(mouths, key=lambda m: m[1])[0] if len(mouths) > 1 else None
+    for z, w, mh in mouths:
+        opening(hi, hic, hil, hig, z, w, mh, depth, gate, steps=(z == widest))
 
-    for i, (z0, z1) in enumerate(spans):
-        y_face = height * (0.72 + 0.18 * (i % 2))
-        y_back = height * 0.42
-        wedge(hi, 0.8, -depth, z0, z1, y_face, y_back)
-        # A bedding line across the face of each shoulder.
-        G.box(hid, 0.95, y_face * 0.55, (z0 + z1) / 2, 0.35, 0.28, (z1 - z0) * 0.82)
+    knob(hil, 2.8, 0.2, -half * 0.25, 1.4, 0.35, 1.2)
 
-    for z, w, mh in ordered:
-        # Brow: the soffit is the top of the mouth, and the lip sticks out
-        # past the shoulders so the opening sits in shadow.
-        wedge(hi, 2.15, -depth * 0.55, z - w / 2 - 0.5, z + w / 2 + 0.5, mh + 0.15, height * 0.95, y0=mh - 0.05)
-        # Jambs, thicker at the bottom, so the cut has sides.
-        G.box(hi, 1.15, mh * 0.42, z - w / 2 - 0.35, 1.5, mh * 0.85, 0.9)
-        G.box(hi, 1.15, mh * 0.42, z + w / 2 + 0.35, 1.5, mh * 0.85, 0.9)
-        # Arch: rock closing the upper corners.
-        G.box(hi, 1.05, mh - 0.15, z - w / 2 + 0.55, 1.2, 0.7, 1.3)
-        G.box(hi, 1.05, mh - 0.15, z + w / 2 - 0.55, 1.2, 0.7, 1.3)
-        # Recess. The front of this block is behind the lip.
-        G.box(hic, -depth * 0.28, mh * 0.46, z, depth * 0.7, mh * 0.88, w * 0.82)
-        # Sill and a fan of broken stone in front of the mouth.
-        G.box(hil, 1.7, 0.12, z, 1.6, 0.35, w * 0.7)
-        wedge(hil, 3.2, 1.1, z - w * 0.55, z + w * 0.55, 0.45, 0.15, y0=-1.5)
-        if gate:
-            for k in range(4):
-                G.box(hig, 0.55, 0.45 + k * (mh / 4.6), z, 0.06, 0.07, w * 0.78)
-            G.box(hig, 0.55, mh * 0.5, z - w * 0.28, 0.08, mh * 0.85, 0.08)
-            G.box(hig, 0.55, mh * 0.5, z + w * 0.28, 0.08, mh * 0.85, 0.08)
-
-    # Crest and a couple of face knobs so the wall is not one plane.
-    wedge(hi, 0.2, -depth * 0.7, -half * 0.25, half * 0.2, height + 1.4, height * 0.7, y0=height * 0.72)
-    knob(hi, 1.3, height * 0.62, -half * 0.45, 1.6, 1.3, 1.4)
-    knob(hi, 1.5, height * 0.38, half * 0.38, 1.4, 1.1, 1.5)
-    knob(hil, 2.0, 0.4, -half * 0.2, 1.8, 0.7, 1.6)
-
-    for z, w in skylights:
-        # A hole in the crest: dark pit with a raised rim.
-        G.box(hic, -depth * 0.35, height * 0.78, z, w, height * 0.45, w)
-        G.box(hi, -depth * 0.35, height * 0.98, z - w * 0.65, w * 0.45, 0.7, w * 1.5)
-        G.box(hi, -depth * 0.35, height * 0.98, z + w * 0.65, w * 0.45, 0.7, w * 1.5)
-        G.box(hi, -depth * 0.35 - w * 0.55, height * 0.98, z, w * 1.4, 0.55, w * 0.4)
-
-    # Distant read: one face, the mouths still dark.
-    wedge(lo, 0.6, -depth, -half, half, height * 0.8, height * 0.4)
-    for z, w, mh in ordered:
-        G.box(loc, -1.0, mh * 0.45, z, 2.2, mh * 0.8, w * 0.75)
+    wedge(lo, 0.05, -depth, -half, half, height * 0.62, height * 1.05)
+    for z, w, mh in mouths:
+        G.box(loc, 0.3, mh * 0.48, z, 2.6, mh * 0.9, w * 0.8)
 
     rotate_model(model, ang)
     info = G.write_glb(model, HERO / f"{name}.glb")
@@ -217,25 +235,56 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate=False, skylig
 def footprint(cx, cz, ang, length, depth):
     """World quad covering the cliff, so a stray mass does not sit in the mouth."""
     c, s = math.cos(ang), math.sin(ang)
-    local = [(2.5, -length / 2 - 1), (2.5, length / 2 + 1), (-depth - 1, length / 2 + 1), (-depth - 1, -length / 2 - 1)]
+    local = [
+        (6.5, -length / 2 - 1),
+        (6.5, length / 2 + 1),
+        (-depth - 1, length / 2 + 1),
+        (-depth - 1, -length / 2 - 1),
+    ]
     world = []
     for x, z in local:
         world.append([round(cx + x * c - z * s, 1), round(cz + x * s + z * c, 1)])
     return world
 
 
-def append_manifest(entries):
+def upsert_manifest(entries):
+    """Replace these ids in place. A full rewrite is avoided when the ids exist."""
     text = MANIFEST.read_text()
-    if not text.rstrip().endswith("]"):
-        raise SystemExit("manifest shape")
-    chunks = []
+    present = all(f'"id": "{e["id"]}"' in text for e in entries)
+    if not present:
+        if not text.rstrip().endswith("]"):
+            raise SystemExit("manifest shape")
+        chunks = []
+        for entry in entries:
+            body = json.dumps(entry, indent=1)
+            chunks.append("\n".join(" " + line for line in body.splitlines()))
+        block = ",\n" + ",\n".join(chunks) + "\n"
+        text = text.rstrip()[:-1] + block + "]\n"
+        json.loads(text)
+        MANIFEST.write_text(text)
+        return
+    data = json.loads(text)
+    by_id = {e["id"]: e for e in entries}
+    out = []
+    seen = set()
+    for item in data:
+        if item.get("id") in by_id:
+            out.append(by_id[item["id"]])
+            seen.add(item["id"])
+        else:
+            out.append(item)
     for entry in entries:
-        body = json.dumps(entry, indent=1)
-        chunks.append("\n".join(" " + line for line in body.splitlines()))
-    block = ",\n" + ",\n".join(chunks) + "\n"
-    text = text.rstrip()[:-1] + block + "]\n"
-    json.loads(text)
-    MANIFEST.write_text(text)
+        if entry["id"] not in seen:
+            out.append(entry)
+    dumped = json.dumps(out, indent=1) + "\n"
+    json.loads(dumped)
+    # Only accept the rewrite when the rest of the file is unchanged.
+    old = json.loads(text)
+    old_ids = [i.get("id") for i in old]
+    new_ids = [i.get("id") for i in out]
+    if old_ids != new_ids:
+        raise SystemExit("manifest id order changed")
+    MANIFEST.write_text(dumped)
 
 
 def entry(id_, x, z, y, info, name, refs, ring, switch):
@@ -267,34 +316,35 @@ def entry(id_, x, z, y, info, name, refs, ring, switch):
 def main():
     fontein = build_cave(
         "fontein_cave", 12.4929282, -69.9073335,
-        mouths=[(0.0, 4.4, 3.1)],
-        length=18, height=7.2, depth=9, gate=True,
+        # Mouth sits along the face, off the tree that grows on the node.
+        mouths=[(3.6, 6.4, 4.4)],
+        length=16, height=6.6, depth=10, gate=True,
     )
     quad = build_cave(
         "quadirikiri", 12.4825269, -69.8995204,
-        mouths=[(-5.2, 6.2, 3.8), (6.4, 4.6, 3.0)],
-        length=28, height=6.6, depth=11,
-        skylights=[(-2.2, 2.4), (4.8, 2.0)],
+        mouths=[(-5.6, 8.0, 4.6), (6.6, 6.2, 3.8)],
+        length=26, height=6.4, depth=11,
+        skylights=[(-1.6, 2.6), (5.4, 2.2)],
     )
     fx, fz, fh, finfo, fang = fontein
     qx, qz, qh, qinfo, qang = quad
     if fh == 0 or qh == 0:
         raise SystemExit("refusing a zero ground pin")
-    append_manifest([
+    upsert_manifest([
         entry(
             "fontein_cave", fx, fz, fh, finfo,
             "Fontein Cave",
             "Commons views of the Fontein cave mouth: one opening cut into a limestone face, metal gate set inside the shadow, talus at the foot. OSM node 540167863. Geometry only.",
-            footprint(fx, fz, fang, 18, 9), 380,
+            footprint(fx, fz, fang, 16, 10), 380,
         ),
         entry(
             "quadirikiri", qx, qz, qh, qinfo,
             "Quadirikiri Cave",
             "Commons views of Quadirikiri: two mouths in a low limestone cliff and two holes in the crest. OSM node 540982491. Geometry only.",
-            footprint(qx, qz, qang, 28, 11), 400,
+            footprint(qx, qz, qang, 26, 11), 400,
         ),
     ])
-    print("manifest ok")
+    print("manifest ok", finfo, qinfo)
 
 
 if __name__ == "__main__":
