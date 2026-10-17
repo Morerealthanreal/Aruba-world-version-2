@@ -528,6 +528,7 @@ ${solidSkin ? `if (true) {
   vec2 awC = vec2(awU, awV) - vec2(0.50, 0.42);
   float awOval = (awC.x * awC.x) / 0.32 + (awC.y * awC.y) / 0.50;
   awShellMask = smoothstep(0.0, 0.04, vAwShellP.z) * (1.0 - smoothstep(0.90, 1.35, awOval));
+  awShellMask *= 1.0 - smoothstep(-0.02, -0.09, vAwShellP.y);
   awShellPaint = texture2D(uAwFaceMap, uAwFaceCrop.xy + vec2(awU, awV) * uAwFaceCrop.zw, -0.45).rgb;
   vec3 awCheek = texture2D(uAwFaceMap, uAwFaceCrop.xy + uAwCheekUv * uAwFaceCrop.zw).rgb;
   vec3 awMatch = awNeck / max(awCheek, vec3(0.045));
@@ -606,7 +607,7 @@ if (${hairFragment} && awFace < 0.25) {
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v19:${part}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v20:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
