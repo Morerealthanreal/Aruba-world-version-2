@@ -19,6 +19,9 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
+//  8. Region unload frees textures nothing else still references, and marks them so the
+//     pre-upload queue cannot allocate the same image again. Sign atlases were already
+//     marked; heightfields, splats and one-off decals were not.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -40,6 +43,8 @@ type Real = {
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
 type Post = { ao?: { enabled: boolean }; composer?: unknown; render(): void };
+type GpuTex = { isTexture?: boolean; isDataArrayTexture?: boolean; dispose(): void; __awGone?: number };
+const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
   interface Window { __awPost?: Post; __awMMDiv?: number }
@@ -55,6 +60,7 @@ export class PerfFixes {
   private carSeen = new WeakSet<Object3D>();
   private t = 0;
   private heroCap: number;
+  private freedTex = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -71,6 +77,7 @@ export class PerfFixes {
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
     this.hookHero();
+    this.hookDispose();
     this.fixGlass();
   }
 
@@ -266,6 +273,98 @@ export class PerfFixes {
       }
       this.stats.heroHidden = hidden;
     };
+  }
+
+  /** Heightfields, splats and decals used to stay on the GPU after a region left, or get
+   *  uploaded again from the warm-up queue. Shared pole, fence and terrain-array textures
+   *  stay, because a live mesh still references them. */
+  private hookDispose() {
+    const A = this.real;
+    const orig = A.disposeRegion.bind(A);
+    A.disposeRegion = (r: unknown) => {
+      const owned = this.regionTextures(r);
+      orig(r);
+      const live = this.referencedTextures();
+      let n = 0;
+      for (const t of owned) {
+        // Terrain colour/normal/roughness arrays are shared by every region.
+        if (live.has(t) || t.isDataArrayTexture) continue;
+        if (!t.__awGone) t.__awGone = 1;
+        t.dispose();
+        n++;
+      }
+      if (n && this.freedTex === 0) this.stats.changes.push("region textures released on unload");
+      this.freedTex += n;
+    };
+  }
+
+  private texturesOf(mat: Material | Material[] | undefined, into: Set<GpuTex>) {
+    const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
+    for (const m of mats) {
+      const rec = m as unknown as Record<string, unknown>;
+      for (const key of MAP_KEYS) {
+        const t = rec[key] as GpuTex | null | undefined;
+        if (t && t.isTexture) into.add(t);
+      }
+      const bags = [rec.uniforms, (m.userData as { U?: Record<string, { value?: unknown }> } | undefined)?.U];
+      for (const bag of bags) {
+        if (!bag || typeof bag !== "object") continue;
+        for (const slot of Object.values(bag as Record<string, { value?: unknown } | unknown>)) {
+          const v = slot && typeof slot === "object" && "value" in (slot as object)
+            ? (slot as { value?: unknown }).value
+            : slot;
+          if (v && (v as GpuTex).isTexture) into.add(v as GpuTex);
+        }
+      }
+    }
+  }
+
+  private regionTextures(r: unknown) {
+    const into = new Set<GpuTex>();
+    const rec = r as {
+      group?: Obj;
+      hf?: GpuTex;
+      splat?: GpuTex;
+      signTex?: GpuTex;
+      mat?: Material;
+      wmat?: Material;
+    };
+    const take = (t: unknown) => {
+      const tex = t as GpuTex | null | undefined;
+      if (tex && tex.isTexture) into.add(tex);
+    };
+    take(rec.hf);
+    take(rec.splat);
+    take(rec.signTex);
+    this.texturesOf(rec.mat, into);
+    this.texturesOf(rec.wmat, into);
+    rec.group?.traverse((o) => {
+      const mesh = o as Obj;
+      if (mesh.material) this.texturesOf(mesh.material, into);
+    });
+    return into;
+  }
+
+  private referencedTextures() {
+    const live = new Set<GpuTex>();
+    const addMat = (mat: Material | Material[] | undefined) => this.texturesOf(mat, live);
+    this.g.scene.traverse((o) => {
+      const mesh = o as Obj;
+      if (mesh.material) addMat(mesh.material);
+    });
+    const bg = this.g.scene.background as GpuTex | null;
+    const env = this.g.scene.environment as GpuTex | null;
+    if (bg?.isTexture) live.add(bg);
+    if (env?.isTexture) live.add(env);
+    for (const r of this.real.regions.values()) {
+      const rec = r as unknown as { hf?: GpuTex; splat?: GpuTex; signTex?: GpuTex; mat?: Material; wmat?: Material };
+      if (rec.hf?.isTexture) live.add(rec.hf);
+      if (rec.splat?.isTexture) live.add(rec.splat);
+      if (rec.signTex?.isTexture) live.add(rec.signTex);
+      addMat(rec.mat);
+      addMat(rec.wmat);
+    }
+    return live;
   }
 
   /** A streamed HIGH's 2 km radius during boot (before the add-ons ran); drop the
