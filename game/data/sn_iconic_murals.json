@@ -1,0 +1,269 @@
+{
+ "atlas": "textures/sn_iconic_atlas.jpg",
+ "atlas_px": [
+  2048,
+  752
+ ],
+ "note": "Iconic San Nicolas walls missing from earlier batches. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "glow_dark",
+   "name": "Glow In The Dark",
+   "artist": "Bond Truluv",
+   "year": 2016,
+   "address": "Stuyvesantstraat, San Nicolas",
+   "lat": 12.4348924,
+   "lng": -69.9108258,
+   "bld": 11601,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 11.63,
+   "center": [
+    6437.65,
+    9402.58
+   ],
+   "p0": [
+    6438.79,
+    9396.94
+   ],
+   "p1": [
+    6436.51,
+    9408.22
+   ],
+   "normal": [
+    -0.9802,
+    -0.1978
+   ],
+   "width": 11.51,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.452128,
+    0.374512,
+    0.718085
+   ],
+   "sources": [
+    "Street Art Cities marker 13074 (12.4348924, -69.9108258), Stuyvesantstraat, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "mucha_bunita",
+   "name": "Mucha Bunita",
+   "artist": "Ives One",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 9, San Nicolas Main Street",
+   "lat": 12.4351889,
+   "lng": -69.9099012,
+   "bld": 4082,
+   "bld_name": "Caribbean Union",
+   "bld_h": 3.4,
+   "wall_i": 8,
+   "wall_len": 6.75,
+   "center": [
+    6540.8,
+    9379.68
+   ],
+   "p0": [
+    6541.49,
+    9376.44
+   ],
+   "p1": [
+    6540.11,
+    9382.92
+   ],
+   "normal": [
+    -0.9782,
+    -0.2075
+   ],
+   "width": 6.63,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.720745,
+    0.226562,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13088 (12.4351889, -69.9099012), Zeppenfeldstraat 9, created 23 Nov 2017"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "greetings",
+   "name": "Greetings from ARUBA",
+   "artist": "Aruba Art Fair collective",
+   "year": 2016,
+   "address": "Bernard van de Veen Zeppenfeldstraat (Main Street)",
+   "lat": 12.435189,
+   "lng": -69.909486,
+   "bld": 11527,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 22.18,
+   "center": [
+    6579.01,
+    9379.4
+   ],
+   "p0": [
+    6589.95,
+    9380.79
+   ],
+   "p1": [
+    6568.07,
+    9378.01
+   ],
+   "normal": [
+    0.1263,
+    -0.992
+   ],
+   "width": 22.06,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.196809,
+    0.682129,
+    0.449468
+   ],
+   "sources": [
+    "Wikimedia Commons File:San_Nicolas_murals_(Aruba)_23_00_50_266000.jpeg (Caribiana, CC BY-SA 4.0, camera 12.435189, -69.909486)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "flying_ducks",
+   "name": "Flying Ducks",
+   "artist": "Aruba Art Fair",
+   "year": 2016,
+   "address": "Bernhardstraat, red-brick wall",
+   "lat": 12.43596,
+   "lng": -69.911,
+   "bld": 4074,
+   "bld_name": "Korps Politie Aruba - San Nicolaas",
+   "bld_h": 6.9,
+   "wall_i": 10,
+   "wall_len": 42.16,
+   "center": [
+    6384.91,
+    9297.35
+   ],
+   "p0": [
+    6405.75,
+    9300.09
+   ],
+   "p1": [
+    6364.07,
+    9294.61
+   ],
+   "normal": [
+    0.1305,
+    -0.9915
+   ],
+   "width": 42.04,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.0,
+    1.0,
+    0.194149
+   ],
+   "sources": [
+    "Street art on Bernhardstraat (island video survey; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "theater_mask",
+   "name": "Theaterstraat mask",
+   "artist": "Aruba Art Fair",
+   "year": 2016,
+   "address": "Theaterstraat, San Nicolas",
+   "lat": 12.4363,
+   "lng": -69.9108,
+   "bld": 6313,
+   "bld_name": "Teresita Center",
+   "bld_h": 3.7,
+   "wall_i": 11,
+   "wall_len": 22.05,
+   "center": [
+    6440.2,
+    9246.94
+   ],
+   "p0": [
+    6441.49,
+    9236.05
+   ],
+   "p1": [
+    6438.91,
+    9257.83
+   ],
+   "normal": [
+    -0.993,
+    -0.1179
+   ],
+   "width": 21.93,
+   "height": 3.0,
+   "uv": [
+    0.227539,
+    0.734043,
+    0.941406,
+    1.0
+   ],
+   "sources": [
+    "Theaterstraat art district, San Nicolas (OSM wall fit; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "charlies_row",
+   "name": "Main Street shopfront strip",
+   "artist": "Local San Nicolas artists",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat near Charlie's Bar",
+   "lat": 12.4355,
+   "lng": -69.9106,
+   "bld": 11517,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 10.89,
+   "center": [
+    6463.42,
+    9344.95
+   ],
+   "p0": [
+    6468.66,
+    9346.19
+   ],
+   "p1": [
+    6458.18,
+    9343.72
+   ],
+   "normal": [
+    0.2296,
+    -0.9733
+   ],
+   "width": 10.77,
+   "height": 3.0,
+   "uv": [
+    0.375488,
+    0.472074,
+    0.699707,
+    0.718085
+   ],
+   "sources": [
+    "San Nicolas Main Street pastel shopfronts beside Charlie's Bar (visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}
