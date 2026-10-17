@@ -1,0 +1,49 @@
+ARUBA WORLD PEDESTRIAN CHARACTER ASSETS
+=======================================
+
+Source characters and animations
+--------------------------------
+
+Maya and Sam locomotion collections from the Innerscene 3D Parts Library:
+
+https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-maya-3d-person-animated-1499b2fd
+https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f
+
+The source pages identify these as original Innerscene characters and motion
+adapted from MakeHuman/MPFB CC0 body, rig, and skin assets. Both source files
+are dedicated to the public domain under CC0 1.0 Universal:
+
+https://creativecommons.org/publicdomain/zero/1.0/
+https://www.innerscene.com/tools/library/terms
+
+Project modifications
+---------------------
+
+The ped_maya_*, ped_maya_dress_*, and ped_sam_* files are modified derivatives:
+
+- The LOD files retain Idle_Standing and Walk_Relaxed as a fallback.
+  The live walk, run, and idle cycles are the separate locomotion.glb clips.
+- The long hair cards are replaced at load with hair parented to the head bone.
+  A rounded crown covers the skull, with bangs over the forehead. Layered
+  strands follow the skull, then fall behind and over the shoulders. The
+  broken scalp cards are replaced with a solid head whose brow, nose, lips,
+  and chin are one continuous profile. The front of that
+  head samples the oil portrait, toned to the neck, so the eyes, nose, and
+  mouth stay on the mesh.
+  A neck weighted to the neck bone joins the head to the shoulders.
+  The dress cone is replaced with a short thigh-weighted skirt and visible legs.
+  The dress shoulder and hand cards are replaced with solid limbs on the arm bones.
+- Bake skin, face, hair, and fabric into a hand-painted 4x4 texture atlas.
+- Add near and reduced mid-distance mesh LODs.
+- Compress textures as KTX2/ETC1S and geometry/animation with Meshopt.
+
+The near-LOD face paintings in models/faces/ (face-maya.jpg, face-dress.jpg,
+face-sam.jpg) are project-made oil-style portraits. The front of the solid
+head samples the portrait. A curved card parented to the head of the two or
+three closest people, within about 8 m, sharpens that same painting when it
+faces the camera. Each card is 126 triangles, so a crowd adds at most a few
+hundred triangles. They are not part of the Innerscene or MakeHuman sources.
+
+The character meshes are not Quaternius bodies. The walk, run, and idle
+cycles in locomotion.glb are retargeted from the Quaternius Universal
+Animation Library (CC0). See CREDITS.md.
