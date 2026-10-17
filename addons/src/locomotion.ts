@@ -162,15 +162,15 @@ export function attachPlayerLocomotion(g: AGame) {
       const root = walker.children[0] ?? walker;
       const loco = createLoco(root, clips, 0);
       const baseQuat = root.quaternion.clone();
+      let smoothWeight = 0;
       walker.animate = (speed: number, dt: number) => {
         stepLoco(loco, speed, dt, Math.abs(walker.scale.x) || 1);
-        // Apply a small upright correction that scales with walk weight so the character stands straighter.
-        const walkWeight = loco.weights.walk + loco.weights.run;
-        if (walkWeight > 0.05) {
-          root.quaternion.copy(baseQuat).multiply(uprightQuat);
-        } else {
-          root.quaternion.copy(baseQuat);
-        }
+        // Smooth the upright correction so it blends in/out instead of snapping.
+        const target = loco.weights.walk + loco.weights.run;
+        const k = 1 - Math.exp(-Math.max(0, dt) * 6);
+        smoothWeight += (target - smoothWeight) * k;
+        const correction = new Quaternion().copy(uprightQuat).slerp(new Quaternion(), 1 - smoothWeight);
+        root.quaternion.copy(baseQuat).multiply(correction);
       };
       walker.userData.awLoco = "on";
     }).catch((error) => {

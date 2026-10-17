@@ -13,13 +13,17 @@ References are visual guides only. Nothing below is a pasted photo.
 5. **Zeerovers, Savaneta** (OSM way 639821170). Same origin and footprint. Open roof, posts, picnic tables, blue `ZEEROVERS` sign toward the road. Neighbouring beach buildings still crowd the road approach.
 6. **Arikok visitor centre** (OSM way 169938948). Same origin and footprint. The old high LOD used an uncoloured white wall. Walls are now stone, with a dark plinth, a deep eave, and a sign reading `PARKE NACIONAL ARIKOK`.
 
+## Inland churches — done in this change
+
+1. **Church of Holy Mary, Santa Cruz** (OSM way 297003468). New hero at the parish footprint. White walls, blue plinth and trim, blue cross, red tile tower cap. The neighbouring fast-food heroes are left in place. Floor is pinned to the detailed ground (34.76 m).
+2. **Sagrado Curason, Savaneta** (OSM way 376320397). Peach walls, maroon stripes and window hoods, red roof, square tower, white cross. This is the church, not the Colegio Sagrado Curazon campus hero about 90 m north. Floor pinned at 8.91 m.
+3. **Seroe Colorado Community Church** (OSM way 97566669). White walls, steep red gables, stone buttresses, round window, and the small sunday-school chapel. Floor pinned at 20.66 m.
+
 ## Owned, still wrong (next batches)
 
 1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
-2. **Santa Cruz parish church** and **Savaneta church** are not in the landmark list. The Santa Cruz fast-food strip and Savaneta shops exist; the churches do not.
-3. **Seroe Colorado Community Church** is a pin with no building.
-4. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
-5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
+2. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
+3. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
 
 ## Water tower — done in this change
 
