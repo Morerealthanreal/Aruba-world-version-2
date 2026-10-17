@@ -8,6 +8,7 @@ import type { AGame } from "./env";
 import { chainPatch } from "./nightLights";
 import { buildPastechi, PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "./interiors/pastechi";
 import { buildMcdonalds, MCD_DOOR_HALF, MCD_DOOR_TOP, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "./interiors/mcdonalds";
+import { buildStarbucks, SBX_DOOR_HALF, SBX_DOOR_TOP, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "./interiors/starbucks";
 import { isOpen, worldFrame, type Box, type Frame } from "./interiors/volume";
 
 type Shader = { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader: string };
@@ -94,6 +95,35 @@ function placeMcdonalds(): Place {
   };
 }
 
+function placeStarbucks(): Place {
+  const world = worldFrame(sbxLocal, SBX_X, SBX_Z, 0);
+  world.poly = SBX_POLY;
+  const doorAt = world.doorAt ?? 0;
+  return {
+    id: "starbucks2",
+    x: SBX_X,
+    z: SBX_Z,
+    rot: 0,
+    local: sbxLocal,
+    world,
+    doorHalf: SBX_DOOR_HALF,
+    doorTop: SBX_DOOR_TOP,
+    wall: 0.34,
+    obs: SBX_OBS,
+    show: 90,
+    hide: 120,
+    build: buildStarbucks,
+    group: null,
+    floorY: 0,
+    doorOn: { value: 0 },
+    uU: { value: new Vector2(world.ux, world.uz) },
+    uN: { value: new Vector2(world.nx, world.nz) },
+    uM: { value: new Vector2(world.mx + world.ux * doorAt, world.mz + world.uz * doorAt) },
+    uY: { value: 0 },
+    patched: false,
+  };
+}
+
 const DOOR_FRAG = `
   if (awDoorOn > 0.5) {
     float awAlong = dot(vAwW.xz - awDoorM, awDoorU);
@@ -106,7 +136,7 @@ export class Interiors {
   /** Hero materials sometimes ignore the first needsUpdate after they have already compiled. */
   private rebake = new Map<Material, number>();
   constructor(private g: AGame) {
-    this.places = [placePastechi(), placeMcdonalds()];
+    this.places = [placePastechi(), placeMcdonalds(), placeStarbucks()];
     const w = window as unknown as { __awDoor?: (x: number, z: number) => boolean };
     w.__awDoor = (x, z) => this.open(x, z);
   }
