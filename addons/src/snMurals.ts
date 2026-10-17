@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { AGame } from "./env";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
 // San Nicolas Art Fair murals as one shared atlas on the real OSM walls.
 // The JPEG is an original painting. Public photos were reference only.
@@ -27,32 +28,32 @@ type Doc = {
 export class SnMurals {
   mesh?: THREE.Mesh;
   private doc?: Doc;
+  private atlas?: THREE.Texture;
   private ys: number[] = [];
   private grounded = false;
+  private loadOnce?: Promise<void>;
   private k = 0;
   private hidden: THREE.Object3D[] = [];
   private heroScan = true;
   private readonly tmp = new THREE.Vector3();
 
   constructor(private g: AGame) {
-    void this.load().catch((e) => console.warn("[aw] sn murals", e));
+    this.loadOnce = this.load().catch((e) => console.warn("[aw] sn murals", e));
   }
 
   private async load() {
     const res = await fetch("./data/sn_murals.json");
     if (!res.ok) throw new Error("sn_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
-    const tex = await new THREE.TextureLoader().loadAsync("./" + doc.atlas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = Math.min(4, this.g.renderer.capabilities.getMaxAnisotropy());
-    tex.generateMipmaps = true;
+    const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
+    this.atlas = tex;
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       polygonOffset: true,
       polygonOffsetFactor: -4,
       polygonOffsetUnits: -4,
     });
-    const mesh = new THREE.Mesh(this.geometry(doc.murals, null), mat);
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     mesh.name = "aw:sn-murals";
     mesh.frustumCulled = false;
     mesh.castShadow = false;
@@ -83,7 +84,7 @@ export class SnMurals {
     return out.filter((r) => r[2] - r[0] > 0.02 && r[3] - r[1] > 0.02);
   }
 
-  private geometry(murals: Mural[], ys: number[] | null) {
+  private buildBuffers(murals: Mural[], ys: number[] | null) {
     const pos: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
@@ -120,13 +121,37 @@ export class SnMurals {
         idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
       }
     });
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    geo.computeBoundingSphere();
-    return geo;
+    return { pos, uv, idx };
+  }
+
+  private applyGround(mesh: THREE.Mesh, murals: Mural[], ys: number[]) {
+    const { pos, uv, idx } = this.buildBuffers(murals, ys);
+    const geo = mesh.geometry;
+    const posAttr = geo.getAttribute("position") as THREE.BufferAttribute | undefined;
+    const uvAttr = geo.getAttribute("uv") as THREE.BufferAttribute | undefined;
+    const index = geo.getIndex();
+    if (
+      posAttr &&
+      uvAttr &&
+      index &&
+      posAttr.count === pos.length / 3 &&
+      uvAttr.count === uv.length / 2 &&
+      index.count === idx.length
+    ) {
+      posAttr.array.set(pos);
+      posAttr.needsUpdate = true;
+      geo.computeVertexNormals();
+      geo.computeBoundingSphere();
+      return;
+    }
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    next.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    next.setIndex(idx);
+    next.computeVertexNormals();
+    next.computeBoundingSphere();
+    geo.dispose();
+    mesh.geometry = next;
   }
 
   private hAt(x: number, z: number) {
@@ -146,9 +171,7 @@ export class SnMurals {
       ys.push(y);
     }
     if (this.grounded && ys.every((y, i) => Math.abs(y - this.ys[i]) < 0.05)) return;
-    const geo = this.geometry(doc.murals, ys);
-    mesh.geometry.dispose();
-    mesh.geometry = geo;
+    this.applyGround(mesh, doc.murals, ys);
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;

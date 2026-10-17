@@ -22,9 +22,6 @@
 //  8. Region unload frees textures nothing else still references, and marks them so the
 //     pre-upload queue cannot allocate the same image again. Sign atlases were already
 //     marked; heightfields, splats and one-off decals were not.
-//  9. Brand boards and hero GLBs stay in memory after they leave the phone draw distance.
-//     Their textures are parked (GPU copy dropped, canvas/image kept) and uploaded again
-//     only while that landmark is actually showing.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -46,15 +43,7 @@ type Real = {
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
 type Post = { ao?: { enabled: boolean }; composer?: unknown; render(): void };
-type GpuTex = {
-  isTexture?: boolean;
-  isDataArrayTexture?: boolean;
-  dispose(): void;
-  __awGone?: number;
-  __awParked?: number;
-  needsUpdate?: boolean;
-  image?: { width?: number };
-};
+type GpuTex = { isTexture?: boolean; isDataArrayTexture?: boolean; dispose(): void; __awGone?: number };
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
@@ -72,8 +61,6 @@ export class PerfFixes {
   private t = 0;
   private heroCap: number;
   private freedTex = 0;
-  private parkTick = 0;
-  private parkedTex = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -311,58 +298,6 @@ export class PerfFixes {
     };
   }
 
-  /** Drop GPU copies of landmark textures that are not on a visible mesh. The image stays,
-   *  so the next time that board is in range it uploads again instead of allocating a new one. */
-  private parkFarTextures() {
-    const visible = new Set<GpuTex>();
-    const hidden = new Set<GpuTex>();
-    const roots = [this.real.hero?.group, this.real.brands?.group, this.real.mon?.group];
-    for (const root of roots) this.classifyTextures(root, visible, hidden);
-    let parked = 0;
-    let woke = 0;
-    for (const t of hidden) {
-      if (visible.has(t) || t.__awParked) continue;
-      t.__awParked = 1;
-      t.__awGone = 1;
-      t.dispose();
-      parked++;
-    }
-    for (const t of visible) {
-      if (!t.__awParked) continue;
-      t.__awParked = 0;
-      t.__awGone = 0;
-      t.needsUpdate = true;
-      woke++;
-    }
-    if (parked || woke) {
-      this.parkedTex += parked;
-      if (this.parkedTex === parked) this.stats.changes.push("far landmark textures parked");
-    }
-  }
-
-  private classifyTextures(root: Obj | undefined, visible: Set<GpuTex>, hidden: Set<GpuTex>) {
-    if (!root) return;
-    root.traverse((o) => {
-      const mesh = o as Obj;
-      if (!mesh.material) return;
-      let on = true;
-      let p: Object3D | null = mesh;
-      while (p) {
-        if (!p.visible) { on = false; break; }
-        p = p.parent;
-      }
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const m of mats) {
-        const rec = m as unknown as Record<string, unknown>;
-        for (const key of MAP_KEYS) {
-          const t = rec[key] as GpuTex | null | undefined;
-          if (!t?.isTexture || t.isDataArrayTexture || !t.image?.width) continue;
-          (on ? visible : hidden).add(t);
-        }
-      }
-    });
-  }
-
   private texturesOf(mat: Material | Material[] | undefined, into: Set<GpuTex>) {
     const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
     for (const m of mats) {
@@ -460,7 +395,6 @@ export class PerfFixes {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
         this.stats.instFolded = this.inst.folded; this.stats.instBuckets = this.inst.buckets;
       }
-      if ((this.parkTick++ & 7) === 0) this.parkFarTextures();
       this.fixPost();
     };
     for (const grp of [A.mon?.group, A.brands?.group, A.hero?.group]) if (grp) this.freeze(grp);

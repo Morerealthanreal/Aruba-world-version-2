@@ -1,0 +1,462 @@
+{
+ "atlas": "textures/sn_fair_atlas.jpg",
+ "atlas_px": [
+  2048,
+  1088
+ ],
+ "note": "Second San Nicolas batch. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "nymph",
+   "name": "Carnival Nymph",
+   "artist": "Isidora L\u00f3pez Paz",
+   "year": 2017,
+   "address": "Bernard van de Veen Zeppenfeldstraat 21",
+   "lat": 12.4348487,
+   "lng": -69.9095988,
+   "bld": 11522,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 11.46,
+   "center": [
+    6565.28,
+    9409.72
+   ],
+   "p0": [
+    6561.27,
+    9405.71
+   ],
+   "p1": [
+    6569.29,
+    9413.73
+   ],
+   "normal": [
+    -0.7071,
+    0.7071
+   ],
+   "width": 11.34,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.779412,
+    0.442871,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13068 (12.4348487, -69.9095988), Bernard van de Veen Zeppenfeldstraat 21, created 23 Nov 2017"
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "holes": [
+    [
+     1.09,
+     0.88,
+     2.62,
+     2.42
+    ],
+    [
+     4.92,
+     0.88,
+     6.46,
+     2.42
+    ]
+   ]
+  },
+  {
+   "id": "nina",
+   "name": "Ni\u00f1a Bonita",
+   "artist": "Street Art Chilango",
+   "year": 2016,
+   "address": "Bernhardstraat 126, Piet Heinstraat face",
+   "lat": 12.4361745,
+   "lng": -69.9124217,
+   "bld": 9085,
+   "bld_name": "",
+   "bld_h": 6.9,
+   "wall_i": 3,
+   "wall_len": 19.06,
+   "center": [
+    6256.55,
+    9269.16
+   ],
+   "p0": [
+    6255.31,
+    9278.55
+   ],
+   "p1": [
+    6257.79,
+    9259.77
+   ],
+   "normal": [
+    0.9914,
+    0.1311
+   ],
+   "width": 18.94,
+   "height": 3.3,
+   "uv": [
+    0.0,
+    0.575368,
+    0.616699,
+    0.777574
+   ],
+   "sources": [
+    "Street Art Cities marker 13070 (12.4361745, -69.9124217), Bernhardstraat 126, created 21 Sep 2016"
+   ],
+   "y0": 3.4,
+   "holes": [
+    [
+     1.47,
+     0.99,
+     3.19,
+     3.22
+    ],
+    [
+     6.24,
+     0.99,
+     7.96,
+     3.22
+    ],
+    [
+     11.02,
+     0.99,
+     12.74,
+     3.22
+    ],
+    [
+     15.79,
+     0.99,
+     17.51,
+     3.22
+    ]
+   ]
+  },
+  {
+   "id": "cards",
+   "name": "Infinity House of Cards",
+   "artist": "Chemis",
+   "year": 2016,
+   "address": "Winter Garden, Caya Dick Cooper front",
+   "lat": 12.4352902,
+   "lng": -69.909306,
+   "bld": 4153,
+   "bld_name": "Winter Garden",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 8.22,
+   "center": [
+    6593.9,
+    9363.41
+   ],
+   "p0": [
+    6593.6,
+    9367.45
+   ],
+   "p1": [
+    6594.2,
+    9359.37
+   ],
+   "normal": [
+    0.9973,
+    0.073
+   ],
+   "width": 8.1,
+   "height": 3.0,
+   "uv": [
+    0.617676,
+    0.575368,
+    0.907715,
+    0.777574
+   ],
+   "sources": [
+    "Street Art Cities marker 13095 (12.4352902, -69.909306), Caya Dick Cooper, Winter Garden, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "holes": [
+    [
+     5.27,
+     0.88,
+     6.91,
+     2.42
+    ]
+   ]
+  },
+  {
+   "id": "bao",
+   "name": "Bao Awa",
+   "artist": "Ice One",
+   "year": 2016,
+   "address": "Caya Dick Cooper, south wall of Winter Garden",
+   "lat": 12.4354631,
+   "lng": -69.9093811,
+   "bld": 4153,
+   "bld_name": "Winter Garden",
+   "bld_h": 3.4,
+   "wall_i": 6,
+   "wall_len": 13.24,
+   "center": [
+    6586.71,
+    9352.5
+   ],
+   "p0": [
+    6593.25,
+    9353.0
+   ],
+   "p1": [
+    6580.17,
+    9352.0
+   ],
+   "normal": [
+    0.0755,
+    -0.9971
+   ],
+   "width": 13.12,
+   "height": 3.0,
+   "uv": [
+    0.501465,
+    0.371324,
+    0.971191,
+    0.573529
+   ],
+   "sources": [
+    "Street Art Cities marker 13096 (12.4354631, -69.9093811), Caya Dick Cooper, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "holes": [
+    [
+     4.23,
+     0.88,
+     5.55,
+     2.42
+    ],
+    [
+     7.53,
+     0.88,
+     8.85,
+     2.42
+    ],
+    [
+     10.83,
+     0.88,
+     12.15,
+     2.42
+    ]
+   ]
+  },
+  {
+   "id": "bobby",
+   "name": "Tribute to Bobby Farrell",
+   "artist": "Ives One, Sjembakkus, Beazarility",
+   "year": 2016,
+   "address": "Bernard van de Veen Zeppenfeldstraat",
+   "lat": 12.435754,
+   "lng": -69.9104027,
+   "bld": 11551,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 10.77,
+   "center": [
+    6478.44,
+    9310.5
+   ],
+   "p0": [
+    6473.15,
+    9309.91
+   ],
+   "p1": [
+    6483.73,
+    9311.09
+   ],
+   "normal": [
+    -0.1115,
+    0.9938
+   ],
+   "width": 10.65,
+   "height": 3.0,
+   "uv": [
+    0.443848,
+    0.779412,
+    0.859863,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 13076 (12.435754, -69.9104027), Bernard van de Veen Zeppenfeldstraat, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "holes": [
+    [
+     1.02,
+     0.88,
+     2.46,
+     2.42
+    ],
+    [
+     4.62,
+     0.88,
+     6.06,
+     2.42
+    ],
+    [
+     8.22,
+     0.88,
+     9.66,
+     2.42
+    ]
+   ]
+  },
+  {
+   "id": "busca",
+   "name": "Busca Bo Mes",
+   "artist": "Francis Sling",
+   "year": 2016,
+   "address": "ArtisA corner, Van Renselaerstraat at Zeppenfeldstraat",
+   "lat": 12.4353062,
+   "lng": -69.9102505,
+   "bld": 5497,
+   "bld_name": "ArtisA",
+   "bld_h": 3.4,
+   "wall_i": 2,
+   "wall_len": 14.1,
+   "center": [
+    6487.58,
+    9358.05
+   ],
+   "p0": [
+    6480.74,
+    9356.61
+   ],
+   "p1": [
+    6494.42,
+    9359.49
+   ],
+   "normal": [
+    -0.2057,
+    0.9786
+   ],
+   "width": 13.98,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.371324,
+    0.500488,
+    0.573529
+   ],
+   "sources": [
+    "Street Art Cities marker 13082 (12.4353062, -69.9102505), pin on the ArtisA corner of Van Renselaerstraat and Zeppenfeldstraat, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08,
+   "holes": [
+    [
+     1.0,
+     0.88,
+     2.41,
+     2.42
+    ],
+    [
+     4.52,
+     0.88,
+     5.93,
+     2.42
+    ],
+    [
+     8.26,
+     0.0,
+     9.25,
+     2.16
+    ]
+   ]
+  },
+  {
+   "id": "blue",
+   "name": "Blue Heaven",
+   "artist": "Fio Silva",
+   "year": 2016,
+   "address": "Zeppenfeldstraat 9 block, Van Renselaerstraat wall of Caribbean Union",
+   "lat": 12.4352308,
+   "lng": -69.9097698,
+   "bld": 4082,
+   "bld_name": "Caribbean Union",
+   "bld_h": 3.4,
+   "wall_i": 5,
+   "wall_len": 17.71,
+   "center": [
+    6557.61,
+    9376.4
+   ],
+   "p0": [
+    6566.35,
+    9377.39
+   ],
+   "p1": [
+    6548.87,
+    9375.41
+   ],
+   "normal": [
+    0.1129,
+    -0.9936
+   ],
+   "width": 17.59,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.0,
+    0.543945,
+    0.174632
+   ],
+   "sources": [
+    "Street Art Cities marker 13089 (12.4352308, -69.9097698), Bernard van de Veen Zeppenfeldstraat 9, created 23 Sep 2016. The pin sits at the end of this long street wall."
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "stay",
+   "name": "We Are Here To Stay",
+   "artist": "SYS",
+   "year": 2016,
+   "address": "Caya Dick Cooper",
+   "lat": 12.4350178,
+   "lng": -69.909239,
+   "bld": 4152,
+   "bld_name": "Aruba Snacks Bar",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 13.48,
+   "center": [
+    6598.63,
+    9402.8
+   ],
+   "p0": [
+    6605.22,
+    9401.71
+   ],
+   "p1": [
+    6592.04,
+    9403.89
+   ],
+   "normal": [
+    -0.1632,
+    -0.9866
+   ],
+   "width": 13.36,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.176471,
+    0.456543,
+    0.369485
+   ],
+   "sources": [
+    "Street Art Cities marker 13094 (12.4350178, -69.909239), Caya Dick Cooper, created 23 Sep 2016"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}

@@ -37,9 +37,13 @@ import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { Fly } from "./fly";
+import { SnFairMurals } from "./snFairMurals";
+import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
+import { SnLaterMurals } from "./snLaterMurals";
+import { SnFamousMurals } from "./snFamousMurals";
 import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
@@ -93,7 +97,16 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+  const muralPreload: string[] = [];
+  if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
+  if (params.get("snfair") !== "0") muralPreload.push("textures/sn_fair_atlas.jpg");
+  if (params.get("snlater") !== "0") muralPreload.push("textures/sn_later_atlas.jpg");
+  if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");
+  await Promise.all(muralPreload.map((p) => loadMuralAtlas(muralAtlasKey(p), g.renderer)));
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
+  const snfair = params.get("snfair") !== "0" ? new SnFairMurals(g) : null;
+  const snlater = params.get("snlater") !== "0" ? new SnLaterMurals(g) : null;
+  const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
@@ -114,7 +127,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.15.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.15.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -139,6 +152,9 @@ async function main() {
     if (interiors) interiors.update();
     if (golf) golf.frame();
     if (sn) sn.update();
+    if (snfair) snfair.update();
+    if (snlater) snlater.update();
+    if (snfamous) snfamous.update();
     if (resort) resort.frame();
     if (camc) camc.frame((g.S as unknown as { mode: string }).mode, Math.min(dt, 0.1));
     if (perf) perf.update(dt);
