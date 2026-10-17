@@ -562,7 +562,8 @@ def build():
             raise SystemExit(f"lod{lod} {mat} {len(prim['i'])} indices")
 
     os.makedirs(os.path.dirname(GLB), exist_ok=True)
-    tris = b.save(GLB, HERO_ID)
+    # One shared untextured mesh per LOD. Separate materials were separate GPU geometries.
+    tris = b.save_packed(GLB, HERO_ID)
     check_glb(GLB)
     print(f"tris {tris[0]}/{tris[1]} far {far:.1f} bollards {bollards} lights {lights} benches {benches} palms {palms}")
     return ox, oz, y0, tris
