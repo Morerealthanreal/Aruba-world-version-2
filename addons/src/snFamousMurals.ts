@@ -88,7 +88,7 @@ export class SnFamousMurals {
     return ground + Math.max(0.06, (m.bld_h - m.height) * 0.5);
   }
 
-  private geometry(murals: Mural[], ys: number[] | null) {
+  private buildBuffers(murals: Mural[], ys: number[] | null) {
     const pos: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
@@ -123,13 +123,38 @@ export class SnFamousMurals {
         idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
       }
     });
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    geo.computeBoundingSphere();
-    return geo;
+    return { pos, uv, idx };
+  }
+
+  /** Reuse the same BufferGeometry when only terrain height shifts (soak geometry budget). */
+  private applyGround(mesh: THREE.Mesh, murals: Mural[], ys: number[]) {
+    const { pos, uv, idx } = this.buildBuffers(murals, ys);
+    const geo = mesh.geometry;
+    const posAttr = geo.getAttribute("position") as THREE.BufferAttribute | undefined;
+    const uvAttr = geo.getAttribute("uv") as THREE.BufferAttribute | undefined;
+    const index = geo.getIndex();
+    if (
+      posAttr &&
+      uvAttr &&
+      index &&
+      posAttr.count === pos.length / 3 &&
+      uvAttr.count === uv.length / 2 &&
+      index.count === idx.length
+    ) {
+      posAttr.array.set(pos);
+      posAttr.needsUpdate = true;
+      geo.computeVertexNormals();
+      geo.computeBoundingSphere();
+      return;
+    }
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    next.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    next.setIndex(idx);
+    next.computeVertexNormals();
+    next.computeBoundingSphere();
+    geo.dispose();
+    mesh.geometry = next;
   }
 
   private hAt(x: number, z: number) {
@@ -149,9 +174,7 @@ export class SnFamousMurals {
       ys.push(y);
     }
     if (this.grounded && ys.every((y, i) => Math.abs(y - this.ys[i]) < 0.05)) return;
-    const geo = this.geometry(doc.murals, ys);
-    mesh.geometry.dispose();
-    mesh.geometry = geo;
+    this.applyGround(mesh, doc.murals, ys);
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;
