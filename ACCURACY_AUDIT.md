@@ -18,7 +18,7 @@ References are visual guides only. Nothing below is a pasted photo.
 1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
 2. **Santa Cruz parish church** and **Savaneta church** are not in the landmark list. The Santa Cruz fast-food strip and Savaneta shops exist; the churches do not.
 3. **Seroe Colorado Community Church** is a pin with no building.
-4. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
+4. **Conchi / Natural Pool** is still a pin and open water. Fontein and Quadirikiri now have limestone faces with the mouths cut in (Fontein gated, Quadirikiri with two mouths and two crest holes). The 165 m Hooiberg restore is a later change that must rebuild the stair with it.
 5. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
 
 ## Water tower — done in this change
