@@ -113,10 +113,9 @@ function parentHairToHead(
   const slices = 24;
   const thetaMax = Math.PI * 0.52;
   const stride = slices + 1;
-  // Open only below the brow so the bangs cover the forehead. Eyes sit lower.
-  // Open the face from the hairline down. Thin bangs cover that band, so the
-  // crown rim does not sit on the brow as a thick ledge.
-  const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.2 && theta > 1.12;
+  // Hair stays on the upper forehead. The opening is only the face, so the
+  // portrait's top edge sits under the crown instead of cutting the skin.
+  const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.64 && theta > 1.22;
   const shells: { start: number; kept: boolean[][] }[] = [];
   for (const shell of [
     { scale: 1, along: 0.02, out: true },
@@ -210,66 +209,88 @@ function parentHairToHead(
       cz + sp * st * rz + nz * lift,
     ];
   };
-  // Rounded shells on one path down the back of the skull. Shared centerline,
-  // two lifts, so the fall is a layered volume instead of separate ropes.
-  // addLock's ring is round; 12 sides keeps a 3 cm radius smooth.
-  const roundedFall = (lift: number, radius: number, tail: number, along0: number, sides: number) => {
+  // Three locks share the back of the skull, then fall behind the shoulders.
+  // They overlap at the scalp and ease apart, with a soft wave, so the side
+  // view is a thick mass instead of one straight ribbon.
+  const layeredFall = (phi: number, lift: number, radius: number, tail: number, along0: number, sides: number, back: number) => {
     const centers: number[][] = [];
     const radii: number[] = [];
-    const skullSteps = 8;
+    const skullSteps = 7;
+    const side = Math.cos(phi);
     for (let i = 0; i < skullSteps; i++) {
       const t = i / (skullSteps - 1);
-      const theta = 0.36 + t * 1.48;
-      const point = onSkull(-Math.PI / 2, theta, lift);
-      point[0] += Math.sin(t * Math.PI) * 0.006;
+      const theta = 0.22 + t * 1.62;
+      const point = onSkull(phi, theta, lift);
+      point[0] += Math.sin(t * 2.4) * 0.008 * side;
       centers.push(point);
-      radii.push(radius * (1 - t * 0.08));
+      radii.push(radius * (1 - t * 0.06));
     }
     const last = centers[centers.length - 1];
-    for (let i = 1; i <= 6; i++) {
-      const t = i / 6;
+    for (let i = 1; i <= 7; i++) {
+      const t = i / 7;
+      const wave = Math.sin(t * Math.PI);
       centers.push([
-        last[0] * (1 - t) + Math.sin(t * 2.2) * 0.01,
+        last[0] * (1 - t * 0.4) + side * (0.012 + 0.018 * wave),
         last[1] - tail * t,
-        last[2] * (1 - t) - 0.12 * t,
+        last[2] * (1 - t * 0.45) - 0.012 * wave - back * t,
       ]);
-      radii.push(Math.max(0.012, radius * (0.9 - t * 0.55)));
+      radii.push(Math.max(0.014, radius * (0.94 - t * 0.32) * (0.88 + 0.12 * Math.sin(t * Math.PI * 2))));
     }
     addLock(centers, radii, sides, along0);
   };
-  roundedFall(0.006, 0.026, 0.58, 0.02, 12);
-  roundedFall(0.018, 0.020, 0.46, 0.18, 12);
-  roundedFall(0.012, 0.016, 0.36, 0.30, 10);
-  // Bangs are two arcs lying on the forehead, tapered at the temples.
-  const shellFront = (y: number) => {
-    const samples = [
-      [0.150, 0.012], [0.134, 0.050], [0.118, 0.076], [0.104, 0.092],
-      [0.090, 0.102], [0.076, 0.110],
-    ];
-    if (y >= samples[0][0]) return samples[0][1];
-    for (let i = 0; i < samples.length - 1; i++) {
-      const [y0, z0] = samples[i];
-      const [y1, z1] = samples[i + 1];
-      if (y <= y0 && y >= y1) return z0 + (z1 - z0) * ((y0 - y) / (y0 - y1));
+  layeredFall(-Math.PI / 2, 0.008, 0.042, 0.64, 0.02, 16, 0.055);
+  // One fringe across the brow. It tucks under the crown and covers the
+  // portrait fade, so the forehead is hair instead of a row of locks.
+  const fCols = 16;
+  const fRows = 4;
+  const fStride = fCols + 1;
+  const fringeStart = positions.length / 3;
+  for (let layer = 0; layer < 2; layer++) {
+    const lift = 0.002 + layer * 0.005;
+    for (let j = 0; j <= fRows; j++) {
+      const v = j / fRows;
+      for (let i = 0; i <= fCols; i++) {
+        const u = i / fCols;
+        const x = -0.062 + u * 0.124;
+        const edge = Math.abs(u - 0.5) * 2;
+        const theta = 1.14 + v * (0.30 - edge * 0.05);
+        const point = onSkull(Math.PI / 2, theta, lift);
+        point[0] = x;
+        point[1] -= edge * edge * 0.008;
+        point[2] -= edge * edge * 0.02;
+        point[2] += Math.sin(u * Math.PI * 4) * 0.0025 * (1 - edge);
+        push(point[0], point[1], point[2], 0.64 + v * 0.22 + layer * 0.06, u);
+      }
     }
-    return samples[samples.length - 1][1];
-  };
-  for (const layer of [
-    { ySide: 0.150, yMid: 0.116, lift: 0.003, radius: 0.011, along: 0.62 },
-    { ySide: 0.140, yMid: 0.106, lift: 0.006, radius: 0.008, along: 0.74 },
-  ]) {
-    const centers: number[][] = [];
-    const radii: number[] = [];
-    const steps = 8;
-    for (let s = 0; s < steps; s++) {
-      const t = s / (steps - 1);
-      const x = -0.058 + t * 0.116;
-      const arch = Math.sin(t * Math.PI);
-      const y = layer.ySide + (layer.yMid - layer.ySide) * arch;
-      centers.push([x, y, shellFront(y) + layer.lift]);
-      radii.push(layer.radius * (0.4 + 0.6 * arch));
+  }
+  for (let layer = 0; layer < 2; layer++) {
+    const start = fringeStart + layer * (fRows + 1) * fStride;
+    for (let j = 0; j < fRows; j++) {
+      for (let i = 0; i < fCols; i++) {
+        const a = start + j * fStride + i;
+        const b = a + 1;
+        const c = a + fStride;
+        const d = c + 1;
+        if (layer === 0) indices.push(a, c, b, b, c, d);
+        else indices.push(a, b, c, b, d, c);
+      }
     }
-    addLock(centers, radii, 8, layer.along);
+  }
+  for (let j = 0; j < fRows; j++) {
+    const o = fringeStart + j * fStride;
+    const n = o + (fRows + 1) * fStride;
+    indices.push(o, o + fStride, n, n, o + fStride, n + fStride);
+    const o2 = o + fCols;
+    const n2 = n + fCols;
+    indices.push(o2, n2, o2 + fStride, n2, n2 + fStride, o2 + fStride);
+  }
+  for (let i = 0; i < fCols; i++) {
+    const top = fringeStart + i;
+    const topIn = top + (fRows + 1) * fStride;
+    indices.push(top, topIn, top + 1, topIn, topIn + 1, top + 1);
+    const bot = fringeStart + fRows * fStride + i;
+    const botIn = bot + (fRows + 1) * fStride;
+    indices.push(bot, bot + 1, botIn, botIn, bot + 1, botIn + 1);
   }
 
   const geo = new BufferGeometry();
@@ -302,31 +323,30 @@ function parentHeadShell(
   // the brow after the walk pitches the head down.
   const rings = [
     { y: 0.150, rx: 0.012, front: 0.012, back: -0.008 },
-    { y: 0.134, rx: 0.050, front: 0.050, back: -0.042 },
-    { y: 0.118, rx: 0.066, front: 0.076, back: -0.060 },
-    { y: 0.104, rx: 0.074, front: 0.092, back: -0.068 },
-    { y: 0.090, rx: 0.077, front: 0.102, back: -0.070 },
-    { y: 0.076, rx: 0.078, front: 0.110, back: -0.070 },
-    { y: 0.064, rx: 0.076, front: 0.114, back: -0.068 },
-    { y: 0.052, rx: 0.072, front: 0.118, back: -0.064 },
-    { y: 0.040, rx: 0.066, front: 0.124, back: -0.060 },
-    { y: 0.028, rx: 0.060, front: 0.132, back: -0.056 },
-    { y: 0.016, rx: 0.056, front: 0.140, back: -0.052 },
-    { y: 0.006, rx: 0.052, front: 0.146, back: -0.048 },
-    { y: -0.004, rx: 0.050, front: 0.150, back: -0.046 },
-    { y: -0.014, rx: 0.048, front: 0.146, back: -0.044 },
-    { y: -0.024, rx: 0.048, front: 0.140, back: -0.044 },
-    { y: -0.034, rx: 0.047, front: 0.134, back: -0.044 },
-    { y: -0.044, rx: 0.046, front: 0.132, back: -0.046 },
-    { y: -0.054, rx: 0.046, front: 0.138, back: -0.048 },
-    { y: -0.064, rx: 0.047, front: 0.144, back: -0.050 },
-    { y: -0.076, rx: 0.048, front: 0.138, back: -0.052 },
-    { y: -0.090, rx: 0.050, front: 0.128, back: -0.054 },
-    { y: -0.106, rx: 0.052, front: 0.114, back: -0.056 },
-    { y: -0.124, rx: 0.054, front: 0.096, back: -0.058 },
-    { y: -0.144, rx: 0.056, front: 0.078, back: -0.058 },
-    { y: -0.166, rx: 0.058, front: 0.060, back: -0.060 },
-    { y: -0.190, rx: 0.060, front: 0.048, back: -0.060 },
+    { y: 0.134, rx: 0.050, front: 0.048, back: -0.042 },
+    { y: 0.118, rx: 0.066, front: 0.072, back: -0.060 },
+    { y: 0.104, rx: 0.074, front: 0.088, back: -0.068 },
+    { y: 0.090, rx: 0.077, front: 0.098, back: -0.070 },
+    { y: 0.076, rx: 0.078, front: 0.106, back: -0.070 },
+    { y: 0.064, rx: 0.076, front: 0.110, back: -0.068 },
+    { y: 0.052, rx: 0.072, front: 0.114, back: -0.064 },
+    { y: 0.040, rx: 0.066, front: 0.118, back: -0.060 },
+    { y: 0.028, rx: 0.060, front: 0.124, back: -0.056 },
+    { y: 0.016, rx: 0.056, front: 0.132, back: -0.052 },
+    { y: 0.006, rx: 0.052, front: 0.140, back: -0.048 },
+    { y: -0.004, rx: 0.050, front: 0.146, back: -0.046 },
+    { y: -0.014, rx: 0.049, front: 0.140, back: -0.044 },
+    { y: -0.024, rx: 0.048, front: 0.132, back: -0.044 },
+    { y: -0.034, rx: 0.048, front: 0.124, back: -0.044 },
+    { y: -0.044, rx: 0.047, front: 0.128, back: -0.046 },
+    { y: -0.056, rx: 0.048, front: 0.124, back: -0.048 },
+    { y: -0.070, rx: 0.050, front: 0.116, back: -0.050 },
+    { y: -0.086, rx: 0.052, front: 0.106, back: -0.052 },
+    { y: -0.104, rx: 0.054, front: 0.094, back: -0.054 },
+    { y: -0.124, rx: 0.056, front: 0.080, back: -0.056 },
+    { y: -0.146, rx: 0.058, front: 0.066, back: -0.058 },
+    { y: -0.168, rx: 0.059, front: 0.054, back: -0.059 },
+    { y: -0.190, rx: 0.060, front: 0.046, back: -0.060 },
   ];
   const slices = 28;
   const push = (x: number, y: number, z: number) => {
