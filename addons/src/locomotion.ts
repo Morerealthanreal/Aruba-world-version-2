@@ -159,44 +159,54 @@ export function attachPlayerLocomotion(g: AGame) {
       const root = walker.children[0] ?? walker;
       const loco = createLoco(root, clips, 0);
 
-      // Cache spine/neck/head bones once (case-insensitive, mixamorig-aware).
-      // Corrective local pitch (negative X) counteracts the mocap forward lean
-      // so neck and head finish vertical. Amounts distributed so the upper
-      // chain straightens without over-tilting the lower torso.
-      type Corrected = { bone: Object3D; correction: Quaternion };
+      // Bone-level corrections for a natural upright posture: chest gently up,
+      // shoulders relaxed back, neck/head level. Applied after every mixer update
+      // at full weight (idle included). Idle, walk and run each have their own set
+      // (the run clip leans much further forward), blended by gait weight, so the residual lean stays under ~3 deg.
+      // Values are local X pitch in radians (negative = back, measured in world
+      // space against the clips) and local Z roll for the clavicles. Only bones the
+      // clips drive every frame are touched, so the multiply never accumulates.
+      // [name, idle pitch, walk pitch, run pitch, roll]
+      const POSTURE: [string, number, number, number, number][] = [
+        ["spine_01", -0.04, -0.04, -0.16, 0],
+        ["spine_02", -0.09, -0.12, -0.24, 0],
+        ["spine_03", -0.126, -0.142, -0.323, 0],
+        ["neck_01", -0.037, -0.053, 0.05, 0],
+        ["head", 0.034, 0.061, 0.21, 0],
+        ["clavicle_l", 0, 0, 0, 0.08],
+        ["clavicle_r", 0, 0, 0, -0.08],
+      ];
+      type Corrected = { bone: Object3D; idle: Quaternion; walk: Quaternion; run: Quaternion };
       const corrected: Corrected[] = [];
-      const identity = new Quaternion();
       const tempQuat = new Quaternion();
-
+      const tempGait = new Quaternion();
+      const tracks = [clips.idle, clips.walk, clips.run];
+      const euler = new Euler(0, 0, 0, "YXZ");
       root.traverse((object) => {
         if (!(object as any).isBone) return;
-        const n = object.name.toLowerCase();
-        let pitch = 0;
-        if (n.includes("head")) pitch = -0.14;
-        else if (n.includes("neck")) pitch = -0.16;
-        else if (n.includes("spine")) pitch = -0.05;
-        if (pitch === 0) return;
-        // Only correct bones the clips drive every frame, so the multiply never accumulates.
-        const driven = [clips.idle, clips.walk, clips.run].some((c: any) => c.tracks.some((t: any) => t.name === object.name + ".quaternion"));
+        const entry = POSTURE.find((e) => e[0] === object.name);
+        if (!entry) return;
+        const driven = tracks.some((c: any) => c.tracks.some((t: any) => t.name === object.name + ".quaternion"));
         if (!driven) return;
-        const q = new Quaternion().setFromEuler(new Euler(pitch, 0, 0, "YXZ"));
-        corrected.push({ bone: object, correction: q });
+        corrected.push({
+          bone: object,
+          idle: new Quaternion().setFromEuler(euler.set(entry[1], 0, entry[4], "YXZ")),
+          walk: new Quaternion().setFromEuler(euler.set(entry[2], 0, entry[4], "YXZ")),
+          run: new Quaternion().setFromEuler(euler.set(entry[3], 0, entry[4], "YXZ")),
+        });
       });
-
       console.info("[aw-loco] upright bones:", corrected.map((c) => c.bone.name).join(","));
-      let smoothWeight = 0;
+
       walker.animate = (speed: number, dt: number) => {
         stepLoco(loco, speed, dt, Math.abs(walker.scale.x) || 1);
-        // Full upright correction in every state, idle included.
-        const target = 1;
-        const k = 1 - Math.exp(-Math.max(0, dt) * 6);
-        smoothWeight += (target - smoothWeight) * k;
-        if (smoothWeight > 0.001 && corrected.length) {
-          for (let i = 0; i < corrected.length; i++) {
-            const { bone, correction } = corrected[i];
-            tempQuat.copy(identity).slerp(correction, smoothWeight);
-            bone.quaternion.multiply(tempQuat);
-          }
+        const w = loco.weights;
+        const moving = Math.max(0, Math.min(1, w.walk + w.run));
+        const runShare = moving > 0.001 ? Math.min(1, w.run / moving) : 0;
+        for (let i = 0; i < corrected.length; i++) {
+          const { bone, idle, walk, run } = corrected[i];
+          tempGait.copy(walk).slerp(run, runShare);
+          tempQuat.copy(idle).slerp(tempGait, moving);
+          bone.quaternion.multiply(tempQuat);
         }
       };
       walker.userData.awLoco = "on";
