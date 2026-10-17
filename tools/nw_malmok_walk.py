@@ -427,9 +427,15 @@ def build():
         raise SystemExit("not enough path")
     ox = sum(xs) / len(xs)
     oz = sum(zs) / len(zs)
-    print(f"origin {ox:.2f} {oz:.2f} height {coast.height(ox, oz):.2f} samples {len(xs)}")
+    # y=0 is falsy in the loader, so the node would snap to whatever heightAt
+    # returns at load time. That sample was 1.8 m low once the region finished.
+    # Pin the origin to the same height the vertices are relative to.
+    y0 = round(coast.height(ox, oz), 2)
+    if abs(y0) < 0.05:
+        y0 = 0.05
+    print(f"origin {ox:.2f} {oz:.2f} y0 {y0:.2f} samples {len(xs)}")
 
-    b = coast.B(ox, oz, coast.height(ox, oz))
+    b = coast.B(ox, oz, y0)
     b.mat("conc", (0.78, 0.76, 0.71), 0.9)
     b.mat("cycle", (0.62, 0.18, 0.14), 0.84)
     b.mat("klink", (0.66, 0.48, 0.36), 0.88)
@@ -579,17 +585,17 @@ def build():
     tris = b.save(GLB, HERO_ID)
     check_glb(GLB)
     print(f"tris {tris[0]}/{tris[1]} far {far:.1f} bollards {bollards} lights {lights} benches {benches} palms {palms}")
-    return ox, oz, tris
+    return ox, oz, y0, tris
 
 
-def entry(ox, oz, tris):
+def entry(ox, oz, y0, tris):
     return {
         "id": HERO_ID,
         "k": HERO_ID,
         "status": "v1-nw-coast",
         "x": round(ox, 2),
         "z": round(oz, 2),
-        "y": 0,
+        "y": y0,
         "rotation": 0,
         "glb": f"models/hero/{HERO_ID}.glb",
         "lod": {"hi": f"{HERO_ID}_lod0", "lo": f"{HERO_ID}_lod1", "switch_m": 340},
@@ -641,8 +647,8 @@ def splice(obj):
 
 
 def main():
-    ox, oz, tris = build()
-    splice(entry(ox, oz, tris))
+    ox, oz, y0, tris = build()
+    splice(entry(ox, oz, y0, tris))
 
 
 if __name__ == "__main__":
