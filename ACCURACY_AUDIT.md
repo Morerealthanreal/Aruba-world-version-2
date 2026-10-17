@@ -15,7 +15,7 @@ References are visual guides only. Nothing below is a pasted photo.
 
 ## Owned, still wrong (next batches)
 
-1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
+1. **Hooiberg height.** The staircase is now one continuous flight on the current slope (`hooiberg_steps`: green treads, green risers, white nosing and cheeks, pipe rails). The peak is still about 144 m; the real hill is about 165 m. Do not lift the DEM without rebuilding this stair — the mesh is pinned to the current ground, so a taller peak would bury it. Summit shed and mast can stay.
 2. **Santa Cruz parish church** and **Savaneta church** are not in the landmark list. The Santa Cruz fast-food strip and Savaneta shops exist; the churches do not.
 3. **Seroe Colorado Community Church** is a pin with no building.
 4. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
