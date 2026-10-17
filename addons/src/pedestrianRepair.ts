@@ -129,10 +129,12 @@ function parentHairToHead(
       const ct = Math.cos(theta);
       for (let i = 0; i <= slices; i++) {
         const phi = (i / slices) * Math.PI * 2;
+        // A few millimetres of swell so the crown is hair, not a lathed helmet.
+        const swell = 1 + 0.06 * Math.sin(phi * 3.0 + t * 4.0) * Math.sin(theta * 2.1);
         push(
-          cx + Math.cos(phi) * st * rx * shell.scale,
-          cy + ct * ry * shell.scale,
-          cz + Math.sin(phi) * st * rz * shell.scale,
+          cx + Math.cos(phi) * st * rx * shell.scale * swell,
+          cy + ct * ry * shell.scale * (1 + 0.035 * Math.sin(phi * 2.0)),
+          cz + Math.sin(phi) * st * rz * shell.scale * swell,
           shell.along + t * 0.28,
           i / slices,
         );
@@ -253,7 +255,7 @@ function parentHairToHead(
         const u = i / fCols;
         const x = -0.062 + u * 0.124;
         const edge = Math.abs(u - 0.5) * 2;
-        const theta = 1.14 + v * (0.30 - edge * 0.05);
+        const theta = 1.12 + v * (0.36 - edge * 0.08);
         const point = onSkull(Math.PI / 2, theta, lift);
         point[0] = x;
         point[1] -= edge * edge * 0.008;
