@@ -3,6 +3,10 @@ import { isOpen, worldFrame } from "../addons/src/interiors/volume";
 import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } from "../addons/src/interiors/pastechi";
 import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
 import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
+import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/src/interiors/plaza";
+import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/src/interiors/hardrock";
+import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/src/interiors/radisson";
+import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -126,4 +130,151 @@ for (let d = -0.5; d <= 12; d += 0.25) {
 if (!isOpen(sbx, SBX_OBS, -8069.9, -5971.2, SBX_DOOR_HALF, mWall)) console.log("ok sbx neighbour stays shut");
 else { console.log("FAIL sbx neighbour opened"); bad++; }
 if (!bad) console.log("sbx aisle clear", SBX_DOOR_AT);
+
+const pb = worldFrame(pbLocal, PB_X, PB_Z, 0);
+pb.poly = PB_POLY;
+const pbWall = 0.4;
+function pAt(a: number, d: number) {
+  const x = pb.mx + pb.ux * a + pb.nx * d;
+  const z = pb.mz + pb.uz * a + pb.nz * d;
+  return isOpen(pb, PB_OBS, x, z, PB_DOOR_HALF, pbWall);
+}
+const pbCases: [string, number, number, boolean][] = [
+  ["pb door", 0, 0.3, true],
+  ["pb sidewalk", 0, -0.9, true],
+  ["pb vestibule", 0, 4, true],
+  ["pb aisle", 0, 16, true],
+  ["pb shop", 4.4, 15.2, false],
+  ["pb cinema", 0, 20, false],
+  ["pb bench", 2.5, 14.2, false],
+  ["pb outside", 0, -3, false],
+  ["pb jamb", 3.8, 0.2, false],
+];
+for (const [name, a, d, want] of pbCases) {
+  const got = pAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.5; d <= 18; d += 0.5) {
+  if (!pAt(0, d)) {
+    console.log("FAIL pb aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(pb, PB_OBS, -7941, -6044, PB_DOOR_HALF, pbWall)) console.log("ok pb neighbour stays shut");
+else { console.log("FAIL pb neighbour opened"); bad++; }
+if (!bad) console.log("pb aisle clear");
+
+const hr = worldFrame(hrLocal, HR_X, HR_Z, 0);
+hr.poly = HR_POLY;
+function hAt(a: number, d: number) {
+  const x = hr.mx + hr.ux * a + hr.nx * d;
+  const z = hr.mz + hr.uz * a + hr.nz * d;
+  return isOpen(hr, HR_OBS, x, z, HR_DOOR_HALF, mWall);
+}
+const hrCases: [string, number, number, boolean][] = [
+  ["hr door", 0, 0.3, true],
+  ["hr sidewalk", 0, -0.8, true],
+  ["hr aisle", 0, 4.5, true],
+  ["hr bar", 3.4, 2.9, false],
+  ["hr stool", 3.35, 1.75, false],
+  ["hr table", -4.2, 3.8, false],
+  ["hr outside", 0, -3, false],
+  ["hr jamb", 2.1, 0.15, false],
+];
+for (const [name, a, d, want] of hrCases) {
+  const got = hAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.5; d += 0.25) {
+  if (!hAt(0, d)) {
+    console.log("FAIL hr aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(hr, HR_OBS, -7957.6, -5466.6, HR_DOOR_HALF, mWall)) console.log("ok hr neighbour stays shut");
+else { console.log("FAIL hr neighbour opened"); bad++; }
+if (!bad) console.log("hr aisle clear");
+
+const rd = worldFrame(rdLocal, RD_X, RD_Z, 0);
+rd.poly = RD_POLY;
+function rAt(a: number, d: number) {
+  const x = rd.mx + rd.ux * a + rd.nx * d;
+  const z = rd.mz + rd.uz * a + rd.nz * d;
+  return isOpen(rd, RD_OBS, x, z, RD_DOOR_HALF, mWall);
+}
+const rdCases: [string, number, number, boolean][] = [
+  ["rd door", 0, 0.3, true],
+  ["rd sidewalk", 0, -0.9, true],
+  ["rd aisle", 0, 6, true],
+  ["rd desk", 0, 9.2, false],
+  ["rd clover", 6.8, 3.2, false],
+  ["rd chair", -6.2, 4.8, false],
+  ["rd table", -3.5, 5.85, false],
+  ["rd outside", 0, -3, false],
+  ["rd jamb", 3.8, 0.15, false],
+  ["rd past lobby", 0, 20, false],
+  ["rd side wall", 11, 4, false],
+];
+for (const [name, a, d, want] of rdCases) {
+  const got = rAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 8; d += 0.25) {
+  if (!rAt(0, d)) {
+    console.log("FAIL rd aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(rd, RD_OBS, -7828.8, -6088.1, RD_DOOR_HALF, mWall)) console.log("ok rd neighbour stays shut");
+else { console.log("FAIL rd neighbour opened"); bad++; }
+if (!bad) console.log("rd aisle clear");
+
+const ht = worldFrame(htLocal, HT_X, HT_Z, 0);
+ht.poly = HT_POLY;
+function htAt(a: number, d: number) {
+  const x = ht.mx + ht.ux * a + ht.nx * d;
+  const z = ht.mz + ht.uz * a + ht.nz * d;
+  return isOpen(ht, HT_OBS, x, z, HT_DOOR_HALF, mWall);
+}
+const htCases: [string, number, number, boolean][] = [
+  ["ht door", 0, 0.3, true],
+  ["ht sidewalk", 0, -0.9, true],
+  ["ht aisle", 0, 5, true],
+  ["ht desk", 0, 8, false],
+  ["ht chair", -4.2, 4.2, false],
+  ["ht outside", 0, -3, false],
+  ["ht jamb", 3.4, 0.15, false],
+  ["ht past lobby", 0, 14, false],
+  ["ht side", 6.2, 4, false],
+];
+for (const [name, a, d, want] of htCases) {
+  const got = htAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.8; d += 0.25) {
+  if (!htAt(0, d)) {
+    console.log("FAIL ht aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(ht, HT_OBS, -8241.7, -5300.3, HT_DOOR_HALF, mWall)) console.log("ok ht drive stays shut");
+else { console.log("FAIL ht drive opened"); bad++; }
+if (!bad) console.log("ht aisle clear");
+console.log("ht door", ht.mx.toFixed(2), ht.mz.toFixed(2), "n", ht.nx.toFixed(3), ht.nz.toFixed(3));
 process.exit(bad ? 1 : 0);
