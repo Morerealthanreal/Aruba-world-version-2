@@ -1,0 +1,190 @@
+{
+ "atlas": "textures/ora_street_atlas.jpg",
+ "atlas_px": [
+  2048,
+  536
+ ],
+ "note": "Oranjestad painted walls. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [
+  {
+   "id": "ora_wilfurn",
+   "x": -7120.0,
+   "z": 120.0,
+   "why": "approximate hero within 8 m of harbor_wil"
+  }
+ ],
+ "murals": [
+  {
+   "id": "harbor_wil",
+   "name": "Oranjestad harbor scene",
+   "artist": "Local Oranjestad artists",
+   "year": 2019,
+   "address": "Wilhelminastraat, Oranjestad",
+   "lat": 12.5188,
+   "lng": -70.0355,
+   "bld": 192,
+   "bld_name": "Kok Optica",
+   "bld_h": 3.4,
+   "wall_i": 0,
+   "wall_len": 17.46,
+   "center": [
+    -7114.52,
+    122.1
+   ],
+   "p0": [
+    -7122.96,
+    120.11
+   ],
+   "p1": [
+    -7106.08,
+    124.08
+   ],
+   "normal": [
+    -0.229,
+    0.9734
+   ],
+   "width": 17.34,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.645522,
+    0.536133,
+    1.0
+   ],
+   "sources": [
+    "Wilhelminastraat harbor mural (island travel guides; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "main_betico",
+   "name": "Main Street colour strip",
+   "artist": "Oranjestad downtown artists",
+   "year": 2020,
+   "address": "Caya G.F. Betico Croes (Main Street), Oranjestad",
+   "lat": 12.5182,
+   "lng": -70.033,
+   "bld": 356,
+   "bld_name": "",
+   "bld_h": 6.9,
+   "wall_i": 1,
+   "wall_len": 33.6,
+   "center": [
+    -6864.9,
+    191.75
+   ],
+   "p0": [
+    -6881.64,
+    191.7
+   ],
+   "p1": [
+    -6848.16,
+    191.8
+   ],
+   "normal": [
+    -0.003,
+    1.0
+   ],
+   "width": 33.48,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.298507,
+    1.0,
+    0.641791
+   ],
+   "sources": [
+    "Oranjestad Main Street pedestrian district (aruba.com / OSM; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "fort_reef",
+   "name": "Coral reef conservation wall",
+   "artist": "Oranjestad student collective",
+   "year": 2021,
+   "address": "Near Fort Zoutman, Oranjestad",
+   "lat": 12.5165,
+   "lng": -70.037,
+   "bld": 647,
+   "bld_name": "",
+   "bld_h": 6.9,
+   "wall_i": 8,
+   "wall_len": 39.66,
+   "center": [
+    -7273.53,
+    383.59
+   ],
+   "p0": [
+    -7261.92,
+    367.59
+   ],
+   "p1": [
+    -7285.15,
+    399.59
+   ],
+   "normal": [
+    -0.8093,
+    -0.5874
+   ],
+   "width": 39.54,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.005597,
+    1.0,
+    0.294776
+   ],
+   "sources": [
+    "Cruise-terminal area reef mural (island guides; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "penha_lane",
+   "name": "Penha end lane mural",
+   "artist": "Local Oranjestad artists",
+   "year": 2018,
+   "address": "Penha end, Oranjestad",
+   "lat": 12.517,
+   "lng": -70.032,
+   "bld": 47706,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 1,
+   "wall_len": 15.11,
+   "center": [
+    -6748.95,
+    335.67
+   ],
+   "p0": [
+    -6750.19,
+    343.06
+   ],
+   "p1": [
+    -6747.71,
+    328.28
+   ],
+   "normal": [
+    0.9862,
+    0.1655
+   ],
+   "width": 14.99,
+   "height": 3.0,
+   "uv": [
+    0.537109,
+    0.664179,
+    0.976074,
+    1.0
+   ],
+   "sources": [
+    "Penha shopping end murals (Mapillary / OSM; visual reference only)"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}
