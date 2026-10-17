@@ -6,6 +6,7 @@ import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal }
 import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/src/interiors/plaza";
 import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/src/interiors/hardrock";
 import { RD_DOOR_HALF, RD_OBS, RD_POLY, RD_X, RD_Z, rdLocal } from "../addons/src/interiors/radisson";
+import { HT_DOOR_HALF, HT_OBS, HT_POLY, HT_X, HT_Z, htLocal } from "../addons/src/interiors/hilton";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -239,4 +240,41 @@ for (let d = -0.4; d <= 8; d += 0.25) {
 if (!isOpen(rd, RD_OBS, -7828.8, -6088.1, RD_DOOR_HALF, mWall)) console.log("ok rd neighbour stays shut");
 else { console.log("FAIL rd neighbour opened"); bad++; }
 if (!bad) console.log("rd aisle clear");
+
+const ht = worldFrame(htLocal, HT_X, HT_Z, 0);
+ht.poly = HT_POLY;
+function htAt(a: number, d: number) {
+  const x = ht.mx + ht.ux * a + ht.nx * d;
+  const z = ht.mz + ht.uz * a + ht.nz * d;
+  return isOpen(ht, HT_OBS, x, z, HT_DOOR_HALF, mWall);
+}
+const htCases: [string, number, number, boolean][] = [
+  ["ht door", 0, 0.3, true],
+  ["ht sidewalk", 0, -0.9, true],
+  ["ht aisle", 0, 5, true],
+  ["ht desk", 0, 8, false],
+  ["ht chair", -4.2, 4.2, false],
+  ["ht outside", 0, -3, false],
+  ["ht jamb", 3.4, 0.15, false],
+  ["ht past lobby", 0, 14, false],
+  ["ht side", 6.2, 4, false],
+];
+for (const [name, a, d, want] of htCases) {
+  const got = htAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.8; d += 0.25) {
+  if (!htAt(0, d)) {
+    console.log("FAIL ht aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(ht, HT_OBS, -8241.7, -5300.3, HT_DOOR_HALF, mWall)) console.log("ok ht drive stays shut");
+else { console.log("FAIL ht drive opened"); bad++; }
+if (!bad) console.log("ht aisle clear");
+console.log("ht door", ht.mx.toFixed(2), ht.mz.toFixed(2), "n", ht.nx.toFixed(3), ht.nz.toFixed(3));
 process.exit(bad ? 1 : 0);
