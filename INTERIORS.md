@@ -18,6 +18,8 @@ Famous places the player can enter on foot. Each interior is built from meshes a
 - **Gianni's Ristorante Italiano** (Palm Beach, J.E. Irausquin Boulevard). The terrace under the green sign opens. Inside: a green and white tile floor, wood tables, red and green chairs, a host stand in green, white, and red, and boards for bruschetta, bucatini, puttanesca, vitello parmigiana, ossobuco, tiramisu, and the tableside spaghetti al parmigiano. The awning and the sign stay.
 - **Renaissance Mall** (Oranjestad, Havenstraat). The glass under the Aruba Aloe sign opens. Inside: a tiled hall with a terracotta runner, benches, and counters for Pier Market, Hot Look, and Aruba Aloe. The pink facade, awnings, and the street signs stay.
 
+- **Royal Plaza Mall** (Oranjestad, Havenstraat). The bay under the yellow awning opens. Inside: a pink and cream tiled hall, benches, and counters for gifts, jewels, and a cafe. The pink facade, white arches, gold trim, dome, and the coloured awnings stay.
+
 ## Next
 
-- Royal Plaza mall, then more shops
+- Super Food Plaza, then more shops
