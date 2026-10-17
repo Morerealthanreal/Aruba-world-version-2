@@ -113,9 +113,15 @@ function parentHairToHead(
   const slices = 24;
   const thetaMax = Math.PI * 0.52;
   const stride = slices + 1;
+  const smooth = (edge0: number, edge1: number, x: number) => {
+    const k = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+    return k * k * (3 - 2 * k);
+  };
   // Hair stays on the upper forehead. The opening is only the face, so the
   // portrait's top edge sits under the crown instead of cutting the skin.
   const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.64 && theta > 1.22;
+  // Temples hang a little lower than the brow so the side rim is not a level cut.
+  const thetaOf = (t: number, phi: number) => t * thetaMax * (1 + 0.16 * Math.abs(Math.cos(phi)));
   const shells: { start: number; kept: boolean[][] }[] = [];
   for (const shell of [
     { scale: 1, along: 0.02, out: true },
@@ -124,17 +130,21 @@ function parentHairToHead(
     const start = positions.length / 3;
     for (let j = 0; j <= stacks; j++) {
       const t = j / stacks;
-      const theta = t * thetaMax;
-      const st = Math.sin(theta);
-      const ct = Math.cos(theta);
       for (let i = 0; i <= slices; i++) {
         const phi = (i / slices) * Math.PI * 2;
-        // A few millimetres of swell so the crown is hair, not a lathed helmet.
-        const swell = 1 + 0.06 * Math.sin(phi * 3.0 + t * 4.0) * Math.sin(theta * 2.1);
+        const theta = thetaOf(t, phi);
+        const st = Math.sin(theta);
+        const ct = Math.cos(theta);
+        const front = Math.max(0, Math.sin(phi));
+        // Tuck the front rim onto the skull. A flared brim reads as a visor, and
+        // pulling it inward cannot put hair in front of the nose.
+        const curl = front * smooth(0.82, 1.16, theta);
+        const lip = shell.out ? 1 - 0.30 * curl : 1 + 0.12 * curl;
+        const swell = 1 + 0.05 * Math.sin(phi * 3.0 + t * 4.0) * Math.sin(Math.max(theta, 0.2) * 2.1);
         push(
-          cx + Math.cos(phi) * st * rx * shell.scale * swell,
-          cy + ct * ry * shell.scale * (1 + 0.035 * Math.sin(phi * 2.0)),
-          cz + Math.sin(phi) * st * rz * shell.scale * swell,
+          cx + Math.cos(phi) * st * rx * shell.scale * lip * swell,
+          cy + ct * ry * shell.scale * lip * (1 + 0.03 * Math.sin(phi * 2.0)),
+          cz + Math.sin(phi) * st * rz * shell.scale * lip * swell,
           shell.along + t * 0.28,
           i / slices,
         );
@@ -142,10 +152,10 @@ function parentHairToHead(
     }
     const kept: boolean[][] = [];
     for (let j = 0; j < stacks; j++) {
-      const theta = ((j + 0.5) / stacks) * thetaMax;
       const row: boolean[] = [];
       for (let i = 0; i < slices; i++) {
         const phi = ((i + 0.5) / slices) * Math.PI * 2;
+        const theta = thetaOf((j + 0.5) / stacks, phi);
         const solid = !faceOpen(theta, phi);
         row.push(solid);
         if (!solid) continue;
@@ -231,12 +241,15 @@ function parentHairToHead(
     for (let i = 1; i <= 7; i++) {
       const t = i / 7;
       const wave = Math.sin(t * Math.PI);
+      // The back lock sits on phi = -π/2, so a side-scaled offset is zero there.
+      // Bow the one fall backward so the profile is a curve, not a straight ribbon.
+      const belly = Math.sin(t * Math.PI);
       centers.push([
-        last[0] * (1 - t * 0.4) + side * (0.012 + 0.018 * wave),
+        last[0] * (1 - t * 0.35) + side * (0.012 + 0.018 * wave) + Math.sin(t * Math.PI * 2) * 0.01,
         last[1] - tail * t,
-        last[2] * (1 - t * 0.45) - 0.012 * wave - back * t,
+        last[2] * (1 - t * 0.35) - 0.05 * belly - back * t,
       ]);
-      radii.push(Math.max(0.016, radius * (0.9 - t * 0.2) * (0.72 + 0.28 * Math.sin(t * Math.PI * 3))));
+      radii.push(Math.max(0.014, radius * (0.88 - t * 0.22) * (0.58 + 0.42 * Math.sin(t * Math.PI * 2.2))));
     }
     addLock(centers, radii, sides, along0);
   };
@@ -253,13 +266,15 @@ function parentHairToHead(
       const lift = (0.002 + layer * 0.006) * (1 - v * 0.85);
       for (let i = 0; i <= fCols; i++) {
         const u = i / fCols;
-        const x = -0.062 + u * 0.124;
+        const x = -0.078 + u * 0.156;
         const edge = Math.abs(u - 0.5) * 2;
-        const theta = 1.12 + v * (0.36 - edge * 0.08);
+        // Starts under the crown rim and ends above the eyes.
+        const theta = 0.98 + v * (0.64 - edge * 0.18);
         const point = onSkull(Math.PI / 2, theta, lift);
         point[0] = x;
         point[1] -= edge * edge * 0.008;
-        point[2] -= edge * edge * 0.02;
+        point[2] -= edge * edge * 0.016;
+        point[2] += (1 - v) * (1 - edge) * 0.008;
         point[2] += Math.sin(u * Math.PI * 4) * 0.0025 * (1 - edge);
         push(point[0], point[1], point[2], 0.64 + v * 0.22 + layer * 0.06, u);
       }

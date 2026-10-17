@@ -588,8 +588,8 @@ ${solidSkin ? `if (true) {
   diffuseColor.rgb = mix(awNeck, awShellPaint, awShellMask);
   float awChin = smoothstep(0.01, -0.12, vAwShellP.y) * (1.0 - awShellMask);
   diffuseColor.rgb = mix(diffuseColor.rgb, awNeck * vec3(0.84, 0.74, 0.68), awChin);
-  float awHairline = smoothstep(0.60, 0.90, awV) * smoothstep(0.0, 0.05, vAwShellP.z);
-  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair * vec3(0.62, 0.48, 0.36), awHairline * (1.0 - awShellMask * 0.45));
+  float awHairline = smoothstep(0.66, 0.94, awV) * smoothstep(0.0, 0.06, vAwShellP.z);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair * vec3(0.70, 0.56, 0.44), awHairline * 0.42);
   diffuseColor.a = 1.0;
 } else ` : ""}if (${skinFragment}) {
   vec3 awSkinLit = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
@@ -660,7 +660,7 @@ if (${hairFragment} && awFace < 0.25) {
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v21:${part}:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v22:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
