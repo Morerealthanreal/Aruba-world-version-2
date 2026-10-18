@@ -351,6 +351,25 @@ def area(poly):
 def centroid(poly):
     return sum(p[0] for p in poly) / len(poly), sum(p[1] for p in poly) / len(poly)
 
+def edge_dist(x, z, poly):
+    """Metres to the ring. Zero when the sample is inside."""
+    if pip(x, z, poly):
+        return 0.0
+    best = 1e9
+    for i in range(len(poly)):
+        ax, az = poly[i]
+        bx, bz = poly[(i + 1) % len(poly)]
+        dx, dz = bx - ax, bz - az
+        L2 = dx * dx + dz * dz
+        if L2 < 1e-8:
+            d = hypot(x - ax, z - az)
+        else:
+            t = max(0.0, min(1.0, ((x - ax) * dx + (z - az) * dz) / L2))
+            d = hypot(x - (ax + dx * t), z - (az + dz * t))
+        if d < best:
+            best = d
+    return best
+
 def pip(x, z, poly):
     c = False
     j = len(poly) - 1
@@ -1708,8 +1727,10 @@ def select_pools(buildings):
         hs.append(h_c)
         hs.sort()
         # The game already lays pool water on the lowest ring sample.
-        # A roof pixel at the centroid must not lift the deck onto that roof.
-        if hs[-1] - hs[0] > 8.0:
+        # Costa Linda's ring climbs from the court onto the roof (about 5 m).
+        # A span that wide is a roof outline, not a pool, so it grows neither
+        # a deck nor a reason to keep the water.
+        if hs[-1] - hs[0] > 3.0:
             continue
         h = hs[0]
         if not (-1.0 < h < 14.0):
@@ -1784,7 +1805,9 @@ def add_pool_detail(manifest):
                 x, z = x1 + dx * L * t + nx * 2.3, z1 + dz * L * t + nz * 2.3
                 if pip(x, z, poly) or abs(height_at(x, z) - p["h"]) > 1.3:
                     continue
-                if any(b["area"] < 5000 and pip(x, z, b["poly"]) for b in buildings):
+                # Stay off the roof. The Bucuti deck used to bridge a 2 m gap
+                # onto the yellow house; a lounger on that edge would too.
+                if any(b["area"] < 6000 and abs(b["cx"] - x) < 40 and abs(b["cz"] - z) < 40 and edge_dist(x, z, b["poly"]) < 1.45 for b in buildings):
                     continue
                 chairs.append((x, z, p["h"], dx, dz))
                 placed += 1
@@ -1857,16 +1880,18 @@ def add_pool_detail(manifest):
         cush, wood, thatch, cloth = M(), M(), M(), M()
         lo = M()
         def deck_outside(x, z, ox=ox, oz=oz):
-            # World point. Small footprints only: a resort outline can wrap
-            # a courtyard, and the pool centroid test already rejected rings
-            # whose centre sits inside a house.
+            # World point. A resort outline can wrap a courtyard, so only
+            # footprints under 6000 m² clip the deck. Inside the footprint
+            # is not enough: the Bucuti pool sits 2.2 m from the yellow
+            # house and the 2.35 m deck still landed on that roof.
             wx, wz = x + ox, z + oz
             for b in buildings:
-                if b["area"] >= 5000:
+                if b["area"] >= 6000:
                     continue
-                if abs(b["cx"] - wx) > 50 or abs(b["cz"] - wz) > 50:
+                if abs(b["cx"] - wx) > 60 or abs(b["cz"] - wz) > 60:
                     continue
-                if pip(wx, wz, b["poly"]):
+                # 1.6 m is the gap that keeps the slab off that wall.
+                if edge_dist(wx, wz, b["poly"]) < 1.6:
                     return False
             return True
         for p in bag["pools"]:
