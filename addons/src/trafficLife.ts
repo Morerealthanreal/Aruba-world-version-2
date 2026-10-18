@@ -94,7 +94,10 @@ export class TrafficSystem {
 
   /** Near the end of its road, hand the car to a connected road (legal direction only). */
   private chain(car: Car, state: CarState): boolean {
-    const rd = car.rd!, p = rd.p, end = car.dir > 0 ? p[p.length - 1] : p[0];
+    const rd = car.rd, p = rd?.p;
+    // A parks a car it wants respawned at s = -1 (or it ran off the end): leave those to A
+    if (!rd || !p || p.length < 2 || !Number.isFinite(car.s) || !(car.L > 0) || car.s < 0 || car.s > car.L) return false;
+    const end = car.dir > 0 ? p[p.length - 1] : p[0];
     const left = car.dir > 0 ? car.L - car.s : car.s;
     if (left > 2 || this.noChain.has(car)) return false;
     const opts: Array<{ r: Road; dir: number; at0: boolean }> = [];
@@ -108,13 +111,18 @@ export class TrafficSystem {
     // on a ring: keep circulating ~60 % of the time, otherwise take an exit; elsewhere prefer
     // not to turn onto a ring segment that only leads back
     const ring = opts.filter((o) => o.r.rb), off = opts.filter((o) => !o.r.rb);
-    const pickFrom = (list: typeof opts) => list[(state.batchIndex * 7 + Math.floor(car.s * 13)) % list.length];
+    const pickFrom = (list: typeof opts) => {
+      const k = (state.batchIndex * 7 + Math.floor(car.s * 13)) | 0; // never negative/NaN index
+      return list[((k % list.length) + list.length) % list.length];
+    };
     let o: (typeof opts)[number];
     if (rd.rb) o = ring.length && (!off.length || ((state.batchIndex + this.stats.chained) % 5) < 3) ? pickFrom(ring) : pickFrom(off);
     else o = pickFrom(opts);
+    if (!o) { this.noChain.add(car); return false; } // nothing usable: old behaviour
+    const L = (this.amb as unknown as { len(r: Road): number }).len(o.r);
+    if (!(L > 0.6)) { this.noChain.add(car); return false; }
     if (rd.rb && !o.r.rb) this.stats.rbExited++;
     if (!rd.rb && o.r.rb) this.stats.rbEntered++;
-    const L = (this.amb as unknown as { len(r: Road): number }).len(o.r);
     car.rd = o.r; car.L = L; car.dir = o.dir; car.s = o.at0 ? 0.3 : L - 0.3;
     this.stats.chained++;
     return true;
