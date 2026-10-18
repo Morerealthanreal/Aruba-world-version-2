@@ -1,0 +1,28 @@
+{
+ "place": "conchi",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "natural-pool-2013.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Aruba-Natural-Pool-2013.JPG",
+   "license": "CC BY-SA 3.0",
+   "credit": "Bjorn Christian Torrissen",
+   "lat": 12.524444,
+   "lon": -69.928889,
+   "heading": null,
+   "date": "2013",
+   "shows": "Conchi natural pool: dark volcanic rock open to the sea, with waves beyond the basin"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": null,
+   "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
+   "credit": "Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Same overlook: the Commons pool and sea on the left, the in-game basin open to the sea on the right"
+  }
+ ]
+}

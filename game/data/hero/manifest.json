@@ -63133,6 +63133,181 @@
   "cat": "landmark"
  },
  {
+  "id": "conchi",
+  "k": "conchi",
+  "name": "Conchi (Natural Pool)",
+  "status": "accuracy-conchi",
+  "x": 4498.86,
+  "z": -495.46,
+  "y": -0.35,
+  "rotation": 0,
+  "glb": "models/hero/conchi.glb",
+  "lod": {
+   "hi": "conchi_lod0",
+   "lo": "conchi_lod1",
+   "switch_m": 220
+  },
+  "tris": {
+   "conchi_lod0": 1203,
+   "conchi_lod1": 315
+  },
+  "textures": 2,
+  "hide_footprint": [
+   [
+    4486.5,
+    -487.1
+   ],
+   [
+    4486.2,
+    -484.8
+   ],
+   [
+    4487.6,
+    -482.9
+   ],
+   [
+    4489.4,
+    -480.5
+   ],
+   [
+    4492.3,
+    -480.7
+   ],
+   [
+    4498.4,
+    -483.1
+   ],
+   [
+    4500.1,
+    -484.5
+   ],
+   [
+    4503.2,
+    -488.5
+   ],
+   [
+    4504.8,
+    -491.0
+   ],
+   [
+    4509.4,
+    -493.1
+   ],
+   [
+    4510.1,
+    -495.3
+   ],
+   [
+    4508.3,
+    -498.5
+   ],
+   [
+    4505.1,
+    -499.4
+   ],
+   [
+    4505.5,
+    -500.2
+   ],
+   [
+    4508.4,
+    -499.6
+   ],
+   [
+    4510.2,
+    -500.5
+   ],
+   [
+    4509.2,
+    -503.0
+   ],
+   [
+    4505.7,
+    -505.2
+   ],
+   [
+    4501.8,
+    -506.1
+   ],
+   [
+    4500.5,
+    -505.1
+   ],
+   [
+    4499.6,
+    -503.7
+   ],
+   [
+    4500.7,
+    -502.5
+   ],
+   [
+    4503.1,
+    -501.5
+   ],
+   [
+    4504.1,
+    -500.9
+   ],
+   [
+    4504.1,
+    -500.0
+   ],
+   [
+    4501.1,
+    -501.1
+   ],
+   [
+    4498.7,
+    -501.1
+   ],
+   [
+    4496.1,
+    -502.1
+   ],
+   [
+    4494.9,
+    -501.0
+   ],
+   [
+    4495.9,
+    -498.9
+   ],
+   [
+    4492.0,
+    -495.3
+   ],
+   [
+    4492.0,
+    -494.0
+   ],
+   [
+    4491.1,
+    -492.8
+   ],
+   [
+    4489.5,
+    -492.6
+   ],
+   [
+    4487.3,
+    -491.5
+   ],
+   [
+    4486.0,
+    -488.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM way 796907733, pool lowered to the surf",
+  "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889): open dark volcanic rock with the sea beyond: the east side is a gap with a stack, wave splash, and open water, and the west approach is rough rock rather than sand. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
+  "frame": "glb origin = pool centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "landmark"
+ },
+ {
   "id": "watty_lane_dashes",
   "k": "watty_lane_dashes",
   "name": "",
