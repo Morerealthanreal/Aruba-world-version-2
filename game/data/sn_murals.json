@@ -114,10 +114,10 @@
    "width": 13.2,
    "height": 3.04,
    "uv": [
-    0.381836,
-    0.131761,
-    0.801758,
-    0.194025
+    0.0,
+    0.058805,
+    0.419922,
+    0.121069
    ],
    "sources": [
     "Street Art Cities marker 13093 (lat 12.4348797, lng -69.9090145, Caya Dick Cooper)",
@@ -242,10 +242,10 @@
    "width": 16.0,
    "height": 3.3,
    "uv": [
-    0.0,
-    0.058805,
-    0.46875,
-    0.121069
+    0.381836,
+    0.131761,
+    0.850586,
+    0.194025
    ],
    "sources": [
     "Street Art Cities marker 13085 (lat 12.4346819, lng -69.9099513, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -470,9 +470,9 @@
    "width": 12.8,
    "height": 3.06,
    "uv": [
-    0.469727,
+    0.420898,
     0.059434,
-    0.870117,
+    0.821289,
     0.121069
    ],
    "sources": [

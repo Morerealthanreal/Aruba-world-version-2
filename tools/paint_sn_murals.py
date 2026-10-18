@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_IMG = ROOT / "game" / "textures" / "sn_mural_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_murals.json"
 PAINT_SRC = ROOT / "tools" / "sn_paintings"
+MURAL_FILES = PAINT_SRC / "murals"
 
 ZG, BG = 12.52, -69.97
 XG = 111320 * math.cos(ZG * math.pi / 180)
@@ -881,36 +882,24 @@ PAINT = {
 
 def pack(images):
     """Shelf-pack tallest first so the two large tiles share rows with offcuts."""
-    pad = 2
-    max_w = 2048
-    order = sorted(range(len(images)), key=lambda i: -images[i].size[1])
-    rows = []
-    for i in order:
-        w, h = images[i].size
-        placed = False
-        for row in rows:
-            if row["x"] + w <= max_w:
-                row["items"].append((i, row["x"]))
-                row["x"] += w + pad
-                row["h"] = max(row["h"], h)
-                placed = True
-                break
-        if not placed:
-            rows.append({"x": w + pad, "h": h, "items": [(i, 0)]})
-    boxes = [None] * len(images)
-    y = 0
-    for row in rows:
-        for i, x in row["items"]:
-            w, h = images[i].size
-            boxes[i] = (x, y, w, h)
-        y += row["h"] + pad
-    atlas_h = max(4, y - pad)
-    # round up to multiple of 4
-    atlas_h = (atlas_h + 3) & ~3
-    atlas = Image.new("RGB", (max_w, atlas_h), (20, 20, 20))
-    for im, (px, py, w, h) in zip(images, boxes):
-        atlas.paste(im, (px, py))
-    return atlas, boxes
+    import sys
+
+    _tools = Path(__file__).resolve().parent
+    if str(_tools) not in sys.path:
+        sys.path.insert(0, str(_tools))
+    from mural_pack import pack_atlas
+
+    return pack_atlas(images)
+
+
+def tile_for(spec):
+    path = MURAL_FILES / f"{spec['id']}.jpg"
+    if path.exists():
+        im = Image.open(path).convert("RGB")
+        if im.size != (spec["pw"], spec["ph"]):
+            im = im.resize((spec["pw"], spec["ph"]), Image.Resampling.LANCZOS)
+        return im
+    return PAINT[spec["id"]](spec["pw"], spec["ph"])
 
 
 def place_unwrap(spec):
@@ -964,7 +953,7 @@ def main():
     images = []
     placed = []
     for spec in SPECS:
-        im = PAINT[spec["id"]](spec["pw"], spec["ph"])
+        im = tile_for(spec)
         if not spec.get("sharp"):
             im = im.filter(ImageFilter.SMOOTH)
         images.append(im)

@@ -6,3 +6,13 @@
 4. **Skip** — If no verifiable photo of the actual wall exists, omit the mural.
 
 Atlas packing: use `tools/mural_pack.py` so tile UVs stay within `[0, 1]`.
+
+## Live batch commands
+
+```bash
+python3 tools/fetch_mural_refs.py      # refs/murals/<id>/reference.jpg + SOURCES.md
+PYTHONPATH=tools python3 tools/gen_murals_from_refs.py
+python3 tools/paint_sn_murals.py && python3 tools/paint_sn_famous.py && python3 tools/paint_sn_sac_recent.py
+```
+
+Placeholder PRs **#107**, **#108**, **#125–#128** are closed; work lands on `main` via photo-faithful batches like PR #131+.
