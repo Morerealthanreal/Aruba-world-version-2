@@ -79,8 +79,6 @@ export class PerfFixes {
   private freedTex = 0;
   private freedGeo = 0;
   private meshGeo = new WeakMap<Object3D, BufferGeometry>();
-  private watched = new Set<Obj>();
-  private anchored = new WeakSet<Object3D>();
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   inst: TileInstances | null = null;
@@ -370,9 +368,9 @@ export class PerfFixes {
     this.freedGeo += n;
   }
 
-  /** A chunk, road, or batch mesh that gets a new geometry. Dispose the previous one if nothing still draws it. */
+  /** A chunk, road, or batch mesh that gets a new geometry. Dispose the previous one if nothing still draws it.
+   *  WeakMap only: a strong set of meshes kept unloaded regions alive and the heap climbed every loop. */
   private noteSwaps() {
-    const seen = new Set<Obj>();
     for (const r of this.real.regions.values()) {
       const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; __awTM?: { mesh?: Obj } };
       const meshes: Obj[] = [];
@@ -381,21 +379,12 @@ export class PerfFixes {
       if (extra.__awTM?.mesh) meshes.push(extra.__awTM.mesh);
       for (const b of r.__awBB || []) if (b.bm.geometry) meshes.push(b.bm as unknown as Obj);
       for (const mesh of meshes) {
-        seen.add(mesh);
-        this.watched.add(mesh);
-        if (mesh.parent) this.anchored.add(mesh);
         const geo = mesh.geometry;
         if (!geo) continue;
         const prev = this.meshGeo.get(mesh);
         if (prev && prev !== geo) this.swapped.add(prev);
         this.meshGeo.set(mesh, geo);
       }
-    }
-    for (const mesh of [...this.watched]) {
-      if (seen.has(mesh) || mesh.parent || !this.anchored.has(mesh)) continue;
-      const geo = this.meshGeo.get(mesh);
-      if (geo) this.swapped.add(geo);
-      this.watched.delete(mesh);
     }
     if (!this.swapped.size) return;
     const live = new Set<BufferGeometry>();
