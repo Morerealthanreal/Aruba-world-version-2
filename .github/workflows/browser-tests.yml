@@ -12,25 +12,31 @@ concurrency:
   group: browser-tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Each quality is split into Playwright shards that run in parallel. Playwright
-# shards the spec list in file order, so a new spec lands in a shard on its own
-# and nothing drops out of coverage.
-#   LOW  3 shards: [travel modes, audio] [fan corner, HUD] [phone soak]
-#   HIGH 2 shards: [travel modes, audio, fan corner*] [HUD, phone soak*]
-#   (* skipped on HIGH by the spec itself)
+# Each quality is split into groups that run as parallel jobs. Groups filter
+# with --grep, which matches the spec file name and test title. The last group
+# of each quality uses --grep-invert of everything the other groups take, so a
+# new spec or test always lands somewhere and nothing drops out of coverage.
 # The final "Aruba World (low)" / "Aruba World (high)" jobs keep the check
-# names other agents already watch and pass only when every shard passed.
+# names other agents already watch and pass only when every group passed.
 
 jobs:
   low-shards:
-    name: Aruba World low shard ${{ matrix.shard }}/3
+    name: Aruba World low - ${{ matrix.group }}
     runs-on: ubuntu-latest
-    # The phone soak shard is the longest (~8 min, ~16 with its CI retry).
+    # The phone soak is the longest LOW group (~10 min, ~20 with its CI retry).
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - group: travel modes and spots
+            args: "tests/aruba-world.spec.js"
+          - group: phone HUD
+            args: "tests/hud-layout.spec.js"
+          - group: phone soak
+            args: "tests/long-drive-soak.spec.js"
+          - group: everything else
+            args: "--grep-invert 'aruba-world\\.spec|hud-layout\\.spec|long-drive-soak\\.spec'"
 
     steps:
       - name: Check out repository
@@ -65,27 +71,35 @@ jobs:
         # libraries still come from apt.
         run: npx playwright install --with-deps chromium
 
-      - name: Build and test low shard ${{ matrix.shard }}/3
-        run: npm run test:e2e -- --project=low --shard=${{ matrix.shard }}/3
+      - name: Build and test low - ${{ matrix.group }}
+        run: npm run test:e2e -- --project=low ${{ matrix.args }}
 
       - name: Upload browser artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aruba-world-low-shard${{ matrix.shard }}of3-browser-artifacts
+          name: aruba-world-low-${{ strategy.job-index }}-browser-artifacts
           path: tests/artifacts/
           if-no-files-found: warn
           retention-days: 14
 
   high-shards:
-    name: Aruba World high shard ${{ matrix.shard }}/2
+    name: Aruba World high - ${{ matrix.group }}
     runs-on: ubuntu-latest
-    # The travel-mode run is the longest HIGH test (~8 min).
+    # Each fixed-spot render on HIGH is slow under SwiftShader.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        include:
+          - group: spots noord and palm beach
+            args: "tests/aruba-world.spec.js --grep 'captures (noord|palm-beach)'"
+          - group: spots oranjestad and hooiberg
+            args: "tests/aruba-world.spec.js --grep captures --grep-invert 'captures (noord|palm-beach)'"
+          - group: travel modes
+            args: "tests/aruba-world.spec.js --grep-invert captures"
+          - group: everything else
+            args: "--grep-invert 'aruba-world\\.spec'"
 
     steps:
       - name: Check out repository
@@ -120,14 +134,14 @@ jobs:
         # libraries still come from apt.
         run: npx playwright install --with-deps chromium
 
-      - name: Build and test high shard ${{ matrix.shard }}/2
-        run: npm run test:e2e -- --project=high --shard=${{ matrix.shard }}/2
+      - name: Build and test high - ${{ matrix.group }}
+        run: npm run test:e2e -- --project=high ${{ matrix.args }}
 
       - name: Upload browser artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aruba-world-high-shard${{ matrix.shard }}of2-browser-artifacts
+          name: aruba-world-high-${{ strategy.job-index }}-browser-artifacts
           path: tests/artifacts/
           if-no-files-found: warn
           retention-days: 14
@@ -139,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: All low shards passed
+      - name: All low groups passed
         env:
           SHARDS: ${{ needs.low-shards.result }}
         run: |
@@ -153,7 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: All high shards passed
+      - name: All high groups passed
         env:
           SHARDS: ${{ needs.high-shards.result }}
         run: |
