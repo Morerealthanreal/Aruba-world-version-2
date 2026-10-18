@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hero_glb import Model, check_glb, wall_ring, write_glb  # noqa: E402
+from hero_glb import Model, check_glb, fold_body, wall_ring, write_glb  # noqa: E402
 from hotelkit import Frame, balcony_wing, ccw, ear_fan, hip_roof, mansard, obox  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -79,6 +79,8 @@ def build():
     # tall beach slab (13 floors incl. ground, 43.5 m) and lower street slab (38 m)
     FW, topw = slab((-8045.5, -6454.0), (-7957.0, -6446.0), 13.5, 12, towers=(30.0, 62.0))
     FE, tope = slab((-7957.0, -6446.0), (-7862.0, -6438.0), 15.0, 10, towers=(34.0, 70.0))
+    # One opaque mesh per LOD. Glass stays separate so the night pass still lights it.
+    fold_body(M, keep={"glass"})
     info = write_glb(M, HERO / "marriott_surfclub.glb")
     check_glb(HERO / "marriott_surfclub.glb")
     print("surfclub", info, "tops", round(topw, 1), round(tope, 1))
