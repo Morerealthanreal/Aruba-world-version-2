@@ -4,6 +4,7 @@ import { PASTECHI_OBS, PASTECHI_POLY, PASTECHI_X, PASTECHI_Z, pastechiLocal } fr
 import { MCD_DOOR_AT, MCD_DOOR_HALF, MCD_OBS, MCD_POLY, MCD_X, MCD_Z, mcdLocal } from "../addons/src/interiors/mcdonalds";
 import { SBX_DOOR_AT, SBX_DOOR_HALF, SBX_OBS, SBX_POLY, SBX_X, SBX_Z, sbxLocal } from "../addons/src/interiors/starbucks";
 import { PB_DOOR_HALF, PB_OBS, PB_POLY, PB_X, PB_Z, pbLocal } from "../addons/src/interiors/plaza";
+import { HR_DOOR_HALF, HR_OBS, HR_POLY, HR_X, HR_Z, hrLocal } from "../addons/src/interiors/hardrock";
 
 const world = worldFrame(pastechiLocal, PASTECHI_X, PASTECHI_Z, 0);
 world.poly = PASTECHI_POLY;
@@ -164,4 +165,39 @@ for (let d = -0.5; d <= 18; d += 0.5) {
 if (!isOpen(pb, PB_OBS, -7941, -6044, PB_DOOR_HALF, pbWall)) console.log("ok pb neighbour stays shut");
 else { console.log("FAIL pb neighbour opened"); bad++; }
 if (!bad) console.log("pb aisle clear");
+
+const hr = worldFrame(hrLocal, HR_X, HR_Z, 0);
+hr.poly = HR_POLY;
+function hAt(a: number, d: number) {
+  const x = hr.mx + hr.ux * a + hr.nx * d;
+  const z = hr.mz + hr.uz * a + hr.nz * d;
+  return isOpen(hr, HR_OBS, x, z, HR_DOOR_HALF, mWall);
+}
+const hrCases: [string, number, number, boolean][] = [
+  ["hr door", 0, 0.3, true],
+  ["hr sidewalk", 0, -0.8, true],
+  ["hr aisle", 0, 4.5, true],
+  ["hr bar", 3.4, 2.9, false],
+  ["hr stool", 3.35, 1.75, false],
+  ["hr table", -4.2, 3.8, false],
+  ["hr outside", 0, -3, false],
+  ["hr jamb", 2.1, 0.15, false],
+];
+for (const [name, a, d, want] of hrCases) {
+  const got = hAt(a, d);
+  if (got !== want) {
+    console.log("FAIL", name, "along", a, "in", d, "got", got);
+    bad++;
+  } else console.log("ok", name);
+}
+for (let d = -0.4; d <= 6.5; d += 0.25) {
+  if (!hAt(0, d)) {
+    console.log("FAIL hr aisle blocked", d);
+    bad++;
+    break;
+  }
+}
+if (!isOpen(hr, HR_OBS, -7957.6, -5466.6, HR_DOOR_HALF, mWall)) console.log("ok hr neighbour stays shut");
+else { console.log("FAIL hr neighbour opened"); bad++; }
+if (!bad) console.log("hr aisle clear");
 process.exit(bad ? 1 : 0);
