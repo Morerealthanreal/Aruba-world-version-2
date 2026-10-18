@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hero_glb import Model, check_glb, write_glb  # noqa: E402
+from hero_glb import Model, check_glb, fold_body, write_glb  # noqa: E402
 from hotelkit import FONT_SANS, Frame, hip_roof, obox, png_bytes, text_png, tri_out, uquad, vquad  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -175,6 +175,10 @@ def build():
     uquad(M.mesh(1, "sign"), F, -0.42, -3.3, 3.3, eave - 1.55, eave - 0.2, -1,
           uvs=((0, 1), (1, 1), (1, 0), (0, 0)))
 
+    # Sign keeps its texture and bulb keeps its name. Everything else is one
+    # vertex-coloured mesh per LOD so the phone soak does not upload a geometry
+    # per timber colour.
+    fold_body(M, keep={"sign", "bulb"})
     info = write_glb(M, HERO / "bugaloe.glb", images=[png_bytes(png)])
     check_glb(HERO / "bugaloe.glb")
     if not (2500 <= info["lod0"] <= 4500):
