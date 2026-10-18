@@ -1,0 +1,3 @@
+The street crowd is the twelve CC0 Quaternius characters in models/people/.
+Licence notes and the Aruba clothing references are in refs/people/aruba-outfits.md.
+The on-foot player still uses locomotion.glb.
