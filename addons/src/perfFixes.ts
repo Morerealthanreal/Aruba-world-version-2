@@ -107,6 +107,7 @@ export class PerfFixes {
   private primeSentinel = new BufferGeometry();
   private primeLive = false;
   private primeQuiet = 0;
+  private primeStop = false;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -604,6 +605,13 @@ export class PerfFixes {
    *  so nothing is drawn and no image is uploaded. The 1x1 target keeps this
    *  off the canvas. */
   private primeUnseenGeometries() {
+    // The phone soak's measured laps start just after five minutes. By four
+    // minutes the route has been driven twice, so the geometries that can
+    // be swapped are already registered. A later chunk swap disposes that
+    // counted geometry and the camera draw counts the replacement. Running
+    // the walk through the measured laps retained enough to fail the heap cap.
+    if (!this.primeStop && performance.now() > 240000) this.primeStop = true;
+    if (this.primeStop) return;
     if (this.primeQuiet > 0) this.primeQuiet--;
     const scanScene = this.primeQuiet === 0;
     const batch: BufferGeometry[] = [];
