@@ -29,13 +29,13 @@ export const TUNE = {
   runBob: 0.07,
   /** Arm swing measured from the torso's down-axis. Walk shoulders, run pump. */
   walkSwing: deg(28),
-  runSwing: deg(52),
+  runSwing: deg(80),
   walkElbow: deg(20),
   runElbow: deg(90),
   idleElbow: deg(18),
   /** Shoulder yaw against the hips. */
   walkCounter: deg(8),
-  runCounter: deg(14),
+  runCounter: deg(2),
   /** Hip roll. Idle weight shift uses its own period. */
   walkSway: deg(3.5),
   runSway: deg(2.5),
@@ -45,7 +45,7 @@ export const TUNE = {
   breathAmp: deg(1.3),
   /** Stance fraction of the two-step cycle. Left starts at phase 0; right is half a cycle later. */
   walkDuty: 0.36,
-  runDuty: 0.2,
+  runDuty: 0.42,
   /** Lateral foot rails, metres. Walk is two lines; run is nearly one line. */
   walkRail: 0.06,
   runRail: 0.02,

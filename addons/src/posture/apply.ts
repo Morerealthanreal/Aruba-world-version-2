@@ -316,9 +316,16 @@ function orientFoot(
   bone.quaternion.copy(_pq.invert().multiply(_q));
 }
 
+/** Horizontal reach that keeps the sole at `footY` inside `leg`. */
+function groundReach(hipY: number, footY: number, leg: number) {
+  const vert = Math.min(Math.max(0.02, hipY - footY), Math.max(0.04, leg - 0.02));
+  return Math.sqrt(Math.max(0.04, leg * leg - vert * vert));
+}
+
 function solveLeg(
   thigh: Object3D, calf: Object3D, ankle: Vector3,
   forward: Vector3, right: Vector3, outward: number, l1: number, l2: number,
+  poleForward = 1,
 ) {
   thigh.getWorldPosition(_hip);
   const dist0 = _hip.distanceTo(ankle);
@@ -327,7 +334,7 @@ function solveLeg(
   if (_v.lengthSq() < 1e-8) _v.set(0, -1, 0);
   else _v.normalize();
   if (Math.abs(dist - dist0) > 1e-4) ankle.copy(_hip).addScaledVector(_v, dist);
-  _pole.copy(forward).addScaledVector(_up, 0.4).addScaledVector(right, outward);
+  _pole.copy(forward).multiplyScalar(poleForward).addScaledVector(_up, 0.35).addScaledVector(right, outward);
   _v2.copy(_v).multiplyScalar(_pole.dot(_v));
   _pole.sub(_v2);
   if (_pole.lengthSq() < 1e-6) _pole.copy(right);
@@ -341,17 +348,23 @@ function solveLeg(
   pointBone(calf, _v2.copy(ankle).sub(_knee));
 }
 
-function applyBob(pelvis: Object3D, state: PostureState, phase: number, amp: number, dt: number) {
+function applyBob(
+  pelvis: Object3D, holder: Object3D, state: PostureState,
+  phase: number, amp: number, dt: number, drop = 0,
+) {
   pelvis.getWorldPosition(_p);
+  // Height above the walker, not world Y. A world-Y low-pass lags on a hill
+  // and drags the skeleton into the ground while the shadow stays on the road.
+  const rel = _p.y - holder.position.y;
   if (!state.neutralReady) {
-    state.neutralY = _p.y;
+    state.neutralY = rel;
     state.neutralReady = true;
   }
   const k = 1 - Math.exp(-Math.max(0, dt) / 1.6);
-  state.neutralY += (_p.y - state.neutralY) * k;
+  state.neutralY += (rel - state.neutralY) * k;
   // `amp` is peak-to-peak travel, so the cosine uses half of it.
   // Land on the low side of the bounce so the hip can still reach the sole.
-  const desired = state.neutralY - Math.cos(phase * Math.PI * 4) * amp * 0.5;
+  const desired = holder.position.y + state.neutralY - Math.cos(phase * Math.PI * 4) * amp * 0.5 - drop;
   const dy = desired - _p.y;
   if (!pelvis.parent || Math.abs(dy) < 1e-5) return;
   _p.y = desired;
@@ -408,7 +421,8 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
   bones.root.updateMatrixWorld(true);
 
   const amp = lerp3(w, TUNE.idleBob, TUNE.walkBob, TUNE.runBob);
-  applyBob(bones.pelvis, state, phase, amp, dt);
+  // A slightly lower run hip lets the front foot reach while the sole stays down.
+  applyBob(bones.pelvis, input.holder, state, phase, amp, dt, 0.05 * runShare);
   bones.pelvis.updateMatrixWorld(true);
 
   // Straighten after the lean and the bob, so the spine follows the ankles.
@@ -456,8 +470,13 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
     const upperDir = _down.clone().applyAxisAngle(_right, -s * swingAmp * Math.max(moving, w.idle > 0.8 ? 0 : moving));
     if (moving < 0.15) upperDir.copy(_down);
     if (w.idle > 0.5) upperDir.applyAxisAngle(_fwd, (side === 0 ? -1 : 1) * deg(10) * w.idle).normalize();
-    const perp = _v3.crossVectors(_right, upperDir).normalize();
-    if (perp.dot(_fwd) < 0) perp.negate();
+    const perp = _v3.crossVectors(_right, upperDir);
+    if (perp.y > 0) perp.negate();
+    // Lead the hand with the swing, then keep the bend exactly `elbow` wide.
+    perp.addScaledVector(_fwd, s * 0.85);
+    perp.addScaledVector(upperDir, -perp.dot(upperDir));
+    if (perp.lengthSq() < 1e-6) perp.crossVectors(_right, upperDir);
+    perp.normalize();
     const fore = upperDir.clone().multiplyScalar(Math.cos(elbow)).addScaledVector(perp, Math.sin(elbow)).normalize();
     pointBone(bones.upper[side], upperDir);
     pointBone(bones.lower[side], fore);
@@ -481,22 +500,24 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
   for (let side = 0; side < 2; side++) {
     const foot = bones.foot[side];
     const u = stanceU(phase, side === 0 ? 0 : 0.5, duty);
-    const inStance = u >= 0 && moving > 0.4;
+    // +1 is this foot reaching forward, -1 is the same foot kicked back.
+    const sLeg = Math.sin(phase * Math.PI * 2 + side * Math.PI);
+    const runLeg = runShare > 0.55 && moving > 0.4;
+    const inStance = !runLeg && u >= 0 && moving > 0.4;
     foot.updateMatrixWorld(true);
     foot.getWorldPosition(_clip);
     const lock = state.locks[side];
-    if (inStance && !lock.on && !lock.spent) {
+    const sign = side === 0 ? -1 : 1;
+    if (!runLeg && inStance && !lock.on && !lock.spent) {
       // The clip's in-place stance slides the foot past full extension. Plant
       // on the rail, half a stance-length ahead of the hip, and never past
       // what this leg can reach once the hips bounce up.
       bones.thigh[side].getWorldPosition(_hip);
       const gHip = input.groundAt(_hip.x, _hip.z);
       const vertical = Math.max(0, _hip.y - (gHip.y + TUNE.ankle * scale));
-      const sign = _v.copy(_clip).sub(_holder).dot(_right) >= 0 ? 1 : -1;
+      const clipSign = _v.copy(_clip).sub(_holder).dot(_right) >= 0 ? 1 : -1;
       const hipLat = _v2.copy(_hip).sub(_holder).dot(_right);
-      const lat = Math.abs(sign * rail - hipLat);
-      // Stay inside the leg on this frame, and leave room for the hip to rise
-      // on the next bounce, so a fast stride toe-offs instead of dragging.
+      const lat = Math.abs(clipSign * rail - hipLat);
       const live = (l1 + l2) * 0.94;
       const vertNow = Math.min(live - 0.02, vertical);
       const maxNow = Math.sqrt(Math.max(0.0025, live * live - vertNow * vertNow));
@@ -507,7 +528,18 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
       const aheadBudget = Math.sqrt(Math.max(0.0025, (maxHoriz * 0.9) ** 2 - Math.min(lat, maxHoriz * 0.85) ** 2));
       const travel = Math.max(0.04, plan.stride * 2 * duty);
       const ahead = Math.min(travel * 0.5, aheadRoom * 0.96, aheadBudget);
-      _target.copy(_hip).addScaledVector(_fwd, ahead).addScaledVector(_right, sign * rail - hipLat);
+      _target.copy(_hip).addScaledVector(_fwd, ahead).addScaledVector(_right, clipSign * rail - hipLat);
+      lock.x = _target.x;
+      lock.z = _target.z;
+      lock.on = true;
+      lock.grip = 1;
+    }
+    if (runLeg && sLeg > 0.72 && !lock.on && !lock.spent) {
+      // Plant late, near full extension, so the reach is still long at the top of the bounce.
+      bones.thigh[side].getWorldPosition(_hip);
+      const gHip = input.groundAt(_hip.x, _hip.z);
+      const ahead = groundReach(_hip.y, gHip.y + TUNE.ankle * scale, (l1 + l2) * 0.97) * 0.96;
+      _target.copy(_hip).addScaledVector(_fwd, ahead).addScaledVector(_right, sign * rail);
       lock.x = _target.x;
       lock.z = _target.z;
       lock.on = true;
@@ -517,38 +549,72 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
       bones.thigh[side].getWorldPosition(_hip);
       const g = input.groundAt(lock.x, lock.z);
       const reach = Math.hypot(_hip.x - lock.x, _hip.y - (g.y + TUNE.ankle * scale), _hip.z - lock.z);
-      // Toe off instead of dragging the sole once the stride is longer than the leg.
-      if (reach > (l1 + l2) * 0.98) {
+      // Hold the plant through the stance, then toe off into the kick. A reach
+      // past the leg also releases, and the free pose keeps that foot low.
+      if (reach > (l1 + l2) * 0.98 || (runLeg && sLeg < -0.08)) {
         lock.on = false;
         lock.spent = true;
         state.anchor[side].on = false;
       }
     }
-    if (!inStance) {
+    if (!runLeg && !inStance) {
       lock.on = false;
       lock.spent = false;
       state.anchor[side].on = false;
     }
-    // The run clip kicks the heel up by the chest. During the swing, aim the
-    // thigh itself: 45° from the torso at mid-swing, then hang the calf.
+    if (runLeg && lock.spent && sLeg < 0.45) {
+      lock.spent = false;
+      state.anchor[side].on = false;
+    }
+    // Free leg. The two feet are opposite: one reaches or plants, the other
+    // kicks back. The passing lift is only the middle of that swing.
+    // High bob (flight) is the wide split, so both soles stay near the ground.
     let posed = false;
-    if (!lock.on && runShare > 0.55 && moving > 0.4) {
-      const lift = Math.max(0, Math.sin(phase * Math.PI * 2 + side * Math.PI));
-      bones.root.getWorldPosition(_v);
-      bones.pelvis.getWorldPosition(_v2);
-      const down = _pole.copy(_v).sub(_v2).normalize();
-      const thighDir = down.applyAxisAngle(_right, -TUNE.runKnee * lift);
-      pointBone(bones.thigh[side], thighDir);
-      bones.thigh[side].updateMatrixWorld(true);
-      const calfDir = _v3.copy(thighDir).applyAxisAngle(_right, 0.9 + 0.5 * lift);
-      pointBone(bones.calf[side], calfDir);
-      bones.calf[side].updateMatrixWorld(true);
-      bones.calf[side].getWorldPosition(_ankle);
-      _ankle.addScaledVector(calfDir, l2);
+    if (!lock.on && runLeg) {
+      bones.thigh[side].getWorldPosition(_hip);
+      const g = input.groundAt(_hip.x, _hip.z);
+      const ankleH = TUNE.ankle * scale;
+      const leg = (l1 + l2) * 0.96;
+      const flight = Math.max(0, -Math.cos(phase * Math.PI * 4));
+      let along: number;
+      let sole: number;
+      if (sLeg >= 0.42) {
+        const maxF = groundReach(_hip.y, g.y + ankleH + flight * 0.04, (l1 + l2) * 0.99);
+        const u = Math.min(1, (sLeg - 0.42) / 0.45);
+        along = maxF * (0.72 + 0.26 * u);
+        sole = ankleH + (1 - u) * 0.04 + flight * 0.04;
+      } else if (sLeg <= -0.12) {
+        // Straight kick: the foot rises so the leg can point back instead of
+        // sitting in a flat squat. The other foot stays down, under the shadow.
+        // The shoe hangs below the ankle, so the ankle has to clear by a
+        // long way before the kick reads as off the ground.
+        const kickH = 0.36 + flight * 0.02 + Math.max(0, -sLeg - 0.12) * 0.18;
+        const maxB = groundReach(_hip.y, g.y + kickH, (l1 + l2) * 0.99);
+        const u = Math.min(1, (-sLeg - 0.12) / 0.7);
+        along = -maxB * (0.92 + 0.08 * u);
+        sole = kickH;
+      } else {
+        const u = (sLeg + 0.12) / 0.54;
+        along = -0.06 + u * 0.32;
+        sole = ankleH + Math.sin(u * Math.PI) * 0.085;
+      }
+      const maxH = groundReach(_hip.y, g.y + sole, leg);
+      along = Math.max(-maxH, Math.min(maxH, along));
+      _ankle.copy(_hip).addScaledVector(_fwd, along).addScaledVector(_right, sign * rail);
+      _ankle.y = g.y + sole;
+      _aim.copy(_ankle);
+      const pole = sLeg < -0.12 ? -1 : sLeg > 0.42 ? 0.15 : 1;
+      // Knees stay in the forward-back plane. A sideways pole reads as a squat from behind.
+      solveLeg(bones.thigh[side], bones.calf[side], _aim, _fwd, _right, 0, l1, l2, pole);
       if (foot.parent) {
-        _p.copy(_ankle);
+        _p.copy(_aim);
         foot.parent.worldToLocal(_p);
         foot.position.copy(_p);
+        const gn = _v.set(g.nx, g.ny, g.nz);
+        if (gn.lengthSq() < 1e-8) gn.set(0, 1, 0);
+        gn.normalize();
+        const pitch = sLeg > 0.35 ? TUNE.runFore : deg(-6);
+        if (state.sole && state.toe) orientFoot(foot, state.sole[side], state.toe[side], gn, _fwd, pitch);
       }
       posed = true;
     }
@@ -562,13 +628,19 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
       if (gn.lengthSq() < 1e-8) gn.set(0, 1, 0);
       gn.normalize();
       if (lock.on) {
-        _target.set(lock.x, g.y, lock.z).addScaledVector(gn, TUNE.ankle * scale);
+        // Flight is the top of the bounce. The sole leaves the ground by a few
+        // centimetres so the shadow stays under the stride instead of far below it.
+        const flightGap = runLeg ? 0.02 * Math.max(0, -Math.cos(phase * Math.PI * 4)) : 0;
+        _target.set(lock.x, g.y, lock.z).addScaledVector(gn, TUNE.ankle * scale + flightGap);
         _ankle.copy(_clip).lerp(_target, Math.min(1, lock.grip));
       } else {
         _ankle.copy(_clip);
       }
       _aim.copy(_ankle);
-      solveLeg(bones.thigh[side], bones.calf[side], _aim, _fwd, _right, side === 0 ? -0.22 : 0.22, l1, l2);
+      solveLeg(
+        bones.thigh[side], bones.calf[side], _aim, _fwd, _right,
+        runLeg ? 0 : side === 0 ? -0.22 : 0.22, l1, l2, runLeg ? 0.15 : 1,
+      );
       if (foot.parent) {
         _p.copy(_aim);
         foot.parent.worldToLocal(_p);
@@ -595,7 +667,8 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
     const thighDir = bones.calf[side].getWorldPosition(_v).sub(bones.thigh[side].getWorldPosition(_v2));
     if (thighDir.lengthSq() > 1e-6) {
       // Positive when the knee lifts forward of the torso, which is the swing.
-      const lift = -signedAngle(_down, thighDir.normalize(), _right) * 180 / Math.PI;
+      thighDir.normalize();
+      const lift = signedAngle(_down, thighDir, _right) * 180 / Math.PI;
       kneeDeg = Math.max(kneeDeg, lift);
     }
   }

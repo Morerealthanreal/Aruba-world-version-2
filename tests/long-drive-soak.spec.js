@@ -293,7 +293,7 @@ test("long phone drive keeps runtime resources flat", async ({
 
   // Force the existing test-only emergency/crash modes so repeated route
   // changes also exercise transient scene teardown during this short soak.
-  await page.goto("/?q=low&emerg=force&crash=force&crashx=10", {
+  await page.goto(`/?q=low&emerg=force&crash=force&crashx=10${process.env.SOAK_QUERY || ""}`, {
     waitUntil: "domcontentloaded",
   });
   await page.waitForFunction(
