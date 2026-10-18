@@ -1,0 +1,33 @@
+{
+ "label": "ritz",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "beach",
+   "calls": 489,
+   "tris": 1012754.6666666667,
+   "ms": 4.1
+  },
+  {
+   "shot": "aerial",
+   "calls": 385,
+   "tris": 933712.6666666666,
+   "ms": 4.2
+  }
+ ],
+ "fps": {
+  "fps": 1.22,
+  "p95ms": 83.3,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "ritz",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
