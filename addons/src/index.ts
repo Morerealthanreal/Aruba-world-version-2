@@ -49,6 +49,7 @@ import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
+import { Ocean } from "./ocean/ocean";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { NorthInland } from "./northInland";
@@ -69,6 +70,16 @@ async function main() {
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
   const sea = params.get("sea") !== "0" ? new Sea(g) : null;
+  // SuperGrok Gerstner ocean tile around the camera. Experimental: off unless ?ocean=1.
+  let ocean: Ocean | null = null;
+  if (params.get("ocean") === "1") {
+    const qn = (g.real as unknown as { q: { name: string } }).q.name;
+    ocean = new Ocean(1500, qn === "low" ? 96 : 256);
+    ocean.setQuality(qn === "low" ? "low" : qn === "high" ? "high" : "medium");
+    ocean.mesh.position.y = 0.05;
+    g.scene.add(ocean.mesh);
+  }
+  const oceanClock = { t: 0 };
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
   const flora = params.get("flora") !== "0" ? new Flora(g, perf ? perf.mobile : touch, params.get("ipool") !== "0") : null;
   const jobs = params.get("jobs") !== "0" ? new JobPump(g, (perf ? perf.mobile : touch) ? 5 : 8) : null;
@@ -131,7 +142,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, ocean, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -150,6 +161,7 @@ async function main() {
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
     if (fly) fly.update(Math.min(dt, 0.1));
+    if (ocean) { oceanClock.t += Math.min(dt, 0.1); ocean.update(oceanClock.t, g.camera.position); }
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
