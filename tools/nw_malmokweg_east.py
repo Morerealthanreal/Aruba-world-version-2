@@ -247,24 +247,48 @@ def add_gate(b, x, z, along, g, post="stucco"):
     b.beam(1, "iron", (x - ax * 0.95, g + 0.8, z - az * 0.95), (x + ax * 0.95, g + 0.8, z + az * 0.95), 0.03, 0.03)
 
 
-def add_palm(b, x, z, fronds=4, segments=3, reach=2.7, thick=1.0):
+def add_palm(b, x, z, fronds=4, segments=3, reach=2.7, thick=1.0, droop=1.0):
     g = coast.mesh_height(x, z)
     cx, cz, y = x, z, g - 0.05
-    step = 4.8 / max(2, segments)
+    step = 4.2 / max(2, segments)
     for i in range(segments):
         ny = y + step
-        nx = cx + 0.04
-        nz = cz + 0.015
-        b.cyl(0, "trunk", cx, y, cz, 0.18 - i * 0.02, ny, 0.15 - i * 0.02, 5)
+        nx = cx + 0.03
+        nz = cz + 0.01
+        b.cyl(0, "trunk", cx, y, cz, 0.16 - i * 0.02, ny, 0.13 - i * 0.015, 5)
         cx, cz, y = nx, nz, ny
-    mid_r = reach * 0.42
+    mid_r = reach * 0.38
     for k in range(fronds):
-        ang = k * math.tau / fronds + (0.15 if k % 2 else 0.0)
-        droop = 0.2 + (k % 3) * 0.28
-        mid = (cx + math.cos(ang) * mid_r, y + 0.28 - droop * 0.35, cz + math.sin(ang) * mid_r)
-        tip = (cx + math.cos(ang) * reach, y - 0.45 - droop, cz + math.sin(ang) * reach)
-        b.beam(0, "palm", (cx, y + 0.12, cz), mid, 0.11 * thick, 0.04 * thick)
-        b.beam(0, "palm", mid, tip, 0.06 * thick, 0.02 * thick)
+        ang = k * math.tau / fronds + (0.2 if k % 2 else 0.0)
+        hang = (0.7 + (k % 3) * 0.35) * droop
+        mid = (cx + math.cos(ang) * mid_r, y + 0.05 - hang * 0.35, cz + math.sin(ang) * mid_r)
+        tip = (cx + math.cos(ang) * reach, y - hang, cz + math.sin(ang) * reach)
+        b.beam(0, "palm", (cx, y + 0.05, cz), mid, 0.07 * thick, 0.025 * thick)
+        b.beam(0, "palm", mid, tip, 0.035 * thick, 0.012 * thick)
+
+
+def add_photo_palm(b, x, z):
+    """Street palm at house 31: a short trunk and arching fronds that droop.
+
+    Leaf width stays under half a metre so the crown is not a fan of flat sticks.
+    """
+    g = coast.mesh_height(x, z)
+    cx, cz, y = x, z, g
+    for i, step in enumerate((1.15, 1.15, 1.05, 0.85)):
+        ny = y + step
+        b.cyl(0, "trunk", cx, y, cz, 0.14 - i * 0.018, ny, 0.12 - i * 0.016, 5)
+        cx, cz, y = cx + 0.015, cz + 0.008, ny
+    b.box(0, "frond", cx - 0.28, y - 0.08, cz - 0.28, cx + 0.28, y + 0.22, cz + 0.28)
+    for k in range(10):
+        ang = k * math.tau / 10.0
+        c, s = math.cos(ang), math.sin(ang)
+        length = 0.85 + (k % 3) * 0.16
+        drop = 0.72 + (k % 2) * 0.28
+        base = (cx, y + 0.02, cz)
+        mid = (cx + c * length * 0.42, y - 0.02, cz + s * length * 0.42)
+        tip = (cx + c * length, y - drop, cz + s * length)
+        b.beam(0, "frond", base, mid, 0.13, 0.032)
+        b.beam(0, "frond", mid, tip, 0.07, 0.02)
 
 
 def add_divi_tree(b, x, z, yaw):
@@ -415,7 +439,7 @@ def _at(west, ux, uz, dist):
 
 def add_pillar(b, x, z, height):
     g = coast.mesh_height(x, z)
-    b.box(0, "tan", x - 0.23, g, z - 0.23, x + 0.23, g + height, z + 0.23)
+    b.box(0, "tan", x - 0.18, g, z - 0.18, x + 0.18, g + height, z + 0.18)
 
 
 def add_bar_run(b, a, c, y0, y1, spacing):
@@ -457,14 +481,13 @@ def add_double_gate(b, x, z, along, g):
 
 
 def add_slide_gate(b, x, z, along, g):
-    """Dark sliding vehicle gate on the left of the wall."""
+    """Solid dark-brown vehicle gate. No bar grid."""
     ax, az = along
     yaw = math.atan2(az, ax)
-    b.box_yaw(0, "black", x, g + 0.02, z, 2.15, 1.92, 0.06, yaw)
-    b.box_yaw(0, "iron", x, g + 1.72, z, 2.22, 0.07, 0.08, yaw)
-    b.box_yaw(0, "iron", x, g + 0.95, z, 2.05, 0.045, 0.07, yaw)
-    for t in (-1.35, 0.0, 1.35):
-        b.box_yaw(0, "iron", x + ax * t, g + 0.06, z + az * t, 0.035, 1.7, 0.075, yaw)
+    b.box_yaw(0, "gate", x, g + 0.02, z, 2.25, 1.05, 0.07, yaw)
+    b.box_yaw(0, "gate", x, g + 1.08, z, 2.25, 1.02, 0.06, yaw)
+    b.box_yaw(0, "black", x, g + 1.02, z, 2.28, 0.06, 0.08, yaw)
+    b.box_yaw(0, "black", x, g + 0.04, z, 0.045, 2.02, 0.08, yaw)
 
 
 def add_photo_wall(b, west, east, gates):
@@ -475,15 +498,16 @@ def add_photo_wall(b, west, east, gates):
     dx, dz = east[0] - west[0], east[1] - west[1]
     length = math.hypot(dx, dz) or 1.0
     ux, uz = dx / length, dz / length
-    solid_h = 1.32
-    bar_top = 1.92
-    pillar_h = 2.08
+    # Photo: about 1.2 m of stucco, then about 1 m of iron.
+    solid_h = 1.20
+    bar_top = 2.20
+    pillar_h = 2.48
 
     def covered(dist):
         return any(a - 0.05 <= dist <= c + 0.05 for a, c, _k in gates)
 
     posts = [0.0]
-    step = 2.2
+    step = 2.05
     cursor = step
     while cursor < length - 0.55:
         posts.append(cursor)
@@ -591,14 +615,28 @@ def _rect(basis, along0, along1, north0, north1):
     return [p0, p1, p2, p3]
 
 
-def add_photo_truck(b, x, z, along):
-    """White pickup tall enough to show through the east iron bays."""
-    ax, az = along
-    yaw = math.atan2(az, ax)
-    g = coast.mesh_height(x, z) + 0.02
-    b.box_yaw(0, "truck", x - ax * 0.35, g + 0.32, z - az * 0.35, 2.15, 1.05, 0.86, yaw)
-    b.box_yaw(0, "glass", x + ax * 0.85, g + 1.15, z + az * 0.85, 0.72, 0.58, 0.76, yaw)
-    b.box_yaw(0, "truck", x + ax * 1.15, g + 0.55, z + az * 1.15, 0.55, 0.28, 0.84, yaw)
+def add_tile_courses(b, a, c, nx, nz, y_eave, rise, run, bands=7):
+    """Horizontal clay courses on the street slope. A flat lid has no bands."""
+    street = (-nx, 0.62, -nz)
+
+    def pt(p, shift, y):
+        return (
+            p[0] + nx * shift - nx * 0.08,
+            y,
+            p[1] + nz * shift - nz * 0.08,
+        )
+
+    for i in range(bands):
+        t0 = i / bands
+        t1 = (i + 1) / bands
+        y0 = y_eave + rise * (0.06 + 0.86 * t0)
+        y1 = y_eave + rise * (0.06 + 0.86 * t1)
+        mat = "tilerib" if i % 2 == 0 else "tile"
+        b.quad(
+            0, mat,
+            [pt(a, run * t0, y0), pt(c, run * t0, y0), pt(c, run * t1, y1), pt(a, run * t1, y1)],
+            street,
+        )
 
 
 def build_street_match(b, bld, role, weg):
@@ -606,49 +644,57 @@ def build_street_match(b, bld, role, weg):
     basis = photo_basis(weg)
     ux, uz, nx, nz = basis["ux"], basis["uz"], basis["nx"], basis["nz"]
     if role == "two":
-        # West of house 31, close to the wall, over the sliding gate.
-        mass = _rect(basis, -15.3, -2.3, 2.2, 10.4)
-        p0, p1 = mass[0], mass[1]
-        face = spot(basis, -8.8, 6.3)
+        # Enclosed volume sits behind an open colonnade, not a flat street wall.
+        mass = _rect(basis, -15.3, -2.3, 4.2, 10.6)
+        face = spot(basis, -8.8, 7.4)
         gnd = coast.mesh_height(face[0], face[1])
-        wall_h = 5.75
+        wall_h = 5.45
         b.extrude(0, "white", mass, gnd + 0.28, gnd + wall_h, top=True)
         b.extrude(1, "white", mass, gnd, gnd + wall_h, top=True)
-        roof = outset_rect(mass, 0.55, ux, uz, nx, nz)
+        roof = outset_rect(mass, 0.5, ux, uz, nx, nz)
+        # Eave sits just behind the columns so the slope is visible and does not cross the street.
+        roof[0] = (roof[0][0] - nx * 1.15, roof[0][1] - nz * 1.15)
+        roof[1] = (roof[1][0] - nx * 1.15, roof[1][1] - nz * 1.15)
         y_eave = gnd + wall_h
-        hip_roof(b, 0, "tile", roof, y_eave, 1.15)
-        hip_roof(b, 1, "tile", mass, y_eave, 0.9, inner_k=0.28)
+        rise = 2.05
+        hip_roof(b, 0, "tile", roof, y_eave, rise, inner_k=0.2)
+        hip_roof(b, 1, "tile", mass, y_eave, rise * 0.75, inner_k=0.28)
         for i in range(4):
             s, t = roof[i], roof[(i + 1) % 4]
-            b.beam(0, "tileedge", (s[0], y_eave - 0.02, s[1]), (t[0], y_eave - 0.02, t[1]), 0.14, 0.18)
-        # Ground-floor rail on the west part. The east part is the forward wing.
-        low0 = spot(basis, -15.0, 1.35)
-        low1 = spot(basis, -7.6, 1.35)
-        add_rail_row(b, low0, low1, gnd + 2.2)
-        up0 = spot(basis, -15.1, 1.15)
-        up1 = spot(basis, -2.5, 1.15)
+            b.beam(0, "tileedge", (s[0], y_eave - 0.02, s[1]), (t[0], y_eave - 0.02, t[1]), 0.1, 0.12)
+        add_tile_courses(b, roof[0], roof[1], nx, nz, y_eave, rise, 2.8, bands=6)
+        yaw = math.atan2(uz, ux)
+        # Open balcony bays: a deep dark recess behind the columns, not a flat wall.
+        for y0, y1 in ((2.48, 3.55), (3.85, 5.15)):
+            mid = spot(basis, -9.0, 3.35)
+            b.box_yaw(0, "shadow", mid[0], gnd + y0, mid[1], 5.6, y1 - y0, 0.48, yaw)
+        for along_m in (-14.4, -12.1, -9.8, -7.5, -5.2, -3.2):
+            col = spot(basis, along_m, 2.15)
+            b.box(0, "white", col[0] - 0.16, gnd + 2.35, col[1] - 0.16, col[0] + 0.16, gnd + 5.35, col[1] + 0.16)
+        low0, low1 = spot(basis, -14.7, 1.45), spot(basis, -3.0, 1.45)
+        up0, up1 = spot(basis, -14.7, 1.35), spot(basis, -3.0, 1.35)
         slab = [
-            (p0[0], gnd + 3.85, p0[1]),
-            (p1[0], gnd + 3.85, p1[1]),
-            (up1[0], gnd + 3.85, up1[1]),
-            (up0[0], gnd + 3.85, up0[1]),
+            (spot(basis, -15.0, 4.15)[0], gnd + 3.72, spot(basis, -15.0, 4.15)[1]),
+            (spot(basis, -2.5, 4.15)[0], gnd + 3.72, spot(basis, -2.5, 4.15)[1]),
+            (up1[0], gnd + 3.72, up1[1]),
+            (up0[0], gnd + 3.72, up0[1]),
         ]
         b.quad(0, "white", slab, (0, 1, 0))
-        add_rail_row(b, up0, up1, gnd + 3.85)
-        # Forward wing with the arched front and its own tile edge.
-        wing = _rect(basis, -8.4, -2.5, 1.2, 4.8)
-        b.extrude(0, "white", wing, gnd + 0.2, gnd + 3.05, top=True)
+        add_rail_row(b, low0, low1, gnd + 2.58, spacing=0.55)
+        add_rail_row(b, up0, up1, gnd + 3.72, spacing=0.5)
+        # Lower hip on the east half. Walls stay behind the columns; the roof overhangs.
+        wing = _rect(basis, -8.0, -2.5, 2.9, 4.8)
+        b.extrude(0, "white", wing, gnd + 0.2, gnd + 3.2, top=True)
         wing_roof = outset_rect(wing, 0.35, ux, uz, nx, nz)
-        hip_roof(b, 0, "tile", wing_roof, gnd + 3.05, 0.72)
+        wing_roof[0] = (wing_roof[0][0] - nx * 0.55, wing_roof[0][1] - nz * 0.55)
+        wing_roof[1] = (wing_roof[1][0] - nx * 0.55, wing_roof[1][1] - nz * 0.55)
+        hip_roof(b, 0, "tile", wing_roof, gnd + 3.2, 1.05, inner_k=0.22)
         for i in range(4):
             s, t = wing_roof[i], wing_roof[(i + 1) % 4]
-            b.beam(0, "tileedge", (s[0], gnd + 3.02, s[1]), (t[0], gnd + 3.02, t[1]), 0.1, 0.12)
-        arch = spot(basis, -5.5, 0.95)
-        add_arch(b, arch[0], arch[1], gnd, ux, uz, nx, nz, width=3.1, rise=1.05)
-        yaw = math.atan2(uz, ux)
-        for along_m in (-13.2, -10.6, -4.6, -3.2):
-            wx, wz = spot(basis, along_m, 2.05)
-            add_window(b, wx, wz, gnd + 4.35, yaw, 0.7, 0.78)
+            b.beam(0, "tileedge", (s[0], gnd + 3.16, s[1]), (t[0], gnd + 3.16, t[1]), 0.07, 0.08)
+        add_tile_courses(b, wing_roof[0], wing_roof[1], nx, nz, gnd + 3.2, 1.05, 1.6, bands=4)
+        arch = spot(basis, -9.6, 2.15)
+        add_arch(b, arch[0], arch[1], gnd, ux, uz, nx, nz, width=2.2, rise=0.7)
         print(f"PHOTO two {face[0]:.2f} {face[1]:.2f}")
         return mass, (nx, nz)
 
@@ -663,16 +709,18 @@ def build_street_match(b, bld, role, weg):
     mass = _rect(basis, -0.95, 11.05, 3.5, 10.8)
     hx, hz = spot(basis, 5.05, 7.15)
     gnd = coast.mesh_height(hx, hz)
-    wall_h = 3.95
+    wall_h = 3.55
     b.extrude(0, "tan", mass, gnd + 0.3, gnd + wall_h, top=True)
     b.extrude(1, "tan", mass, gnd, gnd + wall_h, top=True)
-    roof = outset_rect(mass, 0.62, ux, uz, nx, nz)
+    roof = outset_rect(mass, 0.85, ux, uz, nx, nz)
     y_eave = gnd + wall_h
-    hip_roof(b, 0, "tile", roof, y_eave, 1.25)
-    hip_roof(b, 1, "tile", mass, y_eave, 0.95, inner_k=0.3)
+    rise = 2.35
+    hip_roof(b, 0, "tile", roof, y_eave, rise, inner_k=0.18)
+    hip_roof(b, 1, "tile", mass, y_eave, rise * 0.7, inner_k=0.24)
     for i in range(4):
         s, t = roof[i], roof[(i + 1) % 4]
-        b.beam(0, "tileedge", (s[0], y_eave + 0.02, s[1]), (t[0], y_eave + 0.02, t[1]), 0.16, 0.2)
+        b.beam(0, "tileedge", (s[0], y_eave + 0.02, s[1]), (t[0], y_eave + 0.02, t[1]), 0.1, 0.12)
+    add_tile_courses(b, roof[0], roof[1], nx, nz, y_eave, rise, 3.2, bands=7)
     yaw = math.atan2(uz, ux)
     for along_m in (0.7, 2.15, 8.3):
         wx, wz = spot(basis, along_m, 3.35)
@@ -704,32 +752,26 @@ def build_street_match(b, bld, role, weg):
     b.box(0, "iron", ax - 0.28, gy + 0.15, az - 0.18, ax + 0.28, gy + 0.7, az + 0.18)
     sx, sz = spot(basis, 3.3, 1.6)
     add_parked(b, sx, sz, (ux, uz), "suv", 4.2, 1.55)
-    # East palm and bush mass, full above the iron, with the white pickup in it.
-    for along_m, north_m, fronds, reach in (
-        (11.4, 1.0, 10, 3.6),
-        (12.8, 2.2, 9, 3.3),
-        (14.2, 0.85, 8, 3.5),
-        (15.6, 1.9, 7, 3.0),
+    # Short drooping palms in a dark mass that crowns the east fence.
+    for along_m, north_m in ((11.4, 0.85), (12.7, 0.7), (14.1, 0.95)):
+        px, pz = spot(basis, along_m, north_m)
+        add_photo_palm(b, px, pz)
+    for along_m, north_m, y0, h, hx, hz, mat in (
+        (10.7, 0.4, 2.00, 0.85, 0.40, 0.30, "hedge"),
+        (11.5, 0.55, 2.15, 1.05, 0.36, 0.28, "bush"),
+        (12.3, 0.35, 1.95, 0.75, 0.34, 0.26, "hedge"),
+        (13.1, 0.6, 2.20, 0.95, 0.38, 0.28, "bush"),
+        (13.9, 0.4, 2.05, 0.80, 0.32, 0.24, "hedge"),
+        (14.7, 0.65, 2.25, 0.90, 0.34, 0.26, "bush"),
+        (15.5, 0.45, 1.95, 0.70, 0.30, 0.24, "hedge"),
+        (11.0, 1.05, 2.45, 0.55, 0.28, 0.22, "bush"),
+        (12.6, 1.1, 2.55, 0.60, 0.30, 0.22, "hedge"),
+        (14.2, 1.15, 2.40, 0.65, 0.28, 0.22, "bush"),
+        (15.2, 0.95, 2.30, 0.50, 0.26, 0.20, "hedge"),
     ):
         px, pz = spot(basis, along_m, north_m)
-        add_palm(b, px, pz, fronds=fronds, segments=3, reach=reach, thick=1.55)
-    # Bush cluster behind the east bays, lumpy and tall enough to clear the wall.
-    for along_m, north_m, h in (
-        (10.6, 0.45, 2.5),
-        (11.5, 0.9, 2.9),
-        (12.4, 0.4, 3.2),
-        (13.3, 1.15, 2.7),
-        (14.2, 0.55, 3.4),
-        (15.1, 1.3, 2.6),
-        (15.9, 0.5, 3.1),
-        (11.0, 1.7, 2.4),
-        (13.6, 2.0, 2.5),
-        (15.4, 2.15, 2.8),
-    ):
-        px, pz = spot(basis, along_m, north_m)
-        add_shrub(b, px, pz, h)
-    tx, tz = spot(basis, 16.0, 0.4)
-    add_photo_truck(b, tx, tz, (ux, uz))
+        hg = coast.mesh_height(px, pz)
+        b.box(0, mat, px - hx, hg + y0, pz - hz, px + hx, hg + y0 + h, pz + hz)
     return mass, (nx, nz)
 
 
@@ -812,7 +854,13 @@ def build():
     # Clay tile from the Malmokweg street photo: dark red-brown, not orange.
     b.mat("tile", (0.22, 0.10, 0.06), 0.92)
     b.mat("tileedge", (0.12, 0.045, 0.03), 0.94)
+    b.mat("tilerib", (0.36, 0.16, 0.09), 0.88)
     b.mat("pane", (0.16, 0.20, 0.24), 0.35)
+    b.mat("shadow", (0.10, 0.11, 0.12), 0.95)
+    b.mat("gate", (0.07, 0.04, 0.03), 0.82)
+    b.mat("hedge", (0.07, 0.14, 0.05), 0.94)
+    b.mat("bush", (0.12, 0.24, 0.09), 0.9)
+    b.mat("frond", (0.06, 0.16, 0.05), 0.92)
     b.mat("frame", coast.FRAME_C, 0.62)
     b.mat("glass", coast.GLASS, 0.12)
     b.mat("shut", coast.SHUTTER, 0.7)
