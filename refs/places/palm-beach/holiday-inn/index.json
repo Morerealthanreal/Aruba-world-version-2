@@ -1,0 +1,77 @@
+{
+  "place": "holiday-inn",
+  "area": "palm-beach",
+  "photos": [
+    {
+      "file": "hotel-exterior.jpg",
+      "source_url": "https://www.holidayarubaresort.com/gallery/",
+      "image_url": "https://a9d64845f2d774f6a19e-8f904be169b8fdee5d60ca1a1f212a1a.ssl.cf1.rackcdn.com/u/etc/hotel-exterior.jpg",
+      "license": "Holiday Inn Resort Aruba / holidayarubaresort.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Holiday Inn Resort Aruba gallery, Hotel Exterior",
+      "lat": 12.5764,
+      "lon": -70.0437,
+      "heading": "aerial oblique from the east, looking west toward the ocean",
+      "date": null,
+      "shows": "white towers with lime balcony bands, terracotta hip roofs, lime entrance pavilion between the towers"
+    },
+    {
+      "file": "resort-exterior.jpg",
+      "source_url": "https://www.holidayarubaresort.com/gallery/",
+      "image_url": "https://a9d64845f2d774f6a19e-8f904be169b8fdee5d60ca1a1f212a1a.ssl.cf1.rackcdn.com/u/our-hotel/resort-exterior.jpg",
+      "license": "Holiday Inn Resort Aruba / holidayarubaresort.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Holiday Inn Resort Aruba gallery, resort exterior",
+      "lat": 12.5764,
+      "lon": -70.0436,
+      "heading": "west, from the arrival court toward the beach",
+      "date": null,
+      "shows": "two white balcony towers flanking a lime checkerboard pavilion with a green gable and the Holiday Inn mark"
+    },
+    {
+      "file": "exterior-night.jpg",
+      "source_url": "https://www.holidayarubaresort.com/gallery/",
+      "image_url": "https://a9d64845f2d774f6a19e-8f904be169b8fdee5d60ca1a1f212a1a.ssl.cf1.rackcdn.com/u/gallery/exterior-night.jpg",
+      "license": "Holiday Inn Resort Aruba / holidayarubaresort.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Holiday Inn Resort Aruba gallery, exterior night",
+      "lat": 12.5764,
+      "lon": -70.0436,
+      "heading": "west, close on the entrance pavilion",
+      "date": null,
+      "shows": "lime and pale-lime tile wall, open columned entrance, green H and Holiday Inn Resort panel, white balcony towers on both sides"
+    },
+    {
+      "file": "balcony-ocean.jpg",
+      "source_url": "https://www.holidayarubaresort.com/gallery/",
+      "image_url": "https://a9d64845f2d774f6a19e-8f904be169b8fdee5d60ca1a1f212a1a.ssl.cf1.rackcdn.com/u/05-rooms/balcony-ocean-view.jpg",
+      "license": "Holiday Inn Resort Aruba / holidayarubaresort.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Holiday Inn Resort Aruba gallery, oceanfront balcony",
+      "lat": 12.5763,
+      "lon": -70.0442,
+      "heading": "west, from a guest balcony toward the beach",
+      "date": null,
+      "shows": "lime side wall, white balcony rail, beach and turquoise water"
+    },
+    {
+      "file": "pool.jpg",
+      "source_url": "https://www.holidayarubaresort.com/gallery/",
+      "image_url": "https://a9d64845f2d774f6a19e-8f904be169b8fdee5d60ca1a1f212a1a.ssl.cf1.rackcdn.com/u/amenities/palm-trees-pool-outdoor.jpg",
+      "license": "Holiday Inn Resort Aruba / holidayarubaresort.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Holiday Inn Resort Aruba gallery, outdoor pool",
+      "lat": 12.5763,
+      "lon": -70.0441,
+      "heading": "west, pool deck toward the beach, tower on the right",
+      "date": null,
+      "shows": "pool and beach with the white balcony tower at the right edge"
+    },
+    {
+      "file": "esri_aerial.jpg",
+      "source_url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "license": "Esri World Imagery / Maxar - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Esri, Maxar. Red outline is the OSM footprint of hero holidayinn.",
+      "lat": 12.576,
+      "lon": -70.044,
+      "heading": "nadir, north up",
+      "date": null,
+      "shows": "pale roof along the west side, darker roof at the south end, green roof at the north of the ring, and the separate tower just north of the outline"
+    }
+  ]
+}
