@@ -22,7 +22,7 @@ from accuracy_batch3 import (
     load_regions,
     pip,
 )
-from hero_glb import Model, check_glb, fan, wall_ring, write_glb
+from hero_glb import Model, check_glb, fan, sign_quad, wall_ring, write_glb
 from hooiberg_stair import sample_h
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,18 +32,15 @@ MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 ID = "snmain_bars"
 ROAD = "Van de Veen Zeppenfeldstraat"
 NAMES = ["Nano's", "Shirley's", "Hoolo! Beauty Salon", "Bongo Bar"]
-# Painted concrete and a metal awning, the street language already used beside
-# Charlie's. Colours cycle so the row stays a few shared materials. Not a photo.
-WALLS = [
-    (0.72, 0.16, 0.14),
-    (0.22, 0.62, 0.64),
-    (0.90, 0.45, 0.62),
-]
-AWNINGS = [
-    (0.93, 0.88, 0.78),
-    (0.93, 0.72, 0.18),
-    (0.18, 0.32, 0.58),
-]
+# Each front is its own colour and sign. The shared awning kit was the rejection.
+# Colours are the painted-concrete range on this street (Charlie's white-over-black,
+# Fan Bar cream, the peach and pink bars on the side street). Signs are drawn text.
+SPECS = {
+    "Nano's": {"wall": (0.93, 0.92, 0.88), "base": (0.16, 0.12, 0.10), "sign": "NANO'S", "awning": False, "door": (0.32, 0.18, 0.10)},
+    "Shirley's": {"wall": (0.55, 0.72, 0.74), "base": (0.86, 0.84, 0.78), "sign": "SHIRLEY'S", "awning": True, "door": (0.85, 0.85, 0.82)},
+    "Hoolo! Beauty Salon": {"wall": (0.93, 0.72, 0.62), "base": (0.93, 0.72, 0.62), "sign": "HOOLO!", "awning": False, "door": (0.20, 0.32, 0.38)},
+    "Bongo Bar": {"wall": (0.62, 0.16, 0.16), "base": (0.12, 0.18, 0.36), "sign": "BONGO", "awning": False, "door": (0.10, 0.10, 0.10)},
+}
 
 
 def build(roads, buildings):
@@ -95,11 +92,45 @@ def build(roads, buildings):
     trim = M.material("trim", WHITE, 0.75)
     glass = M.material("glass", GLASS, 0.3, double=True)
     roof = M.material("roof", (0.42, 0.40, 0.38), 0.7)
-    mats = []
-    for i in range(len(WALLS)):
-        wall = M.material(f"w{i}", WALLS[i], 0.82)
-        awn = M.material(f"a{i}", AWNINGS[i], 0.55, double=True)
-        mats.append((wall, awn))
+    signmat = M.material("sign", (0.12, 0.12, 0.12), 0.55, textured=True, emissive=0.4)
+    wall_mats = {}
+    door_mats = {}
+    for name, spec in SPECS.items():
+        wall_mats[name] = M.material("w_" + name.split()[0].lower().replace("'", ""), spec["wall"], 0.82)
+        door_mats[name] = M.material("d_" + name.split()[0].lower().replace("'", ""), spec["door"], 0.75)
+    # Two unnamed lots keep their own colours so they are not copies of a named shop.
+    extra_walls = [
+        M.material("w_up_a", (0.90, 0.82, 0.62), 0.82),
+        M.material("w_up_b", (0.86, 0.70, 0.72), 0.82),
+    ]
+    awning = M.material("awning", (0.90, 0.90, 0.88), 0.5, double=True)
+    labels = []
+    for b in chosen:
+        spec = SPECS.get(b.get("n") or "")
+        labels.append(spec["sign"] if spec else "")
+    from accuracy_batch3 import sign_png
+    # One atlas, a slice per shop, so the signs are not the same picture.
+    import io
+    from PIL import Image, ImageDraw, ImageFont
+    font_path = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
+    atlas = Image.new("RGBA", (1024, 128), (20, 18, 16, 255))
+    draw = ImageDraw.Draw(atlas)
+    nslot = max(1, len(labels))
+    slot_w = 1024 // nslot
+    font = ImageFont.truetype(font_path, 64)
+    for i, text in enumerate(labels):
+        if not text:
+            continue
+        size = 64
+        font = ImageFont.truetype(font_path, size)
+        while font.getlength(text) > slot_w - 16 and size > 18:
+            size -= 4
+            font = ImageFont.truetype(font_path, size)
+        tw = font.getlength(text)
+        draw.text((i * slot_w + (slot_w - tw) / 2, (128 - size) / 2 - 2), text, fill=(245, 240, 230, 255), font=font)
+    buf = io.BytesIO()
+    atlas.save(buf, "PNG")
+    png = buf.getvalue()
 
     for lod in (0, 1):
         for i, b in enumerate(chosen):
@@ -119,47 +150,76 @@ def build(roads, buildings):
             dx, dz = c[0] - a[0], c[1] - a[1]
             L = math.hypot(dx, dz) or 1
             oxn, ozn = dz / L, -dx / L
-            wall, awn = mats[i % len(mats)]
+            name = b.get("n") or ""
+            spec = SPECS.get(name)
+            if spec:
+                wall = wall_mats[name]
+                base_c = spec["base"]
+            else:
+                wall = extra_walls[i % 2]
+                base_c = None
             Wm, Rm = M.mesh(lod, wall), M.mesh(lod, roof)
             h = 6.2 if (b.get("h") or 0) >= 6 else 3.7
             wall_ring(Wm, ring, 0.05, h)
             fan(Rm, ring, h + 0.08, up=True)
+            if lod == 0 and base_c and base_c != spec["wall"]:
+                base = M.material(f"base{i}", base_c, 0.85)
+                wall_ring(M.mesh(lod, base), ring, 0.05, 0.85)
             if lod == 0:
                 wall_ring(M.mesh(lod, trim), ring, h - 0.06, h + 0.22)
             if lod == 1:
                 continue
-            Am, Gm = M.mesh(lod, awn), M.mesh(lod, glass)
-            depth = 1.35
-            y0, y1 = 2.15, 2.65
-            a0 = (a[0], y0, a[1])
-            b0 = (c[0], y0, c[1])
-            a1 = (a[0] + oxn * depth, y1, a[1] + ozn * depth)
-            b1 = (c[0] + oxn * depth, y1, c[1] + ozn * depth)
-            Am.quad(a0, b0, b1, a1)
-            Am.quad(
-                a1, b1,
-                (c[0] + oxn * depth, y0 - 0.5, c[1] + ozn * depth),
-                (a[0] + oxn * depth, y0 - 0.5, a[1] + ozn * depth),
-            )
             mx, mz = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
             px, pz = -dz / L, dx / L
+            door_m = door_mats[name] if spec else glass
+            Dm = M.mesh(lod, door_m)
             door = [
-                (mx - px * 0.5 + oxn * 0.06, 0.12, mz - pz * 0.5 + ozn * 0.06),
-                (mx + px * 0.5 + oxn * 0.06, 0.12, mz + pz * 0.5 + ozn * 0.06),
-                (mx + px * 0.5 + oxn * 0.06, 2.2, mz + pz * 0.5 + ozn * 0.06),
-                (mx - px * 0.5 + oxn * 0.06, 2.2, mz - pz * 0.5 + ozn * 0.06),
+                (mx - px * 0.45 + oxn * 0.08, 0.08, mz - pz * 0.45 + ozn * 0.08),
+                (mx + px * 0.45 + oxn * 0.08, 0.08, mz + pz * 0.45 + ozn * 0.08),
+                (mx + px * 0.45 + oxn * 0.08, 2.15, mz + pz * 0.45 + ozn * 0.08),
+                (mx - px * 0.45 + oxn * 0.08, 2.15, mz - pz * 0.45 + ozn * 0.08),
             ]
-            Gm.quad(door[0], door[1], door[2], door[3])
-            span = min(1.6, L * 0.28)
-            for side in (-1, 1):
-                wx, wz = mx + px * side * span, mz + pz * side * span
-                Gm.quad(
-                    (wx - px * 0.32 + oxn * 0.06, 1.15, wz - pz * 0.32 + ozn * 0.06),
-                    (wx + px * 0.32 + oxn * 0.06, 1.15, wz + pz * 0.32 + ozn * 0.06),
-                    (wx + px * 0.32 + oxn * 0.06, 2.0, wz + pz * 0.32 + ozn * 0.06),
-                    (wx - px * 0.32 + oxn * 0.06, 2.0, wz - pz * 0.32 + ozn * 0.06),
+            Dm.quad(door[0], door[1], door[2], door[3])
+            Gm = M.mesh(lod, glass)
+            if h > 5:
+                for side in (-1, 1):
+                    wx, wz = mx + px * side * min(1.4, L * 0.22), mz + pz * side * min(1.4, L * 0.22)
+                    Gm.quad(
+                        (wx - px * 0.4 + oxn * 0.08, 3.5, wz - pz * 0.4 + ozn * 0.08),
+                        (wx + px * 0.4 + oxn * 0.08, 3.5, wz + pz * 0.4 + ozn * 0.08),
+                        (wx + px * 0.4 + oxn * 0.08, 5.2, wz + pz * 0.4 + ozn * 0.08),
+                        (wx - px * 0.4 + oxn * 0.08, 5.2, wz - pz * 0.4 + ozn * 0.08),
+                    )
+            elif spec and spec["awning"]:
+                depth = 1.1
+                y0 = 2.35
+                Am = M.mesh(lod, awning)
+                Am.quad(
+                    (a[0], y0, a[1]), (c[0], y0, c[1]),
+                    (c[0] + oxn * depth, y0 + 0.35, c[1] + ozn * depth),
+                    (a[0] + oxn * depth, y0 + 0.35, a[1] + ozn * depth),
                 )
-    info = write_glb(M, HERO / f"{ID}.glb")
+            else:
+                Gm.quad(
+                    (mx - px * 0.7 + oxn * 0.08, 1.2, mz - pz * 0.7 + ozn * 0.08),
+                    (mx + px * 0.7 + oxn * 0.08, 1.2, mz + pz * 0.7 + ozn * 0.08),
+                    (mx + px * 0.7 + oxn * 0.08, 2.05, mz + pz * 0.7 + ozn * 0.08),
+                    (mx - px * 0.7 + oxn * 0.08, 2.05, mz - pz * 0.7 + ozn * 0.08),
+                )
+            if spec:
+                u0, u1 = i / nslot, (i + 1) / nslot
+                half = min(2.2, L * 0.32)
+                # Screen-left is toward c when standing in the road.
+                left = (mx + px * half + oxn * 0.16, mz + pz * half + ozn * 0.16)
+                right = (mx - px * half + oxn * 0.16, mz - pz * half + ozn * 0.16)
+                top, bot = (2.85 if h < 5 else 3.15), (2.35 if h < 5 else 2.55)
+                Sm = M.mesh(lod, signmat)
+                Sm.quad(
+                    (left[0], top, left[1]), (left[0], bot, left[1]),
+                    (right[0], bot, right[1]), (right[0], top, right[1]),
+                    uvs=((u0, 0), (u0, 1), (u1, 1), (u1, 0)),
+                )
+    info = write_glb(M, HERO / f"{ID}.glb", images=[png])
     check_glb(HERO / f"{ID}.glb")
     y = sample_h(ox, oz, {})
     labels = [b.get("n") or "unnamed" for b in chosen]
@@ -182,7 +242,7 @@ def append_manifest(info, ox, oz, y, hide):
         "glb": f"models/hero/{ID}.glb",
         "lod": {"hi": f"{ID}_lod0", "lo": f"{ID}_lod1", "switch_m": 150},
         "tris": {f"{ID}_lod0": info["lod0"], f"{ID}_lod1": info["lod1"]},
-        "textures": 0,
+        "textures": 1,
         "hide_footprint": [[round(p[0], 2), round(p[1], 2)] for p in hide],
         "hide": [],
         "sign": False,
@@ -190,10 +250,10 @@ def append_manifest(info, ox, oz, y, hide):
         "new_place": False,
         "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
         "ref_sources": (
-            "B. van der Veen Zeppenfeldstraat east of Charlie's Bar is a row of one-storey bars "
-            "and shops: painted concrete, a metal awning, a dark doorway. These four OSM lots "
-            "(Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar) were still generic massing. "
-            "Charlie's, Fan Bar, and the sn_* mural set are unchanged. Geometry only, not a photo."
+            "Zeppenfeldstraat east of Charlie's. Each OSM shop has its own front and a drawn sign: "
+            "Nano's (white over a dark base), Shirley's (blue-green, awning), Hoolo! (peach), "
+            "Bongo Bar (red over blue). The two unnamed lots stay two-storey. "
+            "Charlie's, Fan Bar, and the sn_* mural set are unchanged. Signs are drawn text, not a photo."
         ),
         "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
         "cat": "store",
