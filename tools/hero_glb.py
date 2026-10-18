@@ -169,7 +169,14 @@ def write_glb(model: Model, path, images=None):
     accessors = []
     materials = []
     mat_index = {}
+    used = set()
+    for lod in (0, 1):
+        for mat, mesh in model.lod[lod].items():
+            if mesh.tris:
+                used.add(mat)
     for name, (rgba, rough, double, emissive, textured) in model.mats.items():
+        if name not in used:
+            continue
         m = {
             "name": name,
             "pbrMetallicRoughness": {
