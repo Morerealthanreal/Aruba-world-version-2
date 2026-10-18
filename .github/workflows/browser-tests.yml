@@ -2,6 +2,9 @@ name: Browser tests
 
 on:
   pull_request:
+  push:
+    branches:
+      - cursor/painterly-npc-crowd-a7c0
 
 permissions:
   contents: read

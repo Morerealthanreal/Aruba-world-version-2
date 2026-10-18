@@ -1,7 +1,7 @@
 import {
-  BufferGeometry, Color, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
-  Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader,
-  Vector3, Vector4,
+  BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, FloatType,
+  LinearFilter, LinearMipmapLinearFilter, Matrix4, Mesh, MeshStandardMaterial, RGBAFormat,
+  Skeleton, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader, Vector2, Vector3, Vector4,
   type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
   type WebGLRenderer,
 } from "three";
@@ -9,6 +9,8 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { repairCharacterGeometry } from "./pedestrianRepair";
+import { clothAtlas, clothFoldNormal } from "./npcCloth";
 
 type Shader = {
   uniforms: Record<string, { value: unknown }>;
@@ -30,6 +32,7 @@ export type CharacterPaint = {
   dress: { value: Color };
   portrait: { value: number };
   headInv: { value: Matrix4 };
+  clothRow: { value: number };
 };
 
 export type CharacterMetrics = { draws: number; triangles: number };
@@ -47,7 +50,7 @@ export const CHARACTER_PALETTES: readonly CharacterPalette[] = [
 let loader: GLTFLoader | null = null;
 const sourceCache = new Map<string, Promise<PreparedCharacterSource>>();
 // Shared across every painted character. Afternoon fallback until the live sun is copied in.
-const sunDir = new Vector3(0.2, 0.78, 0.55).normalize();
+export const sunDir = new Vector3(0.2, 0.78, 0.55).normalize();
 const _portraitInv = new Matrix4();
 
 // Bottom-up crop of each painting onto the portrait card (chin at v=0, forehead at v=1).
@@ -70,24 +73,43 @@ function createFaceTexture(): Texture {
 
 const faceTextures = [createFaceTexture(), createFaceTexture(), createFaceTexture()];
 let faceLoad: Promise<void> | null = null;
+let faceRenderer: WebGLRenderer | null = null;
 
-export function loadFacePortraits(): Promise<void> {
-  if (faceLoad) return faceLoad;
-  const loader = new TextureLoader();
-  faceLoad = Promise.all(FACE_FILES.map((file, index) => loader.loadAsync(`./models/faces/${file}`).then((loaded) => {
-    const face = faceTextures[index];
-    face.image = loaded.image;
-    face.colorSpace = SRGBColorSpace;
-    face.flipY = true;
-    face.magFilter = LinearFilter;
-    face.minFilter = LinearMipmapLinearFilter;
-    face.generateMipmaps = true;
-    face.anisotropy = 4;
-    face.needsUpdate = true;
-  }).catch((error) => {
-    console.warn("[aw-characters] face portrait", file, error);
-  }))).then(() => undefined);
-  return faceLoad;
+function uploadFaceTextures() {
+  const renderer = faceRenderer;
+  if (!renderer) return;
+  for (const face of faceTextures) {
+    if (!face.image) continue;
+    try { renderer.initTexture(face); } catch { /* first draw uploads it */ }
+  }
+}
+
+export function loadFacePortraits(renderer?: WebGLRenderer): Promise<void> {
+  if (renderer) faceRenderer = renderer;
+  if (!faceLoad) {
+    const imageLoader = new TextureLoader();
+    faceLoad = Promise.all(FACE_FILES.map((file, index) => imageLoader.loadAsync(`./models/faces/${file}`).then((loaded) => {
+      const face = faceTextures[index];
+      face.image = loaded.image;
+      face.colorSpace = SRGBColorSpace;
+      face.flipY = true;
+      face.magFilter = LinearFilter;
+      face.minFilter = LinearMipmapLinearFilter;
+      face.generateMipmaps = true;
+      face.anisotropy = 4;
+      face.needsUpdate = true;
+      // The loader built a second Texture around the same bitmap. Drop it
+      // before it can upload, or the phone soak counts both.
+      const extra = loaded as Texture & { __awGone?: number };
+      extra.__awGone = 1;
+      extra.dispose();
+    }).catch((error) => {
+      console.warn("[aw-characters] face portrait", file, error);
+    }))).then(() => undefined);
+  }
+  return faceLoad.then(() => {
+    uploadFaceTextures();
+  });
 }
 
 export function findCharacterFace(root: Object3D): { mesh: SkinnedMesh | null; head: Object3D | null } {
@@ -126,7 +148,12 @@ export function setCharacterPortrait(
 }
 
 let faceCardGeo: BufferGeometry | null = null;
-const faceCardMaterials: MeshBasicMaterial[] = [];
+// Card-space cheek used to scale the painting onto the neck. Same crop for the shell.
+const CHEEK_UV = [
+  new Vector2(0.72, 0.50),
+  new Vector2(0.40, 0.50),
+  new Vector2(0.45, 0.48),
+];
 
 function faceCardGeometry(): BufferGeometry {
   if (faceCardGeo) return faceCardGeo;
@@ -164,59 +191,325 @@ function faceCardGeometry(): BufferGeometry {
   return geo;
 }
 
-function faceCardMaterial(kind: number): MeshBasicMaterial {
-  const existing = faceCardMaterials[kind];
-  if (existing) return existing;
+function faceCardMaterial(
+  kind: number,
+  skin: number,
+  skinMap: Texture | null,
+  skinUv: Vector2,
+): MeshStandardMaterial {
   const crop = FACE_CROP[kind];
-  const material = new MeshBasicMaterial({
+  const material = new MeshStandardMaterial({
     map: faceTextures[kind],
-    toneMapped: true,
+    roughness: 0.72,
+    metalness: 0,
     polygonOffset: true,
     polygonOffsetFactor: -3,
     polygonOffsetUnits: -3,
   });
+  const skinColor = new Color(skin);
+  const cheek = CHEEK_UV[kind];
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uAwCrop = { value: crop };
+    shader.uniforms.uAwPedSkin = { value: skinColor };
+    shader.uniforms.uAwSkinMap = { value: skinMap || faceTextures[kind] };
+    shader.uniforms.uAwSkinUv = { value: skinUv };
+    shader.uniforms.uAwCheekUv = { value: cheek };
+    shader.uniforms.uAwSunDir = { value: sunDir };
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying float vAwCard;`,
+      )
+      .replace(
+        "#include <project_vertex>",
+        `#include <project_vertex>
+vAwCard = normalize(mat3(modelViewMatrix) * vec3(0.0, 0.0, 1.0)).z;`,
+      );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
         `#include <common>
-uniform vec4 uAwCrop;`,
+uniform vec4 uAwCrop;
+uniform vec3 uAwPedSkin;
+uniform sampler2D uAwSkinMap;
+uniform vec2 uAwSkinUv;
+uniform vec2 uAwCheekUv;
+uniform vec3 uAwSunDir;
+varying float vAwCard;`,
       )
       .replace(
         "#include <map_fragment>",
         `#include <map_fragment>
-vec2 awC = vMapUv - vec2(0.5, 0.46);
-if ((awC.x * awC.x) / 0.21 + (awC.y * awC.y) / 0.27 > 1.0) discard;
-diffuseColor = vec4(texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw).rgb, 1.0);`,
+vec2 awC = vMapUv - vec2(0.50, 0.42);
+if (vAwCard < 0.4) discard;
+float awEdge = (awC.x * awC.x) / 0.22 + (awC.y * awC.y) / 0.26;
+float awAlpha = 1.0 - smoothstep(0.48, 0.96, awEdge);
+if (awAlpha < 0.03) discard;
+vec3 awNeck = mix(texture2D(uAwSkinMap, uAwSkinUv).rgb * uAwPedSkin, uAwPedSkin, 0.16);
+vec3 awPaint = texture2D(map, uAwCrop.xy + vMapUv * uAwCrop.zw, -0.45).rgb;
+vec3 awCheek = texture2D(map, uAwCrop.xy + uAwCheekUv * uAwCrop.zw).rgb;
+diffuseColor = vec4(awPaint * (awNeck / max(awCheek, vec3(0.045))), awAlpha);
+float awPore = sin(vMapUv.x * 52.0) * sin(vMapUv.y * 40.0);
+diffuseColor.rgb *= 1.0 + 0.035 * awPore;`,
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+float awNdL = dot(normalize(normal), normalize(uAwSunDir));
+float awWrap = clamp(awNdL * 0.5 + 0.55, 0.0, 1.0);
+diffuseColor.rgb *= vec3(1.10, 1.04, 0.98) * (1.24 + 0.10 * awWrap);`,
       );
   };
-  material.customProgramCacheKey = () => "aw-face-card-v1";
-  faceCardMaterials[kind] = material;
+  material.customProgramCacheKey = () => "aw-face-card-v11";
+  material.alphaTest = 0;
+  material.alphaHash = false;
+  material.transparent = true;
+  material.depthWrite = false;
+  material.userData.awPaint = true;
   return material;
 }
 
-export function attachFacePortrait(head: Object3D, faceKind: number): Mesh {
+/** Keep off-screen people out of the fragment pass without clipping a stride or a hair tip. */
+function loosenCulling(mesh: Mesh, pad: number) {
+  const geometry = mesh.geometry;
+  if (!geometry.userData.awCull) {
+    geometry.computeBoundingSphere();
+    const sphere = geometry.boundingSphere;
+    if (sphere) sphere.radius += pad;
+    geometry.userData.awCull = 1;
+  }
+  mesh.frustumCulled = true;
+}
+
+export function attachFacePortrait(
+  head: Object3D,
+  faceKind: number,
+  skin = 0xe7b894,
+  skinMap: Texture | null = null,
+  skinUv: Vector2 = new Vector2(0.375, 0.375),
+): Mesh {
   const kind = ((faceKind % 3) + 3) % 3;
-  const card = new Mesh(faceCardGeometry(), faceCardMaterial(kind));
+  const card = new Mesh(faceCardGeometry(), faceCardMaterial(kind, skin, skinMap, skinUv));
   card.name = "aw:face-portrait";
-  card.frustumCulled = false;
+  loosenCulling(card, 0.04);
   card.renderOrder = 2;
   card.visible = false;
   head.add(card);
   return card;
 }
 
+let ktxLoader: KTX2Loader | null = null;
+let ktxReleased = false;
+
 export function characterLoader(renderer: WebGLRenderer): GLTFLoader {
   if (loader) return loader;
-  const ktx = new KTX2Loader()
+  ktxLoader = new KTX2Loader()
     .setTranscoderPath("./basis/")
-    .setWorkerLimit(2)
+    .setWorkerLimit(1)
     .detectSupport(renderer);
   loader = new GLTFLoader()
     .setMeshoptDecoder(MeshoptDecoder)
-    .setKTX2Loader(ktx);
+    .setKTX2Loader(ktxLoader);
   return loader;
+}
+
+/** Drop the basis workers once every crowd atlas has decoded. The textures stay. */
+export function releaseCharacterLoader() {
+  if (ktxReleased) return;
+  ktxReleased = true;
+  ktxLoader?.dispose();
+  ktxLoader = null;
+}
+
+// One bone texture per live skeleton. Three builds a DataTexture the first time
+// a skinned mesh is drawn and never frees it, so a crash scene that spawns and
+// leaves was a new GPU texture per person. The pool reuses those textures.
+const bonePool = new Map<number, DataTexture[]>();
+
+function boneTextureSize(bones: number) {
+  let size = Math.sqrt(bones * 4);
+  size = Math.ceil(size / 4) * 4;
+  return Math.max(size, 4);
+}
+
+function retireTexture(texture: Texture | null | undefined) {
+  if (!texture) return;
+  (texture as Texture & { __awGone?: number }).__awGone = 1;
+  texture.dispose();
+}
+
+type BoneHost = {
+  bones: { length: number };
+  boneMatrices: Float32Array | null;
+  boneTexture: DataTexture | null;
+};
+
+function assignPooledBoneTexture(skeleton: BoneHost) {
+  const size = boneTextureSize(skeleton.bones.length);
+  const current = skeleton.boneTexture;
+  if (current?.userData?.awBonePool === size) {
+    const data = (current.image as { data?: Float32Array }).data;
+    if (data && skeleton.boneMatrices && skeleton.boneMatrices !== data) {
+      data.set(skeleton.boneMatrices.subarray(0, Math.min(data.length, skeleton.boneMatrices.length)));
+      skeleton.boneMatrices = data;
+    }
+    current.needsUpdate = true;
+    return;
+  }
+  if (current) retireTexture(current);
+  const free = bonePool.get(size) || [];
+  bonePool.set(size, free);
+  let texture = free.pop();
+  if (!texture) {
+    const matrices = new Float32Array(size * size * 4);
+    if (skeleton.boneMatrices?.length) {
+      matrices.set(skeleton.boneMatrices.subarray(0, Math.min(matrices.length, skeleton.boneMatrices.length)));
+    }
+    texture = new DataTexture(matrices, size, size, RGBAFormat, FloatType);
+    texture.name = "aw:character-bones";
+    texture.userData.awBonePool = size;
+    texture.needsUpdate = true;
+  } else if (skeleton.boneMatrices?.length) {
+    const data = (texture.image as { data: Float32Array }).data;
+    data.set(skeleton.boneMatrices.subarray(0, Math.min(data.length, skeleton.boneMatrices.length)));
+    texture.needsUpdate = true;
+  }
+  skeleton.boneMatrices = (texture.image as { data: Float32Array }).data;
+  skeleton.boneTexture = texture;
+}
+
+function patchSkeletonProto(proto: { computeBoneTexture?: () => unknown; __awBonePool?: number } | null) {
+  if (!proto || proto.__awBonePool || typeof proto.computeBoneTexture !== "function") return;
+  proto.__awBonePool = 1;
+  proto.computeBoneTexture = function (this: BoneHost) {
+    assignPooledBoneTexture(this);
+    return this;
+  };
+}
+
+patchSkeletonProto(Skeleton.prototype as unknown as { computeBoneTexture?: () => unknown; __awBonePool?: number });
+
+/** Three allocates a fresh bone texture the first time a skinned mesh is drawn. Fold those into the pool. */
+export function adoptSceneBoneTextures(root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (!mesh.isSkinnedMesh || !mesh.skeleton) return;
+    patchSkeletonProto(Object.getPrototypeOf(mesh.skeleton));
+    if (!mesh.skeleton.boneTexture?.userData?.awBonePool) {
+      assignPooledBoneTexture(mesh.skeleton as unknown as BoneHost);
+    }
+  });
+}
+
+/** Give every skinned mesh in the rig a pooled bone texture and upload it now. */
+export function acquireCharacterBones(root: Object3D, renderer?: WebGLRenderer | null) {
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (!mesh.isSkinnedMesh || !mesh.skeleton || mesh.userData.awBones) return;
+    const skeleton = mesh.skeleton;
+    const size = boneTextureSize(skeleton.bones.length);
+    const free = bonePool.get(size) || [];
+    bonePool.set(size, free);
+    let texture = free.pop();
+    if (!texture) {
+      const matrices = new Float32Array(size * size * 4);
+      if (skeleton.boneMatrices?.length) matrices.set(skeleton.boneMatrices);
+      texture = new DataTexture(matrices, size, size, RGBAFormat, FloatType);
+      texture.name = "aw:character-bones";
+      texture.userData.awBonePool = size;
+      texture.needsUpdate = true;
+      if (renderer) {
+        try { renderer.initTexture(texture); } catch { /* first draw uploads it */ }
+      }
+    }
+    const previous = skeleton.boneTexture;
+    if (previous && previous !== texture) {
+      const pooled = previous.userData?.awBonePool as number | undefined;
+      if (pooled) {
+        const list = bonePool.get(pooled) || [];
+        list.push(previous);
+        bonePool.set(pooled, list);
+      } else retireTexture(previous);
+    }
+    const image = texture.image as { data: Float32Array };
+    skeleton.boneMatrices = image.data;
+    skeleton.boneTexture = texture;
+    mesh.userData.awBones = 1;
+  });
+}
+
+/** Return pooled bone textures when a rig leaves the scene. The GPU entry stays. */
+export function releaseCharacterBones(root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (!mesh.isSkinnedMesh || !mesh.skeleton) return;
+    const texture = mesh.skeleton.boneTexture;
+    mesh.userData.awBones = 0;
+    mesh.skeleton.boneTexture = null;
+    mesh.skeleton.boneMatrices = new Float32Array(Math.max(1, mesh.skeleton.bones.length) * 16);
+    if (!texture) return;
+    const size = texture.userData?.awBonePool as number | undefined;
+    if (size) {
+      const free = bonePool.get(size) || [];
+      free.push(texture);
+      bonePool.set(size, free);
+    } else retireTexture(texture);
+  });
+}
+
+const MAP_SLOTS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap"] as const;
+
+/**
+ * The base game loads a full ped GLB per person and clones a material per mesh.
+ * Those rigs are removed from the crowd; free their textures so they are not
+ * uploaded on a later drive past the same town.
+ */
+export function disposeForeignCharacter(root: Object3D) {
+  const textures = new Set<Texture>();
+  const geometries = new Set<BufferGeometry>();
+  root.traverse((object) => {
+    const mesh = object as Mesh;
+    if (mesh.isMesh) {
+      if (mesh.geometry) geometries.add(mesh.geometry);
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of materials) {
+        if (!material) continue;
+        const maps = material as unknown as Record<string, Texture | null | undefined>;
+        for (const slot of MAP_SLOTS) {
+          const map = maps[slot];
+          if (map?.isTexture) textures.add(map);
+        }
+        material.dispose();
+      }
+    }
+    const skinned = object as SkinnedMesh;
+    if (skinned.isSkinnedMesh && skinned.skeleton?.boneTexture) {
+      const texture = skinned.skeleton.boneTexture;
+      skinned.skeleton.boneTexture = null;
+      if (texture.userData?.awBonePool) {
+        const size = texture.userData.awBonePool as number;
+        const free = bonePool.get(size) || [];
+        free.push(texture);
+        bonePool.set(size, free);
+      } else textures.add(texture);
+    }
+  });
+  for (const texture of textures) retireTexture(texture);
+  for (const geometry of geometries) geometry.dispose();
+}
+
+function warmCharacterTextures(renderer: WebGLRenderer, root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as Mesh;
+    if (!mesh.isMesh) return;
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const material of materials) {
+      const map = (material as MeshStandardMaterial).map;
+      if (!map?.image) continue;
+      try { renderer.initTexture(map); } catch { /* first draw uploads it */ }
+    }
+  });
 }
 
 export function loadCharacterSource(
@@ -225,10 +518,11 @@ export function loadCharacterSource(
 ): Promise<PreparedCharacterSource> {
   let source = sourceCache.get(file);
   if (!source) {
-    source = characterLoader(renderer).loadAsync(`./models/${file}`).then((gl) => ({
-      gl,
-      metrics: prepareCharacterSource(gl),
-    }));
+    source = characterLoader(renderer).loadAsync(`./models/${file}`).then((gl) => {
+      const metrics = prepareCharacterSource(gl);
+      warmCharacterTextures(renderer, gl.scene);
+      return { gl, metrics };
+    });
     sourceCache.set(file, source);
   }
   return source;
@@ -305,6 +599,15 @@ export function prepareCharacterSource(gl: GLTF): CharacterMetrics {
     parent.add(merged);
   }
 
+  gl.scene.updateMatrixWorld(true);
+  gl.scene.traverse((object) => {
+    const skinned = object as SkinnedMesh;
+    if (!skinned.isSkinnedMesh) return;
+    // Near sources are the heavy GLBs. Mid stays on mittens so the crowd stays cheap.
+    if (triangles(skinned) > 4500) skinned.userData.awDetailHands = true;
+    repairCharacterGeometry(skinned);
+  });
+
   let draws = 0;
   let triangleCount = 0;
   gl.scene.traverse((object) => {
@@ -324,7 +627,16 @@ function tileCondition(tiles: unknown, variable: string) {
   return tiles.map((tile) => `abs(${variable} - ${Number(tile).toFixed(1)}) < 0.25`).join(" || ");
 }
 
-function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, phase: number) {
+function paintMaterial(
+  source: MeshStandardMaterial,
+  palette: CharacterPalette,
+  phase: number,
+  part: "body" | "hair" | "head" = "body",
+  faceKind = 0,
+  clothRow = 0,
+) {
+  const hairVolume = part === "hair";
+  const solidSkin = part === "head";
   const material = source.clone();
   const metadata = source.userData.awPainterly as {
     grid?: number;
@@ -342,10 +654,20 @@ function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, 
     dress: { value: new Color(palette.dress).multiplyScalar(1.35) },
     portrait: { value: 0 },
     headInv: { value: new Matrix4() },
+    clothRow: { value: clothRow },
   };
   material.roughness = 0.72;
   material.metalness = 0;
-  material.alphaTest = Math.max(material.alphaTest, 0.24);
+  material.transparent = false;
+  material.opacity = 1;
+  material.depthWrite = true;
+  material.alphaToCoverage = false;
+  material.alphaHash = false;
+  if (hairVolume) material.side = DoubleSide;
+  // Alpha-to-coverage on a masked atlas turns shoulders and hands into dots.
+  // Short-hair cards are cut in the shader with a literal cutoff, so this
+  // stays 0 and the high-quality pass never enables coverage on skin.
+  material.alphaTest = 0;
   material.userData.awPaint = uniforms;
   const hairVertex = tileCondition(tiles.hair, "awVertexTile");
   const dressVertex = tileCondition(tiles.dress, "awVertexTile");
@@ -368,6 +690,15 @@ function paintMaterial(source: MeshStandardMaterial, palette: CharacterPalette, 
     s.uniforms.uAwSunDir = { value: sunDir };
     s.uniforms.uAwHeadInv = uniforms.headInv;
     s.uniforms.uAwPortrait = uniforms.portrait;
+    s.uniforms.uAwClothRow = uniforms.clothRow;
+    s.uniforms.uAwClothMap = { value: clothAtlas() };
+    s.uniforms.uAwFoldN = { value: clothFoldNormal() };
+    if (solidSkin) {
+      const kind = ((faceKind % 3) + 3) % 3;
+      s.uniforms.uAwFaceMap = { value: faceTextures[kind] };
+      s.uniforms.uAwFaceCrop = { value: FACE_CROP[kind] };
+      s.uniforms.uAwCheekUv = { value: CHEEK_UV[kind] };
+    }
     s.vertexShader = s.vertexShader
       .replace(
         "#include <common>",
@@ -376,7 +707,9 @@ uniform float uAwPedTime;
 uniform float uAwPedPhase;
 uniform vec3 uAwSunDir;
 uniform mat4 uAwHeadInv;
-varying vec3 vAwHead;`,
+varying vec3 vAwHead;
+varying float vAwFaceDot;
+${solidSkin ? "varying vec3 vAwShellP;\nvarying vec3 vAwShellN;" : ""}`,
       )
       .replace(
         "#include <begin_vertex>",
@@ -385,20 +718,23 @@ float awVertexTile = floor(uv.x * ${grid.toFixed(1)}) + ${grid.toFixed(1)} * flo
 if (${hairVertex}) {
   float awHairAlong = fract(uv.y * ${grid.toFixed(1)});
   float awHairFlex = smoothstep(0.12, 0.92, awHairAlong);
-  transformed.x += sin(uAwPedTime * 1.45 + uAwPedPhase + uv.y * 48.0) * 0.016 * awHairFlex;
-  transformed.z += cos(uAwPedTime * 1.05 + uAwPedPhase * 0.8) * 0.007 * awHairFlex;
+  transformed.x += sin(uAwPedTime * 1.45 + uAwPedPhase + uv.y * 48.0) * 0.024 * awHairFlex;
+  transformed.z += cos(uAwPedTime * 1.05 + uAwPedPhase * 0.8) * 0.012 * awHairFlex;
 }
 if (${dressVertex}) {
   float awDressAlong = fract(uv.y * ${grid.toFixed(1)});
   float awDressFlex = smoothstep(0.18, 0.88, awDressAlong);
   transformed.x += sin(uAwPedTime * 1.25 + uAwPedPhase + position.y * 9.0) * 0.02 * awDressFlex;
   transformed.z += cos(uAwPedTime * 0.85 + uAwPedPhase) * 0.008 * awDressFlex;
-}`,
+}
+${solidSkin ? "vAwShellP = position;\nvAwShellN = normal;" : ""}`,
       )
       .replace(
         "#include <project_vertex>",
         `#include <project_vertex>
-vAwHead = (uAwHeadInv * vec4(transformed, 1.0)).xyz;`,
+vAwHead = (uAwHeadInv * vec4(transformed, 1.0)).xyz;
+vec3 awCamHead = (uAwHeadInv * inverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
+vAwFaceDot = awCamHead.z / max(length(awCamHead), 0.001);`,
       );
     s.fragmentShader = s.fragmentShader
       .replace(
@@ -411,55 +747,156 @@ uniform vec3 uAwPedBottom;
 uniform vec3 uAwPedDress;
 uniform vec3 uAwSunDir;
 uniform float uAwPortrait;
-varying vec3 vAwHead;`,
+uniform float uAwClothRow;
+uniform sampler2D uAwClothMap;
+uniform sampler2D uAwFoldN;
+varying vec3 vAwHead;
+varying float vAwFaceDot;
+${solidSkin ? "uniform sampler2D uAwFaceMap;\nuniform vec4 uAwFaceCrop;\nuniform vec2 uAwCheekUv;\nvarying vec3 vAwShellP;\nvarying vec3 vAwShellN;\nvec3 awShellPaint = vec3(0.0);\nfloat awShellMask = 0.0;" : ""}`,
       )
       .replace(
         "#include <map_fragment>",
-        `#include <map_fragment>
+        `#ifdef USE_MAP
+vec4 sampledDiffuseColor = texture2D(map, vMapUv, -0.4);
+diffuseColor *= sampledDiffuseColor;
+#endif
 float awTile = floor(vMapUv.x * ${grid.toFixed(1)}) + ${grid.toFixed(1)} * floor(vMapUv.y * ${grid.toFixed(1)});
 float awFace = 0.0;
 if (uAwPortrait > 0.5) {
   vec2 awP = vAwHead.xy - vec2(0.0, 0.012);
   float awOval = (awP.x * awP.x) / 0.003844 + (awP.y * awP.y) / 0.007744;
   awFace = smoothstep(0.015, 0.06, vAwHead.z) * (1.0 - smoothstep(0.78, 1.2, awOval));
-  float awCut = (awP.x * awP.x) / 0.0036 + (awP.y * awP.y) / 0.0196;
-  if (awCut < 1.0 && vAwHead.z > -0.04 && vAwHead.y > -0.082) discard;
 }
-if (${skinFragment}) {
-  diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
-  if (awFace > 0.15) {
-    diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, 0.78);
-    diffuseColor.a = 1.0;
-  }
-} else if (${hairFragment}) {
-  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair, 0.84);
+${solidSkin ? `if (true) {
+  vec3 awNeck = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.62);
+  float awU = clamp(vAwShellP.x / 0.150 + 0.50, 0.0, 1.0);
+  float awV = clamp((vAwShellP.y + 0.062) / 0.188, 0.0, 1.0);
+  vec2 awC = vec2(awU, awV) - vec2(0.50, 0.42);
+  float awOval = (awC.x * awC.x) / 0.32 + (awC.y * awC.y) / 0.50;
+  awShellMask = smoothstep(0.0, 0.04, vAwShellP.z) * (1.0 - smoothstep(0.90, 1.35, awOval));
+  awShellMask *= 1.0 - smoothstep(-0.02, -0.09, vAwShellP.y);
+  awShellPaint = texture2D(uAwFaceMap, uAwFaceCrop.xy + vec2(awU, awV) * uAwFaceCrop.zw, 0.15).rgb;
+  vec3 awCheek = texture2D(uAwFaceMap, uAwFaceCrop.xy + uAwCheekUv * uAwFaceCrop.zw, 0.9).rgb;
+  vec3 awMatch = awNeck / max(awCheek, vec3(0.045));
+  awShellPaint *= awMatch;
+  awShellPaint = mix(uAwPedSkin, awShellPaint, 0.78);
+  float awPaintGrad = smoothstep(0.08, 0.82, awV);
+  awShellPaint = mix(awShellPaint * vec3(1.10, 0.86, 0.74), awShellPaint * vec3(1.02, 0.97, 0.92), awPaintGrad);
+  diffuseColor.rgb = mix(awNeck, awShellPaint, awShellMask);
+  float awRose = max(
+    smoothstep(0.28, 0.04, length(vec2(awU, awV) - vec2(0.32, 0.42))),
+    smoothstep(0.28, 0.04, length(vec2(awU, awV) - vec2(0.68, 0.42))));
+  float awEar = max(
+    smoothstep(0.18, 0.02, length(vec2(awU, awV) - vec2(0.08, 0.48))),
+    smoothstep(0.18, 0.02, length(vec2(awU, awV) - vec2(0.92, 0.48))));
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.22, 0.62, 0.52), (awRose * 0.34 + awEar * 0.24) * awShellMask);
+  float awChin = smoothstep(0.01, -0.12, vAwShellP.y) * (1.0 - awShellMask);
+  diffuseColor.rgb = mix(diffuseColor.rgb, awNeck * vec3(0.84, 0.74, 0.68), awChin);
+  float awHairline = smoothstep(0.66, 0.94, awV) * smoothstep(0.0, 0.06, vAwShellP.z);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedHair * vec3(0.70, 0.56, 0.44), awHairline * 0.42);
   diffuseColor.a = 1.0;
-} else if (${topFragment}) diffuseColor.rgb *= uAwPedTop;
-else if (${bottomFragment}) diffuseColor.rgb *= uAwPedBottom;
-else if (${dressFragment}) diffuseColor.rgb *= uAwPedDress;`,
+} else ` : ""}if (${skinFragment}) {
+  vec3 awSkinLit = mix(diffuseColor.rgb * uAwPedSkin, uAwPedSkin, 0.16);
+  diffuseColor.rgb = mix(uAwPedSkin, awSkinLit, smoothstep(0.15, 0.55, diffuseColor.a));
+  diffuseColor.rgb *= 1.0 + 0.016 * sin(fract(vMapUv.x * ${grid.toFixed(1)}) * 36.0) * sin(fract(vMapUv.y * ${grid.toFixed(1)}) * 22.0);
+  diffuseColor.rgb *= vec3(1.045, 0.975, 0.925);
+  if (awFace > 0.15) {
+    float awCheekL = smoothstep(0.09, 0.02, length(vAwHead.xy - vec2(-0.038, 0.004)));
+    float awCheekR = smoothstep(0.09, 0.02, length(vAwHead.xy - vec2(0.038, 0.004)));
+    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.14, 0.76, 0.66), 0.35 * max(awCheekL, awCheekR));
+    diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, 0.45);
+  }
+  float awSkull = 1.0 - smoothstep(0.12, 0.24, length(vAwHead - vec3(0.0, 0.02, 0.01)));
+  if (uAwPortrait > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, uAwPedSkin, awSkull);
+  diffuseColor.a = 1.0;
+} else if (${hairFragment}) {
+  float awAround = fract(vMapUv.x * ${grid.toFixed(1)});
+  float awAlong = fract(vMapUv.y * ${grid.toFixed(1)});
+  float awFiber = 0.5 + 0.5 * sin(awAround * 31.4 + awAlong * 7.5);
+  float awStrand = 0.5 + 0.5 * sin(awAlong * 118.0 + awAround * 19.0);
+  float awFine = sin(awAlong * 210.0 + awAround * 28.0);
+  vec3 awHair = uAwPedHair * (0.28 + 1.05 * awFiber);
+  awHair *= mix(0.62, 1.18, awStrand);
+  awHair *= 1.0 + 0.11 * awFine;
+  awHair += uAwPedHair * vec3(1.35, 0.72, 0.28) * pow(awFiber, 3.0) * 0.22;
+  diffuseColor.rgb = mix(diffuseColor.rgb * uAwPedHair, awHair, 0.88);
+  ${hairVolume ? "diffuseColor.a = 1.0;" : ""}
+} else if (${dressFragment}) {
+  float awWeave = texture2D(uAwClothMap, vec2(fract(vMapUv.x * 7.0), (floor(uAwClothRow) + fract(vMapUv.y * 4.0)) / 12.0)).r;
+  diffuseColor.rgb = uAwPedDress * (0.78 + 0.14 * awWeave);
+  diffuseColor.a = 1.0;
+} else if ((${topFragment}) || (${bottomFragment})) {
+  vec3 awCloth = (${topFragment}) ? uAwPedTop : uAwPedBottom;
+  vec3 awClothLit = diffuseColor.rgb * awCloth;
+  diffuseColor.rgb = mix(awCloth * 0.70, awClothLit, smoothstep(0.15, 0.55, diffuseColor.a));
+  float awWeave = texture2D(uAwClothMap, vec2(fract(vMapUv.x * 7.0), (floor(uAwClothRow) + fract(vMapUv.y * 4.0)) / 12.0)).r;
+  float awClothAlong = fract(vMapUv.y * ${grid.toFixed(1)});
+  float awClothAround = fract(vMapUv.x * ${grid.toFixed(1)});
+  float awShade = dot(awClothLit, vec3(0.25, 0.55, 0.2));
+  float awFold = sin(awClothAlong * 2.05 + awClothAround * 0.75);
+  float awPlane = smoothstep(-0.2, 0.8, awFold);
+  float awStitch = smoothstep(0.82, 0.98, sin(awClothAlong * 48.0) * sin(awClothAround * 18.0));
+  diffuseColor.rgb = awCloth * (0.58 + awShade * 0.85) * (0.78 + 0.28 * awWeave) * mix(0.72, 1.12, awPlane);
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.55, 0.36, 0.22), awStitch * 0.35);
+  diffuseColor.a = 1.0;
+} else if (${detailFragment}) {
+  diffuseColor.a = 1.0;
+}
+${hairVolume ? "diffuseColor.a = 1.0;" : "if (!(" + hairFragment + ")) diffuseColor.a = 1.0;"}
+`
+      )
+      .replace(
+        "#include <alphatest_fragment>",
+        hairVolume || solidSkin
+          ? "#include <alphatest_fragment>"
+          : `if ((${hairFragment}) && diffuseColor.a < 0.24) discard;`,
       )
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
 vec3 awN = normalize(normal);
+if (${dressFragment}) {
+  vec3 awFold = texture2D(uAwFoldN, vec2(fract(vMapUv.x * ${grid.toFixed(1)}), fract(vMapUv.y * ${grid.toFixed(1)}))).xyz * 2.0 - 1.0;
+  awN = normalize(awN + vec3(awFold.x, awFold.y * 0.45, awFold.z) * 0.85);
+} else if ((${topFragment}) || (${bottomFragment})) {
+  float awAlong = fract(vMapUv.y * ${grid.toFixed(1)});
+  float awAround = fract(vMapUv.x * ${grid.toFixed(1)});
+  awN = normalize(awN + vec3(cos(awAround * 9.4) * 0.22, sin(awAlong * 4.2) * 0.18, sin(awAround * 9.4) * 0.22));
+}
 vec3 awSun = normalize(uAwSunDir);
 float awNdL = dot(awN, awSun);
-float awWrap = clamp(awNdL * 0.5 + 0.55, 0.0, 1.0);
-float awRim = pow(1.0 - clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0), 2.05);
+float awWrap = clamp(awNdL * 0.42 + 0.58, 0.0, 1.0);
+if (${dressFragment}) awWrap = clamp(awNdL * 0.22 + 0.78, 0.0, 1.0);
+float awRim = pow(1.0 - clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0), 1.65);
 float awBack = clamp(-awNdL, 0.0, 1.0);
-vec3 awGold = vec3(1.0, 0.58, 0.22);
-float awGrade = mix(0.78 + 0.28 * awWrap, 0.98 + 0.06 * awWrap, clamp(awFace, 0.0, 1.0));
-diffuseColor.rgb *= vec3(1.05, 0.98, 0.9) * awGrade;
-float awRimAmt = mix(0.16 + 0.95 * awBack, 0.05 + 0.12 * awBack, clamp(awFace, 0.0, 1.0));
-totalEmissiveRadiance += awGold * awRim * awRimAmt;
-if (${hairFragment} && awFace < 0.25) totalEmissiveRadiance += awGold * awRim * 0.28;`,
+float awLow = smoothstep(0.58, 0.08, awSun.y);
+vec3 awGold = mix(vec3(1.0, 0.70, 0.38), vec3(1.28, 0.58, 0.18), awLow);
+vec3 awKey = mix(vec3(1.04, 0.97, 0.90), vec3(1.24, 0.72, 0.36), awLow);
+float awGrade = 0.86 + 0.20 * awWrap;
+if (${dressFragment}) awGrade = 1.02 + 0.38 * awWrap;
+${solidSkin ? "awGrade = 1.02 + 0.06 * awWrap;" : ""}
+diffuseColor.rgb *= awKey * awGrade;
+if (${skinFragment} || ${solidSkin ? "true" : "false"}) roughnessFactor = max(roughnessFactor, 0.9);
+if (${detailFragment}) { metalnessFactor = 0.84; roughnessFactor = 0.16; }
+float awRimAmt = mix(0.06, 0.28, awLow) + awBack * mix(0.10, 0.62, awLow);
+if (${dressFragment}) totalEmissiveRadiance += uAwPedDress * pow(awWrap, 1.5) * 0.14;
+if (!(${hairFragment})) totalEmissiveRadiance += awGold * awRim * awRimAmt;
+if (${skinFragment} || ${solidSkin ? "true" : "false"}) totalEmissiveRadiance += vec3(1.05, 0.28, 0.10) * smoothstep(0.4, -0.35, awNdL) * mix(0.16, 0.40, awLow);
+${solidSkin ? "totalEmissiveRadiance += vec3(0.95, 0.42, 0.18) * smoothstep(0.2, -0.55, awNdL) * awShellMask * 0.22;" : ""}
+if (${detailFragment}) totalEmissiveRadiance += awGold * pow(clamp(awNdL, 0.0, 1.0), 5.0) * mix(0.12, 0.34, awLow);
+if (${hairFragment} && awFace < 0.25) {
+  float awAround = fract(vMapUv.x * ${grid.toFixed(1)});
+  float awAlong = fract(vMapUv.y * ${grid.toFixed(1)});
+  float awFiber = 0.5 + 0.5 * sin(awAround * 31.4 + awAlong * 7.5);
+  totalEmissiveRadiance += vec3(0.62, 0.32, 0.08) * pow(awFiber, 2.2) * awWrap * mix(0.25, 1.0, awLow);
+}`,
       );
   };
   const shaderVariant = [
     grid, hairVertex, dressVertex, skinFragment, hairFragment, detailFragment,
     topFragment, bottomFragment, dressFragment,
   ].join("|");
-  material.customProgramCacheKey = () => `aw-painterly-character-v6:${shaderVariant}`;
+  material.customProgramCacheKey = () => `aw-painterly-character-v30:${part}:${shaderVariant}`;
   material.needsUpdate = true;
   return { material, uniforms };
 }
@@ -470,23 +907,39 @@ export function styleCharacter(
   phase: number,
   faceKind = 0,
   withPortrait = false,
+  clothRow = 0,
 ): CharacterPaint[] {
   const paints: CharacterPaint[] = [];
   root.traverse((object) => {
     const mesh = object as Mesh;
-    if (!mesh.isMesh) return;
+    if (!mesh.isMesh || mesh.name === "aw:face-portrait") return;
     const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
-    const { material, uniforms } = paintMaterial(source, palette, phase);
+    const part = mesh.name === "aw:hair" ? "hair" : mesh.name === "aw:head-shell" ? "head" : "body";
+    const { material, uniforms } = paintMaterial(source, palette, phase, part, faceKind, clothRow);
     mesh.material = material;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
+    loosenCulling(mesh, part === "body" ? 1.1 : 0.12);
     paints.push(uniforms);
   });
   if (withPortrait) {
     const face = findCharacterFace(root);
     if (face.head && !face.head.children.some((child) => child.name === "aw:face-portrait")) {
-      attachFacePortrait(face.head, faceKind);
+      let atlas: Texture | null = null;
+      let skinUv = new Vector2(0.375, 0.375);
+      root.traverse((object) => {
+        if (atlas) return;
+        const mesh = object as Mesh;
+        if (!mesh.isMesh) return;
+        const source = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial;
+        if (!source.map) return;
+        atlas = source.map;
+        const meta = source.userData.awPainterly as { grid?: number; tiles?: { skin?: number[] } } | undefined;
+        const grid = meta?.grid || 4;
+        const skinTile = meta?.tiles?.skin?.[0] ?? 5;
+        skinUv = new Vector2(((skinTile % grid) + 0.5) / grid, (Math.floor(skinTile / grid) + 0.5) / grid);
+      });
+      attachFacePortrait(face.head, faceKind, palette.skin, atlas, skinUv);
     }
   }
   return paints;
