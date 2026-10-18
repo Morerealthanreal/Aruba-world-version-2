@@ -49,7 +49,7 @@ import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
-import { Ocean } from "./ocean/ocean";
+import { Ocean } from "./ocean";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { NorthInland } from "./northInland";
@@ -74,10 +74,10 @@ async function main() {
   let ocean: Ocean | null = null;
   if (params.get("ocean") === "1") {
     const qn = (g.real as unknown as { q: { name: string } }).q.name;
-    ocean = new Ocean(1500, qn === "low" ? 96 : 256);
-    ocean.setQuality(qn === "low" ? "low" : qn === "high" ? "high" : "medium");
-    ocean.mesh.position.y = 0.05;
-    g.scene.add(ocean.mesh);
+    const real = g.real as unknown as { heightAt: (x: number, z: number) => number };
+    // Static ocean centred on the Oranjestad coast (FIX 2: depth sampled once from terrain).
+    ocean = new Ocean({ quality: qn === "low" ? "low" : qn === "high" ? "high" : "medium", seaLevel: 0.05, center: { x: -7160, z: 1500 }, extent: 4096, heightFn: (x, z) => real.heightAt(x, z) });
+    g.scene.add(ocean.group);
   }
   const oceanClock = { t: 0 };
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
@@ -161,7 +161,7 @@ async function main() {
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
     if (fly) fly.update(Math.min(dt, 0.1));
-    if (ocean) { oceanClock.t += Math.min(dt, 0.1); ocean.update(oceanClock.t, g.camera.position); }
+    if (ocean) { oceanClock.t += Math.min(dt, 0.1); ocean.update(Math.min(dt, 0.1)); }
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
