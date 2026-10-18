@@ -244,23 +244,41 @@ def add_palm(b, x, z):
 
 
 def add_shrub(b, x, z, scale=1.0):
-    """A low rounded bush in the parking strip. Domes, not a star of sticks."""
+    """A low rounded bush. Latitude rings of a squashed ball, not a cone."""
     g = coast.mesh_height(x, z)
-    layers = ((0.16, 0.62, 0.08), (0.34, 0.78, 0.22), (0.22, 0.42, 0.52))
-    for li, (ry, rad, yoff) in enumerate(layers):
-        y = g + yoff * scale
-        sides = 7
-        mat = "shrub" if li % 2 == 0 else "shrubd"
+    bands, sides = 4, 8
+    rad = 0.72 * scale
+    height = 0.62 * scale
+    base = g + 0.02
+    rings = []
+    for bi in range(bands + 1):
+        t = bi / bands
+        lift = math.sin(t * math.pi)
+        y = base + t * height
+        r = (0.22 + 0.78 * lift) * rad
+        twist = bi * 0.18
         ring = []
         for i in range(sides):
-            ang = i * math.tau / sides + li * 0.3
-            ring.append((x + math.cos(ang) * rad * scale, y, z + math.sin(ang) * rad * scale))
-        crown = (x, y + ry * scale, z)
+            ang = i * math.tau / sides + twist
+            ring.append((x + math.cos(ang) * r, y, z + math.sin(ang) * r))
+        rings.append(ring)
+    for bi in range(bands):
+        mat = "shrub" if bi % 2 == 0 else "shrubd"
         for i in range(sides):
             j = (i + 1) % sides
-            b.tri(0, mat, ring[i], ring[j], crown, (0, 1, 0))
-        if li == 1:
-            b.cyl(1, "shrub", x, g, z, 0.28 * scale, g + 0.55 * scale, 0.16 * scale, 5)
+            a, c = rings[bi][i], rings[bi][j]
+            d, e = rings[bi + 1][j], rings[bi + 1][i]
+            mid = (
+                (a[0] + c[0] + d[0] + e[0]) * 0.25 - x,
+                (a[1] + c[1] + d[1] + e[1]) * 0.25 - (base + height * 0.45),
+                (a[2] + c[2] + d[2] + e[2]) * 0.25 - z,
+            )
+            b.quad(0, mat, [a, c, d, e], mid)
+    cap = (x, base + height + 0.04 * scale, z)
+    for i in range(sides):
+        j = (i + 1) % sides
+        b.tri(0, "shrub", rings[-1][i], rings[-1][j], cap, (0, 1, 0))
+    b.cyl(1, "shrub", x, g, z, 0.34 * scale, g + 0.42 * scale, 0.22 * scale, 6)
 
 
 def add_pad(b, mx, mz, ox, oz, ux, uz, g):
@@ -380,7 +398,7 @@ def build():
             sx = mx - ux * side * 0.9 + out_x * 2.4
             sz = mz - uz * side * 0.9 + out_z * 2.4
             if closest(bravo, sx, sz)[0] > 2.4 and not on_any(polys, sx, sz):
-                add_shrub(b, sx, sz, 0.7)
+                add_shrub(b, sx, sz, 1.0)
                 plants += 1
         hides.append([round(pt[0], 1), round(pt[1], 1)])
 
