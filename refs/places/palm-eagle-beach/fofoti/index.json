@@ -1,0 +1,54 @@
+{
+ "place": "fofoti",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "divi-divi.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "DDJJ",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2019-05-01",
+   "shows": "Eagle Beach divi-divi: a wide dark-green crown leaning seaward over a twisted trunk and exposed roots",
+   "original_path": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "DDJJ; in-game frame Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2019-05-01",
+   "shows": "Side-by-side from about 10 m back: whole grey-brown twisted trunk, exposed roots, small-leaf canopy swept left, near-white sand",
+   "original_path": "refs/places/palm-eagle-beach/fofoti/comparison.jpg"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "DDJJ; in-game frame Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2019-05-01",
+   "shows": "Same-viewpoint compare from the sand, whole tree in frame: grey-brown trunk leaning over a small-leaf crown, white sand, rocks and driftwood",
+   "original_path": "refs/places/palm-eagle-beach/fofoti/compare.jpg"
+  },
+  {
+   "file": "divi-trunk-2015.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Aruba_Divi_Tree.jpg",
+   "license": "CC0",
+   "credit": "sbmeaper1",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2015-12-22",
+   "shows": "Second divi-divi: twisted trunk, exposed roots, and one swept canopy over the sand and sea",
+   "original_path": "https://commons.wikimedia.org/wiki/File:Aruba_Divi_Tree.jpg"
+  }
+ ]
+}

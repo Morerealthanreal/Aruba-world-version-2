@@ -611,8 +611,8 @@ def pole(mesh, h, r=0.07, sides=6):
         j = (i + 1) % sides
         mesh.quad(ring0[i], ring0[j], ring1[j], ring1[i])
 
-def tube(mesh, path, r0, r1, sides=6):
-    """path: list of (x,y,z)."""
+def tube(mesh, path, r0, r1, sides=6, twist=0.0, knot=0.0):
+    """path: list of (x,y,z). twist spins the section; knot pinches the radius."""
     rings = []
     for i, (x, y, z) in enumerate(path):
         if i == 0:
@@ -634,10 +634,10 @@ def tube(mesh, path, r0, r1, sides=6):
         rx, ry, rz = rx / L2, ry / L2, rz / L2
         ux, uy, uz = dy * rz - dz * ry, dz * rx - dx * rz, dx * ry - dy * rx
         t = i / (len(path) - 1)
-        rad = r0 + (r1 - r0) * t
+        rad = (r0 + (r1 - r0) * t) * (1.0 + knot * math.sin(t * math.tau * 2.5 + 0.6))
         ring = []
         for k in range(sides):
-            a = k / sides * math.tau
+            a = k / sides * math.tau + twist * t
             ca, sa = math.cos(a), math.sin(a)
             px = x + (rx * ca + ux * sa) * rad
             py = y + (ry * ca + uy * sa) * rad
@@ -670,27 +670,114 @@ def yaw_quat(yaw):
     return (0, math.sin(h), 0, math.cos(h))
 
 # ---------------------------------------------------------------- prototypes
+def _leaf_pad(mesh, cx, cy, cz, rx, rz, sides):
+    """Flat crown pad. A divi canopy is a horizontal slab, not a ball."""
+    ring = []
+    for i in range(sides):
+        a = i / sides * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(cx + ca * rx, cy, cz + sa * rz, ca, 0.7, sa, 0, 0))
+    c = mesh.v(cx, cy + 0.1, cz, 0, 1, 0, 0.5, 1)
+    for i in range(sides):
+        mesh.tri(c, ring[i], ring[(i + 1) % sides])
+
+def _berry(mesh, cx, cy, cz, r):
+    """A solid bit of canopy so the crown is not a hollow shell."""
+    ico(mesh, cx, cy, cz, r, r * 0.78, r * 0.86)
+
+
+def _leaflet(mesh, x, y, z, nx, ny, nz, w, h):
+    """One small opaque leaf. Many of these break the crown into foliage."""
+    L = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+    nx, ny, nz = nx / L, ny / L, nz / L
+    sx, sy, sz = (1.0, 0.0, 0.0) if abs(ny) > 0.85 else (0.0, 1.0, 0.0)
+    rx, ry, rz = sy * nz - sz * ny, sz * nx - sx * nz, sx * ny - sy * nx
+    L2 = math.sqrt(rx * rx + ry * ry + rz * rz) or 1.0
+    rx, ry, rz = rx / L2, ry / L2, rz / L2
+    ux, uy, uz = ny * rz - nz * ry, nz * rx - nx * rz, nx * ry - ny * rx
+    a = mesh.v(x + rx * w, y + ry * w, z + rz * w, nx, ny, nz, 0, 0.5)
+    b = mesh.v(x - rx * w, y - ry * w, z - rz * w, nx, ny, nz, 1, 0.5)
+    c = mesh.v(x + ux * h, y + uy * h, z + uz * h, nx, ny, nz, 0.5, 1)
+    d = mesh.v(x - ux * h, y - uy * h, z - uz * h, nx, ny, nz, 0.5, 0)
+    mesh.tri(a, c, b)
+    mesh.tri(a, b, d)
+
+
+def _crown(mesh, dense):
+    """Rounded crown of small leaves, swept west off the trunk tip.
+
+    Coordinates are pre-scale. The tip sits near (-2.15, 2.15). A solid core
+    keeps it opaque; the leaves on the outside are what you see.
+    """
+    if not dense:
+        for x, y, z, r in (
+            (-2.40, 2.20, 0.0, 0.42), (-3.15, 2.22, -0.12, 0.40),
+            (-3.85, 2.05, 0.1, 0.36), (-4.40, 1.90, -0.06, 0.28),
+        ):
+            _berry(mesh, x, y, z, r)
+        return
+    cx, cy, cz = -3.35, 2.18, 0.0
+    rx, ry, rz = 1.20, 0.50, 0.62
+    # A fine core. Large berries read as slabs at the postcard distance.
+    for ix in range(-3, 4):
+        for iy in range(-2, 3):
+            for iz in range(-2, 3):
+                x, y, z = ix / 3.0, iy / 2.0, iz / 2.0
+                if x * x + y * y + z * z > 1.02:
+                    continue
+                _berry(mesh, cx + x * rx * 0.78, cy + y * ry * 0.78, cz + z * rz * 0.78, 0.13)
+    for shell, count, lift in ((0.86, 180, 0.0), (1.00, 220, 0.02), (1.08, 160, 0.04)):
+        for i in range(count):
+            y = 1 - (i / (count - 1)) * 2
+            ring = math.sqrt(max(0.0, 1 - y * y))
+            theta = i * 2.399963
+            x, z = math.cos(theta) * ring, math.sin(theta) * ring
+            j = (i * 5 + int(lift * 40)) & 7
+            px = cx + x * rx * shell
+            py = cy + y * ry * shell + lift
+            pz = cz + z * rz * shell
+            _leaflet(mesh, px, py, pz, x, y * 0.35 + 0.25, z, 0.075 + (j & 3) * 0.012, 0.048 + (j >> 2) * 0.01)
+
+
 def build_tree(lod):
-    """Divi-divi: twisted grey trunk, canopy streamed horizontally downwind (west, -X)."""
+    """Divi-divi: thick grey-brown trunk leaning west, roots on the sand, small-leaf crown."""
     bark, leaf = M(), M()
     if lod == 0:
-        path = [(0.0, 0.02, 0.0), (0.12, 0.45, 0.22), (-0.05, 0.95, -0.18),
-                (-0.55, 1.45, 0.12), (-1.35, 1.85, -0.08), (-2.15, 2.05, 0.05),
-                (-2.85, 2.12, -0.04)]
-        tube(bark, path, 0.26, 0.06, 7)
-        for ang, lean in ((0.2, 0.85), (2.0, 0.95), (3.6, 0.7), (5.1, 0.55)):
-            tube(bark, [(0, 0.2, 0), (math.cos(ang) * lean, 0.0, math.sin(ang) * 0.55)], 0.11, 0.035, 4)
-        clumps = [(-1.2, 2.15, 0.15, 0.95, 0.32, 0.72),
-                  (-2.05, 2.22, 0.05, 1.15, 0.30, 0.85),
-                  (-2.85, 2.05, -0.2, 0.85, 0.24, 0.62),
-                  (-1.65, 2.35, -0.45, 0.62, 0.22, 0.5),
-                  (-3.25, 1.95, 0.25, 0.48, 0.18, 0.38)]
-        for c in clumps:
-            ico(leaf, *c)
+        # Base sits to the east. The trunk twists and leans hard toward the
+        # west canopy, which is the right-hand trunk in a view looking north.
+        path = [(0.72, 0.04, 0.12), (0.48, 0.48, -0.38), (0.08, 1.05, 0.42),
+                (-0.42, 1.55, -0.28), (-1.05, 1.95, 0.22), (-1.62, 2.18, -0.16),
+                (-2.15, 2.16, 0.06)]
+        # A thick twist, not a pinched zigzag. Too much knot breaks the trunk into slabs.
+        tube(bark, path, 0.48, 0.13, 12, twist=2.4, knot=0.22)
+        # A spiral ridge so the trunk reads as twisted wood, not a smooth pipe.
+        ridge = []
+        for i, (x, y, z) in enumerate(path):
+            ang = i / (len(path) - 1) * 6.2
+            ridge.append((x + math.cos(ang) * 0.10, y + 0.02, z + math.sin(ang) * 0.10))
+        tube(bark, ridge, 0.09, 0.035, 5, twist=0.6, knot=0.15)
+        # Exposed roots spreading across the sand, thicker where they leave the flare.
+        for ang, reach in ((0.15, 1.55), (0.9, 1.25), (1.7, 1.65), (2.55, 1.15),
+                           (3.4, 1.45), (4.3, 1.05), (5.2, 1.35)):
+            cx, sx = math.cos(ang), math.sin(ang)
+            tube(bark, [
+                (0.10, 0.16, 0.02),
+                (cx * reach * 0.45, 0.05, sx * reach * 0.45),
+                (cx * reach, 0.0, sx * reach),
+            ], 0.16, 0.045, 5, twist=0.8, knot=0.2)
+        for px, py, pz, rad in ((0.35, 0.55, -0.15, 0.16), (-0.15, 1.15, 0.12, 0.13),
+                                (-0.85, 1.7, -0.08, 0.11), (-1.55, 2.05, 0.04, 0.09)):
+            tube(bark, [(px, py, pz), (px - 0.06, py + 0.12, pz + 0.04)], rad, rad * 0.65, 6)
+        _crown(leaf, True)
     else:
-        path = [(0, 0.1, 0), (-0.9, 1.4, 0), (-2.0, 1.95, 0)]
-        tube(bark, path, 0.2, 0.08, 4)
-        ico(leaf, -1.9, 2.05, 0, 1.2, 0.32, 0.75)
+        path = [(0.55, 0.06, 0.08), (-0.15, 0.85, -0.2), (-1.15, 1.65, 0.12), (-2.05, 2.05, -0.04)]
+        tube(bark, path, 0.32, 0.10, 5, twist=2.2, knot=0.35)
+        tube(bark, [(0.05, 0.12, 0.0), (0.7, 0.02, 0.45), (1.25, 0.0, 0.7)], 0.10, 0.04, 4)
+        tube(bark, [(0.05, 0.12, 0.0), (-0.15, 0.02, -0.55), (-0.2, 0.0, -1.05)], 0.09, 0.035, 4)
+        _crown(leaf, False)
+    # The Eagle Beach trees carry the canopy well above the sand.
+    for mesh in (bark, leaf):
+        mesh.p = [v * 1.65 for v in mesh.p]
     return bark, leaf
 
 def _board(mesh, x0, y0, z0, x1, y1, z1, half_w):
