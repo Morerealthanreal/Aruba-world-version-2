@@ -505,10 +505,21 @@ def spots_from_divi(js, blob, mesh):
         raise SystemExit("divi mesh has no bark")
     pos, _ = read_acc(js, blob, prim["attributes"]["POSITION"])
     pts = [(p[0], p[1], p[2]) for p in pos]
-    # Roots sit just above the sand after the earlier lift.
-    ground = [p for p in pts if p[1] < 1.3]
+    # Only the flare. A tree whose base sits below the hero origin has its
+    # whole trunk under y=1.3, and those points would sprout extra trees.
+    roots = []
+    for p in pts:
+        if p[1] > 4.8:
+            continue
+        under = False
+        for q in pts:
+            if q[1] < p[1] - 0.4 and (p[0] - q[0]) ** 2 + (p[2] - q[2]) ** 2 < 2.56:
+                under = True
+                break
+        if not under:
+            roots.append(p)
     found = []
-    for x, y, z in ground:
+    for x, y, z in roots:
         hit = None
         for c in found:
             if math.hypot(x - c[0], z - c[1]) < 4.2:
@@ -522,7 +533,9 @@ def spots_from_divi(js, blob, mesh):
         hit[1] = (hit[1] * n + z) / (n + 1)
         hit[2] = min(hit[2], y)
         hit[3] = n + 1
-    spots = [(c[0], c[1], c[2]) for c in found if c[3] >= 4]
+    # A real flare has a bundle of root verts. The underside of a crown
+    # clump is a local minimum too, but only a dozen verts.
+    spots = [(c[0], c[1], c[2]) for c in found if c[3] >= 16]
     if len(spots) < 3:
         raise SystemExit(f"could not recover grove trunks ({len(spots)})")
     return spots
