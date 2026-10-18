@@ -2,15 +2,16 @@ import * as THREE from 'three';
 import type { BoatInput, WaveHeightFn, TerrainHeightFn, Quality, BoatOptions } from './types';
 import { Wake } from './Wake.ts';
 
+// Waterline samples for a 35 ft sportfisher (beam ~3.2 m, bow at +Z). Equilibrium is still DRAFT.
 const SAMPLE_LOCAL = [
-  new THREE.Vector3(-0.7, 0, 1.4),
-  new THREE.Vector3(0.7, 0, 1.4),
-  new THREE.Vector3(-0.7, 0, -1.4),
-  new THREE.Vector3(0.7, 0, -1.4),
-  new THREE.Vector3(0, 0, 1.8),
-  new THREE.Vector3(0, 0, -1.6),
-  new THREE.Vector3(-0.4, 0, 0),
-  new THREE.Vector3(0.4, 0, 0),
+  new THREE.Vector3(-1.4, 0, 3.6),
+  new THREE.Vector3(1.4, 0, 3.6),
+  new THREE.Vector3(-1.4, 0, -3.4),
+  new THREE.Vector3(1.4, 0, -3.4),
+  new THREE.Vector3(0, 0, 4.8),
+  new THREE.Vector3(0, 0, -4.2),
+  new THREE.Vector3(-0.8, 0, 0.4),
+  new THREE.Vector3(0.8, 0, 0.4),
 ];
 
 /** Hull draft (sample points below the local wave height at rest), metres; less when planing. */
@@ -38,7 +39,7 @@ export class Boat {
   private readonly force = new THREE.Vector3();
   private readonly torque = new THREE.Vector3();
   /** Chase camera: offset behind/above the hull (hull faces +Z), its own smoothed position, look target. */
-  private readonly camOffset = new THREE.Vector3(0, 3.2, -8.5);
+  private readonly camOffset = new THREE.Vector3(0, 5.2, -16);
   private readonly camPos = new THREE.Vector3();
   private readonly camLook = new THREE.Vector3();
   private readonly camTmp = new THREE.Vector3();
@@ -272,48 +273,71 @@ export class Boat {
   }
 
   private buildGeometry(): void {
-    // Hull
-    const hullGeo = new THREE.BoxGeometry(1.6, 0.45, 3.8);
-    const hullMat = new THREE.MeshStandardMaterial({ color: 0x2a5a8a, roughness: 0.6, metalness: 0.1 });
-    const hull = new THREE.Mesh(hullGeo, hullMat);
-    hull.position.y = 0.1;
-    this.group.add(hull);
+    // 35 ft sportfisher of the kind docked at Renaissance Marina (Bertram / Luhrs / Hatteras
+    // charters on L.G. Smith Blvd: white topsides, dark bottom paint, flybridge, outriggers,
+    // cockpit fighting chair). Nose is +Z. The waterline sits on local y = 0.
+    const white = new THREE.MeshStandardMaterial({ color: 0xf4f6f8, roughness: 0.42, metalness: 0.08 });
+    const navy = new THREE.MeshStandardMaterial({ color: 0x142c44, roughness: 0.55, metalness: 0.12 });
+    const glass = new THREE.MeshStandardMaterial({ color: 0x163044, roughness: 0.15, metalness: 0.35 });
+    const teak = new THREE.MeshStandardMaterial({ color: 0x8d6240, roughness: 0.78 });
+    const metal = new THREE.MeshStandardMaterial({ color: 0xc5ccd1, roughness: 0.35, metalness: 0.6 });
+    const cushion = new THREE.MeshStandardMaterial({ color: 0x1f4f86, roughness: 0.7 });
+    const add = (mesh: THREE.Mesh) => { this.group.add(mesh); return mesh; };
 
-    // Bow taper (two wedges approximated by rotated boxes)
-    const bowGeo = new THREE.BoxGeometry(1.4, 0.35, 1.2);
-    const bow = new THREE.Mesh(bowGeo, hullMat);
-    bow.position.set(0, 0.15, 2.2);
-    bow.rotation.x = -0.25;
-    this.group.add(bow);
+    const bottom = add(new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.42, 7.4), navy));
+    bottom.position.set(0, -0.08, 0.15);
+    const topsides = add(new THREE.Mesh(new THREE.BoxGeometry(3.25, 0.72, 7.6), white));
+    topsides.position.set(0, 0.42, 0.05);
+    const bow = add(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 2.3), white));
+    bow.position.set(0, 0.55, 4.35);
+    bow.rotation.x = -0.22;
+    const bowFoot = add(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.32, 1.6), navy));
+    bowFoot.position.set(0, 0.12, 4.15);
+    const foredeck = add(new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.08, 2.4), white));
+    foredeck.position.set(0, 0.82, 2.7);
+    const cockpit = add(new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.08, 3.3), teak));
+    cockpit.position.set(0, 0.55, -1.7);
 
-    // Deck
-    const deckGeo = new THREE.BoxGeometry(1.4, 0.08, 2.6);
-    const deckMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.8 });
-    const deck = new THREE.Mesh(deckGeo, deckMat);
-    deck.position.set(0, 0.38, 0.2);
-    this.group.add(deck);
+    const cabin = add(new THREE.Mesh(new THREE.BoxGeometry(2.55, 1.15, 3.1), white));
+    cabin.position.set(0, 1.35, 1.15);
+    const windshield = add(new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.55, 0.08), glass));
+    windshield.position.set(0, 1.85, 2.68);
+    windshield.rotation.x = -0.35;
+    const sideGlass = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 2.2), glass));
+    sideGlass.position.set(1.26, 1.55, 1.2);
+    const sideGlassL = sideGlass.clone();
+    sideGlassL.position.x = -1.26;
+    this.group.add(sideGlassL);
 
-    // Console
-    const consoleGeo = new THREE.BoxGeometry(0.5, 0.4, 0.4);
-    const consoleMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 });
-    const console = new THREE.Mesh(consoleGeo, consoleMat);
-    console.position.set(0, 0.65, 0.6);
-    this.group.add(console);
-
-    // Outboard motor
-    const motorGeo = new THREE.BoxGeometry(0.25, 0.5, 0.3);
-    const motor = new THREE.Mesh(motorGeo, consoleMat);
-    motor.position.set(0, 0.15, -1.7);
-    this.group.add(motor);
-
-    // Simple seats
-    const seatGeo = new THREE.BoxGeometry(0.45, 0.12, 0.4);
-    const seatMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.7 });
-    for (let i = 0; i < 2; i++) {
-      const seat = new THREE.Mesh(seatGeo, seatMat);
-      seat.position.set(i === 0 ? -0.35 : 0.35, 0.5, -0.2);
-      this.group.add(seat);
+    const bridge = add(new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.12, 1.7), white));
+    bridge.position.set(0, 2.0, 1.05);
+    const helm = add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 0.28), glass));
+    helm.position.set(0.55, 2.28, 1.55);
+    const seat = add(new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.42), cushion));
+    seat.position.set(-0.45, 2.12, 0.85);
+    const hardtop = add(new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.06, 2.0), white));
+    hardtop.position.set(0, 3.15, 0.95);
+    for (const x of [-1.15, 1.15]) {
+      const post = add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.15, 6), metal));
+      post.position.set(x, 2.55, 1.7);
     }
+
+    // Outriggers: long poles aft from the flybridge, the silhouette of a marina sportfisher.
+    for (const side of [-1, 1]) {
+      const pole = add(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.02, 4.6, 5), metal));
+      pole.position.set(side * 1.5, 2.7, -0.6);
+      pole.rotation.z = side * 0.35;
+      pole.rotation.x = 0.85;
+    }
+    const tower = add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.7), metal));
+    tower.position.set(0, 3.45, 0.7);
+
+    const chair = add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.5), cushion));
+    chair.position.set(0, 0.85, -1.5);
+    const chairBack = add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.08), cushion));
+    chairBack.position.set(0, 1.1, -1.74);
+    const transom = add(new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.7, 0.12), white));
+    transom.position.set(0, 0.7, -3.85);
 
     this.group.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) {

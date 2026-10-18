@@ -1,6 +1,7 @@
 // Glue between the SuperGrok Boat and A's game. Off unless ?boat=1.
-// Walk to any beach and a small motorboat is moored just offshore; press E (or tap the prompt) to take it,
-// W/S throttle, A/D rudder, E again near the shore to step off. While aboard the on-foot player rides along
+// The boat is a marina sportfisher moored in the Renaissance Marina basin (L.G. Smith Blvd, Oranjestad),
+// where the real charter fleet sits. Walk the quay and press E (or tap the prompt) to take it,
+// W/S throttle, A/D rudder, E again near a shore to step off. While aboard the on-foot player rides along
 // hidden (S.walk follows the boat). The hull floats on the ocean add-on's CPU waveHeight(x, z, t) when the
 // SuperGrok ocean (?ocean=1) is loaded, else on a small sum-of-sines swell. While aboard, the Boat's chase
 // camera (behind and above the hull) is applied just before each render: A re-places its camera every
@@ -22,6 +23,9 @@ type Game = AGame & {
 };
 
 const SEA = 0;
+/** Renaissance Marina basin, just off the quay. DEM water here is about 0.75 m deep, and the
+ *  promenade is within boarding range to the north. Nose points west, alongside the dock. */
+const MARINA = { x: -7504, z: 148, yaw: -Math.PI / 2 };
 /** Moored boats sit in water at least this deep (hull grounds above -0.35). */
 const MOOR_DEPTH = 0.6;
 /** How far from the boat the player can board it (A's walkable mask stops well short of the waterline). */
@@ -40,7 +44,6 @@ export class BoatHook {
   private readonly wave: WaveHeightFn;
   private readonly prompt: HTMLDivElement;
   private placed = false;
-  private searchT = 0;
   private interactQueued = false;
   private hint = "";
   private hintT = 0;
@@ -105,18 +108,7 @@ export class BoatHook {
     if (boat.isOccupied && S.mode !== "walk") this.leave(null); // switched to car/moto/plane from the boat
 
     if (!boat.isOccupied) {
-      if (S.mode === "walk") {
-        this.searchT -= dt;
-        const far = !this.placed || Math.hypot(boat.position.x - a.x, boat.position.z - a.z) > 250;
-        if (far && this.searchT <= 0) {
-          this.searchT = 0.5;
-          if (this.findWater(a.x, a.z)) {
-            boat.place(this.spot.x, this.spot.z, Math.atan2(this.spot.x - a.x, this.spot.z - a.z));
-            boat.group.visible = true;
-            this.placed = true;
-          }
-        }
-      }
+      if (!this.placed) this.moorAtMarina();
       const near = this.placed && S.mode === "walk" && Math.hypot(boat.position.x - a.x, boat.position.z - a.z) < BOARD_RADIUS;
       if (near && interact) {
         this.board();
@@ -158,7 +150,7 @@ export class BoatHook {
     let text = "";
     if (this.hintT > 0) text = this.hint;
     else if (boat.isOccupied) text = "E: step ashore · W/S throttle · A/D rudder";
-    else if (this.placed && S.mode === "walk" && Math.hypot(boat.position.x - a.x, boat.position.z - a.z) < BOARD_RADIUS) text = "⛵ E: take the boat";
+    else if (this.placed && S.mode === "walk" && Math.hypot(boat.position.x - a.x, boat.position.z - a.z) < BOARD_RADIUS) text = "E: board the marina boat";
     if (this.prompt.textContent !== text) this.prompt.textContent = text;
     const show = text ? "block" : "none";
     if (this.prompt.style.display !== show) this.prompt.style.display = show;
@@ -192,19 +184,25 @@ export class BoatHook {
     }
   }
 
-  /** Nearest mooring spot (deep enough, not under a pier) within 26 m of a point on the coast. */
-  private findWater(x: number, z: number): boolean {
-    for (let r = 4; r <= 26; r += 2) {
-      for (let i = 0; i < 16; i++) {
-        const t = (i / 16) * Math.PI * 2;
-        const px = x + Math.cos(t) * r, pz = z + Math.sin(t) * r;
-        if (SEA - this.hAt(px, pz) >= MOOR_DEPTH && !this.isBlocked(px, pz)) {
-          this.spot.x = px; this.spot.z = pz;
-          return true;
+  /** Tie up in the Renaissance Marina basin. If a pier footprint covers the slip, step out into the basin. */
+  private moorAtMarina(): void {
+    let x = MARINA.x, z = MARINA.z;
+    if (!(SEA - this.hAt(x, z) >= MOOR_DEPTH) || this.isBlocked(x, z)) {
+      let found = false;
+      for (let r = 6; r <= 28 && !found; r += 4) {
+        for (let i = 0; i < 12; i++) {
+          const t = (i / 12) * Math.PI * 2;
+          const px = MARINA.x + Math.cos(t) * r, pz = MARINA.z + Math.sin(t) * r;
+          if (SEA - this.hAt(px, pz) >= MOOR_DEPTH && !this.isBlocked(px, pz)) {
+            x = px; z = pz; found = true; break;
+          }
         }
       }
+      if (!found) return;
     }
-    return false;
+    this.boat.place(x, z, MARINA.yaw);
+    this.boat.group.visible = true;
+    this.placed = true;
   }
 
   /** Nearest walkable dry ground (inside A's mask, not in a building) within reach of the boat. */
