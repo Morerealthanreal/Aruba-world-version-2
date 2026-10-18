@@ -19,10 +19,11 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
-//  8. Region unload frees textures nothing else still references. Heightfields, splats
-//     and sign atlases are uploaded before a sample can miss them, so the loader's
-//     dispose actually drops the GPU count instead of leaving a slot the next visit fills.
-//     Building batches release their geometry and internal textures on the same unload.
+//  8. Region unload frees textures nothing else still references. Every map on a live
+//     region is uploaded before a sample can miss it, so the loader's dispose drops the
+//     GPU count instead of leaving a slot the next visit fills. Building batches release
+//     their geometry and internal textures on the same unload, and a chunk or road mesh
+//     that swaps geometry disposes the previous one.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -78,6 +79,8 @@ export class PerfFixes {
   private freedTex = 0;
   private freedGeo = 0;
   private meshGeo = new WeakMap<Object3D, BufferGeometry>();
+  private watched = new Set<Obj>();
+  private anchored = new WeakSet<Object3D>();
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   inst: TileInstances | null = null;
@@ -367,21 +370,32 @@ export class PerfFixes {
     this.freedGeo += n;
   }
 
-  /** A chunk LOD swap replaces geometry on the same mesh. Dispose the previous one if nothing still draws it. */
+  /** A chunk, road, or batch mesh that gets a new geometry. Dispose the previous one if nothing still draws it. */
   private noteSwaps() {
+    const seen = new Set<Obj>();
     for (const r of this.real.regions.values()) {
       const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; __awTM?: { mesh?: Obj } };
       const meshes: Obj[] = [];
+      r.group?.traverse((o) => { const m = o as Obj; if (m.geometry) meshes.push(m); });
       for (const c of extra.chunks || []) if (c.mesh) meshes.push(c.mesh);
       if (extra.__awTM?.mesh) meshes.push(extra.__awTM.mesh);
       for (const b of r.__awBB || []) if (b.bm.geometry) meshes.push(b.bm as unknown as Obj);
       for (const mesh of meshes) {
+        seen.add(mesh);
+        this.watched.add(mesh);
+        if (mesh.parent) this.anchored.add(mesh);
         const geo = mesh.geometry;
         if (!geo) continue;
         const prev = this.meshGeo.get(mesh);
         if (prev && prev !== geo) this.swapped.add(prev);
         this.meshGeo.set(mesh, geo);
       }
+    }
+    for (const mesh of [...this.watched]) {
+      if (seen.has(mesh) || mesh.parent || !this.anchored.has(mesh)) continue;
+      const geo = this.meshGeo.get(mesh);
+      if (geo) this.swapped.add(geo);
+      this.watched.delete(mesh);
     }
     if (!this.swapped.size) return;
     const live = new Set<BufferGeometry>();
@@ -390,28 +404,17 @@ export class PerfFixes {
     this.swapped.clear();
   }
 
-  /** Region textures that exist during a stop are uploaded before the soak samples,
-   *  so the visit that creates them and the visit that replaces them both count the same slot. */
+  /** Maps on a live region are uploaded before the soak samples, so a later dispose
+   *  drops a slot the sample already counted and the next visit refills that same slot. */
   private warmRegionTextures() {
     for (const r of this.real.regions.values()) {
-      this.uploadNow(r.hf);
-      this.uploadNow(r.splat);
-      this.uploadNow(r.signTex);
+      if (r.state === "loading" || r.state === "failed") continue;
+      for (const tex of this.regionTextures(r)) this.uploadNow(tex);
       for (const b of r.__awBB || []) {
         this.uploadNow(b.bm._matricesTexture);
         this.uploadNow(b.bm._indirectTexture);
         this.uploadNow(b.bm._colorsTexture);
       }
-      const root = r.group;
-      if (!root) continue;
-      root.traverse((o) => {
-        if (o.name !== "signs") return;
-        const mat = (o as Obj).material;
-        if (!mat || Array.isArray(mat)) return;
-        const m = mat as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
-        this.uploadNow(m.map);
-        this.uploadNow(m.emissiveMap);
-      });
     }
   }
 
