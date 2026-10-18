@@ -670,27 +670,49 @@ def yaw_quat(yaw):
     return (0, math.sin(h), 0, math.cos(h))
 
 # ---------------------------------------------------------------- prototypes
+def _leaf_pad(mesh, cx, cy, cz, rx, rz, sides):
+    """Flat crown pad. A divi canopy is a horizontal slab, not a ball."""
+    ring = []
+    for i in range(sides):
+        a = i / sides * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(cx + ca * rx, cy, cz + sa * rz, ca, 0.7, sa, 0, 0))
+    c = mesh.v(cx, cy + 0.1, cz, 0, 1, 0, 0.5, 1)
+    for i in range(sides):
+        mesh.tri(c, ring[i], ring[(i + 1) % sides])
+
 def build_tree(lod):
-    """Divi-divi: twisted grey trunk, canopy streamed horizontally downwind (west, -X)."""
+    """Fofoti / divi-divi: grey twisted trunk, root flare on the sand, crown streamed west."""
     bark, leaf = M(), M()
     if lod == 0:
-        path = [(0.0, 0.02, 0.0), (0.12, 0.45, 0.22), (-0.05, 0.95, -0.18),
-                (-0.55, 1.45, 0.12), (-1.35, 1.85, -0.08), (-2.15, 2.05, 0.05),
-                (-2.85, 2.12, -0.04)]
-        tube(bark, path, 0.26, 0.06, 7)
-        for ang, lean in ((0.2, 0.85), (2.0, 0.95), (3.6, 0.7), (5.1, 0.55)):
-            tube(bark, [(0, 0.2, 0), (math.cos(ang) * lean, 0.0, math.sin(ang) * 0.55)], 0.11, 0.035, 4)
-        clumps = [(-1.2, 2.15, 0.15, 0.95, 0.32, 0.72),
-                  (-2.05, 2.22, 0.05, 1.15, 0.30, 0.85),
-                  (-2.85, 2.05, -0.2, 0.85, 0.24, 0.62),
-                  (-1.65, 2.35, -0.45, 0.62, 0.22, 0.5),
-                  (-3.25, 1.95, 0.25, 0.48, 0.18, 0.38)]
-        for c in clumps:
-            ico(leaf, *c)
+        path = [(0.08, 0.12, 0.02), (-0.02, 0.5, 0.14), (-0.32, 0.92, -0.06),
+                (-0.85, 1.28, 0.1), (-1.45, 1.58, -0.04), (-2.1, 1.78, 0.05), (-2.65, 1.9, -0.02)]
+        tube(bark, path, 0.22, 0.05, 6)
+        for ang, reach in ((0.35, 0.95), (1.6, 0.75), (2.7, 1.05), (4.1, 0.6), (5.2, 0.8)):
+            tube(bark, [
+                (0.04, 0.2, 0.0),
+                (math.cos(ang) * reach * 0.45, 0.05, math.sin(ang) * reach * 0.35),
+                (math.cos(ang) * reach, 0.0, math.sin(ang) * reach * 0.72),
+            ], 0.08, 0.028, 4)
+        tube(bark, [(-1.1, 1.4, 0.04), (-1.65, 1.58, 0.42), (-2.2, 1.66, 0.68)], 0.05, 0.022, 4)
+        for cx, cy, cz, rx, rz in (
+            (-0.85, 1.58, 0.05, 0.85, 0.55),
+            (-1.55, 1.68, -0.02, 1.05, 0.62),
+            (-2.15, 1.62, 0.1, 0.8, 0.5),
+            (-1.2, 1.72, -0.38, 0.5, 0.34),
+            (-1.85, 1.55, 0.42, 0.48, 0.32),
+        ):
+            _leaf_pad(leaf, cx, cy, cz, rx, rz, 8)
+            _leaf_pad(leaf, cx, cy + 0.14, cz, rx * 0.82, rz * 0.82, 8)
     else:
-        path = [(0, 0.1, 0), (-0.9, 1.4, 0), (-2.0, 1.95, 0)]
-        tube(bark, path, 0.2, 0.08, 4)
-        ico(leaf, -1.9, 2.05, 0, 1.2, 0.32, 0.75)
+        path = [(0.05, 0.1, 0), (-0.7, 1.15, 0.05), (-1.7, 1.7, 0)]
+        tube(bark, path, 0.16, 0.06, 4)
+        tube(bark, [(0.0, 0.15, 0), (0.55, 0.02, 0.35), (0.95, 0.0, 0.55)], 0.06, 0.03, 4)
+        _leaf_pad(leaf, -1.7, 1.85, 0.0, 1.15, 0.7, 6)
+    # Phone distance: a 2 m crown sits on the sand. The Eagle Beach trees
+    # carry the canopy about twice that high.
+    for mesh in (bark, leaf):
+        mesh.p = [v * 1.65 for v in mesh.p]
     return bark, leaf
 
 def _board(mesh, x0, y0, z0, x1, y1, z1, half_w):
