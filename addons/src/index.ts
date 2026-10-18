@@ -20,6 +20,7 @@ import { TrafficSystem } from "./trafficLife";
 import { PedestrianCrowds } from "./pedestrians";
 import { attachPlayerLocomotion } from "./locomotion";
 import { WorldAudio } from "./audio";
+import { AudioEngine } from "./audio/audio";
 import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
@@ -88,7 +89,10 @@ async function main() {
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
-  const audio = params.get("audio") !== "0" ? new WorldAudio(g) : null;
+  // ?audio=sg swaps A's world audio for the SuperGrok synth engine (experimental).
+  const audio = params.get("audio") !== "0" && params.get("audio") !== "sg" ? new WorldAudio(g) : null;
+  const sgaudio = params.get("audio") === "sg" ? new AudioEngine() : null;
+  if (sgaudio) sgaudio.bindGestureResume();
   const radio = params.get("radio") !== "0" && params.get("audio") !== "0" ? new Radio(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
@@ -131,7 +135,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, sgaudio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -145,6 +149,16 @@ async function main() {
     if (traffic) traffic.update(dt);
     if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
     if (audio) audio.update();
+    if (sgaudio) {
+      const S = g.S as unknown as { mode: string } & Record<string, { x: number; y: number; z: number; s?: number; thr?: number }>;
+      const w = (g as unknown as { walker?: { position: { x: number; y: number; z: number } } }).walker;
+      if (S.mode === "walk" && w) sgaudio.updateAmbient(w.position.x, w.position.z, w.position.y);
+      const v = S[S.mode];
+      if (S.mode !== "walk" && v && typeof v.s === "number") {
+        const kind = S.mode === "plane" ? "plane" : "car";
+        sgaudio.updateEngine(kind, 800 + Math.abs(v.s) * 90, Math.max(0, Math.min(1, v.thr ?? 0.5)), Math.min(dt, 0.1));
+      }
+    }
     if (radio) radio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
