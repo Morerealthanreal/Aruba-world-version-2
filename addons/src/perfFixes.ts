@@ -23,7 +23,8 @@
 //     region is uploaded before a sample can miss it, so the loader's dispose drops the
 //     GPU count instead of leaving a slot the next visit fills. Building batches release
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
-//     that swaps geometry disposes the previous one.
+//     that swaps geometry disposes the previous one. That geometry check is every fourth
+//     frame; running it every frame left the forced-GC heap with almost no room.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
