@@ -2,7 +2,7 @@
  "atlas": "textures/sn_mural_atlas.jpg",
  "atlas_px": [
   2048,
-  2556
+  2736
  ],
  "note": "Pilot murals (night_watcher, lionfish, flamingos, nothing_to_declare) are perspective-rectified from verified SAC photos with masks/inpaint; other tiles are procedural placeholders until rectified.",
  "hide_heroes": [
@@ -71,10 +71,10 @@
    "width": 6.85,
    "height": 6.85,
    "uv": [
-    0.142578,
-    0.792645,
-    0.401367,
-    1.0
+    0.0,
+    0.358918,
+    0.258789,
+    0.552632
    ],
    "sources": [
     "Street Art Cities marker 13073 (lat 12.4357777, lng -69.9113945, Bernhardstraat 144)",
@@ -100,24 +100,24 @@
     9408.6
    ],
    "p0": [
-    6630.18,
+    6631.34,
     9408.53
    ],
    "p1": [
-    6624.75,
+    6623.6,
     9408.53
    ],
    "normal": [
     -0.0,
     -1.0
    ],
-   "width": 5.43,
+   "width": 7.74,
    "height": 3.2,
    "uv": [
-    0.402344,
-    0.829421,
-    0.763672,
-    1.0
+    0.259766,
+    0.440789,
+    0.621094,
+    0.552632
    ],
    "sources": [
     "Street Art Cities marker 13093 (lat 12.4348797, lng -69.9090145, Caya Dick Cooper)",
@@ -158,9 +158,9 @@
    "height": 3.01,
    "uv": [
     0.617188,
-    0.241002,
+    0.153509,
     0.998047,
-    0.330986
+    0.237573
    ],
    "sources": [
     "Street Art Cities marker 13083 (lat 12.4350338, lng -69.9102934, Stuyvesantstraat)",
@@ -186,24 +186,24 @@
     9405.6
    ],
    "p0": [
-    6520.32,
-    9404.38
+    6520.35,
+    9404.39
    ],
    "p1": [
-    6530.04,
-    9406.96
+    6530.01,
+    9406.95
    ],
    "normal": [
     -0.2564,
     0.9666
    ],
-   "width": 10.06,
-   "height": 1.66,
+   "width": 10.0,
+   "height": 3.35,
    "uv": [
     0.0,
-    0.072379,
-    0.575684,
-    0.14867
+    0.553363,
+    0.78125,
+    0.749269
    ],
    "sources": [
     "Street Art Cities marker 13091 (lat 12.4348557, lng -69.9098535, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -243,9 +243,9 @@
    "height": 3.3,
    "uv": [
     0.0,
-    0.149452,
+    0.067982,
     0.46875,
-    0.226917
+    0.140351
    ],
    "sources": [
     "Street Art Cities marker 13085 (lat 12.4346819, lng -69.9099513, Stuyvesantstraat). Photo on that page used as visual reference only."
@@ -285,9 +285,9 @@
    "height": 3.04,
    "uv": [
     0.313477,
-    0.228482,
+    0.141813,
     0.616211,
-    0.330986
+    0.237573
    ],
    "sources": [
     "Street Art Cities marker 13080 (lat 12.4356834, lng -69.9099984, Bargestraat). Photo on that page used as visual reference only."
@@ -327,9 +327,9 @@
    "height": 3.05,
    "uv": [
     0.0,
-    0.2277,
+    0.141082,
     0.3125,
-    0.330986
+    0.237573
    ],
    "sources": [
     "Street Art Cities marker 13079 (lat 12.4357751, lng -69.9101472, Bargestraat). Photo on that page used as visual reference only."
@@ -369,9 +369,9 @@
    "height": 3.12,
    "uv": [
     0.002052,
-    0.331768,
+    0.238304,
     0.194651,
-    0.460094
+    0.358187
    ],
    "sources": [
     "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
@@ -413,9 +413,9 @@
    "height": 3.12,
    "uv": [
     0.194651,
-    0.331768,
+    0.238304,
     0.997948,
-    0.460094
+    0.358187
    ],
    "sources": [
     "Street Art Cities marker 13081 (lat 12.4355315, lng -69.9100037, B. v/d Veen Zeppenfeldstraat 9). Photo on that page used as visual reference only."
@@ -471,9 +471,9 @@
    "height": 3.06,
    "uv": [
     0.469727,
-    0.150235,
+    0.068713,
     0.870117,
-    0.226917
+    0.140351
    ],
    "sources": [
     "Street Art Cities marker 13092 (lat 12.4344049, lng -69.9093784, B. v/d Veen Zeppenfeldstraat 21). Photo on that page used as visual reference only."
@@ -513,9 +513,9 @@
    "height": 3.05,
    "uv": [
     0.0,
-    0.0,
+    0.000365,
     0.427734,
-    0.071596
+    0.067251
    ],
    "sources": [
     "Wikimedia Commons File:San Nicolas Murals.jpeg (CC BY-SA 4.0). Description: Melting Pot by Armando Goedgedrag, Bernhardstraat opposite the police station. Camera 12.436172, -69.911256."
@@ -555,9 +555,9 @@
    "height": 3.34,
    "uv": [
     0.0,
-    0.460876,
+    0.75,
     1.0,
-    0.728482
+    1.0
    ],
    "sources": [
     "Street Art Cities marker 13086 (lat 12.435077, lng -69.9100802, van Renselaerstraat 2)",
@@ -577,30 +577,30 @@
    "bld_h": 3.4,
    "wall_i": 0,
    "wall_len": 10.85,
-   "gps_dist_m": 5.9,
+   "gps_dist_m": 7.27,
    "center": [
-    6485.14,
-    9309.27
+    6484.99,
+    9310.89
    ],
    "p0": [
     6485.13,
     9308.59
    ],
    "p1": [
-    6485.01,
-    9309.93
+    6484.71,
+    9313.17
    ],
    "normal": [
     -0.9957,
     -0.0922
    ],
-   "width": 1.34,
-   "height": 3.2,
+   "width": 4.6,
+   "height": 3.05,
    "uv": [
-    0.0,
-    0.729264,
-    0.141602,
-    1.0
+    0.62207,
+    0.441155,
+    0.84668,
+    0.552632
    ],
    "sources": [
     "Street Art Cities marker 13075 (lat 12.4358289, lng -69.9103532)",

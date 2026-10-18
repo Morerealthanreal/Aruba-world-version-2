@@ -8,9 +8,6 @@
   ],
   "inpaint_radius": 16,
   "art_poly": [[0.0, 0.15], [1.0, 0.15], [1.0, 1.0], [0.0, 1.0]],
-  "cleanup_inpaint_rects": [
-    [0.12, 0.0, 0.88, 0.035]
-  ],
-  "cleanup_radius": 4,
+  "crop_margin": { "top": 0.30 },
   "color_balance": true
 }

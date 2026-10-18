@@ -16,8 +16,6 @@ OUT_DIR = ROOT / "tools" / "sn_paintings" / "rectified"
 RECTIFIED_MURAL_IDS = frozenset({
     "night_watcher",
     "lionfish",
-    "flamingos",
-    "nothing_to_declare",
 })
 
 DEFAULT_TARGET_H = 512

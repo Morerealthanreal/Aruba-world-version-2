@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Side-by-side: SAC street photo (crop) vs perspective-rectified atlas tile."""
+"""Side-by-side: SAC street photo (crop) vs rectified atlas tile."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,8 +16,6 @@ RECT = ROOT / "tools" / "sn_paintings" / "rectified"
 REF_CROP: dict[str, tuple[int, int, int, int]] = {
     "night_watcher": (120, 520, 1880, 3000),
     "lionfish": (40, 280, 1280, 1180),
-    "flamingos": (320, 100, 1980, 1020),
-    "nothing_to_declare": (700, 200, 2000, 2750),
 }
 
 
@@ -49,7 +47,7 @@ def main() -> None:
         canvas.paste(painted, (gap * 2 + ref.width, 40))
         d = ImageDraw.Draw(canvas)
         label(d, "SAC reference (crop)", (gap, 12), font)
-        label(d, "Rectified texture (~512px tall)", (gap * 2 + ref.width, 12), font)
+        label(d, "Rectified texture", (gap * 2 + ref.width, 12), font)
         out = OUT / f"{mid}_pilot.jpg"
         canvas.save(out, quality=88)
         print("wrote", out)
