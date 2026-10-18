@@ -1,5 +1,6 @@
-import type { SaveHooks, SaveState, Quality, VehicleMode } from './types';
+import type { SaveHooks, SaveState, Quality } from './types';
 import { SCHEMA_VERSION, STORAGE_KEY } from './types';
+import { decodeSave, encodeSave } from './codec.ts';
 
 const AUTOSAVE_INTERVAL = 30;
 
@@ -18,6 +19,7 @@ export class SaveManager {
 
   constructor(hooks: SaveHooks) {
     this.hooks = hooks;
+    if (hooks.initialQuality) this.currentQuality = hooks.initialQuality;
     this.load();
     this.buildUI();
     this.bindInput();
@@ -46,7 +48,7 @@ export class SaveManager {
       invertY: this.currentInvertY,
     };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, encodeSave(state));
     } catch {
       // quota or private mode — ignore
     }
@@ -56,26 +58,15 @@ export class SaveManager {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<SaveState>;
-      if (parsed.version !== SCHEMA_VERSION) return; // future migration point
-      if (parsed.position && parsed.vehicle && typeof parsed.timeOfDay === 'number') {
-        const state: SaveState = {
-          version: SCHEMA_VERSION,
-          position: parsed.position,
-          vehicle: parsed.vehicle as VehicleMode,
-          timeOfDay: parsed.timeOfDay,
-          quality: (parsed.quality as Quality) ?? 'high',
-          volume: typeof parsed.volume === 'number' ? parsed.volume : 0.8,
-          invertY: !!parsed.invertY,
-        };
-        this.currentQuality = state.quality;
-        this.currentVolume = state.volume;
-        this.currentInvertY = state.invertY;
-        this.hooks.applyState(state);
-        this.hooks.onQualityChange?.(state.quality);
-        this.hooks.onVolumeChange?.(state.volume);
-        this.hooks.onInvertYChange?.(state.invertY);
-      }
+      const state = decodeSave(raw);
+      if (!state) return;
+      this.currentQuality = state.quality;
+      this.currentVolume = state.volume;
+      this.currentInvertY = state.invertY;
+      this.hooks.applyState(state);
+      this.hooks.onQualityChange?.(state.quality);
+      this.hooks.onVolumeChange?.(state.volume);
+      this.hooks.onInvertYChange?.(state.invertY);
     } catch {
       // corrupt — ignore
     }
@@ -289,14 +280,21 @@ export class SaveManager {
     this.boundKey = (e: KeyboardEvent) => {
       if (e.code === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         this.togglePause();
+        return;
+      }
+      // The game has no pause hook. Swallow movement keys so the world does not keep driving under the menu.
+      if (this.paused) {
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
-    window.addEventListener('keydown', this.boundKey);
+    window.addEventListener('keydown', this.boundKey, true);
   }
 
   dispose(): void {
-    if (this.boundKey) window.removeEventListener('keydown', this.boundKey);
+    if (this.boundKey) window.removeEventListener('keydown', this.boundKey, true);
     this.overlay?.remove();
     this.touchPauseBtn?.remove();
   }

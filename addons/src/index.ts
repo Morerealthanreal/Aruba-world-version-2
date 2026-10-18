@@ -132,23 +132,47 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  // SuperGrok save/pause overlay (Esc). Experimental: only with ?save=1. A has no sim pause hook,
-  // so "pause" only shows the overlay and stops autosave; the world keeps running underneath.
-  type Pos = { x: number; y: number; z: number };
+  // SuperGrok save/pause (Esc). Experimental: only with ?save=1.
+  type Pos = { x: number; y: number; z: number; h?: number };
+  type Mode = "walk" | "boat" | "heli" | "car" | "moto" | "plane";
+  const S0 = g.S as unknown as { mode: string; walk: Pos };
+  const boot = { x: S0.walk.x, z: S0.walk.z };
+  const qName = (g.real as unknown as { q?: { name?: string } } | null)?.q?.name;
+  const initialQuality = qName === "low" ? "low" : qName === "high" ? "high" : "medium";
+  let clockWasFrozen = clock.frozen;
   const savem = params.get("save") === "1" ? new SaveManager({
+    initialQuality,
     getState: () => {
-      const S = g.S as unknown as { mode: string } & Record<string, Pos>;
-      const w = (g as unknown as { walker?: { position: Pos } }).walker;
-      const p = S.mode === "walk" && w ? w.position : (S[S.mode] || { x: 0, y: 0, z: 0 });
-      return { position: { x: p.x, y: p.y, z: p.z }, vehicle: (S.mode as "walk"), timeOfDay: 0, quality: "medium", volume: 1, invertY: false };
+      const S = g.S as unknown as { mode: Mode } & Record<string, Pos>;
+      const p = S[S.mode] || S.walk;
+      const vehicle: Mode = (["walk", "boat", "heli", "car", "moto", "plane"] as const).includes(S.mode) ? S.mode : "walk";
+      return { position: { x: p.x, y: p.y || 0, z: p.z }, vehicle, timeOfDay: clock.t, quality: initialQuality, volume: 1, invertY: false };
     },
     applyState: (st) => {
+      const game = g as unknown as { teleport?: (mode: string, x: number, z: number, h: number) => void };
+      const mode = st.vehicle === "boat" || st.vehicle === "heli" ? "walk" : st.vehicle;
+      if (game.teleport) game.teleport(mode, st.position.x, st.position.z, 0);
       const S = g.S as unknown as { mode: string } & Record<string, Pos>;
-      const v = S[S.mode];
-      if (S.mode !== "walk" && v) { v.x = st.position.x; v.z = st.position.z; }
+      const slot = S[S.mode];
+      if (slot && Number.isFinite(st.position.y)) slot.y = st.position.y;
+      clock.t = st.timeOfDay;
     },
-    setPaused: () => { /* no pause hook in A */ },
-    resetPosition: () => { /* no spawn API in A */ },
+    setPaused: (paused) => {
+      if (paused) { clockWasFrozen = clock.frozen; clock.setFrozen(true); }
+      else clock.setFrozen(clockWasFrozen);
+    },
+    resetPosition: () => {
+      const game = g as unknown as { teleport?: (mode: string, x: number, z: number, h: number) => void };
+      if (game.teleport) game.teleport("walk", boot.x, boot.z, 0);
+    },
+    onQualityChange: (q) => {
+      const want = q === "medium" ? "med" : q;
+      const cur = (g.real as unknown as { q?: { name?: string } } | null)?.q?.name;
+      if (!cur || cur === want || (cur === "medium" && want === "med")) return;
+      const url = new URL(location.href);
+      url.searchParams.set("q", want);
+      location.assign(url.toString());
+    },
   }) : null;
   window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, savem, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
@@ -156,6 +180,7 @@ async function main() {
   const loop = (now: number) => {
     const dt = Math.max(0, Math.min(2, (now - last) / 1000)); // rAF timestamps can predate performance.now() at setup
     last = now;
+    if (savem && savem.isPaused) { savem.update(0); requestAnimationFrame(loop); return; }
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);

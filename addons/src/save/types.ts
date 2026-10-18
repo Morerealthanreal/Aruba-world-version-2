@@ -19,6 +19,8 @@ export interface SaveHooks {
   onQualityChange?: (q: Quality) => void;
   onVolumeChange?: (v: number) => void;
   onInvertYChange?: (invert: boolean) => void;
+  /** Live quality when no save exists yet. */
+  initialQuality?: Quality;
 }
 
 export const SCHEMA_VERSION = 1;
