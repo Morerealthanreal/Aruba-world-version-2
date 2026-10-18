@@ -1,12 +1,12 @@
 name: Build & deploy (surge)
-# Manual-only until verified. To go live on every push to main, add:
-#   push: { branches: [main] }
-# and change the default domain below to aruba-world-justin.surge.sh.
+# Push to main deploys to production (aruba-world-justin.surge.sh), but ONLY if the manifest checks pass.
+# Push to deploy/preview deploys to aruba-world-justin-preview.surge.sh.
+# This is the only production deploy path; ship.sh/redeploy.sh are retired (see README.md).
 on:
   # Pushing any commit to the deploy/preview branch deploys it to the preview domain
   # (manual dispatch needs an Actions:write token; this branch works with just push rights).
   push:
-    branches: [deploy/preview]
+    branches: [main, deploy/preview]
   workflow_dispatch:
     inputs:
       domain:
@@ -37,11 +37,14 @@ jobs:
         run: sh make-deploy.sh && echo "$DOMAIN" > deploy/CNAME
       - name: Manifest check (built vs previous commit)
         run: |
-          if git show HEAD~1:game/data/hero/manifest.json > /tmp/prev.json 2>/dev/null; then
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then REF=$BEFORE; else REF=HEAD~1; fi
+          echo "comparing against $REF"
+          if git show $REF:game/data/hero/manifest.json > /tmp/prev.json 2>/dev/null; then
             python3 tools/check_manifest.py /tmp/prev.json deploy/data/hero/manifest.json
           else echo "no previous manifest; skipping"; fi
-      - name: Manifest check (built vs currently live, warn only)
-        continue-on-error: true
+      - name: Manifest check (built vs currently live; blocking for production)
+        continue-on-error: ${{ env.DOMAIN != 'aruba-world-justin.surge.sh' }}
         run: |
           curl -fsS --max-time 60 "https://aruba-world-justin.surge.sh/data/hero/manifest.json?nc=$(date +%s)" -o /tmp/live.json
           python3 tools/check_manifest.py /tmp/live.json deploy/data/hero/manifest.json
