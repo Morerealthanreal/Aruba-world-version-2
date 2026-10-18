@@ -2,7 +2,7 @@
 // and an auto FPS guard, running on top of A's live build without editing its
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
 // Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0,
-// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap).
+// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap). Scuba is off unless ?scuba=1.
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
@@ -54,6 +54,7 @@ import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { NorthInland } from "./northInland";
 import { Interiors } from "./interiors";
+import { ScubaHook } from "./scuba";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -133,7 +134,9 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  // Scuba (?scuba=1): C at the water drops you under with an air gauge and a reef school. Not built when the flag is off.
+  const scuba = params.get("scuba") === "1" ? new ScubaHook(g) : null;
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, scuba, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -156,6 +159,7 @@ async function main() {
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
     if (interiors) interiors.update();
+    if (scuba) scuba.frame(Math.min(dt, 0.1));
     if (golf) golf.frame();
     if (sn) sn.update();
     if (snfair) snfair.update();
