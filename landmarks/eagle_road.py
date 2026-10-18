@@ -12,7 +12,9 @@ on an identity node: the old lod node is scaled by about 358, so metre
 geometry must not be parented under it. White barrier blocks stay.
 
 Lines, the cycle track and shelters are not rewritten.
-Does not call eagle_strip.main(). Not idempotent. Run with EAGLE_ROAD=1.
+Does not call eagle_strip.main(). Not idempotent.
+EAGLE_ROAD=1 recrowns palms and rebuilds the kadushi row.
+EAGLE_ROAD_CACTUS=1 rebuilds only the kadushi row, on the main-branch mesh.
 """
 import json
 import math
@@ -192,10 +194,10 @@ def patch_tris(deltas):
     open(MANIFEST, "w").write(text)
 
 
-def stem(mesh, x, z, y0, y1, radius, lean=(0.0, 0.0), sides=7):
-    """One fluted column. The middle ring is the widest, so it is not a box."""
-    rings_t = (0.0, 0.55, 1.0)
-    rings_s = (0.86, 1.0, 0.70)
+def stem(mesh, x, z, y0, y1, radius, lean=(0.0, 0.0), sides=8):
+    """One ribbed column. Alternate radii cut the kadushi flutes."""
+    rings_t = (0.0, 0.45, 1.0)
+    rings_s = (0.92, 1.0, 0.78)
     rings = []
     for t, scale in zip(rings_t, rings_s):
         y = y0 + (y1 - y0) * t
@@ -204,8 +206,9 @@ def stem(mesh, x, z, y0, y1, radius, lean=(0.0, 0.0), sides=7):
         for i in range(sides):
             a = i / sides * math.tau
             ca, sa = math.cos(a), math.sin(a)
-            r = radius * scale
-            ring.append(mesh.v(x + ox + ca * r, y, z + oz + sa * r, ca, 0.12, sa, i / sides, t))
+            flute = 0.72 if i % 2 else 1.0
+            r = radius * scale * flute
+            ring.append(mesh.v(x + ox + ca * r, y, z + oz + sa * r, ca, 0.08, sa, i / sides, t))
         rings.append(ring)
     for s in range(len(rings) - 1):
         for i in range(sides):
@@ -261,14 +264,19 @@ def cactus_row(js, blob):
         h = y1 - y0
         if h < 0.8:
             continue
-        # five columns in the old box's footprint, plus one arm on the tallest
-        stem(plants, x, z, y0, y0 + h, 0.15)
-        stem(plants, x + 0.26, z - 0.08, y0, y0 + h * 0.84, 0.12, lean=(0.10, -0.04))
-        stem(plants, x - 0.22, z + 0.16, y0, y0 + h * 0.70, 0.12, lean=(-0.08, 0.08))
-        stem(plants, x + 0.04, z + 0.28, y0, y0 + h * 0.56, 0.10)
-        stem(plants, x - 0.08, z - 0.24, y0, y0 + h * 0.48, 0.09)
-        arm_y = y0 + h * 0.58
-        stem(plants, x + 0.04, z, arm_y, y0 + h * 0.90, 0.08, lean=(0.42, 0.12))
+        # Kadushi / yatu: a short trunk and upright ribbed columns that
+        # branch low and stay vertical. No sideways saguaro arm.
+        fork = y0 + min(0.55, h * 0.28)
+        stem(plants, x, z, y0, fork + 0.18, 0.13)
+        columns = (
+            (0.28, 0.04, 1.00, 0.105, 0.03, 0.0),
+            (-0.24, 0.10, 0.86, 0.095, -0.02, 0.02),
+            (0.05, -0.30, 0.74, 0.090, 0.0, -0.03),
+            (-0.10, 0.26, 0.62, 0.085, -0.02, 0.0),
+            (0.22, -0.16, 0.68, 0.080, 0.02, -0.02),
+        )
+        for dx, dz, frac, radius, lx, lz in columns[:3 + (nplant % 3)]:
+            stem(plants, x + dx, z + dz, fork, y0 + h * frac, radius, lean=(lx, lz))
     xs, ys, zs = plants.p[0::3], plants.p[1::3], plants.p[2::3]
     if not xs or max(ys) - min(ys) > 12 or max(abs(v) for v in xs) > 220:
         raise SystemExit("cactus mesh left hero-local metres")
@@ -286,7 +294,7 @@ def cactus_row(js, blob):
     mesh["primitives"] = kept
     mat = next(i for i, m in enumerate(js["materials"]) if m.get("name") == "cact")
     # dusty blue-green, the colour of a kadushi in sun, not lawn green
-    js["materials"][mat]["pbrMetallicRoughness"]["baseColorFactor"] = [0.46, 0.54, 0.40, 1]
+    js["materials"][mat]["pbrMetallicRoughness"]["baseColorFactor"] = [0.40, 0.47, 0.34, 1]
     js["materials"][mat]["pbrMetallicRoughness"]["roughnessFactor"] = 0.92
     cactus_mesh = {"name": "irausquinfx_lod0_cactus", "primitives": []}
     js["meshes"].append(cactus_mesh)
@@ -343,8 +351,20 @@ def main():
     print("palms crowned, kadushi row rebuilt")
 
 
+def cactus_only():
+    """Rebuild the kadushi row without touching palm crowns or trunks."""
+    path = os.path.join(HERO, "irausquinfx.glb")
+    js, blob = load_glb(path)
+    delta = cactus_row(js, blob)
+    save_glb(path, js, blob)
+    patch_tris({"irausquinfx_lod0": delta})
+    print("kadushi row rebuilt")
+
+
 if __name__ == "__main__":
-    if os.environ.get("EAGLE_ROAD") == "1":
+    if os.environ.get("EAGLE_ROAD_CACTUS") == "1":
+        cactus_only()
+    elif os.environ.get("EAGLE_ROAD") == "1":
         main()
     else:
-        print("eagle_road: set EAGLE_ROAD=1 to replace the boulevard palm discs")
+        print("eagle_road: set EAGLE_ROAD=1 for palms, EAGLE_ROAD_CACTUS=1 for the kadushi row")
