@@ -41,6 +41,7 @@ import { SnFairMurals } from "./snFairMurals";
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
 import { TierraGolf } from "./golf";
+import { TankiLeendert } from "./tankiLeendert";
 import { SnMurals } from "./snMurals";
 import { SnLaterMurals } from "./snLaterMurals";
 import { SnFamousMurals } from "./snFamousMurals";
@@ -97,6 +98,7 @@ async function main() {
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
+  const tanki = params.get("tanki") !== "0" ? new TankiLeendert(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
   const muralPreload: string[] = [];
   if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
@@ -131,7 +133,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, tanki, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
