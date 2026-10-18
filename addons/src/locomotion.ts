@@ -3,11 +3,14 @@
 // (see game/models/locomotion.glb and CREDITS.md). Every visible person has
 // their own mixer so they stay out of step; the clip data is loaded once.
 import {
-  AnimationMixer, LoopRepeat, Euler, Quaternion,
+  AnimationMixer, LoopRepeat, Euler, Quaternion, Vector3,
   type AnimationAction, type AnimationClip, type Object3D, type WebGLRenderer,
 } from "three";
 import { characterLoader } from "./characters";
-import type { AGame } from "./env";
+import { params, type AGame } from "./env";
+import { applyPosture, collectBones, createPostureState, smoothCameraY } from "./posture/apply";
+import { blendPerSec, cycleScale, planGait } from "./posture/gait";
+import { TUNE } from "./posture/tune";
 
 export type LocoClips = {
   idle: AnimationClip;
@@ -88,24 +91,33 @@ export function createLoco(root: Object3D, clips: LocoClips, phase = 0): Loco {
  * captured, so a planted foot stays planted. `speed` is world meters per
  * second. `bodyScale` is the rig's uniform scale.
  */
-export function stepLoco(loco: Loco, speed: number, dt: number, bodyScale = 1) {
+export function stepLoco(
+  loco: Loco,
+  speed: number,
+  dt: number,
+  bodyScale = 1,
+  blendPerSec = 8,
+  bands?: { idleCut: number; walkAt: number; runAt: number },
+) {
   const scaled = Math.max(0, speed) / Math.max(0.5, bodyScale);
-  const { walkMs, runMs } = loco;
+  const idleCut = bands?.idleCut ?? 0.18;
+  const walkAt = bands?.walkAt ?? loco.walkMs;
+  const runAt = bands?.runAt ?? loco.runMs;
   let idle = 0;
   let walk = 0;
   let run = 0;
-  if (scaled < 0.18) idle = 1;
-  else if (scaled < walkMs) {
-    const u = (scaled - 0.18) / (walkMs - 0.18);
+  if (scaled < idleCut) idle = 1;
+  else if (scaled < walkAt) {
+    const u = (scaled - idleCut) / (walkAt - idleCut);
     idle = 1 - u;
     walk = u;
-  } else if (scaled < runMs) {
-    const u = (scaled - walkMs) / Math.max(0.001, runMs - walkMs);
+  } else if (scaled < runAt) {
+    const u = (scaled - walkAt) / Math.max(0.001, runAt - walkAt);
     walk = 1 - u;
     run = u;
   } else run = 1;
 
-  const k = 1 - Math.exp(-Math.max(0, dt) * 8);
+  const k = 1 - Math.exp(-Math.max(0, dt) * blendPerSec);
   const w = loco.weights;
   w.idle += (idle - w.idle) * k;
   w.walk += (walk - w.walk) * k;
@@ -130,8 +142,8 @@ export function stepLoco(loco: Loco, speed: number, dt: number, bodyScale = 1) {
   loco.walk.setEffectiveWeight(w.walk);
   loco.run.setEffectiveWeight(w.run);
   loco.idle.timeScale = 1;
-  loco.walk.timeScale = rate(walkMs, w.walk);
-  loco.run.timeScale = rate(runMs, w.run);
+  loco.walk.timeScale = rate(loco.walkMs, w.walk);
+  loco.run.timeScale = rate(loco.runMs, w.run);
   if (dt > 0) loco.mixer.update(dt);
 }
 
@@ -197,7 +209,38 @@ export function attachPlayerLocomotion(g: AGame) {
       });
       console.info("[aw-loco] upright bones:", corrected.map((c) => c.bone.name).join(","));
 
+      const fortnite = params.get("fnposture") === "1";
+      const bones = fortnite ? collectBones(root) : null;
+      const posture = bones ? createPostureState() : null;
+      const fwd = new Vector3();
+      const yawQuat = new Quaternion();
+      const yawEuler = new Euler();
+      const bands = { idleCut: TUNE.idleCut, walkAt: TUNE.walkAt, runAt: TUNE.runAt };
+      if (fortnite && !bones) console.info("[aw-loco] fortnite posture missing bones, using the stock corrections");
+
       walker.animate = (speed: number, dt: number) => {
+        if (bones && posture) {
+          stepLoco(
+            loco, speed, dt, Math.abs(walker.scale.x) || 1,
+            blendPerSec(speed, posture.prevSpeed),
+            bands,
+          );
+          const plan = planGait(Math.max(0, speed), bones.leg, loco.weights);
+          loco.walk.timeScale = cycleScale(plan.cadence, loco.walk.getClip().duration || 1);
+          loco.run.timeScale = cycleScale(plan.cadence, loco.run.getClip().duration || 1);
+          const clip = loco.weights.run >= loco.weights.walk ? loco.run : loco.walk;
+          const dur = clip.getClip().duration || 1;
+          walker.getWorldDirection(fwd);
+          yawEuler.setFromQuaternion(walker.getWorldQuaternion(yawQuat), "YXZ");
+          const yaw = yawEuler.y;
+          const real = g.real as { surfaceAt?: (x: number, z: number) => number; heightAt?: (x: number, z: number) => number } | null;
+          applyPosture(bones, posture, {
+            dt, speed, yaw, phase: clip.time / dur, weights: loco.weights, holder: walker, forward: fwd,
+            groundAt: (x, z) => groundUnder(real, walker.position.y, x, z),
+          });
+          walker.userData.fnMetrics = posture.metrics;
+          return;
+        }
         stepLoco(loco, speed, dt, Math.abs(walker.scale.x) || 1);
         const w = loco.weights;
         const moving = Math.max(0, Math.min(1, w.walk + w.run));
@@ -209,6 +252,7 @@ export function attachPlayerLocomotion(g: AGame) {
           bone.quaternion.multiply(tempQuat);
         }
       };
+      if (bones && posture) mountSteadyCamera(g, walker);
       walker.userData.awLoco = "on";
     }).catch((error) => {
       console.warn("[aw-loco] player", error);
@@ -225,4 +269,37 @@ export function attachPlayerLocomotion(g: AGame) {
   const timer = setInterval(() => {
     if (tick() || ++tries > 40) clearInterval(timer);
   }, 250);
+}
+
+function groundUnder(
+  real: { surfaceAt?: (x: number, z: number) => number; heightAt?: (x: number, z: number) => number } | null,
+  fallbackY: number,
+  x: number,
+  z: number,
+) {
+  const sample = (px: number, pz: number) => real?.surfaceAt?.(px, pz) ?? real?.heightAt?.(px, pz) ?? fallbackY;
+  const y = sample(x, z);
+  const e = 0.45;
+  const nx = (y - sample(x + e, z)) / e;
+  const nz = (y - sample(x, z + e)) / e;
+  const len = Math.hypot(nx, 1, nz) || 1;
+  return { y, nx: nx / len, ny: 1 / len, nz: nz / len };
+}
+
+/** Third-person follow keeps the player's offset but drops the step bob. */
+function mountSteadyCamera(g: AGame, walker: Object3D) {
+  const cam = g.camera;
+  let smooth = walker.position.y;
+  let last = performance.now();
+  const loop = (now: number) => {
+    if (walker.userData.awLoco !== "on") return;
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+    last = now;
+    const rootY = walker.position.y;
+    const next = smoothCameraY(cam.position.y, rootY, smooth, dt);
+    cam.position.y = next.camY;
+    smooth = next.smoothRoot;
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
 }
