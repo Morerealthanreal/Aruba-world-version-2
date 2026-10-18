@@ -242,6 +242,70 @@ export class Plane {
   }
 }
 
+/**
+ * Divi Divi Air island hopper in the game's plane space (nose -Z, wheel bottoms at y = -2).
+ * The type that actually uses Queen Beatrix for the Aruba–Curaçao hop is a DHC-6 Twin Otter
+ * (fixed gear, high wing, twin props). PJ-DVH wears the flamingo tail; the fuselage stays white
+ * with a red cheatline. Proportions are the real airframe, shortened only enough to sit on the
+ * game's ground contact (wheels at local y = -2).
+ */
+export function buildIslandHopper(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "sg-otter";
+  const white = new THREE.MeshStandardMaterial({ color: 0xf4f6f8, roughness: 0.45, metalness: 0.08 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.5 });
+  const pink = new THREE.MeshStandardMaterial({ color: 0xf27aa2, roughness: 0.48 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x1c3d52, roughness: 0.12, metalness: 0.3 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b1b1d, roughness: 0.85 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0xb8bcc4, metalness: 0.55, roughness: 0.4 });
+  const add = (mesh: THREE.Mesh, parent: THREE.Object3D = g) => { parent.add(mesh); return mesh; };
+
+  const body = add(new THREE.Mesh(new THREE.BoxGeometry(1.55, 1.7, 8.4), white));
+  body.position.set(0, -0.2, -0.2);
+  const nose = add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.15, 1.5), white));
+  nose.position.set(0, -0.35, -4.9);
+  const stripe = add(new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.12, 8.6), red));
+  stripe.position.set(0, 0.15, -0.3);
+  const windows = add(new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.42, 4.2), glass));
+  windows.position.set(0, 0.35, -1.1);
+  const wing = add(new THREE.Mesh(new THREE.BoxGeometry(19.2, 0.16, 1.85), white));
+  wing.position.set(0, 0.72, -0.5);
+  const wingRed = add(new THREE.Mesh(new THREE.BoxGeometry(19.2, 0.04, 0.16), red));
+  wingRed.position.set(0, 0.66, -1.2);
+
+  for (const side of [-1, 1]) {
+    const nacelle = add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 1.7), white));
+    nacelle.position.set(side * 3.15, 0.15, -0.7);
+    const prop = new THREE.Group();
+    prop.name = "sg-prop";
+    prop.position.set(side * 3.15, 0.15, -1.6);
+    const disc = add(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 0.06), dark), prop);
+    const disc2 = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.7, 0.06), dark), prop);
+    disc.position.z = 0;
+    disc2.position.z = 0;
+    g.add(prop);
+  }
+
+  const fin = add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.1, 1.3), pink));
+  fin.position.set(0, 1.15, 4.3);
+  const stab = add(new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.1, 0.85), pink));
+  stab.position.set(0, 0.55, 4.55);
+
+  const strut = new THREE.CylinderGeometry(0.06, 0.06, 1, 6).translate(0, -0.5, 0);
+  const tyre = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 10).rotateZ(Math.PI / 2);
+  for (const [x, z, top] of [[0, -4.2, -0.7], [-1.35, 0.6, -0.55], [1.35, 0.6, -0.55]] as const) {
+    const leg = new THREE.Group();
+    leg.position.set(x, top, z);
+    const len = top + 2;
+    const st = add(new THREE.Mesh(strut, metal), leg);
+    st.scale.y = len;
+    const w = add(new THREE.Mesh(tyre, dark), leg);
+    w.position.y = -len;
+    g.add(leg);
+  }
+  return g;
+}
+
 /** Gear in the game's plane space: nose is local -Z, wheel bottoms at y = -2. */
 export function buildGameGear(): THREE.Group {
   const grp = new THREE.Group();
