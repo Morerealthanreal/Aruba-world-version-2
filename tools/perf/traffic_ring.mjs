@@ -1,0 +1,40 @@
+// Serve game/ on 8777 first. node tools/perf/traffic_ring.mjs <label> [extra query] [frames]; env Q=low|high, T=hour, C=x,z ring centre.
+// Roundabout logic probe: put every pooled car on an approach road ending at the ring, log rd transitions.
+import { chromium } from "/workspace/aruba-world-v2/node_modules/playwright/index.mjs";
+import fs from "fs";
+const [label, extra = "", frames = "450"] = process.argv.slice(2);
+const C = (process.env.C || "-2056,3272").split(",").map(Number);
+const browser = await chromium.launch({ args: ["--use-angle=swiftshader","--enable-unsafe-swiftshader","--disable-gpu-sandbox"] });
+const page = await browser.newPage({ viewport: { width: 412, height: 560 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+const errs = []; page.on("console", m => m.type()==="error" && errs.push(m.text())); page.on("pageerror", e => errs.push(String(e)));
+await page.goto(`http://127.0.0.1:8777/?q=${process.env.Q||"low"}&t=${process.env.T||"12"}&fpsguard=0${extra ? "&" + extra : ""}`, { waitUntil: "domcontentloaded" });
+await page.waitForFunction(() => window.game?.ready && window.__aw, undefined, { timeout: 240000 });
+await page.evaluate(fs.readFileSync(new URL("./inpage.js", import.meta.url), "utf8"));
+await page.evaluate((C) => { window.__M.useVirtual = true; const g = window.game; g.setMode("car");
+  const r = g.nearestRoad(C[0] + 140, C[1] + 100); g.teleport("car", r.x, r.z, r.h); g.S.car.s = 0; window.__stepN = 1e9; }, C);
+await page.waitForFunction((C) => window.game.real.amb.pick(C[0], C[1], r => r.rb, 60).length > 0, C, { timeout: 300000, polling: 2000 });
+await page.waitForTimeout(3000);
+const setup = await page.evaluate(({ C, N }) => { const g = window.game, amb = g.real.amb;
+  const ring = amb.pick(C[0], C[1], r => r.rb, 60);
+  const ends = []; for (const r of ring) for (const q of r.p) ends.push(q);
+  const near = (q) => ends.some(e => Math.hypot(e[0] - q[0], e[1] - q[1]) < 4);
+  const appr = amb.pick(C[0], C[1], r => !r.rb && r.c >= 2 && !r.u && r.p.length > 1, 150).filter(r => near(r.p[r.p.length - 1]) || (!r.ow && near(r.p[0])));
+  amb.cars.forEach((c, i) => { const r = appr[i % appr.length]; if (!r) return; const L = amb.len(r), fwd = near(r.p[r.p.length - 1]);
+    c.rd = r; c.L = L; c.dir = fwd ? 1 : -1; c.s = fwd ? Math.max(0, L - 25 - i * 9) : Math.min(L, 25 + i * 9); c.sp = 8; c.g.visible = true; c.snap = 1; });
+  const st = window.__rs = { f: 0, seq: amb.cars.map(c => [c.rd ? (c.rd.rb ? "R" : "a") : "-"]), ringDir: [], ms: [], minRingGap: 1e9 };
+  let last = performance.now();
+  const f = () => { const now = performance.now(); st.ms.push(now - last); last = now; st.f++; g.S.car.s = 0;
+    amb.cars.forEach((c, i) => { const k = c.rd ? (c.rd.rb ? "R" : "a" ) : "-"; const s = st.seq[i]; if (s[s.length - 1] !== k) s.push(k);
+      if (c.rd && c.rd.rb) { // rotation sense around centre (+ = CCW seen from above, z is south)
+        const x = c.g.position.x - C[0], z = c.g.position.z - C[1], hx = Math.sin(c.g.rotation.y), hz = Math.cos(c.g.rotation.y); st.ringDir.push(Math.sign(x * -hz - -z * hx)); } });
+    if (st.f < N) requestAnimationFrame(f); };
+  requestAnimationFrame(f); return { ring: ring.length, approaches: appr.length, cars: amb.cars.length }; }, { C, N: +frames });
+await page.waitForFunction(() => window.__rs.f >= 120, undefined, { timeout: 1200000, polling: 1000 });
+const shot = await page.evaluate((C) => { const { renderer, scene, camera, real } = window.game; camera.position.set(C[0] + 38, real.heightAt(C[0], C[1]) + 30, C[1] + 38); camera.lookAt(C[0], real.heightAt(C[0], C[1]), C[1]); camera.updateMatrixWorld();
+  const p = window.__awPost; if (p?.composer && p.on !== false) p.composer.render(); else renderer.render(scene, camera); return renderer.domElement.toDataURL("image/jpeg", 0.85); }, C);
+fs.writeFileSync(`${label}.jpg`, Buffer.from(shot.slice(shot.indexOf(",") + 1), "base64"));
+await page.waitForFunction((N) => window.__rs.f >= N, +frames, { timeout: 1200000, polling: 2000 });
+const res = await page.evaluate(() => { const s = window.__rs, ms = s.ms.slice(5).sort((a, b) => a - b), ccw = s.ringDir.filter(v => v > 0).length;
+  return { frames: s.f, seq: s.seq.map(a => a.join(">")), ringCarFrames: s.ringDir.length, ringCCWpct: s.ringDir.length ? 100 * ccw / s.ringDir.length : null, frameMedMs: ms[ms.length >> 1], stats: window.__aw.traffic.stats }; });
+const out = { label, extra, setup, ...res, errors: errs }; fs.writeFileSync(`${label}.json`, JSON.stringify(out, null, 1)); console.log(JSON.stringify(out));
+await browser.close();
