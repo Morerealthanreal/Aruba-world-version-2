@@ -1,0 +1,28 @@
+{
+  "place": "divi-phoenix",
+  "area": "palm-beach",
+  "photos": [
+    {
+      "file": "diviresorts_aerial.jpg",
+      "source_url": "https://www.diviresorts.com/phx-resort-updates.htm",
+      "license": "Divi Resorts - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Divi Resorts, Divi Aruba Phoenix Beach Resort updates page",
+      "lat": 12.568,
+      "lon": -70.048,
+      "heading": "oblique aerial, beach in the foreground, the long wing to the left and the tall tower to the right",
+      "date": null,
+      "shows": "six-storey light-grey wing with glass balconies and red-tile hips; tall peach tower outside this hero's footprint"
+    },
+    {
+      "file": "esri_aerial.jpg",
+      "source_url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "license": "Esri World Imagery / Maxar - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Esri, Maxar. Red outline is the OSM footprint of hero divephoenix.",
+      "lat": 12.568,
+      "lon": -70.048,
+      "heading": "nadir, north up",
+      "date": null,
+      "shows": "red hip roofs in a north-south row on the street side of the ring, pool to the west"
+    }
+  ]
+}

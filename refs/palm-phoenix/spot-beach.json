@@ -1,0 +1,27 @@
+{
+ "label": "phoenix",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "beach",
+   "calls": 2876,
+   "tris": 2121676,
+   "ms": 11.6
+  }
+ ],
+ "fps": {
+  "fps": 0.45,
+  "p95ms": 21749.2,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "divephoenix",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}

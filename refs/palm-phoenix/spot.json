@@ -1,0 +1,39 @@
+{
+ "label": "phoenix",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "beach",
+   "calls": 1150,
+   "tris": 1134553,
+   "ms": 8
+  },
+  {
+   "shot": "street",
+   "calls": 329,
+   "tris": 975589,
+   "ms": 4.4
+  },
+  {
+   "shot": "aerial",
+   "calls": 405,
+   "tris": 1080391,
+   "ms": 4.1
+  }
+ ],
+ "fps": {
+  "fps": 0.94,
+  "p95ms": 9183,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "divephoenix",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
