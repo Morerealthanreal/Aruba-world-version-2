@@ -452,12 +452,31 @@ export class PerfFixes {
     rec.__awBB = undefined;
   }
 
+  private liveGeometries() {
+    const live = new Set<BufferGeometry>();
+    this.g.scene.traverse((o) => {
+      const mesh = o as Obj;
+      if (mesh.geometry) live.add(mesh.geometry);
+      const lods = (mesh.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
+      if (lods) for (const g of lods) if (g?.isBufferGeometry) live.add(g);
+    });
+    return live;
+  }
+
+  /** dispose() only drops the GPU buffer. The vertex arrays stay on the geometry,
+   *  and a geometry that was registered with the renderer is easy to retain through
+   *  the unload. Drop the arrays once nothing in the scene still draws it. */
+  private dropCpu(geo: BufferGeometry) {
+    geo.dispose();
+    for (const name of Object.keys(geo.attributes)) geo.deleteAttribute(name);
+    geo.setIndex(null);
+  }
+
   private reapGeometries(geos: Set<BufferGeometry>) {
     if (!geos.size) return;
-    const live = new Set<BufferGeometry>();
-    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    const live = this.liveGeometries();
     let n = 0;
-    for (const g of geos) if (!live.has(g)) { g.dispose(); n++; }
+    for (const g of geos) if (!live.has(g)) { this.dropCpu(g); n++; }
     if (n && this.freedGeo === 0) this.stats.changes.push("region geometries released on unload");
     this.freedGeo += n;
   }
@@ -489,9 +508,8 @@ export class PerfFixes {
     for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
     this.liveRegionGeo = now;
     if (!this.swapped.size) return;
-    const live = new Set<BufferGeometry>();
-    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
-    for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
+    const live = this.liveGeometries();
+    for (const geo of this.swapped) if (!live.has(geo)) this.dropCpu(geo);
     this.swapped.clear();
   }
 
