@@ -1,0 +1,66 @@
+{
+ "place": "penha",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "penha_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=839595311299801",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520367,
+   "lon": -70.037638,
+   "heading": 147.3,
+   "date": "2024-01-06",
+   "shows": "street-level view toward penha (~43 m away)",
+   "original_path": "/workspace/landmarks/mly/penha_0.jpg"
+  },
+  {
+   "file": "penha_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=296059336355980",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520344,
+   "lon": -70.037611,
+   "heading": 139.0,
+   "date": "2024-01-06",
+   "shows": "street-level view toward penha (~39 m away)",
+   "original_path": "/workspace/landmarks/mly/penha_1.jpg"
+  },
+  {
+   "file": "penha_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1092163728894348",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.52039,
+   "lon": -70.037661,
+   "heading": 151.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward penha (~46 m away)",
+   "original_path": "/workspace/landmarks/mly/penha_2.jpg"
+  },
+  {
+   "file": "penha_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=400786419070792",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520411,
+   "lon": -70.03768,
+   "heading": 155.0,
+   "date": "2024-01-06",
+   "shows": "street-level view toward penha (~50 m away)",
+   "original_path": "/workspace/landmarks/mly/penha_3.jpg"
+  },
+  {
+   "file": "penha_5.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=854123039796690",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520453,
+   "lon": -70.037718,
+   "heading": 150.8,
+   "date": "2024-01-06",
+   "shows": "street-level view toward penha (~56 m away)",
+   "original_path": "/workspace/landmarks/mly/penha_5.jpg"
+  }
+ ]
+}

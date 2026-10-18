@@ -1,0 +1,18 @@
+{
+ "place": "mcdonalds",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "mcd1_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=312848840207273",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / acesuares",
+   "lat": 12.569047,
+   "lon": -70.042317,
+   "heading": 317.2,
+   "date": "2017-05-20",
+   "shows": "street-level view toward mcd1 (~104 m away)",
+   "original_path": "/workspace/landmarks/mly/mcd1_0.jpg"
+  }
+ ]
+}

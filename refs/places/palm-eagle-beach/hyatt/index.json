@@ -1,0 +1,42 @@
+{
+ "place": "hyatt",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "hyatt_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=412893901367370",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.571642,
+   "lon": -70.044768,
+   "heading": 279.4,
+   "date": "2024-04-03",
+   "shows": "street-level view toward hyatt (~82 m away)",
+   "original_path": "/workspace/landmarks/mly/hyatt_0.jpg"
+  },
+  {
+   "file": "hyatt_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1519529781928989",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.571725,
+   "lon": -70.04476,
+   "heading": 272.7,
+   "date": "2024-04-03",
+   "shows": "street-level view toward hyatt (~82 m away)",
+   "original_path": "/workspace/landmarks/mly/hyatt_1.jpg"
+  },
+  {
+   "file": "hyatt_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1247796406598830",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.571556,
+   "lon": -70.044777,
+   "heading": 276.9,
+   "date": "2024-04-03",
+   "shows": "street-level view toward hyatt (~82 m away)",
+   "original_path": "/workspace/landmarks/mly/hyatt_2.jpg"
+  }
+ ]
+}

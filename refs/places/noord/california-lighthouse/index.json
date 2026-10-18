@@ -1,0 +1,114 @@
+{
+ "place": "california-lighthouse",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "lh_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1207951033371144",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613942,
+   "lon": -70.051153,
+   "heading": 244.3,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh (~50 m away)",
+   "original_path": "/workspace/landmarks/mly/lh_0.jpg"
+  },
+  {
+   "file": "lh_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1225971418216034",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613948,
+   "lon": -70.051137,
+   "heading": 244.2,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh (~52 m away)",
+   "original_path": "/workspace/landmarks/mly/lh_1.jpg"
+  },
+  {
+   "file": "lh_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1092642005002273",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613959,
+   "lon": -70.051112,
+   "heading": 244.0,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh (~55 m away)",
+   "original_path": "/workspace/landmarks/mly/lh_2.jpg"
+  },
+  {
+   "file": "lh_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=435335171576398",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613931,
+   "lon": -70.051179,
+   "heading": 244.6,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh (~48 m away)",
+   "original_path": "/workspace/landmarks/mly/lh_3.jpg"
+  },
+  {
+   "file": "lh2_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=600924671454173",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.61355,
+   "lon": -70.051891,
+   "heading": 77.0,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh2 (~60 m away)",
+   "original_path": "/workspace/landmarks/mly/lh2_0.jpg"
+  },
+  {
+   "file": "lh2_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=737585324059705",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613558,
+   "lon": -70.051874,
+   "heading": 75.7,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh2 (~58 m away)",
+   "original_path": "/workspace/landmarks/mly/lh2_1.jpg"
+  },
+  {
+   "file": "lh2_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=608938507160055",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613562,
+   "lon": -70.051865,
+   "heading": 74.4,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh2 (~57 m away)",
+   "original_path": "/workspace/landmarks/mly/lh2_2.jpg"
+  },
+  {
+   "file": "lh2_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=3382537061992050",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613569,
+   "lon": -70.051848,
+   "heading": 73.4,
+   "date": "2022-06-27",
+   "shows": "street-level view toward lh2 (~55 m away)",
+   "original_path": "/workspace/landmarks/mly/lh2_3.jpg"
+  },
+  {
+   "file": "california_lighthouse.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "lighthouse",
+   "original_path": "/workspace/landmarks/ref/california_lighthouse.jpg"
+  }
+ ]
+}
