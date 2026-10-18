@@ -29,10 +29,12 @@
 //     from a real scene render. A hidden mesh, a chunk that changes LOD before it is
 //     drawn, or an overview block's other LOD levels never enter that map, so dispose
 //     does not lower the count and the next draw raises it. Those geometries are
-//     registered once, off the canvas, with a material that does not draw and does not
-//     upload images. Hero images, including the sign, that decode after the first draw
-//     are uploaded on a later pass for any hero already loaded within 1500 m,
-//     instead of waiting until the next visit.
+//     registered once, off the canvas, with a material that does not draw. The scratch
+//     pass hides their attributes so get() arms dispose without uploading vertex data;
+//     uploading the hidden set retained enough to fail the heap cap. The real draw
+//     uploads a geometry the first time the camera sees it. Hero images, including the
+//     sign, that decode after the first draw are uploaded on a later pass for any hero
+//     already loaded within 1500 m, instead of waiting until the next visit.
 import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderTarget, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -105,6 +107,8 @@ export class PerfFixes {
   private primeHolders: Mesh[] = [];
   private primeEmpty = new BufferGeometry();
   private primeSentinel = new BufferGeometry();
+  /** Shared stand-in so the scratch pass can register a geometry without uploading it. */
+  private primeBlank: BufferGeometry["attributes"] = {};
   private primeLive = false;
   private primeQuiet = 0;
   private primeStop = false;
@@ -452,31 +456,22 @@ export class PerfFixes {
     rec.__awBB = undefined;
   }
 
-  private liveGeometries() {
+  /** Geometries still attached to a scene mesh. Overview LOD levels live in userData and
+   *  are not walked here; chunk and road swaps do not store those. */
+  private sceneGeometries() {
     const live = new Set<BufferGeometry>();
     this.g.scene.traverse((o) => {
-      const mesh = o as Obj;
-      if (mesh.geometry) live.add(mesh.geometry);
-      const lods = (mesh.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
-      if (lods) for (const g of lods) if (g?.isBufferGeometry) live.add(g);
+      const geo = (o as Obj).geometry;
+      if (geo) live.add(geo);
     });
     return live;
   }
 
-  /** dispose() only drops the GPU buffer. The vertex arrays stay on the geometry,
-   *  and a geometry that was registered with the renderer is easy to retain through
-   *  the unload. Drop the arrays once nothing in the scene still draws it. */
-  private dropCpu(geo: BufferGeometry) {
-    geo.dispose();
-    for (const name of Object.keys(geo.attributes)) geo.deleteAttribute(name);
-    geo.setIndex(null);
-  }
-
   private reapGeometries(geos: Set<BufferGeometry>) {
     if (!geos.size) return;
-    const live = this.liveGeometries();
+    const live = this.sceneGeometries();
     let n = 0;
-    for (const g of geos) if (!live.has(g)) { this.dropCpu(g); n++; }
+    for (const g of geos) if (!live.has(g)) { g.dispose(); n++; }
     if (n && this.freedGeo === 0) this.stats.changes.push("region geometries released on unload");
     this.freedGeo += n;
   }
@@ -508,8 +503,8 @@ export class PerfFixes {
     for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
     this.liveRegionGeo = now;
     if (!this.swapped.size) return;
-    const live = this.liveGeometries();
-    for (const geo of this.swapped) if (!live.has(geo)) this.dropCpu(geo);
+    const live = this.sceneGeometries();
+    for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
     this.swapped.clear();
   }
 
@@ -619,9 +614,11 @@ export class PerfFixes {
    *  dispose) runs from projectObject, not from renderBufferDirect. Chunk LOD
    *  swaps and overview blocks then dispose a geometry that was never counted,
    *  and the replacement raises the count while the live scene does not.
-   *  A scratch scene render hits projectObject. The material stays invisible,
-   *  so nothing is drawn and no image is uploaded. The 1x1 target keeps this
-   *  off the canvas. */
+   *  A scratch scene render hits projectObject. The material stays invisible
+   *  and the attributes are hidden for that pass, so nothing is drawn, no image
+   *  is uploaded, and the vertex arrays are not copied to the GPU. The real
+   *  camera upload happens the first time that geometry is actually drawn.
+   *  The 1x1 target keeps the pass off the canvas. */
   private primeUnseenGeometries() {
     // On this phone soak the measured laps start around 294s, after three
     // warmup trips. Registration through most of that warmup is what puts
@@ -706,6 +703,19 @@ export class PerfFixes {
       shadow.needsUpdate = false;
       let threw = false;
       let grew = false;
+      // get() only needs the geometry id. Leaving the attributes in place makes
+      // geometries.update upload every hidden chunk, and that copy stayed in the
+      // heap after the region was gone. The next real draw uploads the restored
+      // attributes at their real size, because no GPU buffer exists yet.
+      const hidden: Array<{ geo: BufferGeometry; attrs: BufferGeometry["attributes"] }> = [];
+      const blanked = new Set<BufferGeometry>();
+      for (const holder of holders) {
+        const geo = holder.geometry as BufferGeometry | undefined;
+        if (!geo || blanked.has(geo)) continue;
+        blanked.add(geo);
+        hidden.push({ geo, attrs: geo.attributes });
+        geo.attributes = this.primeBlank;
+      }
       try {
         renderer.setRenderTarget(this.primeTarget);
         renderer.render(this.primeScene!, this.primeCam!);
@@ -713,6 +723,7 @@ export class PerfFixes {
       } catch {
         threw = true;
       } finally {
+        for (const item of hidden) item.geo.attributes = item.attrs;
         renderer.sortObjects = prevSort;
         renderer.autoClear = prevClear;
         shadow.autoUpdate = prevAuto;
