@@ -1423,8 +1423,12 @@ VILLAGE = [
     (0.66, 0.44, 0.16),  # deep butter
     (0.58, 0.34, 0.18),  # peach
 ]
-BUS_YELLOW = (0.90, 0.68, 0.08)
-BUS_BLUE = (0.10, 0.28, 0.58)
+# The station in the Commons set is white stucco, not the old yellow Arubus livery.
+BUS_WALL = (0.93, 0.92, 0.90)
+BUS_TRIM = (0.84, 0.82, 0.78)
+BUS_HOLE = (0.38, 0.36, 0.34)
+BUS_DOOR = (0.62, 0.55, 0.46)
+BUS_BODY = (0.84, 0.85, 0.86)
 
 
 def build_village(chain):
@@ -1523,15 +1527,51 @@ def build_village(chain):
     return glb, origin, [b["c"] for b in picked]
 
 
-def build_bus(polys):
-    """Central bus station apron: canopy, ARUBUS board, yellow buses.
+def bus_arch(prim, x, z, w, h, color):
+    """Arched recess on a wall that faces +z. Painted geometry, not a texture."""
+    r = w * 0.5
+    spring = h - r
+    base = 0.22
+    box(prim, x, base + spring * 0.5, z, w, spring, 0.18, color)
+    cy = base + spring
+    front = z + 0.09
+    back = z - 0.09
+    steps = 6
+    for i in range(steps):
+        a0 = math.pi * (1 - i / steps)
+        a1 = math.pi * (1 - (i + 1) / steps)
 
-    Sits on the open lot in front of Seaport Village, next to Royal Plaza.
+        def pt(a, zz):
+            return (x + math.cos(a) * r, cy + math.sin(a) * r, zz)
+
+        p0, p1 = pt(a0, front), pt(a1, front)
+        prim.tri((x, cy, front), p1, p0, color)
+        q0, q1 = pt(a0, back), pt(a1, back)
+        prim.tri((x, cy, back), q0, q1, color)
+        prim.quad(p0, p1, q1, q0, color)
+
+
+def bus_bench(prim, x, z):
+    wood = (0.42, 0.30, 0.18)
+    slat = (0.55, 0.40, 0.24)
+    leg = (0.20, 0.15, 0.11)
+    box(prim, x, 0.46, z, 1.85, 0.08, 0.46, wood)
+    box(prim, x, 0.78, z - 0.18, 1.85, 0.46, 0.07, slat)
+    for dx in (-0.7, 0.7):
+        box(prim, x + dx, 0.22, z, 0.09, 0.40, 0.36, leg)
+
+
+def build_bus(polys):
+    """Oranjestad central bus station: the long white hall on the apron.
+
+    Commons File:Bus station, Oranjestad Aruba 03.jpg and 04.jpg show a low
+    white wall with horizontal joints, one arched doorway, one open bay, a
+    flat-roof waiting shelter and wooden benches. 02.jpg adds the timetable
+    and a light city bus. Photos are reference only, never textures.
+    The yellow canopy this used to be was a placeholder.
     """
     # Prefer a pad whose corners are not inside a building.
-    # In the boulevard view the apron sits just south of the village row.
-    # The boulevard camera stands just north of this apron. A pad further
-    # south is hidden behind the village row.
+    # The boulevard camera stands just south of this apron.
     candidates = [(-7596.0, -94.0), (-7592.0, -96.0), (-7600.0, -96.0), (-7588.0, -93.0)]
     center = None
     for cx, cz in candidates:
@@ -1549,51 +1589,63 @@ def build_bus(polys):
     h = height_at(cx, cz)
     origin = (cx, cz, h)
     paint = Prim()
-    # Canopy along east-west. Local +x is world +x.
-    deck_y = 4.05
-    box(paint, 0, deck_y, 0, 14, 0.16, 5.0, WHITE)
-    box(paint, 0, deck_y - 0.14, 0, 14.4, 0.08, 5.4, BUS_BLUE)
-    for x in (-5.6, -1.8, 1.8, 5.6):
-        for z in (-2.0, 2.0):
-            box(paint, x, deck_y / 2, z, 0.22, deck_y, 0.22, WHITE)
-    # Ticket booth at the west end, so the east approach (the camera) sees the coaches.
-    box(paint, -8.2, 1.7, 0, 3.2, 3.4, 4.2, (0.72, 0.52, 0.28))
-    box(paint, -8.2, 3.5, 0, 3.6, 0.22, 4.6, TERRACOTTA)
-    # Two yellow Arubus coaches under the roof, on the north side of the pad.
-    for i, x in enumerate((-2.6, 3.6)):
-        z = -0.55
-        box(paint, x, 1.45, z, 6.2, 2.55, 2.3, BUS_YELLOW)
-        box(paint, x, 2.05, z, 6.3, 0.26, 2.35, BUS_BLUE)
-        box(paint, x, 1.7, z - 1.12, 4.0, 0.85, 0.06, (0.12, 0.16, 0.2))
-        box(paint, x, 0.38, z, 5.8, 0.32, 2.35, (0.16, 0.16, 0.17))
-    # Coloured concrete benches along the south edge of the pad.
-    for i, x in enumerate((-5.5, -1.5, 2.5)):
-        col = ((0.85, 0.25, 0.22), (0.20, 0.45, 0.72), (0.90, 0.72, 0.18))[i % 3]
-        box(paint, x, 0.42, 1.7, 1.4, 0.42, 0.46, col)
+    # Long hall. Local +z faces the boulevard camera.
+    box(paint, 0, 2.05, 0, 16.2, 4.1, 4.4, BUS_WALL)
+    box(paint, 0, 4.18, 0, 16.7, 0.18, 4.75, BUS_TRIM)
+    box(paint, 0, 0.16, 0.05, 16.4, 0.32, 4.6, (0.78, 0.76, 0.72))
+    for y in (1.35, 2.55):
+        box(paint, 0, y, 2.26, 15.9, 0.045, 0.07, BUS_TRIM)
+    # East arched door and a second arch, plus the open rectangular bay.
+    face_z = 2.32
+    bus_arch(paint, 5.3, face_z, 1.7, 2.95, BUS_HOLE)
+    box(paint, 5.3, 1.12, face_z + 0.08, 0.92, 1.95, 0.06, BUS_DOOR)
+    bus_arch(paint, -5.5, face_z, 1.45, 2.55, BUS_HOLE)
+    box(paint, -0.4, 1.6, face_z, 2.2, 2.75, 0.16, BUS_HOLE)
+    box(paint, -0.4, 2.35, face_z + 0.12, 0.78, 0.46, 0.1, (0.78, 0.79, 0.8))
+    box(paint, -0.4, 2.35, face_z + 0.18, 0.6, 0.28, 0.04, (0.22, 0.24, 0.26))
+    # Small rooftop plant, as on the taller block in photo 02.
+    box(paint, 2.6, 4.55, -0.4, 2.4, 0.55, 1.5, (0.62, 0.63, 0.64))
+    # Waiting shelter in front of the wall.
+    sx, sz = 2.15, 3.55
+    box(paint, sx, 0.1, sz, 2.7, 0.14, 1.75, (0.8, 0.78, 0.74))
+    box(paint, sx, 2.32, sz, 2.85, 0.1, 1.9, (0.32, 0.33, 0.35))
+    box(paint, sx - 1.2, 1.22, sz, 0.08, 2.15, 1.5, (0.9, 0.89, 0.86))
+    for dx, dz in ((1.15, -0.72), (1.15, 0.72), (-1.05, 0.72)):
+        box(paint, sx + dx, 1.16, sz + dz, 0.08, 2.15, 0.08, (0.5, 0.51, 0.53))
+    bus_bench(paint, 4.15, 2.85)
+    bus_bench(paint, 0.55, 2.85)
+    # One light city coach in the road, clear of the wall. The photo is a
+    # pale bus with a dark window band, not a yellow toy under a canopy.
+    bx, bz = -4.8, 7.6
+    box(paint, bx, 1.45, bz, 7.6, 2.5, 2.35, BUS_BODY)
+    box(paint, bx, 1.95, bz, 6.7, 0.82, 2.45, (0.1, 0.13, 0.16))
+    box(paint, bx + 3.72, 1.55, bz, 0.1, 1.35, 1.85, (0.1, 0.13, 0.16))
+    box(paint, bx, 0.48, bz, 7.3, 0.42, 2.28, (0.22, 0.23, 0.24))
+    for wx in (-2.45, 2.35):
+        for wz in (-1.05, 1.05):
+            box(paint, bx + wx, 0.36, bz + wz, 0.7, 0.7, 0.24, (0.08, 0.08, 0.08))
+    # Timetable pole, east of the shelter so the street sign does not cover it.
+    cyl(paint, 3.7, 0.0, 3.15, 0.05, 2.35, (0.28, 0.3, 0.32), seg=5)
     atlas = Atlas(size=512)
-    uv = banner(atlas, "ARUBUS", (8, 8, 496, 150), (14, 58, 130), (255, 255, 255))
+    uv = banner(atlas, "ARUBUS", (16, 16, 200, 280), (236, 236, 232), (20, 24, 28))
     u0, v0, u1, v1 = uv
     signs = Prim()
-    y0, y1 = deck_y - 0.95, deck_y - 0.15
-    # Face south (+z), toward the boulevard approach.
-    s0 = (-3.2, y0, 2.35)
-    s1 = (3.2, y0, 2.35)
-    s2 = (3.2, y1, 2.35)
-    s3 = (-3.2, y1, 2.35)
+    s0 = (3.35, 1.05, 3.22)
+    s1 = (4.05, 1.05, 3.22)
+    s2 = (4.05, 2.45, 3.22)
+    s3 = (3.35, 2.45, 3.22)
     signs.quad(s0, s1, s2, s3, WHITE, ((u0, v0), (u1, v0), (u1, v1), (u0, v1)))
     signs.quad(s1, s0, s3, s2, WHITE, ((u1, v0), (u0, v0), (u0, v1), (u1, v1)))
-    lod = Prim()
-    box(lod, 0, 2.2, 0, 30, 0.4, 6, BUS_YELLOW)
     glb = Glb("ora_busstation")
-    glb.mat("paint", rough=0.78)
+    glb.mat("paint", rough=0.82)
     glb.add(paint, "paint")
     glb.images.append((atlas.png(), "image/png"))
-    glb.mat("sign", rough=0.5, tex=0, double=True)
+    glb.mat("sign", rough=0.55, tex=0, double=True)
     glb.add(signs, "sign")
-    # The canopy is small. Leaving lod off keeps the soak to the two meshes
-    # a walker actually sees.
+    # Two meshes, no lod. A third geometry would sit in the phone soak
+    # after the hero unloads.
     glb.lod1_prim = None
-    print(f"bus station at {cx:.0f},{cz:.0f}")
+    print(f"bus station at {cx:.0f},{cz:.0f} tris {paint.tris + signs.tris}")
     print(f"  cam bus stand {cx + 8:.0f},{cz + 22:.0f} look {cx:.0f},{cz - 6:.0f}")
     return glb, origin
 
@@ -1819,18 +1871,26 @@ def main():
         built = build_bus(polys)
         if built and not dry:
             glb, origin = built
-            entries.append(
-                save_hero(
-                    glb,
-                    "ora_busstation",
-                    "Oranjestad Central Bus Station",
-                    origin,
-                    None,
-                    [],
-                    240,
-                    1,
-                )
+            entry = save_hero(
+                glb,
+                "ora_busstation",
+                "Oranjestad Central Bus Station",
+                origin,
+                None,
+                [],
+                240,
+                1,
             )
+            entry["ref_sources"] = (
+                "Placement: open apron south of Seaport Village, OSM footprints (ODbL). "
+                "Visual reference only (not textures): "
+                "https://commons.wikimedia.org/wiki/File:Bus_station,_Oranjestad_Aruba_04.jpg "
+                "https://commons.wikimedia.org/wiki/File:Bus_station,_Oranjestad_Aruba_03.jpg "
+                "https://commons.wikimedia.org/wiki/File:Bus_station,_Oranjestad_Aruba_02.jpg "
+                "https://commons.wikimedia.org/wiki/File:Bus_station,_Oranjestad_Aruba_01.jpg "
+                "(CC0)"
+            )
+            entries.append(entry)
     if want("tram"):
         built = build_tram(samples, main_road, polys)
         if built and not dry:
