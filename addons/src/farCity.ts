@@ -71,7 +71,7 @@ export class FarCity {
       if (cross < 0) { I[k++] = a[0]; I[k++] = a[1]; I[k++] = a[2]; I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[3]; }
       else { I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[1]; I[k++] = a[0]; I[k++] = a[3]; I[k++] = a[2]; }
       if (big(h, w1, L)) {
-        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear().lerp(sand, 0.4).multiplyScalar(0.85);
+        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear().lerp(sand, this.walls ? 0.4 : 0.2).multiplyScalar(this.walls ? 0.85 : 1.05); // LOW skyline: lighter, more Caribbean
         for (let e = 0; e < 4; e++) {
           const [ax, az] = cs[e], [bx, bz] = cs[(e + 1) & 3];
           let nx = bz - az, nz = -(bx - ax); const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
