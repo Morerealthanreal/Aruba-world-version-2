@@ -295,11 +295,9 @@ def seaward(x, z):
 
 def crag(mesh, x, z, y0, h, rw, rd, seed):
     """Irregular volcanic mass. A near-vertical five-sided prism read as a crate."""
-    n = 6
-    # Bulge through the middle, then a broken crown. The 2013 and 2018
-    # overlooks are rounded fractured rock, not walls.
-    # Wide broken crowns. A crown that shrinks to a point read as a pyramid.
-    profile = (1.0, 1.18, 0.96)
+    n = 5
+    # Wide at the crown. A taper to a point read as a pyramid from the overlook.
+    profile = (1.0, 1.06, 1.0)
     fracs = (0.0, 0.46, 1.0)
     rings = []
     for ri, frac in enumerate(fracs):
@@ -309,9 +307,9 @@ def crag(mesh, x, z, y0, h, rw, rd, seed):
             twist = 0.55 * (hsh(seed, ri * 5 + k) - 0.5)
             ang = 2 * math.pi * (k + twist) / n
             rad = (0.48 + 0.85 * hsh(seed * 5 + k, ri + 1)) * shrink
-            if hsh(seed, k + ri * 9) > 0.78:
-                rad *= 0.52
-            jy = (hsh(seed, k + ri * 3) - 0.4) * h * 0.28
+            if hsh(seed, k + ri * 9) > 0.82:
+                rad *= 0.72
+            jy = (hsh(seed, k + ri * 3) - 0.5) * h * 0.12
             row.append((
                 x + math.cos(ang) * rw * rad,
                 y0 + h * frac + jy,
@@ -466,6 +464,47 @@ def barrier_splash(foam, ring, water_y, sample):
         c = (x + 1.6, y + 0.45, z + span)
         d = (x - 0.3, y + 0.15, z + span * 0.4)
         quad_facing(foam, a, b, c, d, (1, 0.35, 0))
+
+
+def rock_apron(mesh, foam, ring, sample, water_y):
+    """The sand shelf between the basin and the sea. Covered in broken rock
+    and a white crest so the overlook sees a barrier, not a beach."""
+    nx, nz = 8, 7
+    x0, x1, z0, z1 = 10.2, 28.0, -13.5, 15.5
+    grid = []
+    for j in range(nz + 1):
+        row = []
+        z = z0 + (z1 - z0) * j / nz
+        for i in range(nx + 1):
+            x = x0 + (x1 - x0) * i / nx
+            if inside(x, z, ring):
+                row.append(None)
+                continue
+            g = sample(x, z)
+            y = g + 0.12 + 0.55 * hsh(i * 4 + j, 2)
+            if 11.5 < x < 17.5:
+                y += 0.35 + 1.15 * hsh(i + 3, j + 1)
+            row.append((x, y, z))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            corners = (grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])
+            if any(p is None for p in corners):
+                continue
+            a, b, c, d = corners
+            quad_facing(mesh, a, b, c, d, (0, 1, 0), uvs_for(a, b, c, d))
+    # Surf breaking over the rim, a continuous white line the overlook can see.
+    for k in range(18):
+        z = -12.5 + k * 1.55
+        x = 12.4 + hsh(k, 3) * 2.2
+        g = max(sample(x, z), water_y)
+        y = g + 0.85
+        w = 1.3 + hsh(k, 4)
+        a = (x - 0.2, y, z)
+        b = (x + 2.2, y + 0.55, z + 0.15)
+        c = (x + 1.4, y + 0.15, z + w)
+        d = (x - 0.4, y + 0.05, z + w * 0.7)
+        quad_facing(foam, a, b, c, d, (-0.2, 0.9, 0))
 
 
 def ridge_barrier(mesh, foam, water_y, sample):
@@ -634,10 +673,10 @@ def _volcanic_images():
             length = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
             np_[x, y] = (int(128 + 127 * nx / length), int(128 + 127 * ny / length), int(255 * nz / length))
             h = height[y][x]
-            shade = 36 + h * 42
-            if noise(x / n, y / n, freq * 2, 5.5) < 0.2:
-                shade = 22
-            shade = max(22, min(120, shade))
+            shade = 58 + h * 48
+            if noise(x / n, y / n, freq * 2, 5.5) < 0.16:
+                shade = 28
+            shade = max(28, min(150, shade))
             rust = noise(x / n, y / n, freq, 9.4)
             # A light brown stain. The stronger orange read as lava on the flat faces.
             if rust > 0.84:
@@ -695,6 +734,7 @@ def build():
     sea_surface(losea, hifoam, water_y)
     barrier_splash(hifoam, ring, water_y, sample)
     ridge_barrier(hi, hifoam, water_y, sample)
+    rock_apron(hi, hifoam, ring, sample, water_y)
     rock_mesh = m.mesh(0, "rock")
     if not rock_mesh.has_uv or len(rock_mesh.uv) != len(rock_mesh.pos):
         raise SystemExit(f"rock uvs {len(rock_mesh.uv)} pos {len(rock_mesh.pos)}")
