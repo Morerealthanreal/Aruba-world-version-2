@@ -37,6 +37,18 @@
    "date": null,
    "shows": "Costa Bravo north row at the Diamante 75 pin: repeating red-tile roofs and parking bays facing the street",
    "original_path": "/opt/cursor/artifacts/costa-bravo-west/ref/sat.jpg"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "Left: RE/MAX Aruba listing, Gold Coast Diamante 75. Right: in-game render from the same corner.",
+   "lat": 12.599858,
+   "lon": -70.043234,
+   "heading": null,
+   "date": null,
+   "shows": "Same-corner side-by-side. Left is the listing front: yellow walls, white arched door surrounds, curved wrought-iron balconies, orange planters on the paver drive. Right is the in-game view from that corner, with the west gable of number 75 on the left and the street face receding east.",
+   "original_path": "/opt/cursor/artifacts/costa-bravo-west/compare-same-view.jpg"
   }
  ]
 }
