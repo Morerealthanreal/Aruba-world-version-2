@@ -11,16 +11,20 @@ white slab edges and white railings across every bay on both long faces,
 salmon-terracotta stair/lift towers standing proud of the face and rising a
 storey above the roof, and red-tile hip roofs with a tile skirt.
 """
+import math
+import re
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hero_glb import Model, check_glb, fold_body, wall_ring, write_glb  # noqa: E402
-from hotelkit import Frame, balcony_wing, ccw, ear_fan, hip_roof, mansard, obox  # noqa: E402
+from hotelkit import Frame, balcony_wing, ccw, ear_fan, hip_roof, mansard, obox, tri_out  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 HERO = ROOT / "game" / "models" / "hero"
+MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 O = (-7936.09, -6440.78)
 RING = [(-8046.6, -6441.2), (-8044, -6441.1), (-8044.1, -6439.3), (-8034.3, -6438.8), (-8034.2, -6441),
         (-7960.4, -6435.5), (-7961.8, -6421.7), (-7952.3, -6421), (-7951.2, -6430.2), (-7956.9, -6430.6),
@@ -41,17 +45,63 @@ GLASS = (0.34, 0.36, 0.38)
 TILE = (0.66, 0.30, 0.20)
 ROOF = (0.82, 0.80, 0.76)
 GROUND = (0.20, 0.22, 0.24)
+POOL = (0.20, 0.62, 0.78)
+DECK = (0.90, 0.86, 0.78)
+BLUEU = (0.12, 0.38, 0.78)
+GREENU = (0.18, 0.62, 0.32)
+TRUNK = (0.40, 0.26, 0.14)
+FROND = (0.12, 0.40, 0.16)
+BULB = (1.0, 0.86, 0.45)
+SKIN = (0.62, 0.44, 0.32)
+SHIRT = (0.85, 0.28, 0.28)
 
 FH = 3.1
 GF = 4.4
+
+
+def hquad(mesh, F, u0, u1, v0, v1, y, up=1):
+    A, B = F.p(u0, v0, y), F.p(u1, v0, y)
+    C, D = F.p(u1, v1, y), F.p(u0, v1, y)
+    cen = F.p((u0 + u1) / 2, (v0 + v1) / 2, y - up)
+    tri_out(mesh, A, B, C, cen)
+    tri_out(mesh, A, C, D, cen)
+
+
+def palm(M, F, u, v, h=6.4):
+    obox(M.mesh(0, "trunk"), F, u - 0.18, u + 0.18, v - 0.18, v + 0.18, 0.2, h)
+    crown = F.p(u, v, h + 0.1)
+    cen = F.p(u, v, h - 2)
+    mesh = M.mesh(0, "frond")
+    for i in range(5):
+        a = i * math.tau / 5
+        du, dv = math.cos(a) * 2.2, math.sin(a) * 2.2
+        p1 = F.p(u + du * 0.35, v + dv * 0.35, h - 0.1)
+        p2 = F.p(u + du, v + dv, h - 1.3)
+        tri_out(mesh, crown, p1, p2, cen)
+
+
+def umbrella(M, F, u, v, color, y0=0.45):
+    obox(M.mesh(0, "deck"), F, u - 0.05, u + 0.05, v - 0.05, v + 0.05, y0, y0 + 1.9)
+    top = F.p(u, v, y0 + 2.15)
+    cen = F.p(u, v, y0)
+    mesh = M.mesh(0, color)
+    for i in range(5):
+        a0 = i * math.tau / 5
+        a1 = (i + 1) * math.tau / 5
+        r0 = F.p(u + math.cos(a0) * 1.25, v + math.sin(a0) * 1.25, y0 + 1.7)
+        r1 = F.p(u + math.cos(a1) * 1.25, v + math.sin(a1) * 1.25, y0 + 1.7)
+        tri_out(mesh, top, r0, r1, cen)
 
 
 def build():
     M = Model("marriott_surfclub")
     for n, c, r in (("wall", SAND, .85), ("recess", SAND_SH, .9), ("salmon", SALMON, .85), ("slab", WHITE, .8),
                     ("rail", RAIL, .5), ("glass", GLASS, .2), ("tile", TILE, .8), ("roof", ROOF, .9),
-                    ("ground", GROUND, .3)):
+                    ("ground", GROUND, .3), ("pool", POOL, .25), ("deck", DECK, .7),
+                    ("blueu", BLUEU, .6), ("greenu", GREENU, .6), ("trunk", TRUNK, .85), ("frond", FROND, .8),
+                    ("skin", SKIN, .7), ("shirt", SHIRT, .55)):
         M.material(n, tuple(round(v ** 2.2, 4) for v in c), rough=r)
+    M.material("bulb", tuple(round(v ** 2.2, 4) for v in BULB), rough=.4, emissive=.85)
     mats = {"wall": "wall", "recess": "recess", "slab": "slab", "rail": "rail", "glass": "glass", "fin": "wall"}
     ring = ccw([(x - O[0], z - O[1]) for x, z in RING])
     for lod in (0, 1):
@@ -79,12 +129,68 @@ def build():
     # tall beach slab (13 floors incl. ground, 43.5 m) and lower street slab (38 m)
     FW, topw = slab((-8045.5, -6454.0), (-7957.0, -6446.0), 13.5, 12, towers=(30.0, 62.0))
     FE, tope = slab((-7957.0, -6446.0), (-7862.0, -6438.0), 15.0, 10, towers=(34.0, 70.0))
-    # One opaque mesh per LOD. Glass stays separate so the night pass still lights it.
-    fold_body(M, keep={"glass"})
+    # South of the beach slab: the pool court in the tour still (ocean to the left
+    # when you face this facade). Lod1 is only the water, so the distant soak
+    # does not pick up a palm geometry.
+    hv = 13.5
+    # The resort sand sits above the footprint's y=0, so the court is lifted
+    # clear of it. A pool at y=0.4 disappears into the beach mesh.
+    deck_y = 1.55
+    hquad(M.mesh(0, "pool"), FW, 16, 70, hv + 5.5, hv + 22, deck_y + 0.08)
+    hquad(M.mesh(1, "pool"), FW, 16, 70, hv + 5.5, hv + 22, deck_y + 0.08)
+    obox(M.mesh(0, "deck"), FW, 14, 72, hv + 3.2, hv + 24.5, deck_y - 0.28, deck_y)
+    for u, v, col in (
+        (20, hv + 3.6, "blueu"), (32, hv + 3.8, "greenu"), (46, hv + 3.5, "blueu"),
+        (58, hv + 3.8, "greenu"), (24, hv + 24, "blueu"), (40, hv + 24.2, "blueu"),
+        (54, hv + 23.8, "greenu"), (66, hv + 24, "blueu"),
+    ):
+        umbrella(M, FW, u, v, col, y0=deck_y)
+    for u, v in ((18, hv + 8), (28, hv + 26), (38, hv + 2.8), (48, hv + 26.5),
+                 (58, hv + 2.6), (68, hv + 20), (22, hv + 20)):
+        palm(M, FW, u, v, h=6.6 + (u % 5) * 0.3)
+    uu = 18
+    while uu < 70:
+        hquad(M.mesh(0, "bulb"), FW, uu - 0.15, uu + 0.15, hv + 4.3, hv + 4.7, deck_y + 0.45)
+        uu += 6.5
+    # a few clothed guests on the deck, the scale of the people in the stills
+    for u, v in ((30, hv + 4.2), (50, hv + 23.2)):
+        obox(M.mesh(0, "shirt"), FW, u - 0.2, u + 0.2, v - 0.14, v + 0.14, deck_y, deck_y + 0.75)
+        obox(M.mesh(0, "skin"), FW, u - 0.1, u + 0.1, v - 0.1, v + 0.1, deck_y + 0.75, deck_y + 1.02)
+    # One opaque mesh per LOD. Glass and bulbs stay named so the night pass lights them.
+    fold_body(M, keep={"glass", "bulb"})
     info = write_glb(M, HERO / "marriott_surfclub.glb")
     check_glb(HERO / "marriott_surfclub.glb")
+    if info["lod0"] > 4500 or info["lod1"] >= 600:
+        raise SystemExit(f"budget {info}")
+    patch(info)
+    def world(F, u, v, y):
+        x, yy, z = F.p(u, v, y)
+        return (round(x + O[0], 1), round(z + O[1], 1), round(yy, 2))
     print("surfclub", info, "tops", round(topw, 1), round(tope, 1))
+    print("pool", world(FW, 42, hv + 14, 0.4), "south", world(FW, 40, hv + 40, 8),
+          "balcony", world(FW, 12, 8, 18), "far", world(FW, 62, hv + 6, 22))
     return info
+
+
+def patch(info):
+    text = MANIFEST.read_text()
+    i = text.find('"id": "marriott_surfclub"')
+    k = text.find('\n  "id":', i + 10)
+    block = text[i:k]
+    block = re.sub(r'"status": "[^"]*"',
+                    '"status": "v4-grokbot (slab, pool court, umbrellas)"', block, count=1)
+    block = re.sub(r'"marriott_surfclub_lod0": \d+', f'"marriott_surfclub_lod0": {info["lod0"]}', block, count=1)
+    block = re.sub(r'"marriott_surfclub_lod1": \d+', f'"marriott_surfclub_lod1": {info["lod1"]}', block, count=1)
+    block = re.sub(
+        r'"ref_sources": "[^"]*"',
+        '"ref_sources": "Resort videos (-Z3xBQbZpGg hotel tour, EVzxoJGTfs0 4K walk): sand balcony slab, salmon stair towers, red hips, and the pool court with palms and blue and green umbrellas in front of that facade. OSM way 40082945. Built by tools/grokbot/surfclub.py"',
+        block, count=1)
+    if "surfclub.py" not in block:
+        raise SystemExit("surfclub ref anchor missing")
+    MANIFEST.write_text(text[:i] + block + text[k:])
+    hit = next(h for h in json.loads(MANIFEST.read_text()) if h["id"] == "marriott_surfclub")
+    assert hit["tris"]["marriott_surfclub_lod0"] == info["lod0"]
+    assert hit["textures"] == 0
 
 
 if __name__ == "__main__":
