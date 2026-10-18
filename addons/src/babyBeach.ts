@@ -14,6 +14,7 @@ import {
   Matrix4, Mesh, MeshLambertMaterial, Quaternion, Vector3, Euler,
 } from "three";
 import type { AGame } from "./env";
+import { uNight } from "./uniforms";
 
 type P = number[];
 // lagoon shore, west spit tip -> round the bay -> east point (OSM 98105159, simplified to 1 m)
@@ -84,7 +85,11 @@ export class BabyBeach {
     geo.setAttribute("normal", new Float32BufferAttribute(new Float32Array(pos.length).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
     geo.setIndex(idx); geo.computeBoundingSphere();
     const mat = new MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    const m = new Mesh(geo, mat); m.name = "aw:babybeach:lagoon"; m.renderOrder = 2; m.receiveShadow = false; m.castShadow = false;
+    const m = new Mesh(geo, mat); m.name = "aw:babybeach:lagoon";
+    // the vertex colours are a daylight look: follow the day/night clock so the lagoon does not glow
+    // at night (one colour lerp when the mesh is drawn, nothing otherwise)
+    const day = new Color(0xffffff), night = new Color(0x0d2238);
+    m.onBeforeRender = () => { const n = uNight.value; mat.color.copy(day).lerp(night, n); mat.opacity = 1 - 0.55 * n; }; m.renderOrder = 2; m.receiveShadow = false; m.castShadow = false;
     return m;
   }
 
