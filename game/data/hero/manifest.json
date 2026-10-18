@@ -21367,7 +21367,7 @@
    "switch_m": 701
   },
   "tris": {
-   "irausquinfx_lod0": 3511,
+   "irausquinfx_lod0": 17170,
    "irausquinfx_lod1": 7
   },
   "textures": 0,
@@ -62559,8 +62559,8 @@
    "switch_m": 640
   },
   "tris": {
-   "eb_blvd_south_lod0": 3794,
-   "eb_blvd_south_lod1": 1608
+   "eb_blvd_south_lod0": 8682,
+   "eb_blvd_south_lod1": 2454
   },
   "textures": 2,
   "hide_footprint": [],
@@ -62589,8 +62589,8 @@
    "switch_m": 640
   },
   "tris": {
-   "eb_blvd_mid_lod0": 5536,
-   "eb_blvd_mid_lod1": 2428
+   "eb_blvd_mid_lod0": 12712,
+   "eb_blvd_mid_lod1": 3670
   },
   "textures": 2,
   "hide_footprint": [],
@@ -62619,8 +62619,8 @@
    "switch_m": 640
   },
   "tris": {
-   "eb_blvd_north_lod0": 5252,
-   "eb_blvd_north_lod1": 2352
+   "eb_blvd_north_lod0": 11908,
+   "eb_blvd_north_lod1": 3504
   },
   "textures": 2,
   "hide_footprint": [],
