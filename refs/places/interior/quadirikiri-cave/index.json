@@ -11,7 +11,29 @@
    "lon": null,
    "heading": null,
    "date": null,
-   "shows": "Pitted dark-grey limestone at the base of the Quadirikiri cliff, with a deep recess under the brow"
+   "shows": "Pitted grey limestone at the Quadirikiri cliff, pale drip-rock, and a deep recess under the brow"
+  },
+  {
+   "file": "quad-cliff-brow.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Base_of_the_cliff_Quadirikiri_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "The Quadirikiri approach: pitted grey walls, dark cave mouths with depth, and the stone path between them"
+  },
+  {
+   "file": "quad-chambers.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Chambers_Quadirikiri_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Inside a Quadirikiri chamber: the mouth has real depth and the walls stay rough limestone. Not used as a texture"
   },
   {
    "file": "park-panel.jpg",
@@ -22,10 +44,10 @@
    "lon": -69.89952,
    "heading": null,
    "date": null,
-   "shows": "The park panel at Quadirikiri: a white board with an orange QUADIRIKIRI CAVE title. The in-game panel is letters on a board, not this photograph"
+   "shows": "The park panel at Quadirikiri. The in-game panel is letters on a board, not this photograph"
   },
   {
-   "file": "comparison.jpg",
+   "file": "compare.jpg",
    "source_url": null,
    "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
    "credit": "Aruba World",
@@ -33,7 +55,7 @@
    "lon": null,
    "heading": null,
    "date": null,
-   "shows": "Same cliff approach: the Commons pitted face on the left, the in-game wall, dark mouth, foot shrubs, and park panel on the right"
+   "shows": "Same cliff face: the Commons pitted wall and drip-rock on the left; the in-game layered limestone, overhang, dark mouth, and scrub on the right. Free camera, HUD and car hidden"
   }
  ]
 }
