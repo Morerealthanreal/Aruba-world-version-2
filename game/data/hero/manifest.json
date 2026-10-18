@@ -63127,8 +63127,7 @@
   "ref_sources": "Sea grape is the low round bush on the dune between the sand and J.E. Irausquin, placed where the aerial is dark green and clear of the fofoti. A colour sheet in the shallows shadowed the dry sand, so the beach grain and the island water shader stay as they are. Hotel windows sit on the beach face of each resort hero. Boulevard lamps and the palapa-bar strings are emissive glow, the same cheap night read used elsewhere on the map. Existing resort heroes and the fofoti sets are left in place. Original geometry.",
   "frame": "glb origin = centroid of the sea grape and the shallow samples; landmarks/eagle_dusk.py",
   "cat": "landmark"
- }
-,
+ },
  {
   "id": "para_house_a",
   "k": "para_house_a",
@@ -63145,8 +63144,8 @@
    "switch_m": 160
   },
   "tris": {
-   "para_house_a_lod0": 414,
-   "para_house_a_lod1": 114
+   "para_house_a_lod0": 60,
+   "para_house_a_lod1": 18
   },
   "textures": 0,
   "hide_footprint": [
@@ -63172,7 +63171,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63192,8 +63191,8 @@
    "switch_m": 160
   },
   "tris": {
-   "para_house_b_lod0": 366,
-   "para_house_b_lod1": 114
+   "para_house_b_lod0": 60,
+   "para_house_b_lod1": 18
   },
   "textures": 0,
   "hide_footprint": [
@@ -63219,7 +63218,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63239,8 +63238,8 @@
    "switch_m": 160
   },
   "tris": {
-   "para_house_c_lod0": 414,
-   "para_house_c_lod1": 114
+   "para_house_c_lod0": 60,
+   "para_house_c_lod1": 18
   },
   "textures": 0,
   "hide_footprint": [
@@ -63274,7 +63273,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63294,8 +63293,8 @@
    "switch_m": 160
   },
   "tris": {
-   "para_house_d_lod0": 366,
-   "para_house_d_lod1": 114
+   "para_house_d_lod0": 28,
+   "para_house_d_lod1": 24
   },
   "textures": 0,
   "hide_footprint": [
@@ -63321,7 +63320,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63341,8 +63340,8 @@
    "switch_m": 160
   },
   "tris": {
-   "para_house_e_lod0": 414,
-   "para_house_e_lod1": 114
+   "para_house_e_lod0": 28,
+   "para_house_e_lod1": 24
   },
   "textures": 0,
   "hide_footprint": [
@@ -63368,7 +63367,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Cunucu house: one storey, coloured walls, hip roof, porch, low concrete fence. Same kit as the first Paradera house. OSM house footprint on the Paradera road. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  }
