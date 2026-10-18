@@ -77,15 +77,117 @@ def _apply_patches(bgr: np.ndarray, patches: list[dict], w: int, h: int) -> np.n
     return out
 
 
+def _wall_pixels_median_bgr(roi: np.ndarray) -> tuple[int, int, int]:
+    if roi.size == 0:
+        return (245, 245, 245)
+    flat = roi.reshape(-1, 3)
+    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    sat = hsv[:, :, 1].reshape(-1)
+    val = hsv[:, :, 2].reshape(-1)
+    wall = (sat < 45) & (val > 165)
+    if wall.sum() > 30:
+        flat = flat[wall]
+    med = np.median(flat, axis=0)
+    return int(med[0]), int(med[1]), int(med[2])
+
+
 def _sample_wall_bgr(bgr: np.ndarray, rect: list[float]) -> tuple[int, int, int]:
-    """Median BGR in a normalized rect (plain wall sample)."""
+    """Median BGR of low-saturation pixels in a normalized rect (plain wall)."""
     h, w = bgr.shape[:2]
     x0, y0, x1, y1 = rect
     roi = bgr[int(y0 * h) : int(y1 * h), int(x0 * w) : int(x1 * w)]
-    if roi.size == 0:
-        return (245, 245, 245)
-    med = np.median(roi.reshape(-1, 3), axis=0)
-    return int(med[0]), int(med[1]), int(med[2])
+    return _wall_pixels_median_bgr(roi)
+
+
+def _sample_wall_below_roof(
+    bgr: np.ndarray,
+    roof_y_left: float,
+    roof_y_right: float,
+    xs: list[float],
+    band: float = 0.018,
+) -> tuple[int, int, int]:
+    """Sample wall colour in strips just under the roof diagonal."""
+    h, w = bgr.shape[:2]
+    patches: list[np.ndarray] = []
+    for x in xs:
+        y_roof = roof_y_left + x * (roof_y_right - roof_y_left)
+        y0 = y_roof + band * 0.35
+        y1 = y_roof + band
+        x0, x1 = max(0.0, x - 0.025), min(1.0, x + 0.025)
+        roi = bgr[int(y0 * h) : int(y1 * h), int(x0 * w) : int(x1 * w)]
+        if roi.size:
+            patches.append(roi)
+    if not patches:
+        return _sample_wall_bgr(bgr, [0.03, 0.04, 0.10, 0.12])
+    return _wall_pixels_median_bgr(np.concatenate(patches, axis=0))
+
+
+def _auto_roof_fill_poly(bgr: np.ndarray, max_row_frac: float = 0.11) -> list[list[float]] | None:
+    """Polygon covering roof/sky in the top band (above detected blue edge)."""
+    h, w = bgr.shape[:2]
+    band = max(8, int(h * max_row_frac))
+    hsv = cv2.cvtColor(bgr[:band], cv2.COLOR_BGR2HSV)
+    roof = (
+        (hsv[:, :, 0] >= 88)
+        & (hsv[:, :, 0] <= 125)
+        & (hsv[:, :, 1] >= 50)
+        & (hsv[:, :, 2] >= 105)
+    )
+    roof = cv2.dilate(roof.astype(np.uint8), np.ones((3, 3), np.uint8), iterations=1) > 0
+    edge = np.zeros(w, dtype=np.float32)
+    for x in range(w):
+        ys = np.where(roof[:, x])[0]
+        if len(ys):
+            edge[x] = (ys.max() + 4) / h
+    if not np.any(edge > 0):
+        return None
+    # Interpolate gaps (plain wall columns between roof segments).
+    pos = edge > 0
+    if pos.sum() >= 2:
+        xp = np.flatnonzero(pos)
+        edge = np.interp(np.arange(w), xp, edge[xp]).astype(np.float32)
+    cap = max_row_frac + 0.025
+    edge = np.minimum(edge, cap)
+    poly: list[list[float]] = [[0.0, 0.0], [1.0, 0.0]]
+    step = max(1, w // 18)
+    for x in range(w - 1, -1, -step):
+        poly.append([x / w, float(edge[x])])
+    poly.append([0.0, float(edge[0])])
+    return poly
+
+
+def _sample_wall_along_roof_edge(bgr: np.ndarray, poly: list[list[float]], band: float = 0.022) -> tuple[int, int, int]:
+    h, w = bgr.shape[:2]
+    patches: list[np.ndarray] = []
+    # poly bottom edge: points from right to left (skip top corners).
+    edge_pts = poly[2:-1] + [poly[-1]]
+    for x, y in edge_pts:
+        y0 = min(h - 2, int((y + band * 0.3) * h))
+        y1 = min(h, int((y + band) * h))
+        x0 = max(0, int((x - 0.03) * w))
+        x1 = min(w, int((x + 0.03) * w))
+        if y1 <= y0 + 1:
+            continue
+        roi = bgr[y0:y1, x0:x1]
+        if roi.size:
+            patches.append(roi)
+    if patches:
+        meds = [_wall_pixels_median_bgr(p) for p in patches]
+        arr = np.array(meds, dtype=np.float32)
+        med = np.median(arr, axis=0)
+        return int(med[0]), int(med[1]), int(med[2])
+    return _sample_wall_bgr(bgr, [0.03, 0.04, 0.10, 0.12])
+
+
+def _flat_fill_polys(bgr: np.ndarray, polys: list[list[list[float]]], color_bgr: tuple[int, int, int]) -> np.ndarray:
+    out = bgr.copy()
+    h, w = out.shape[:2]
+    for poly in polys:
+        pts = np.array([[int(x * w), int(y * h)] for x, y in poly], dtype=np.int32)
+        mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.fillPoly(mask, [pts], 255)
+        out[mask > 0] = color_bgr
+    return out
 
 
 def _flat_fill_rects(bgr: np.ndarray, rects: list[list[float]], color_bgr: tuple[int, int, int]) -> np.ndarray:
@@ -354,6 +456,38 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     r = int(margin.get("right", 0) * w)
     if t or b or l or r:
         warped = warped[t : h - b if b else h, l : w - r if r else w]
+
+    fill_polys = cfg.get("flat_fill_polys")
+    if cfg.get("auto_roof_fill"):
+        auto_poly = _auto_roof_fill_poly(warped, float(cfg.get("auto_roof_max_row", 0.11)))
+        if auto_poly:
+            fill_polys = [auto_poly]
+    if fill_polys:
+        roof = cfg.get("roof_line")
+        if cfg.get("auto_roof_fill"):
+            wall = _sample_wall_along_roof_edge(warped, fill_polys[0])
+        elif roof and len(roof) >= 2:
+            xs = cfg.get("wall_sample_xs") or [0.12, 0.22, 0.38, 0.52, 0.68]
+            wall = _sample_wall_below_roof(warped, float(roof[0]), float(roof[1]), xs)
+        else:
+            ys_left = fill_polys[0][-1][1] if fill_polys[0] else 0.08
+            ys_right = fill_polys[0][2][1] if len(fill_polys[0]) > 2 else 0.03
+            xs = cfg.get("wall_sample_xs") or [0.14, 0.28, 0.42, 0.56, 0.72]
+            wall = _sample_wall_below_roof(warped, float(ys_left), float(ys_right), xs)
+        warped = _flat_fill_polys(warped, fill_polys, wall)
+        if cfg.get("auto_roof_fill"):
+            h0, w0 = warped.shape[:2]
+            top_h = max(6, int(h0 * 0.085))
+            region = warped[:top_h]
+            hsv = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+            remnant = (
+                (hsv[:, :, 0] >= 86)
+                & (hsv[:, :, 0] <= 126)
+                & (hsv[:, :, 1] >= 52)
+                & (hsv[:, :, 2] >= 108)
+            )
+            region[remnant] = wall
+            warped[:top_h] = region
 
     fill_rects = cfg.get("flat_fill_rects")
     if fill_rects:
