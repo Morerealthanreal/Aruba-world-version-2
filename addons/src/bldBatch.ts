@@ -15,6 +15,7 @@
 // Geometry is world space (identity matrices), so no per-instance matrix work.
 import { BatchedMesh, Box3, Frustum, Matrix4, Sphere, Vector3, type BufferGeometry, type Camera, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
+import { tintKorpsPolitieShell } from "./bldFacadeTint";
 
 type M = Mesh & { isInstancedMesh?: boolean };
 type Reg = {
@@ -197,6 +198,7 @@ export class BldBatch {
     const icount = geo.index ? geo.index.count : 0;
     let b = R.__awOpen?.get(key);
     if (!b || b.n >= b.cap || b.usedV + vcount > b.maxV || b.usedI + icount > b.maxI) b = this.newBatch(R, m, geo, key) || undefined;
+    tintKorpsPolitieShell(geo, m.name);
     if (!b || !this.addGeo(b, geo)) {
       if (b && b.n === 0) { b.bm.dispose(); if (R.__awOpen?.get(key) === b) R.__awOpen.delete(key); }
       if (this.stats.failed < 3) console.warn("[aw-bb] skip", m.name, "v", vcount, "i", icount);

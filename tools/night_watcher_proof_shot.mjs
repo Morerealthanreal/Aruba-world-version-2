@@ -75,11 +75,8 @@ await page.waitForFunction(
   () => {
     const g = window.game;
     const m = g.scene && g.scene.getObjectByName("aw:sn-murals");
-    const w = g.scene && g.scene.getObjectByName("aw:sn-mural-walls");
     const posCount = (geo) => geo && geo.attributes.position && geo.attributes.position.count;
-    const muralOk = m && m.visible && posCount(m.geometry) > 8;
-    const wallOk = !w || (w.visible && posCount(w.geometry) >= 4);
-    return muralOk && wallOk;
+    return m && m.visible && posCount(m.geometry) > 8;
   },
   null,
   { timeout: 180000 },

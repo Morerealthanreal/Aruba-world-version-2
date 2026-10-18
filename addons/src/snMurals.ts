@@ -15,8 +15,6 @@ type Mural = {
   uv: [number, number, number, number];
   normal?: [number, number];
   wall_len?: number;
-  /** Paint the OSM wall face behind the mural (e.g. white police-station wall). */
-  wall_face?: string;
   /** "ground" sits the paint on the street. Omitted murals stay centered on the wall. */
   base?: "ground" | "mid";
   lift?: number;
@@ -35,7 +33,6 @@ const RELOAD_M = 2800;
 
 export class SnMurals {
   mesh?: THREE.Mesh;
-  wallMesh?: THREE.Mesh;
   private doc?: Doc;
   private atlas?: THREE.Texture;
   private atlasPath?: string;
@@ -82,25 +79,8 @@ export class SnMurals {
     } else {
       this.mesh.material = mat;
     }
-    if (!this.wallMesh) {
-      const wallMat = new THREE.MeshLambertMaterial({
-        color: 0xf5f3ef,
-        polygonOffset: true,
-        polygonOffsetFactor: -6,
-        polygonOffsetUnits: -4,
-      });
-      const wallMesh = new THREE.Mesh(new THREE.BufferGeometry(), wallMat);
-      wallMesh.name = "aw:sn-mural-walls";
-      wallMesh.frustumCulled = false;
-      wallMesh.castShadow = false;
-      wallMesh.receiveShadow = false;
-      wallMesh.renderOrder = 1;
-      this.g.scene.add(wallMesh);
-      this.wallMesh = wallMesh;
-    }
     this.doc = doc;
     this.mesh.visible = false;
-    this.wallMesh.visible = false;
     this.grounded = false;
     this.tryGround();
   }
@@ -112,7 +92,6 @@ export class SnMurals {
     this.unloaded = true;
     this.grounded = false;
     if (this.mesh) this.mesh.visible = false;
-    if (this.wallMesh) this.wallMesh.visible = false;
   }
 
   private nearestDist() {
@@ -141,40 +120,6 @@ export class SnMurals {
       if (x1 > hx1) out.push([hx1, top, x1, bot]);
     }
     return out.filter((r) => r[2] - r[0] > 0.02 && r[3] - r[1] > 0.02);
-  }
-
-  private buildWallBuffers(murals: Mural[], ys: number[]) {
-    const pos: number[] = [];
-    const idx: number[] = [];
-    murals.forEach((m, i) => {
-      if (!m.wall_face) return;
-      const ground = ys[i];
-      const [x0, z0] = m.p0;
-      const [x1, z1] = m.p1;
-      const span = Math.hypot(x1 - x0, z1 - z0) || 1;
-      const ux = (x1 - x0) / span;
-      const uz = (z1 - z0) / span;
-      const cx = (x0 + x1) * 0.5;
-      const cz = (z0 + z1) * 0.5;
-      const half = (m.wall_len ?? span) * 0.5;
-      const nx = m.normal?.[0] ?? -uz;
-      const nz = m.normal?.[1] ?? ux;
-      const inset = 0.14;
-      const ox = -nx * inset;
-      const oz = -nz * inset;
-      const pad = 0.04;
-      const halfPad = half + pad;
-      const lx = cx - ux * halfPad + ox;
-      const lz = cz - uz * halfPad + oz;
-      const rx = cx + ux * halfPad + ox;
-      const rz = cz + uz * halfPad + oz;
-      const yBot = ground + 0.04;
-      const yTop = ground + Math.max(m.bld_h - 0.08, m.height);
-      const base = pos.length / 3;
-      pos.push(lx, yBot, lz, rx, yBot, rz, rx, yTop, rz, lx, yTop, lz);
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    });
-    return { pos, idx };
   }
 
   private buildBuffers(murals: Mural[], ys: number[] | null) {
@@ -261,23 +206,6 @@ export class SnMurals {
     this.applyGeo(mesh, pos, idx, uv);
   }
 
-  private applyWalls(mesh: THREE.Mesh, murals: Mural[], ys: number[]) {
-    const { pos, idx } = this.buildWallBuffers(murals, ys);
-    if (!pos.length) {
-      mesh.visible = false;
-      return;
-    }
-    this.applyGeo(mesh, pos, idx);
-    for (const m of murals) {
-      if (m.wall_face) {
-        const mat = mesh.material as THREE.MeshLambertMaterial;
-        mat.color.set(m.wall_face);
-        break;
-      }
-    }
-    mesh.visible = true;
-  }
-
   private hAt(x: number, z: number) {
     const real = this.g.real as unknown as { heightAt?: (x: number, z: number) => number };
     const y = real.heightAt?.(x, z);
@@ -296,10 +224,33 @@ export class SnMurals {
     }
     if (this.grounded && ys.every((y, i) => Math.abs(y - this.ys[i]) < 0.05)) return;
     this.applyGround(mesh, doc.murals, ys);
-    if (this.wallMesh) this.applyWalls(this.wallMesh, doc.murals, ys);
     mesh.visible = true;
     this.ys = ys;
     this.grounded = true;
+  }
+
+  private suppressSkyDecoys() {
+    const walk = this.g.S?.walk;
+    if (!walk || Math.hypot(walk.x - 6369.8, walk.z - 9310.35) > 160) return;
+    const group = this.g.scene.getObjectByName("hero");
+    if (!group) return;
+    const owlX = 6376.26;
+    const owlZ = 9392.15;
+    const markHidden = (o: THREE.Object3D) => {
+      o.visible = false;
+      if (!this.hidden.includes(o)) this.hidden.push(o);
+    };
+    this.g.scene.traverse((o) => {
+      let p: THREE.Object3D | null = o;
+      while (p) {
+        const nm = p.name || "";
+        if (nm.includes("sn_owl")) {
+          markHidden(o);
+          return;
+        }
+        p = p.parent;
+      }
+    });
   }
 
   private collectHeroes() {
@@ -312,7 +263,8 @@ export class SnMurals {
       if (found.has(child)) continue;
       child.getWorldPosition(this.tmp);
       for (const h of doc.hide_heroes) {
-        if (Math.hypot(this.tmp.x - h.x, this.tmp.z - h.z) < 2.5) {
+        const hideR = h.id === "sn_owl" ? 160 : 2.5;
+        if (Math.hypot(this.tmp.x - h.x, this.tmp.z - h.z) < hideR) {
           this.hidden.push(child);
           found.add(child);
           break;
@@ -332,6 +284,7 @@ export class SnMurals {
     if (!this.mesh) return;
     if ((++this.k & 31) === 0 || !this.grounded) this.tryGround();
     if ((this.k & 31) === 0) this.collectHeroes();
+    this.suppressSkyDecoys();
     for (const o of this.hidden) o.visible = false;
   }
 }

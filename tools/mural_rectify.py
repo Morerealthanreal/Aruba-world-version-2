@@ -402,6 +402,32 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     ref_dir = REF_ROOT / mural_id
     cfg_path = ref_dir / "rectify.json"
     cfg: dict[str, Any] = json.loads(cfg_path.read_text())
+    base_only = cfg.get("base_rectified")
+    if base_only:
+        base_path = ref_dir / str(base_only)
+        if not base_path.is_file():
+            raise FileNotFoundError(base_path)
+        warped = cv2.imread(str(base_path))
+        if warped is None:
+            raise RuntimeError(f"cv2 could not read {base_path}")
+        fill_polys = list(cfg.get("flat_fill_polys") or [])
+        if fill_polys:
+            wall = _sample_wall_bgr(
+                warped, cfg.get("wall_sample_rect") or [0.52, 0.14, 0.62, 0.24]
+            )
+            warped = _flat_fill_polys(warped, fill_polys, wall)
+        rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)
+        if cfg.get("color_balance", False):
+            rgb = mild_color_balance(rgb)
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        out_path = OUT_DIR / f"{mural_id}.jpg"
+        cv2.imwrite(
+            str(out_path),
+            cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR),
+            [int(cv2.IMWRITE_JPEG_QUALITY), 85],
+        )
+        return out_path
+
     photo = ref_dir / str(cfg.get("photo", "street-photo.jpg"))
     if not photo.is_file():
         raise FileNotFoundError(photo)
