@@ -28,8 +28,9 @@
 //     Meshes that were built and then hidden never reached the GPU, so the next drive
 //     uploaded them and the count climbed after the scene itself had settled. A few of
 //     those are drawn once, off to the side of the real frame, so both measure cycles
-//     already include them. Hero images near the car that decode after that first
-//     draw are uploaded on a later pass, instead of waiting until the next visit.
+//     already include them. Hero images, including the sign, that decode after that
+//     first draw are uploaded on a later pass for any hero already loaded within
+//     1500 m, instead of waiting until the next visit.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -97,7 +98,7 @@ export class PerfFixes {
   private primedGeo = new WeakSet<BufferGeometry>();
   private primeIdle = 0;
   private mapCursor = 0;
-  private mapIdle = 0;
+  private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -371,53 +372,59 @@ export class PerfFixes {
     try { renderer.initTexture(tex); } catch { /* image not ready */ }
   }
 
-  /** Hero images often decode after the mesh was first drawn. Upload the ready ones
-   *  near the car, a few per pass, so the phone soak counts them during warmup.
-   *  Distant heroes stay untouched: decoding the whole island during a measured lap
-   *  pushed the forced-GC heap over its cap. */
-  private uploadPendingMaps(x: number, z: number) {
-    if (this.mapIdle > 0) { this.mapIdle--; return; }
-    const meshes: Obj[] = [];
-    const list = this.real.hero?.list;
-    if (list) {
-      for (let h = 0; h < list.length; h++) {
-        const n = list[h];
-        if (!n._g) continue;
-        if (Math.hypot(n.x - x, n.z - z) > 1000) continue;
-        const stack: Obj[] = [n._g];
-        while (stack.length) {
-          const o = stack.pop()!;
-          if (o.geometry && o.material) meshes.push(o);
-          for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
+  /** Upload ready maps under one object. An image that is still decoding, or a
+   *  budget that runs out mid-walk, leaves the object queued for a later frame. */
+  private uploadObjectMaps(root: Obj, budget: number) {
+    if (this.heroMapped.has(root) || budget <= 0) return budget;
+    const stack: Obj[] = [root];
+    let pending = false;
+    while (stack.length && !pending) {
+      const o = stack.pop()!;
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const one of mats) {
+          const rec = one as unknown as Record<string, GpuTex | null | undefined>;
+          for (const key of MAP_KEYS) {
+            const tex = rec[key];
+            if (!tex?.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
+            if (!this.imageReady(tex)) { pending = true; continue; }
+            const props = this.gpu().properties?.get(tex);
+            if (props?.__webglInit !== undefined) continue;
+            if (budget <= 0) { pending = true; break; }
+            this.uploadNow(tex);
+            budget--;
+          }
         }
       }
+      if (pending) break;
+      for (let c = 0; c < o.children.length; c++) stack.push(o.children[c] as Obj);
     }
-    const n = meshes.length;
-    if (!n) return;
-    let budget = 24;
+    if (!pending) this.heroMapped.add(root);
+    return budget;
+  }
+
+  /** Hero images often decode after the mesh was first drawn. Upload the ready ones
+   *  for heroes already loaded within 1500 m, a few per frame, so both measured laps
+   *  count the same set. Signs are included. Heroes that are not loaded stay
+   *  untouched: uploading every brand and monument image on the island pushed the
+   *  forced-GC heap over its cap. */
+  private uploadPendingMaps(x: number, z: number) {
+    const list = this.real.hero?.list;
+    if (!list || !list.length) return;
+    let budget = 8;
+    const n = list.length;
     let i = this.mapCursor % n;
     const start = i;
     do {
-      if (budget <= 0) break;
-      const mat = meshes[i].material;
-      const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
-      for (const one of mats) {
-        const rec = one as unknown as Record<string, GpuTex | null | undefined>;
-        for (const key of MAP_KEYS) {
-          if (budget <= 0) break;
-          const tex = rec[key];
-          if (!tex?.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
-          if (!this.imageReady(tex)) continue;
-          const props = this.gpu().properties?.get(tex);
-          if (props?.__webglInit !== undefined) continue;
-          this.uploadNow(tex);
-          budget--;
-        }
-      }
+      const hero = list[i];
       i = (i + 1) % n;
+      if (budget <= 0) break;
+      if (!hero._g && !hero._sign) continue;
+      if (Math.hypot(hero.x - x, hero.z - z) > 1500) continue;
+      if (hero._g) budget = this.uploadObjectMaps(hero._g, budget);
+      if (hero._sign && budget > 0) budget = this.uploadObjectMaps(hero._sign, budget);
     } while (i !== start);
     this.mapCursor = i;
-    if (budget === 24) this.mapIdle = 2;
   }
 
   /** BatchedMesh.dispose frees the merged geometry and the matrices/indirect textures.
@@ -637,10 +644,10 @@ export class PerfFixes {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       this.warmRegionTextures();
+      this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
         this.primeUnseenGeometries();
-        this.uploadPendingMaps(a[0] as number, a[2] as number);
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
