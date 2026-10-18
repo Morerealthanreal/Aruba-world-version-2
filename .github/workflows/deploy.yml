@@ -3,6 +3,10 @@ name: Build & deploy (surge)
 #   push: { branches: [main] }
 # and change the default domain below to aruba-world-justin.surge.sh.
 on:
+  # Pushing any commit to the deploy/preview branch deploys it to the preview domain
+  # (manual dispatch needs an Actions:write token; this branch works with just push rights).
+  push:
+    branches: [deploy/preview]
   workflow_dispatch:
     inputs:
       domain:
@@ -14,14 +18,14 @@ on:
         type: boolean
         default: false
 concurrency:
-  group: surge-${{ github.event.inputs.domain || 'aruba-world-justin.surge.sh' }}
+  group: surge-${{ github.event.inputs.domain || (github.ref == 'refs/heads/deploy/preview' && 'aruba-world-justin-preview.surge.sh') || 'aruba-world-justin.surge.sh' }}
   cancel-in-progress: false
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DOMAIN: ${{ github.event.inputs.domain || 'aruba-world-justin.surge.sh' }}
+      DOMAIN: ${{ github.event.inputs.domain || (github.ref == 'refs/heads/deploy/preview' && 'aruba-world-justin-preview.surge.sh') || 'aruba-world-justin.surge.sh' }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }
