@@ -32,6 +32,7 @@ import { Kids } from "./kids";
 import { SplitJobs } from "./splitJobs";
 import { HiPerf } from "./hiPerf";
 import { HiLook } from "./hiLook";
+import { attachBlockDedupe } from "./blockDedupe";
 import { Emergency } from "./emergency";
 import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
@@ -77,6 +78,7 @@ async function main() {
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
+  const blockDedupe = attachBlockDedupe(g); // task 3: stop re-adding footprints to the collision hash on region reload
   const useLife = params.get("life") !== "0";
   const peds = useLife && params.get("peds") !== "0" ? new PedestrianCrowds(g) : null;
   if (params.get("loco") !== "0") attachPlayerLocomotion(g); // r287: player mocap walk/run (from PR #13, player only)
@@ -131,7 +133,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
