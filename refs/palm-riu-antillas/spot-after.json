@@ -1,31 +1,31 @@
 {
- "label": "after",
+ "label": "final",
  "port": "8821",
  "q": "high",
  "errors": [],
  "bench": [
   {
-   "shot": "photo",
-   "calls": 344,
-   "tris": 1110705,
-   "ms": 5.5
+   "shot": "photo2",
+   "calls": 352,
+   "tris": 1098325,
+   "ms": 5.8
   },
   {
    "shot": "core",
-   "calls": 381,
-   "tris": 1191150,
-   "ms": 7.3
+   "calls": 382,
+   "tris": 1112917,
+   "ms": 6.4
   },
   {
-   "shot": "aerial",
-   "calls": 389,
-   "tris": 1332823,
-   "ms": 4.8
+   "shot": "south",
+   "calls": 883,
+   "tris": 1325948,
+   "ms": 8
   }
  ],
  "fps": {
-  "fps": 1.99,
-  "p95ms": 3866.5,
+  "fps": 1.26,
+  "p95ms": 100,
   "calls": 1,
   "tris": 1
  },

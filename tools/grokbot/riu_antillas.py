@@ -5,7 +5,8 @@ Same hero id, origin and footprint as before (OSM building in r_2_6). The
 slab sits on the podium's west side, long axis NNW-SSE, as read from the
 Esri aerial (roof strip and its shadow). Reference photo: Commons
 'Hotel Riu Palace Aruba in 2015.jpg' (Choinowski, CC BY-SA 4.0), which is
-this building seen from J.E. Irausquin: 15 room floors of deep recessed
+this building seen from J.E. Irausquin: 15 room floors (RIU factsheet 2019: main building 16 floors including the
+ground floor, 482 rooms; built 1977 as the Concorde, later Wyndham/Westin) of deep recessed
 balconies between white fins and slab edges, a blank service core at the
 north end that rises above the roof with a rail, a column of slit windows
 and the red RIU wordmark with its crown at the top, and a two-storey white
@@ -38,10 +39,10 @@ RING = [
 ]
 # Slab axis from the aerial: north end (core) to south end, world x,z.
 N_END = (-8564.0, -5085.0)
-S_END = (-8508.0, -5004.0)  # prow tip lands ~5 m further on
+S_END = (-8506.0, -5000.0)  # flat south end wall (1978 Concorde aerial)
 W = 17.0          # slab depth, outer face to outer face
 BAL = 1.8         # balcony recess
-PODIUM = 8.0      # two-storey podium
+PODIUM = 6.0      # tall ground floor: RIU factsheet says 16 floors incl. ground
 FLOOR = 3.0
 NFLOORS = 15
 CORE = 10.0       # core length at the north end
@@ -222,12 +223,6 @@ def build():
                             ((CORE, -hv), (L, -hv), (L, hv), (CORE, hv))], roof_y + 0.01)
         # south end wall closes the balcony recess
         obox(m("wall"), F, L - 0.4, L + 0.2, -hv - 0.15, hv + 0.15, PODIUM, top)
-        # pointed south prow (the aerial shows the slab ending in a point)
-        tip = F.p(L + 5.0, 0, 0)
-        e1, e2 = F.p(L + 0.2, -hv - 0.15, 0), F.p(L + 0.2, hv + 0.15, 0)
-        for (a, b) in ((e2, tip), (tip, e1)):
-            m("wall").quad((a[0], PODIUM, a[2]), (a[0], roof_y, a[2]), (b[0], roof_y, b[2]), (b[0], PODIUM, b[2]))
-        m("roof").tri((e1[0], roof_y + 0.01, e1[2]), (tip[0], roof_y + 0.01, tip[2]), (e2[0], roof_y + 0.01, e2[2]))
         if lod == 1:
             # far view: a dark band per floor on both long faces reads as the grid
             for f in range(NFLOORS):

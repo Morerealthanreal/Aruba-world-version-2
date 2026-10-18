@@ -5,27 +5,15 @@
  "errors": [],
  "bench": [
   {
-   "shot": "photo",
-   "calls": 700,
-   "tris": 1453886,
-   "ms": 6.2
-  },
-  {
-   "shot": "core",
-   "calls": 385,
-   "tris": 1171035,
-   "ms": 4.8
-  },
-  {
-   "shot": "aerial",
-   "calls": 369,
-   "tris": 1118368,
-   "ms": 4.6
+   "shot": "photo2",
+   "calls": 709,
+   "tris": 1475089,
+   "ms": 15.3
   }
  ],
  "fps": {
-  "fps": 1.13,
-  "p95ms": 7849.7,
+  "fps": 0.3,
+  "p95ms": 38598.5,
   "calls": 1,
   "tris": 1
  },
