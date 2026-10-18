@@ -32,12 +32,12 @@ RING = [(-8046.6, -6441.2), (-8044, -6441.1), (-8044.1, -6439.3), (-8034.3, -643
         (-7915.2, -6455.4), (-7915.6, -6453.4), (-8031.6, -6465), (-8031.4, -6468.1), (-8041.1, -6469.1),
         (-8041.3, -6467.3), (-8044.6, -6467.6)]
 
-SAND = (0.91, 0.81, 0.67)
-SAND_SH = (0.84, 0.75, 0.63)
+SAND = (0.94, 0.78, 0.58)
+SAND_SH = (0.86, 0.71, 0.54)
 SALMON = (0.82, 0.54, 0.42)
 WHITE = (0.96, 0.95, 0.92)
 RAIL = (0.93, 0.93, 0.91)
-GLASS = (0.42, 0.48, 0.52)
+GLASS = (0.34, 0.36, 0.38)
 TILE = (0.66, 0.30, 0.20)
 ROOF = (0.82, 0.80, 0.76)
 GROUND = (0.20, 0.22, 0.24)
@@ -73,7 +73,7 @@ def build():
         # beach and street end walls: salmon full-height panels
         for lod in (0, 1):
             for uu in (-0.3, F.L + 0.3):
-                obox(M.mesh(lod, "salmon"), F, uu - 0.3, uu + 0.3, -hv + 3.0, hv - 3.0, GF, top + 0.8)
+                obox(M.mesh(lod, "salmon"), F, uu - 0.3, uu + 0.3, -3.2, 3.2, GF, top + 0.8)
         return F, top
 
     # tall beach slab (13 floors incl. ground, 43.5 m) and lower street slab (38 m)
