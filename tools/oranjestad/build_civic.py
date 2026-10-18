@@ -60,9 +60,11 @@ FRAME = (
 )
 REFS = (
     "Placement: OSM building footprints and the L.G. Smith Boulevard shore "
-    "(ODbL). Visual reference only, not textures: Wikimedia Commons "
-    "Marina in Oranjestad, ARUBA CRUISE SHIP TERMINAL, and published "
-    "exteriors of the Parlamento di Aruba and the National Archaeological Museum."
+    "(ODbL). Visual reference only, not textures: "
+    "https://commons.wikimedia.org/wiki/File:Parlamento_di_Aruba_(front).jpg , "
+    "https://commons.wikimedia.org/wiki/File:Aruba_Archaeological_museum_in_Oranjestad.jpg , "
+    "https://commons.wikimedia.org/wiki/File:Marina_in_Oranjestad-_1.jpg , "
+    "https://commons.wikimedia.org/wiki/File:ARUBA_CRUISE_SHIP_TERMINAL_-_panoramio.jpg"
 )
 
 # Files whose node prefix differs from the hero id.
@@ -844,39 +846,273 @@ def patch(manifest, gid, tris, textures):
     return entry
 
 
+def rect_opening(prim, a, b, outward, t, y0, y1, w, origin, h0, frame, glass):
+    """A rectangular window. The parliament and the museum houses are not arched."""
+    span_quad(prim, a, b, outward, t - w * 0.55, t + w * 0.55, y0 - 0.06, y1 + 0.06, frame, origin, h0, 0.05)
+    span_quad(prim, a, b, outward, t - w * 0.42, t + w * 0.42, y0, y1, glass, origin, h0, 0.09)
+
+
+def build_parliament():
+    """Cream block, red tile hip, and the flat PARLAMENTO DI ARUBA canopy.
+
+    The real front is not a Greek pediment. Commons file
+    Parlamento di Aruba (front).jpg.
+    """
+    gid = "gova77053638"
+    entry, poly = hero(gid)
+    ox, oz = entry["x"], entry["z"]
+    h0 = height_at(ox, oz)
+    _key, a, b, outward, L, score = facing_edge(poly, (-7165.0, 218.0))
+    ground = front_ground(a, b)
+    print(f"parliament front {L:.1f}m face {score:.2f} ground {ground:.2f}")
+    paint, signs = Prim(), Prim()
+    origin = (ox, oz)
+    wall = (0.91, 0.86, 0.68)
+    eave = ground + 7.35
+    extrude_walls(paint, poly, ground - 0.3, eave, wall, origin, h0)
+    hip_roof(paint, poly, origin, h0, eave, 2.6, (0.62, 0.18, 0.10))
+    # A tile slope the sidewalk can see. The hip peak sits too far back.
+    tx, tz, front_l = edge_basis(a, b)
+    nx, nz = outward
+    ox, oz = origin
+
+    def roof_at(t, back, y):
+        return (
+            a[0] + tx * t - nx * back - ox,
+            y - h0,
+            a[1] + tz * t - nz * back - oz,
+        )
+
+    tri_up(
+        paint,
+        roof_at(0.4, 0.2, eave),
+        roof_at(front_l - 0.4, 0.2, eave),
+        roof_at(front_l - 0.8, 5.5, eave + 1.7),
+        (0.62, 0.18, 0.10),
+    )
+    tri_up(
+        paint,
+        roof_at(0.4, 0.2, eave),
+        roof_at(front_l - 0.8, 5.5, eave + 1.7),
+        roof_at(0.8, 5.5, eave + 1.7),
+        (0.62, 0.18, 0.10),
+    )
+    cornice(paint, poly, origin, h0, eave, (0.78, 0.42, 0.28))
+    centre = centroid(poly)
+    for i in range(len(poly)):
+        ea, eb = poly[i], poly[(i + 1) % len(poly)]
+        el = hypot(eb[0] - ea[0], eb[1] - ea[1])
+        if el < 4:
+            continue
+        mx, mz = (ea[0] + eb[0]) / 2, (ea[1] + eb[1]) / 2
+        out = norm((mx - centre[0], mz - centre[1]))
+        span_quad(paint, ea, eb, out, 0.25, el - 0.25, ground - 0.02, ground + 0.48, (0.20, 0.16, 0.12), origin, h0, 0.06)
+    tx, tz, _el = edge_basis(a, b)
+    nx, nz = outward
+    porch0, porch1 = L * 0.31, L * 0.69
+    frame = (0.95, 0.92, 0.84)
+    floors = ((1.2, 2.75, 1.05), (4.15, 5.7, 0.95))
+
+    def windows_range(t_lo, t_hi):
+        span = t_hi - t_lo
+        if span < 2.4:
+            return
+        n = max(1, int(span / 3.3))
+        for y0, y1, w in floors:
+            for k in range(n):
+                t = t_lo + (k + 0.5) * span / n
+                rect_opening(paint, a, b, outward, t, ground + y0, ground + y1, w, origin, h0, frame, GLASS)
+
+    windows_range(1.3, porch0 - 0.35)
+    windows_range(porch1 + 0.35, L - 1.3)
+    for i in range(len(poly)):
+        ea, eb = poly[i], poly[(i + 1) % len(poly)]
+        same = hypot(ea[0] - a[0], ea[1] - a[1]) < 0.25 and hypot(eb[0] - b[0], eb[1] - b[1]) < 0.25
+        if same:
+            continue
+        el = hypot(eb[0] - ea[0], eb[1] - ea[1])
+        if el < 6.5:
+            continue
+        mx, mz = (ea[0] + eb[0]) / 2, (ea[1] + eb[1]) / 2
+        out = norm((mx - centre[0], mz - centre[1]))
+        windows_on(paint, ea, eb, out, ground, origin, h0, floors)
+    for t in (L * 0.37, L * 0.63):
+        cx = a[0] + tx * t + nx * 2.05
+        cz = a[1] + tz * t + nz * 2.05
+        box(paint, cx - ox, ground + 1.65 - h0, cz - oz, 0.46, 3.3, 0.46, (0.88, 0.80, 0.62))
+    span_quad(paint, a, b, outward, porch0, porch1, ground + 3.25, ground + 3.72, (0.86, 0.76, 0.52), origin, h0, 2.55)
+    span_quad(paint, a, b, outward, porch0, porch1, ground + 3.25, ground + 3.72, (0.80, 0.70, 0.48), origin, h0, 0.12)
+    rect_opening(
+        paint, a, b, outward, L * 0.5, ground + 0.2, ground + 2.55, 1.2, origin, h0, (0.45, 0.26, 0.12), (0.24, 0.13, 0.07)
+    )
+    atlas = Atlas()
+    uv = paint_sign(atlas, "PARLAMENTO DI ARUBA", (214, 186, 132), (72, 42, 18))
+    sign_quad(signs, uv, a, b, outward, L * 0.5 - 3.6, L * 0.5 + 3.6, ground + 3.9, ground + 4.85, origin, h0, 0.16)
+    uv_flag = atlas.flag()
+    for t in (L * 0.18, L * 0.82):
+        fx = a[0] + tx * t + nx * 5.5
+        fz = a[1] + tz * t + nz * 5.5
+        cyl(paint, fx - ox, ground - h0, fz - oz, 0.045, 6.4, (0.72, 0.72, 0.70), seg=5)
+    fx = a[0] + tx * (L * 0.18) + nx * 5.5
+    fz = a[1] + tz * (L * 0.18) + nz * 5.5
+    flag_quad(signs, uv_flag, fx, ground + 5.6, fz, origin, h0, nx, nz)
+    lod = Prim()
+    extrude_walls(lod, poly, ground - 0.3, eave + 0.6, wall, origin, h0)
+    glb = Glb(gid)
+    glb.mat("paint", rough=0.84)
+    glb.mat("sign", rough=0.58, tex=0, double=True)
+    glb.images.append((atlas.png(), "image/png"))
+    glb.add(paint, "paint")
+    glb.add(signs, "sign")
+    glb.lod1_prim = lod
+    return glb
+
+
+def _bay_point(a, tx, tz, inward, ox, oz, h0, t, depth, y):
+    return (
+        a[0] + tx * t + inward[0] * depth - ox,
+        y - h0,
+        a[1] + tz * t + inward[1] * depth - oz,
+    )
+
+
+def museum_bay(paint, a, b, outward, t0, t1, ground, origin, h0, wall, eave, rise, depth=7.4):
+    """One courtyard house: street gable, red roof, white cornice."""
+    tx, tz, _L = edge_basis(a, b)
+    nx, nz = outward
+    ox, oz = origin
+    inward = (-nx, -nz)
+
+    def at(t, d, y):
+        return _bay_point(a, tx, tz, inward, ox, oz, h0, t, d, y)
+
+    span_quad(paint, a, b, outward, t0, t1, ground, ground + eave, wall, origin, h0, 0.02)
+    span_quad(paint, a, b, outward, t0 + 0.08, t1 - 0.08, ground + eave - 0.18, ground + eave + 0.06, TRIM, origin, h0, 0.14)
+    for t, sign in ((t0, -1.0), (t1, 1.0)):
+        quad_out(
+            paint,
+            at(t, 0.15, ground),
+            at(t, depth, ground),
+            at(t, depth, ground + eave),
+            at(t, 0.15, ground + eave),
+            wall,
+            (tx * sign, 0.0, tz * sign),
+        )
+    quad_out(
+        paint,
+        at(t1, depth, ground),
+        at(t0, depth, ground),
+        at(t0, depth, ground + eave),
+        at(t1, depth, ground + eave),
+        wall,
+        (inward[0], 0.0, inward[1]),
+    )
+    tm = (t0 + t1) / 2
+    peak = ground + eave + rise
+    tri_out(paint, at(t0, 0.08, ground + eave), at(t1, 0.08, ground + eave), at(tm, 0.08, peak), wall, (nx, 0.35, nz))
+    tri_out(paint, at(t1, depth, ground + eave), at(t0, depth, ground + eave), at(tm, depth, peak), wall, (inward[0], 0.35, inward[1]))
+    for side, t_wall in ((-1.0, t0), (1.0, t1)):
+        tri_up(paint, at(t_wall, 0.12, ground + eave), at(tm, 0.12, peak), at(tm, depth, peak), ROOF)
+        tri_up(paint, at(t_wall, 0.12, ground + eave), at(tm, depth, peak), at(t_wall, depth, ground + eave), ROOF)
+    return tm
+
+
+def build_museum():
+    """The Ecury courtyard: yellow houses, a green 1921 gable, the blue boat.
+
+    Not a single yellow bar with a MUSEUM sign. Commons file
+    Aruba Archaeological museum in Oranjestad.jpg.
+    """
+    gid = "archmuseum"
+    entry, poly = hero(gid)
+    ox, oz = entry["x"], entry["z"]
+    h0 = height_at(ox, oz)
+    # The courtyard faces the long street edge, not the short end the
+    # old camera happened to see.
+    centre = centroid(poly)
+    a = b = outward = None
+    L = 0.0
+    for i in range(len(poly)):
+        ea, eb = poly[i], poly[(i + 1) % len(poly)]
+        el = hypot(eb[0] - ea[0], eb[1] - ea[1])
+        if el > L:
+            mx, mz = (ea[0] + eb[0]) / 2, (ea[1] + eb[1]) / 2
+            a, b, outward, L = ea, eb, norm((mx - centre[0], mz - centre[1])), el
+    ground = front_ground(a, b)
+    mx, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    print(f"museum front {L:.1f}m ground {ground:.2f}")
+    print(f"  cam museum stand {mx + outward[0] * 22:.0f},{mz + outward[1] * 22:.0f} look {mx:.0f},{mz:.0f}")
+    paint, signs = Prim(), Prim()
+    origin = (ox, oz)
+    yellow = (0.84, 0.58, 0.20)
+    green = (0.12, 0.34, 0.22)
+    n = max(3, min(7, int(L / 8.5)))
+    if n % 2 == 0:
+        n += 1
+    gap = 0.35
+    usable = L - 1.2
+    bay = (usable - gap * (n - 1)) / n
+    center = n // 2
+    atlas = Atlas()
+    uv_year = paint_sign(atlas, "1921", (18, 64, 36), (245, 242, 230))
+    tx, tz, _el = edge_basis(a, b)
+    nx, nz = outward
+    for i in range(n):
+        t0 = 0.6 + i * (bay + gap)
+        t1 = t0 + bay
+        if i == center:
+            tm = museum_bay(paint, a, b, outward, t0, t1, ground, origin, h0, green, 6.3, 2.15, 8.2)
+            span_quad(paint, a, b, outward, t0 + 0.7, t1 - 0.7, ground + 3.05, ground + 3.28, TRIM, origin, h0, 1.15)
+            span_quad(paint, a, b, outward, t0 + 0.55, t1 - 0.55, ground + 3.55, ground + 3.72, TRIM, origin, h0, 1.05)
+            rect_opening(paint, a, b, outward, tm, ground + 1.05, ground + 2.55, 0.7, origin, h0, TRIM, (0.16, 0.28, 0.22))
+            rect_opening(paint, a, b, outward, tm - 1.15, ground + 4.15, ground + 5.15, 0.55, origin, h0, TRIM, GLASS)
+            rect_opening(paint, a, b, outward, tm + 1.15, ground + 4.15, ground + 5.15, 0.55, origin, h0, TRIM, GLASS)
+            sign_quad(signs, uv_year, a, b, outward, tm - 0.7, tm + 0.7, ground + 6.55, ground + 7.35, origin, h0, 0.12)
+        else:
+            tm = museum_bay(paint, a, b, outward, t0, t1, ground, origin, h0, yellow, 3.35, 1.55, 6.8)
+            rect_opening(paint, a, b, outward, tm - bay * 0.22, ground + 1.15, ground + 2.25, 0.48, origin, h0, TRIM, GLASS)
+            rect_opening(paint, a, b, outward, tm + bay * 0.22, ground + 1.15, ground + 2.25, 0.48, origin, h0, TRIM, GLASS)
+            if i % 2 == 0:
+                span_quad(paint, a, b, outward, tm - 0.15, tm + 0.15, ground + 0.15, ground + 2.4, (0.55, 0.28, 0.14), origin, h0, 0.08)
+    # The boat that sits in the courtyard, in front of the green house.
+    mid = 0.6 + center * (bay + gap) + bay * 0.5
+    inward = (-nx, -nz)
+    hull = (0.86, 0.88, 0.90)
+    stripe = (0.12, 0.28, 0.62)
+
+    def at(t, d, y):
+        return _bay_point(a, tx, tz, inward, ox, oz, h0, t, d, y)
+
+    for y0, y1, color in ((0.35, 0.85, hull), (0.85, 1.15, stripe)):
+        quad_out(
+            paint,
+            at(mid - 3.1, -3.4, ground + y0),
+            at(mid + 3.1, -3.4, ground + y0),
+            at(mid + 2.4, -3.4, ground + y1),
+            at(mid - 2.4, -3.4, ground + y1),
+            color,
+            (nx, 0.2, nz),
+        )
+    lod = Prim()
+    extrude_walls(lod, poly, ground - 0.2, ground + 3.6, yellow, origin, h0)
+    glb = Glb(gid)
+    glb.mat("paint", rough=0.84)
+    glb.mat("sign", rough=0.55, tex=0, double=True)
+    glb.images.append((atlas.png(), "image/png"))
+    glb.add(paint, "paint")
+    glb.add(signs, "sign")
+    glb.lod1_prim = lod
+    return glb
+
+
 def main():
     polys = blockers()
     manifest = json.loads(MANIFEST.read_text())
-    floors_civic = ((1.05, 2.55, 0.82), (3.55, 4.85, 0.72))
-    floors_house = ((0.95, 2.35, 0.78), (3.15, 4.25, 0.68))
 
     built = []
     built.append(("cruise", write_named(build_cruise(), "cruise"), 1, None))
-    parl = colonial(
-        "gova77053638",
-        FILES["gova77053638"],
-        (-7165.0, 218.0),
-        YELLOW,
-        floors_civic,
-        7.6,
-        2.3,
-        porch="columns",
-        sign="PARLIAMENT",
-    )
-    built.append(("gova77053638", write_named(parl[0], "gova77053638"), 1, None))
-    museum = colonial(
-        "archmuseum",
-        FILES["archmuseum"],
-        (-7383.0, -144.0),
-        YELLOW,
-        floors_house,
-        5.6,
-        1.7,
-        shutter=SHUTTER,
-        porch="canopy",
-        sign="MUSEUM",
-    )
-    built.append(("archmuseum", write_named(museum[0], "archmuseum"), 1, None))
+    built.append(("gova77053638", write_named(build_parliament(), "gova77053638"), 1, None))
+    built.append(("archmuseum", write_named(build_museum(), "archmuseum"), 1, None))
 
     marina_glb, marina_origin = build_marina(polys)
     marina_tris = write_named(marina_glb, "ora_marina")

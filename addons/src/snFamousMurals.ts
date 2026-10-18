@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { MURAL_SKIP } from "./muralSkip";
 import type { AGame } from "./env";
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 
@@ -44,6 +45,8 @@ export class SnFamousMurals {
     const res = await fetch("./data/sn_famous_murals.json");
     if (!res.ok) throw new Error("sn_famous_murals.json " + res.status);
     const doc = (await res.json()) as Doc;
+    doc.murals = doc.murals.filter((m) => !MURAL_SKIP.has(m.id));
+    if (!doc.murals.length) return;
     const tex = await loadMuralAtlas(muralAtlasKey(doc.atlas), this.g.renderer);
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
