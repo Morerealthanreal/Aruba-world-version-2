@@ -92,10 +92,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - group: spots noord and palm beach
-            args: "tests/aruba-world.spec.js --grep 'captures (noord|palm-beach)'"
-          - group: spots oranjestad and hooiberg
-            args: "tests/aruba-world.spec.js --grep captures --grep-invert 'captures (noord|palm-beach)'"
+          - group: fixed spots
+            args: "tests/aruba-world.spec.js --grep captures"
           - group: travel modes
             args: "tests/aruba-world.spec.js --grep-invert captures"
           - group: everything else
