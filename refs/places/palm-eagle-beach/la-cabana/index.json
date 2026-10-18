@@ -25,6 +25,18 @@
    "date": "2011-04-15",
    "shows": "La Cabana low-rise: cream walls, red tile roof, arched ground floor",
    "original_path": "https://commons.wikimedia.org/wiki/File:La_Cabana_Resort_Noord_Aruba.jpg"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:La_Cabana_Resort_Noord_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana; in-game frame Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2011-04-15",
+   "shows": "Side-by-side of La Cabana: cream walls, red tile roof and ground-floor arches beside the in-game colonnade",
+   "original_path": "refs/places/palm-eagle-beach/la-cabana/comparison.jpg"
   }
  ]
 }
