@@ -124,9 +124,11 @@ def facade_png(wall, arch=False):
         x0, x1, yy0, yy1 = 14, 50, y0 + 16, y0 + 78
         d.rectangle([x0 - 3, yy0 - 3, x1 + 3, yy1 + 3], fill=(248, 246, 240, 255))
         if arched:
-            d.rectangle([x0, yy0 + 18, x1, yy1], fill=(62, 84, 102, 255))
-            d.pieslice([x0, yy0, x1, yy0 + 40], 180, 360, fill=(62, 84, 102, 255))
-            d.arc([x0 - 3, yy0 - 2, x1 + 3, yy0 + 42], 180, 360, fill=(248, 246, 240, 255), width=3)
+            # Storey-tall opening. The pier between arches is the wall colour
+            # left in the side margins, not a small window punched in a grey wall.
+            x0, x1, yy0, yy1 = 8, 56, 6, 122
+            d.pieslice([x0, 8, x1, 78], 180, 360, fill=(42, 56, 72, 255))
+            d.rectangle([x0, 40, x1, yy1], fill=(42, 56, 72, 255))
         else:
             d.rectangle([x0, yy0, x1, yy1], fill=(74, 98, 118, 255))
             d.line([(W // 2, yy0), (W // 2, yy1)], fill=(248, 246, 240, 255), width=2)
@@ -803,11 +805,11 @@ RESORTS = [
          dutch=True, arch=False, anchor=(-9180.2, -3847.9), radius=110,
          keys=("amsterdam",), flat_big=False),
     dict(id="m_lacabana", name="La Cabana Beach Resort & Casino", sign="LA CABANA",
-         bg="#6e1d32", fg="#f6e27a", wall=(244, 240, 232), trim=(255, 255, 255), roof=(196, 83, 45),
+         bg="#6e1d32", fg="#f6e27a", wall=(232, 176, 112), trim=(255, 248, 236), roof=(168, 46, 32),
          dutch=False, arch=True, anchor=(-9138.2, -3480.4), radius=70,
          keys=("la cabana", "cabana"), flat_big=False, skip_ids={3318}),
     dict(id="lacabana_ring", name="La Cabana Beach Resort – courtyard wing", sign="LA CABANA",
-         bg="#6e1d32", fg="#f6e27a", wall=(236, 236, 232), trim=(255, 255, 255), roof=(232, 230, 224),
+         bg="#6e1d32", fg="#f6e27a", wall=(232, 176, 112), trim=(255, 248, 236), roof=(168, 46, 32),
          dutch=False, arch=True, anchor=(-9163.5, -3537.5), radius=40,
          keys=(), flat_big=True, only_ids={3318}, flat=True),
     # Kept from main: white facade, red tile roof and the resort sign.
@@ -952,6 +954,259 @@ def assign(buildings):
             claimed[best["id"]].append(b)
     return claimed
 
+def _gable_quad(mesh, a, b, c, d, nm):
+    ia = mesh.v(*a, *nm, 0, 0)
+    ib = mesh.v(*b, *nm, 1, 0)
+    ic = mesh.v(*c, *nm, 1, 1)
+    id_ = mesh.v(*d, *nm, 0, 1)
+    mesh.quad(ia, ib, ic, id_)
+
+
+def _pt_in(poly, x, z):
+    c = False
+    for i in range(len(poly)):
+        x1, z1 = poly[i]
+        x2, z2 = poly[(i + 1) % len(poly)]
+        if (z1 > z) != (z2 > z):
+            xint = (x2 - x1) * (z - z1) / ((z2 - z1) or 1e-9) + x1
+            if x < xint:
+                c = not c
+    return c
+
+
+def _edge_out(poly, i):
+    """Unit normal that leaves this footprint, and the edge it belongs to.
+
+    A left normal points into a counter-clockwise ring, which put Amsterdam's
+    gables and La Cabana's palms on the beach side of the block.
+    """
+    x1, z1 = poly[i]
+    x2, z2 = poly[(i + 1) % len(poly)]
+    dx, dz = x2 - x1, z2 - z1
+    length = hypot(dx, dz)
+    if length < 1e-6:
+        return None
+    lx, lz = dz / length, -dx / length
+    mx, mz = (x1 + x2) * 0.5, (z1 + z2) * 0.5
+    if _pt_in(poly, mx + lx * 2.2, mz + lz * 2.2):
+        return -lx, -lz, length, x1, z1, x2, z2
+    return lx, lz, length, x1, z1, x2, z2
+
+
+def street_gables(mesh, poly, y_eave, rise):
+    """A row of white stepped gables on the boulevard face.
+
+    The short-end triangles of a hipped quad face north and south. From
+    J.E. Irausquin the long wall is what you see, so the steps go there.
+    """
+    for i in range(len(poly)):
+        got = _edge_out(poly, i)
+        if not got:
+            continue
+        nx, nz, length, x1, z1, x2, z2 = got
+        if length < 8:
+            continue
+        # Boulevard is east of the beach. Outward +x faces the street.
+        if nx < 0.4:
+            continue
+        dx, dz = x2 - x1, z2 - z1
+        ax, az = dx / length, dz / length
+        count = max(1, int(length / 8.0))
+        width = min(5.8, (length / count) * 0.8)
+        for k in range(count):
+            t = (k + 0.5) / count
+            cx = x1 + dx * t
+            cz = z1 + dz * t
+            half = width * 0.5
+            steps = 5
+            for s in range(steps):
+                t0 = s / steps
+                w = half * (1.0 - t0 * 0.7)
+                ya = y_eave + rise * t0
+                yb = y_eave + rise * ((s + 1) / steps)
+                depth = 1.05
+
+                def corner(along, y, out):
+                    return (
+                        cx + ax * along + nx * out,
+                        y,
+                        cz + az * along + nz * out,
+                    )
+
+                p00, p10 = corner(-w, ya, 0.12), corner(w, ya, 0.12)
+                p01, p11 = corner(-w, yb, 0.12), corner(w, yb, 0.12)
+                q00, q10 = corner(-w, ya, 0.12 + depth), corner(w, ya, 0.12 + depth)
+                q01, q11 = corner(-w, yb, 0.12 + depth), corner(w, yb, 0.12 + depth)
+                _gable_quad(mesh, q00, q10, q11, q01, (nx, 0.0, nz))
+                _gable_quad(mesh, q01, q11, p11, p01, (0.0, 1.0, 0.0))
+                side = (az, 0.0, -ax)
+                _gable_quad(mesh, p00, q00, q01, p01, side)
+                _gable_quad(mesh, q10, p10, p11, q11, (-side[0], 0.0, -side[2]))
+
+
+def _palm(trunk, leaf, x, y, z, h):
+    """A street palm: curved trunk and a handful of drooping fronds."""
+    tube(trunk, [
+        (x, y, z),
+        (x + 0.18, y + h * 0.45, z + 0.08),
+        (x - 0.08, y + h, z - 0.04),
+    ], 0.18, 0.07, 5)
+    crown = y + h - 0.15
+    for i in range(7):
+        a = i / 7 * math.tau + 0.4
+        ca, sa = math.cos(a), math.sin(a)
+        ca2, sa2 = math.cos(a + 0.34), math.sin(a + 0.34)
+        reach, droop = 2.5, 0.85
+        c0 = leaf.v(x, crown, z, 0, 1, 0, 0.5, 0)
+        c1 = leaf.v(x, crown - 0.15, z, 0, 1, 0, 0.5, 0)
+        t1 = leaf.v(x + ca * reach, crown - droop, z + sa * reach, ca, -0.2, sa, 0, 1)
+        t2 = leaf.v(x + ca2 * reach * 0.82, crown - droop * 0.55, z + sa2 * reach * 0.82, ca2, 0.1, sa2, 1, 1)
+        leaf.tri(c0, t1, t2)
+        leaf.tri(c1, t2, t1)
+
+
+def _umbrella(cloth, pole, x, y, z, radius):
+    tube(pole, [(x, y, z), (x, y + 2.15, z)], 0.045, 0.035, 4)
+    top = cloth.v(x, y + 2.45, z, 0, 1, 0, 0.5, 1)
+    ring = []
+    for i in range(8):
+        a = i / 8 * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(cloth.v(x + ca * radius, y + 1.9, z + sa * radius, ca, 0.35, sa, i / 8, 0))
+    for i in range(8):
+        cloth.tri(top, ring[i], ring[(i + 1) % 8])
+
+
+def _balustrade(mesh, x1, z1, x2, z2, y, nx, nz, out):
+    """White courtyard rail in front of the street wall."""
+    length = hypot(x2 - x1, z2 - z1) or 1
+    nposts = max(2, int(length / 2.4))
+    pts = []
+    for i in range(nposts + 1):
+        t = i / nposts
+        px = x1 + (x2 - x1) * t + nx * out
+        pz = z1 + (z2 - z1) * t + nz * out
+        pts.append((px, pz))
+        tube(mesh, [(px, y, pz), (px, y + 0.95, pz)], 0.055, 0.05, 4)
+    for (ax1, az1), (ax2, az2) in zip(pts, pts[1:]):
+        for yy in (y + 0.88, y + 0.38):
+            a = mesh.v(ax1 + nx * 0.04, yy, az1 + nz * 0.04, nx, 0, nz, 0, 0)
+            b = mesh.v(ax2 + nx * 0.04, yy, az2 + nz * 0.04, nx, 0, nz, 1, 0)
+            c = mesh.v(ax2 - nx * 0.04, yy + 0.06, az2 - nz * 0.04, nx, 0, nz, 1, 1)
+            d = mesh.v(ax1 - nx * 0.04, yy + 0.06, az1 - nz * 0.04, nx, 0, nz, 0, 1)
+            mesh.quad(a, b, c, d)
+
+
+def _pool(mesh, x1, z1, x2, z2, y, nx, nz):
+    """A band of water in the courtyard, in front of the longest street wall."""
+    length = hypot(x2 - x1, z2 - z1) or 1
+    ax, az = (x2 - x1) / length, (z2 - z1) / length
+    inset = length * 0.12
+    near, far = 5.2, 11.5
+    def p(along, out):
+        return (
+            x1 + ax * along + nx * out,
+            z1 + az * along + nz * out,
+        )
+    a = p(inset, near)
+    b = p(length - inset, near)
+    c = p(length - inset, far)
+    d = p(inset, far)
+    yy = y + 0.18
+    ia = mesh.v(a[0], yy, a[1], 0, 1, 0, 0, 0)
+    ib = mesh.v(b[0], yy, b[1], 0, 1, 0, 1, 0)
+    ic = mesh.v(c[0], yy, c[1], 0, 1, 0, 1, 1)
+    id_ = mesh.v(d[0], yy, d[1], 0, 1, 0, 0, 1)
+    mesh.quad(ia, ib, ic, id_)
+
+
+def _low_wall(mesh, x1, z1, x2, z2, y, nx, nz, out, h=1.15):
+    """The peach street wall in front of La Cabana."""
+    length = hypot(x2 - x1, z2 - z1) or 1
+    ax, az = (x2 - x1) / length, (z2 - z1) / length
+    thick = 0.28
+    def corner(along, side):
+        return (
+            x1 + ax * along + nx * (out + side),
+            z1 + az * along + nz * (out + side),
+        )
+    a, b = corner(0, 0), corner(length, 0)
+    c, d = corner(length, thick), corner(0, thick)
+    for y0, y1, nrm in ((y, y + h, (nx, 0, nz)),):
+        ia = mesh.v(a[0], y0, a[1], *nrm, 0, 0)
+        ib = mesh.v(b[0], y0, b[1], *nrm, 1, 0)
+        ic = mesh.v(b[0], y1, b[1], *nrm, 1, 1)
+        id_ = mesh.v(a[0], y1, a[1], *nrm, 0, 1)
+        mesh.quad(ia, ib, ic, id_)
+    top = (0, 1, 0)
+    ia = mesh.v(a[0], y + h, a[1], *top, 0, 0)
+    ib = mesh.v(b[0], y + h, b[1], *top, 1, 0)
+    ic = mesh.v(c[0], y + h, c[1], *top, 1, 1)
+    id_ = mesh.v(d[0], y + h, d[1], *top, 0, 1)
+    mesh.quad(ia, ib, ic, id_)
+
+
+def dress_frontage(g, parts, rail, resort, buildings, ox, oz):
+    """Palms, and on Amsterdam the pool, yellow shades and white rail from the street photo.
+
+    Colour materials only. A new image here would be another texture for the phone soak.
+    """
+    trunk = g.color_mat("palmtrunk", (96, 68, 42))
+    leaf = g.color_mat("palmleaf", (28, 86, 36))
+    # Yellow shades in the Amsterdam courtyard. La Cabana's street photo
+    # has a few red ones under the arches. Colour only, no new texture.
+    shade_rgb = (186, 42, 36) if resort["id"] == "m_lacabana" else (240, 186, 32)
+    cloth = g.color_mat("shade", shade_rgb)
+    water = g.color_mat("pool", (46, 132, 184))
+    parts.setdefault(trunk, M())
+    parts.setdefault(leaf, M())
+    parts.setdefault(cloth, M())
+    parts.setdefault(water, M())
+    edges = []
+    for b in buildings:
+        poly = ensure_ccw([(x - ox, z - oz) for x, z in b["poly"]])
+        if area(poly) < 80:
+            continue
+        for i in range(len(poly)):
+            got = _edge_out(poly, i)
+            if not got:
+                continue
+            nx, nz, length, x1, z1, x2, z2 = got
+            if length < 18 or nx < 0.7:
+                continue
+            edges.append((length, x1, z1, x2, z2, nx, nz))
+    edges.sort(reverse=True)
+    palms = shades = 0
+    for nedge, (length, x1, z1, x2, z2, nx, nz) in enumerate(edges[:2]):
+        mid_x = ox + (x1 + x2) * 0.5
+        mid_z = oz + (z1 + z2) * 0.5
+        y = height_at(mid_x, mid_z) - height_at(ox, oz)
+        if resort["id"] == "amsterdam":
+            _balustrade(rail, x1, z1, x2, z2, y, nx, nz, 2.6)
+            if nedge == 0:
+                _pool(parts[water], x1, z1, x2, z2, y, nx, nz)
+        if resort["id"] == "m_lacabana":
+            _balustrade(rail, x1, z1, x2, z2, y + 6.2, nx, nz, 0.4)
+            yard = g.color_mat("yardwall", (196, 140, 78))
+            parts.setdefault(yard, M())
+            _low_wall(parts[yard], x1, z1, x2, z2, y, nx, nz, 8.2)
+        step = 9.0
+        count = max(2, int(length / step))
+        for k in range(count):
+            t = (k + 0.5) / count
+            wx = x1 + (x2 - x1) * t
+            wz = z1 + (z2 - z1) * t
+            if palms < 14:
+                _palm(parts[trunk], parts[leaf], wx + nx * 4.6, y, wz + nz * 4.6, 6.2 + (k % 3) * 0.55)
+                palms += 1
+            if resort["id"] == "amsterdam" and k % 2 == 0 and shades < 8:
+                _umbrella(parts[cloth], rail, wx + nx * 1.5, y, wz + nz * 1.5, 1.7)
+                shades += 1
+            if resort["id"] == "m_lacabana" and k % 3 == 0 and shades < 5:
+                _umbrella(parts[cloth], rail, wx + nx * 2.2, y, wz + nz * 2.2, 1.3)
+                shades += 1
+
+
 def build_resort(resort, buildings):
     ox, oz = resort["anchor"]
     if resort.get("cottages"):
@@ -983,8 +1238,17 @@ def build_resort(resort, buildings):
         flat = resort.get("flat") or (resort.get("flat_big") and (b["area"] > 3500 or len(poly) > 8))
         ground = y0 + min(3.3, (y1 - y0) * 0.45)
         if resort["arch"] and ground < y1 - 0.4:
-            wall(parts[fac_g], poly, y0, ground)
-            wall(parts[fac], poly, ground, y1)
+            # One full tile per arch, so the opening is a storey, not a window.
+            # La Cabana's street face has two stacked rows of arches.
+            arch_h = 4.4
+            stories = 2 if resort["id"] in ("m_lacabana", "lacabana_ring") else 1
+            seam = y0 + arch_h * stories
+            if seam > y1 - 2.0:
+                seam = y0 + arch_h if y0 + arch_h < y1 - 0.4 else ground
+            wall(parts[fac_g], poly, y0, seam, arch_h)
+            wall(parts[fac], poly, seam, y1)
+            # Red tile band so the roof reads when the camera is across the street.
+            wall(parts[roof], poly, y1, y1 + 0.85)
         else:
             wall(parts[fac], poly, y0, y1)
         if flat or len(poly) != 4:
@@ -1005,6 +1269,8 @@ def build_resort(resort, buildings):
                 # short ends are e2-e3 and e4-e1
                 add_gable_trim(parts[trim], e2, e3, r2, y1)
                 add_gable_trim(parts[trim], e4, e1, r1, y1)
+        if resort.get("dutch"):
+            street_gables(parts[trim], poly, y1, 6.2)
         # beach-facing balcony slabs (west, -x)
         if h >= 6 and len(poly) >= 4:
             # wall whose outward normal points most west
@@ -1055,6 +1321,8 @@ def build_resort(resort, buildings):
             flat_roof(lo_roof, [(min(xs), min(zs)), (max(xs), min(zs)), (max(xs), max(zs)), (min(xs), max(zs))], y1 + 0.4)
     if biggest is None:
         return None
+    if resort["id"] in ("amsterdam", "m_lacabana"):
+        dress_frontage(g, parts, parts[trim], resort, buildings, ox, oz)
     # sign on the side nearest the road (east-ish): furthest vertex toward +x of the biggest building, nudged out
     poly = ensure_ccw([(x - ox, z - oz) for x, z in biggest["poly"]])
     # beach is west; the board faces the sand, which is the photographed side
@@ -2369,6 +2637,39 @@ def retile_costa():
     print("wrote", path, "roof tris", hi, lo, "bytes", len(out))
     return 312 + 352 + hi + 4 + 14, 24 + lo
 
+def gables_only():
+    """Rebuild Amsterdam Manor and both La Cabana wings. No other resort."""
+    want = {"amsterdam", "m_lacabana", "lacabana_ring"}
+    buildings = load_buildings()
+    claimed = assign(buildings)
+    text = open(MANIFEST).read()
+    for r in RESORTS:
+        if r["id"] not in want:
+            continue
+        bs = claimed.get(r["id"]) or []
+        if not bs:
+            raise SystemExit(r["id"] + " has no footprints")
+        built = build_resort(r, bs)
+        if not built:
+            raise SystemExit(r["id"] + " built nothing")
+        data, _foot, _hides, tris = built
+        path = os.path.join(HERO, r["id"] + ".glb")
+        open(path, "wb").write(data)
+        for key, count in tris.items():
+            needle = '"%s": ' % key
+            i = text.find(needle)
+            if i < 0:
+                raise SystemExit("missing tris " + key)
+            j = i + len(needle)
+            k = j
+            while text[k] in "0123456789":
+                k += 1
+            text = text[:j] + str(count) + text[k:]
+            print("  tris %s -> %s" % (key, count))
+        print("  wrote", r["id"])
+    open(MANIFEST, "w").write(text)
+
+
 if __name__ == "__main__":
     # Pools are additive. EAGLE_POOLS_ONLY writes just those heroes so a
     # re-run does not rebuild the resort meshes already on main.
@@ -2386,6 +2687,8 @@ if __name__ == "__main__":
             raise SystemExit("refusing to rewrite " + ",".join(bad[:6]))
         open(MANIFEST, "w").write(raw2)
         print("manifest", new["costalinda"]["tris"])
+    elif os.environ.get("EAGLE_GABLES") == "1":
+        gables_only()
     elif os.environ.get("EAGLE_POOLS_ONLY"):
         manifest = json.loads(open(MANIFEST).read())
         manifest = add_pool_detail(manifest)
