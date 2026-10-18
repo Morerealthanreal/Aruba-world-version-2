@@ -34,29 +34,29 @@ export type OilOutfit = {
 
 // Colours are taken from the outfit notes, not from the pack's costume dyes.
 export const OIL_OUTFITS: readonly OilOutfit[] = [
-  { id: 0, file: "people/w-worker.glb", skin: 0xe8c39a, hair: 0x3a2418, top: 0xf7f3ea, bottom: 0xd8d0c2,
+  { id: 0, file: "people/w-worker.glb", skin: 0xd2a888, hair: 0x3a2418, top: 0xf7f3ea, bottom: 0xd8d0c2,
     colors: { White: 0xfffaf4, Worker_Vest: 0xf4f0e6, Worker_Yellow: 0xe6c84a }, sandals: true, sunglasses: true, hat: "straw", bag: true, print: 1, hideHelmet: true },
-  { id: 1, file: "people/w-casual.glb", skin: 0xc98b68, hair: 0x4a3428, top: 0xe6c84a, bottom: 0x2c4f86,
+  { id: 1, file: "people/w-casual.glb", skin: 0xc49a78, hair: 0x3a2418, top: 0xe6c84a, bottom: 0x2c4f86,
     colors: {}, sandals: true, sunglasses: false, hat: "cap", bag: false, print: 0, hideHelmet: false },
-  { id: 2, file: "people/w-suit.glb", skin: 0xf3d2b4, hair: 0x8a5a32, top: 0xf3efe4, bottom: 0xd8d0c2,
+  { id: 2, file: "people/w-suit.glb", skin: 0xe4c4a4, hair: 0x8a5a32, top: 0xf3efe4, bottom: 0xd8d0c2,
     colors: { White: 0xfffaf4 }, sandals: true, sunglasses: true, hat: "none", bag: true, print: 0, hideHelmet: false },
-  { id: 3, file: "people/w-adventurer.glb", skin: 0x8d5a40, hair: 0x241816, top: 0xf7f4ee, bottom: 0xc4a574,
+  { id: 3, file: "people/w-adventurer.glb", skin: 0x6e4632, hair: 0x241816, top: 0xf7f4ee, bottom: 0xc4a574,
     colors: { Gold: 0xc4a574, Green: 0x3e5c46 }, sandals: true, sunglasses: true, hat: "straw", bag: false, print: 0, hideHelmet: false },
-  { id: 4, file: "people/w-punk.glb", skin: 0xb98362, hair: 0x1a1412, top: 0xf7f1e4, bottom: 0x243044,
+  { id: 4, file: "people/w-punk.glb", skin: 0x8f6248, hair: 0x1a1412, top: 0xf7f1e4, bottom: 0x243044,
     colors: { Pink: 0xd96f56, Black: 0x3e5c78 }, sandals: true, sunglasses: true, hat: "cap", bag: true, print: 0, hideHelmet: false },
-  { id: 5, file: "people/m-casual.glb", skin: 0x6e4634, hair: 0x1a1412, top: 0xf7f1e4, bottom: 0xc4a574,
+  { id: 5, file: "people/m-casual.glb", skin: 0x4e3426, hair: 0x1a1412, top: 0xf7f1e4, bottom: 0xc4a574,
     colors: {}, sandals: true, sunglasses: true, hat: "cap", bag: false, print: 0, hideHelmet: false },
-  { id: 6, file: "people/m-hoodie.glb", skin: 0xd7a574, hair: 0x3a241c, top: 0x3e7ea8, bottom: 0x243044,
+  { id: 6, file: "people/m-hoodie.glb", skin: 0xc88868, hair: 0x3a241c, top: 0x3e7ea8, bottom: 0x243044,
     colors: {}, sandals: true, sunglasses: true, hat: "cap", bag: false, print: 0, hideHelmet: false },
-  { id: 7, file: "people/m-farmer.glb", skin: 0xc4a07a, hair: 0x9a9690, top: 0x6e8f73, bottom: 0x5c4636,
+  { id: 7, file: "people/m-farmer.glb", skin: 0xa07050, hair: 0x9a9690, top: 0x6e8f73, bottom: 0x5c4636,
     colors: { Beige: 0xe6c98a, Brown: 0x8a6244 }, sandals: true, sunglasses: false, hat: "none", bag: false, print: 0, hideHelmet: false },
-  { id: 8, file: "people/m-punk.glb", skin: 0xa56b4c, hair: 0x6a2e24, top: 0xf7f4ee, bottom: 0x2c4f86,
-    colors: { Black: 0x2a3038, Red: 0x6a2e24 }, sandals: true, sunglasses: true, hat: "none", bag: false, print: 0, hideHelmet: false },
-  { id: 9, file: "people/m-suit.glb", skin: 0xfff4e8, hair: 0xc4a15a, top: 0xe7e2d6, bottom: 0xcfc6b4,
+  { id: 8, file: "people/m-punk.glb", skin: 0x7a5340, hair: 0x2a1c14, top: 0xf7f4ee, bottom: 0x2c4f86,
+    colors: { Black: 0x2a3038 }, sandals: true, sunglasses: true, hat: "none", bag: false, print: 0, hideHelmet: false },
+  { id: 9, file: "people/m-suit.glb", skin: 0xe8ccb0, hair: 0xc4a15a, top: 0xe7e2d6, bottom: 0xcfc6b4,
     colors: { White: 0xfffaf4, Tie: 0x314863 }, sandals: false, sunglasses: true, hat: "none", bag: false, print: 0, hideHelmet: false },
-  { id: 10, file: "people/m-worker.glb", skin: 0x9a6244, hair: 0x6e6a66, top: 0xe1c587, bottom: 0x4a372c,
+  { id: 10, file: "people/m-worker.glb", skin: 0x5a3c2c, hair: 0x6e6a66, top: 0xe1c587, bottom: 0x4a372c,
     colors: { Worker_Vest: 0xd96f56, LightBrown: 0xf7f1e4 }, sandals: true, sunglasses: false, hat: "cap", bag: false, print: 0, hideHelmet: true },
-  { id: 11, file: "people/m-adventurer.glb", skin: 0x6e4634, hair: 0x1a1412, top: 0x3e5c46, bottom: 0xc2b48a,
+  { id: 11, file: "people/m-adventurer.glb", skin: 0x3e2a1e, hair: 0x1a1412, top: 0x3e5c46, bottom: 0xc2b48a,
     colors: { Gold: 0x8a6244, LightGreen: 0x6e8f73 }, sandals: true, sunglasses: true, hat: "straw", bag: false, print: 0, hideHelmet: false },
 ];
 
@@ -160,7 +160,8 @@ function roleOf(name: string, geometry: BufferGeometry, outfit: OilOutfit): Role
   if (outfit.hideHelmet && name === "Worker_Yellow" && box.minY > 1.66) return "helmet";
   // Hair, hoods, and tall collars sit above the eyes. Hats stay cloth so they keep their colour.
   if (box.minY > 1.58 && name !== "Beige" && name !== "Worker_Yellow" && name !== "Earrings") return "hair";
-  if (box.maxY < 0.34 && !name.startsWith("Skin")) return "shoe";
+  // Shoes and tall boots. Sandals replace them. Trousers run well above the calf.
+  if (box.maxY < 0.5 && box.minY < 0.16 && !name.startsWith("Skin")) return "shoe";
   return "cloth";
 }
 
@@ -185,9 +186,9 @@ function roundEyes(geometry: BufferGeometry): { geometry: BufferGeometry; eyes: 
     const cz = pos.getX(i) < 0 ? left[2] : right[2];
     maxR = Math.max(maxR, Math.abs(pos.getX(i) - cx), Math.abs(pos.getY(i) - cy) * 0.8, Math.abs(pos.getZ(i) - cz));
   }
-  const rx = Math.max(0.009, maxR * 0.95);
-  const ry = Math.max(0.007, maxR * 0.75);
-  const rz = Math.max(0.006, maxR * 0.6);
+  const rx = Math.max(0.006, Math.min(0.0072, maxR * 0.5));
+  const ry = Math.max(0.0044, Math.min(0.0054, maxR * 0.38));
+  const rz = Math.max(0.0036, Math.min(0.0046, maxR * 0.3));
   const positions: number[] = [];
   const normals: number[] = [];
   const indices: number[] = [];
@@ -215,8 +216,8 @@ function roundEyes(geometry: BufferGeometry): { geometry: BufferGeometry; eyes: 
       }
     }
   };
-  add(left[0], left[1], left[2] + 0.014);
-  add(right[0], right[1], right[2] + 0.014);
+  add(left[0], left[1], left[2] + 0.003);
+  add(right[0], right[1], right[2] + 0.003);
   const count = positions.length / 3;
   const next = new BufferGeometry();
   next.setAttribute("position", new Float32BufferAttribute(positions, 3));
@@ -230,8 +231,38 @@ function roundEyes(geometry: BufferGeometry): { geometry: BufferGeometry; eyes: 
   geometry.dispose();
   return {
     geometry: next,
-    eyes: { lx: left[0], ly: left[1], lz: left[2] + 0.014, rx: right[0], ry: right[1], rz: right[2] + 0.014, joint },
+    eyes: { lx: left[0], ly: left[1], lz: left[2] + 0.003, rx: right[0], ry: right[1], rz: right[2] + 0.003, joint },
   };
+}
+
+function softenNose(geometry: BufferGeometry, eyes: EyeMark) {
+  const pos = geometry.getAttribute("position");
+  const eyeY = (eyes.ly + eyes.ry) * 0.5;
+  const eyeZ = (eyes.lz + eyes.rz) * 0.5;
+  if (eyeY < 1.4) return;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const nx = Math.abs(x);
+    if (nx < 0.028 && y < eyeY - 0.006 && y > eyeY - 0.065 && z > eyeZ - 0.015) {
+      const along = 1 - nx / 0.028;
+      pos.setZ(i, z - along * Math.max(0, z - (eyeZ - 0.004)) * 0.55);
+    }
+  }
+  pos.needsUpdate = true;
+}
+
+function tameHair(geometry: BufferGeometry) {
+  const pos = geometry.getAttribute("position");
+  let maxY = -1;
+  for (let i = 0; i < pos.count; i++) maxY = Math.max(maxY, pos.getY(i));
+  if (maxY < 1.9) return;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (y > 1.8) pos.setY(i, 1.8 + (y - 1.8) * 0.12);
+  }
+  pos.needsUpdate = true;
 }
 
 function softenBrows(geometry: BufferGeometry) {
@@ -269,17 +300,6 @@ uniform vec3 uAwEyeR;
 varying vec3 vAwBind;
 varying vec3 vAwSunView;`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
-if (uAwKind < 0.5) {
-  float awEyeY = (uAwEyeL.y + uAwEyeR.y) * 0.5;
-  float awCheek = max(
-    exp(-pow((position.x - uAwEyeL.x) / 0.02, 2.0) - pow((position.y - (awEyeY - 0.036)) / 0.016, 2.0)),
-    exp(-pow((position.x - uAwEyeR.x) / 0.02, 2.0) - pow((position.y - (awEyeY - 0.036)) / 0.016, 2.0))
-  ) * smoothstep(uAwEyeL.z - 0.05, uAwEyeL.z - 0.01, position.z);
-  float awJaw = smoothstep(awEyeY - 0.05, awEyeY - 0.12, position.y) * (1.0 - smoothstep(awEyeY - 0.12, awEyeY - 0.2, position.y));
-  awJaw *= smoothstep(uAwEyeL.z - 0.08, uAwEyeL.z - 0.02, position.z) * (1.0 - smoothstep(0.02, 0.07, abs(position.x)));
-  transformed.z += awCheek * 0.006 + awJaw * 0.003;
-  transformed.y -= awJaw * 0.002;
-}
 vAwBind = position;
 vAwSunView = mat3(viewMatrix) * uAwSunDir;`);
     shader.fragmentShader = shader.fragmentShader
@@ -296,61 +316,63 @@ varying vec3 vAwSunView;
 float awHash(vec3 p) {
   return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
 }
-float awBrush(vec3 p) {
-  vec2 st = vec2(dot(p, vec3(0.42, 0.06, 0.88)), dot(p, vec3(-0.12, 1.0, 0.05)));
-  vec2 cell = vec2(floor(st.x * 28.0), floor(st.y * 11.0));
+float awBrush(vec3 p, float scale) {
+  vec2 st = vec2(dot(p, vec3(0.62, 0.08, 0.78)), dot(p, vec3(-0.08, 1.0, 0.04))) * scale;
+  vec2 cell = floor(st);
   float a = awHash(vec3(cell, 2.1));
-  float b = awHash(vec3(cell + vec2(0.0, 1.0), 2.1));
-  return mix(a, b, smoothstep(0.12, 0.88, fract(st.y * 11.0)));
+  float b = awHash(vec3(cell + vec2(1.0, 0.0), 2.1));
+  float c = awHash(vec3(cell + vec2(0.0, 1.0), 2.1));
+  vec2 f = smoothstep(0.0, 1.0, fract(st));
+  return mix(mix(a, b, f.x), mix(c, awHash(vec3(cell + vec2(1.0), 2.1)), f.x), f.y);
 }`)
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
 vec3 awSun = normalize(vAwSunView);
 vec3 awN = normalize(normal);
 float awNdL = dot(awN, awSun);
 float awLow = smoothstep(0.62, 0.05, uAwSunDir.y);
-float awStroke = awBrush(vAwBind);
+float awStroke = awBrush(vAwBind, 18.0);
+float awBroad = awBrush(vAwBind, 7.0);
 float awFacing = clamp(dot(awN, normalize(vViewPosition)), 0.0, 1.0);
 float awEyeY = (uAwEyeL.y + uAwEyeR.y) * 0.5;
+float awLuma = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
 if (uAwKind > 0.5 && uAwKind < 1.5) {
-  float awFreq = mix(9.0, 16.0, uAwPart);
-  float awFold = sin(vAwBind.x * awFreq + vAwBind.y * 2.2 + (awStroke - 0.5) * 1.6);
-  float awTrough = smoothstep(0.15, -0.95, awFold);
-  float awRidge = smoothstep(0.1, 0.9, awFold);
-  normal = normalize(normal + vec3(cos(vAwBind.x * awFreq) * 0.7, sin(vAwBind.y * 5.0) * 0.16, 0.0));
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.26, 0.28, 0.32), awTrough * 0.95);
-  diffuseColor.rgb *= mix(vec3(1.0), vec3(1.36, 1.22, 1.06), awRidge * 0.88);
-  diffuseColor.rgb *= mix(0.78, 1.16, awStroke);
+  float awFreq = mix(7.0, 12.0, uAwPart);
+  float awFold = sin(vAwBind.y * awFreq + vAwBind.x * 1.4 + (awBroad - 0.5) * 1.2);
+  float awTrough = smoothstep(0.25, -0.85, awFold);
+  float awRidge = smoothstep(0.2, 0.9, awFold);
+  float awDepth = mix(0.16, 0.42, smoothstep(0.72, 0.18, awLuma));
+  normal = normalize(normal + vec3((awStroke - 0.5) * 0.22, (awBroad - 0.5) * 0.12, 0.0));
+  diffuseColor.rgb *= mix(1.0, 1.0 - awDepth, awTrough);
+  diffuseColor.rgb *= mix(1.0, 1.06, awRidge);
+  diffuseColor.rgb *= 1.0 + (awStroke - 0.5) * mix(0.05, 0.12, smoothstep(0.7, 0.2, awLuma));
   if (uAwPrint > 0.5) {
-    float awSpot = exp(-pow(length((vAwBind.xy - vec2(0.02, awEyeY - 0.42)) / vec2(0.055, 0.07)), 2.0));
-    awSpot += exp(-pow(length((vAwBind.xy - vec2(-0.07, awEyeY - 0.62)) / vec2(0.05, 0.06)), 2.0));
-    awSpot += exp(-pow(length((vAwBind.xy - vec2(0.06, awEyeY - 0.78)) / vec2(0.045, 0.055)), 2.0));
-    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.35, 0.48, 0.42), clamp(awSpot, 0.0, 1.0) * 0.62);
+    float awSpot = exp(-pow(length((vAwBind.xy - vec2(0.04, awEyeY - 0.55)) / vec2(0.035, 0.045)), 2.0));
+    awSpot += exp(-pow(length((vAwBind.xy - vec2(-0.05, awEyeY - 0.78)) / vec2(0.03, 0.04)), 2.0));
+    diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.08, 0.82, 0.78), clamp(awSpot, 0.0, 1.0) * 0.22);
   }
 } else if (uAwKind < 0.5) {
-  float awWrap = clamp(awNdL * 0.32 + 0.68, 0.0, 1.0);
+  float awWrap = clamp(awNdL * 0.62 + 0.38, 0.0, 1.0);
   float awZone = awWrap * awWrap * (3.0 - 2.0 * awWrap);
-  float awPlanes = floor(awZone * 5.0 + (awStroke - 0.5) * 0.7) / 5.0;
-  awZone = mix(awZone, clamp(awPlanes, 0.0, 1.0), 0.62);
-  float awFace = smoothstep(uAwEyeL.z - 0.05, uAwEyeL.z - 0.01, vAwBind.z)
-    * smoothstep(awEyeY - 0.18, awEyeY - 0.12, vAwBind.y)
-    * (1.0 - smoothstep(awEyeY + 0.05, awEyeY + 0.1, vAwBind.y));
+  float awPaint = awBrush(vAwBind, 4.2);
+  normal = normalize(normal + vec3((awPaint - 0.5) * 0.85, (awStroke - 0.5) * 0.28, (awBroad - 0.5) * 0.2));
+  float awLight = mix(0.62, 1.05, awZone);
+  vec3 awTint = mix(vec3(0.95, 0.93, 1.02), vec3(1.03, 1.0, 0.96), awZone);
+  diffuseColor.rgb *= awLight * awTint;
+  diffuseColor.rgb *= mix(0.90, 1.10, awPaint);
+  float awFace = smoothstep(uAwEyeL.z - 0.04, uAwEyeL.z, vAwBind.z)
+    * smoothstep(awEyeY - 0.16, awEyeY - 0.1, vAwBind.y)
+    * (1.0 - smoothstep(awEyeY + 0.04, awEyeY + 0.09, vAwBind.y));
   float awCheek = awFace * max(
-    smoothstep(1.05, 0.15, length(vec2((vAwBind.x - uAwEyeL.x) / 0.02, (vAwBind.y - (awEyeY - 0.04)) / 0.016))),
-    smoothstep(1.05, 0.15, length(vec2((vAwBind.x - uAwEyeR.x) / 0.02, (vAwBind.y - (awEyeY - 0.04)) / 0.016)))
+    smoothstep(1.0, 0.2, length(vec2((vAwBind.x - uAwEyeL.x) / 0.022, (vAwBind.y - (awEyeY - 0.038)) / 0.016))),
+    smoothstep(1.0, 0.2, length(vec2((vAwBind.x - uAwEyeR.x) / 0.022, (vAwBind.y - (awEyeY - 0.038)) / 0.016)))
   );
-  float awRose = smoothstep(0.18, 0.48, awZone) * (1.0 - smoothstep(0.7, 0.95, awZone));
-  vec3 awLit = mix(vec3(1.34, 0.76, 0.50), vec3(1.12, 0.46, 0.40), awRose * 0.85 + awCheek * 0.6);
-  vec3 awShadow = mix(vec3(0.46, 0.32, 0.36), vec3(0.82, 0.40, 0.32), 0.62);
-  diffuseColor.rgb *= mix(awShadow, awLit, awZone);
-  diffuseColor.rgb *= mix(0.8, 1.14, awStroke);
-  totalEmissiveRadiance += vec3(0.98, 0.40, 0.18) * (1.0 - awZone) * 0.2;
-  totalEmissiveRadiance += vec3(0.9, 0.28, 0.16) * awCheek * 0.18;
-  float awUpper = awFace * smoothstep(1.1, 0.2, length(vec2(vAwBind.x / 0.016, (vAwBind.y - (awEyeY - 0.083)) / 0.0055)));
-  float awLower = awFace * smoothstep(1.1, 0.18, length(vec2(vAwBind.x / 0.018, (vAwBind.y - (awEyeY - 0.101)) / 0.007)));
-  float awPartLine = awFace * exp(-pow((vAwBind.y - (awEyeY - 0.092)) / 0.0026, 2.0)) * (1.0 - smoothstep(0.012, 0.02, abs(vAwBind.x)));
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.22, 0.2), awUpper * 0.78);
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.84, 0.38, 0.32), awLower * 0.8);
-  diffuseColor.rgb *= mix(1.0, 0.55, awPartLine);
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.08, 0.86, 0.82), awCheek * 0.35);
+  float awUpper = awFace * smoothstep(1.05, 0.25, length(vec2(vAwBind.x / 0.014, (vAwBind.y - (awEyeY - 0.078)) / 0.0048)));
+  float awLower = awFace * smoothstep(1.05, 0.22, length(vec2(vAwBind.x / 0.016, (vAwBind.y - (awEyeY - 0.094)) / 0.006)));
+  float awPartLine = awFace * exp(-pow((vAwBind.y - (awEyeY - 0.086)) / 0.0022, 2.0)) * (1.0 - smoothstep(0.01, 0.018, abs(vAwBind.x)));
+  vec3 awLip = diffuseColor.rgb * vec3(1.06, 0.78, 0.74);
+  diffuseColor.rgb = mix(diffuseColor.rgb, awLip, awUpper * 0.55 + awLower * 0.45);
+  diffuseColor.rgb *= mix(1.0, 0.72, awPartLine);
 } else if (uAwKind < 2.5) {
   if (uAwPart > 1.5) {
     float awHairs = sin(vAwBind.x * 150.0 + vAwBind.z * 28.0) * 0.5 + 0.5;
@@ -368,26 +390,29 @@ if (uAwKind > 0.5 && uAwKind < 1.5) {
 if (uAwEye > 0.5) {
   float awSide = step(0.0, vAwBind.x);
   vec3 awC = mix(uAwEyeL, uAwEyeR, awSide);
-  vec2 awQ = (vAwBind.xy - awC.xy) / vec2(0.0062, 0.0048);
+  vec2 awQ = (vAwBind.xy - awC.xy) / vec2(0.0064, 0.0046);
   float awR = length(awQ);
-  float awOpen = smoothstep(0.85, 0.05, awQ.y);
-  vec3 awLid = vec3(0.55, 0.32, 0.26);
-  vec3 awEyeCol = vec3(0.94, 0.9, 0.86);
-  awEyeCol = mix(awEyeCol, vec3(0.40, 0.24, 0.16), smoothstep(0.58, 0.36, awR));
-  awEyeCol = mix(awEyeCol, vec3(0.1, 0.06, 0.04), smoothstep(0.22, 0.1, awR));
-  awEyeCol = mix(awLid, awEyeCol, awOpen);
+  vec3 awSclera = vec3(0.90, 0.84, 0.78);
+  vec3 awIris = vec3(0.32, 0.18, 0.10);
+  vec3 awPupil = vec3(0.06, 0.04, 0.03);
+  vec3 awEyeCol = mix(awIris, awSclera, smoothstep(0.62, 0.92, awR));
+  awEyeCol = mix(awPupil, awEyeCol, smoothstep(0.16, 0.34, awR));
+  float awCatch = smoothstep(0.16, 0.0, length(awQ - vec2(-0.18, -0.12)));
+  awEyeCol = mix(awEyeCol, vec3(0.96, 0.93, 0.88), awCatch);
+  float awLid = smoothstep(0.05, 0.7, awQ.y);
+  awEyeCol = mix(awEyeCol, diffuseColor.rgb * vec3(0.85, 0.7, 0.64), awLid);
   diffuseColor.rgb = awEyeCol;
 }
-float awRim = pow(1.0 - awFacing, 2.05);
-float awWhere = uAwKind > 1.5 && uAwKind < 2.5 ? 1.15 : 0.42;
-vec3 awGold = vec3(0.98, 0.64, 0.32) * awRim * mix(0.015, 0.3, awLow) * awWhere;
-if (uAwEye < 0.5 && uAwKind < 2.5) {
-  diffuseColor.rgb += awGold * 0.12;
-  totalEmissiveRadiance += awGold * 0.4;
+float awRim = pow(1.0 - awFacing, 1.7);
+float awEdge = mix(0.12, 0.55, awLow);
+vec3 awGold = vec3(1.0, 0.78, 0.52) * awRim * awEdge;
+if (uAwEye < 0.5) {
+  diffuseColor.rgb += awGold * 0.16;
+  totalEmissiveRadiance += awGold * 0.22;
 }
 `);
   };
-  material.customProgramCacheKey = () => `aw-oil-person-v1:${kind}:${eye}:${part}:${print}`;
+  material.customProgramCacheKey = () => `aw-oil-person-v3:${kind}:${eye}:${part}:${print}`;
   return material;
 }
 
@@ -475,9 +500,15 @@ function styleOilPerson(root: Object3D, outfit: OilOutfit) {
       eyes.rx = rounded.eyes.rx; eyes.ry = rounded.eyes.ry; eyes.rz = rounded.eyes.rz;
       eyes.joint = rounded.eyes.joint;
     } else if (role === "brow") softenBrows(mesh.geometry);
-    else smoothSplitNormals(mesh.geometry);
+    else {
+      if (role === "hair") tameHair(mesh.geometry);
+      smoothSplitNormals(mesh.geometry);
+    }
     pending.push({ mesh, role, name });
   });
+  for (const item of pending) {
+    if (item.role === "skin") softenNose(item.mesh.geometry, eyes);
+  }
   const shoes: { x: number; y: number; z: number }[] = [];
   for (const item of pending) {
     const box = meshBox(item.mesh.geometry);
@@ -495,7 +526,7 @@ function styleOilPerson(root: Object3D, outfit: OilOutfit) {
     const part = item.role === "brow" ? 2 : box.midY < 1.05 && kind === 1 ? 1 : 0;
     const color = item.role === "skin" ? outfit.skin
       : item.role === "hair" || item.role === "brow" ? outfit.hair
-      : item.role === "eye" ? 0xf4efe8
+      : item.role === "eye" ? outfit.skin
       : item.role === "shoe" ? 0x2a2420
       : item.name === "Earrings" ? 0xc4a574
       : clothColor(item.name, box.midY, outfit);
