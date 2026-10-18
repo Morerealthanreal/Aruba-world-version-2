@@ -1,0 +1,54 @@
+{
+ "place": "renaissance",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "rb_waves_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1554424471786374",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.526579,
+   "lon": -70.047997,
+   "heading": 125.5,
+   "date": "2024-04-03",
+   "shows": "street-level view toward rb_waves (~23 m away)",
+   "original_path": "/workspace/landmarks/mly/rb_waves_1.jpg"
+  },
+  {
+   "file": "rb_waves_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=469423368998549",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.526469,
+   "lon": -70.047957,
+   "heading": 106.0,
+   "date": "2024-04-03",
+   "shows": "street-level view toward rb_waves (~20 m away)",
+   "original_path": "/workspace/landmarks/mly/rb_waves_2.jpg"
+  },
+  {
+   "file": "renaissance_marketplace_dusk.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Renaissance resort/marketplace at dusk",
+   "original_path": "/workspace/landmarks/ref/renaissance_marketplace_dusk.jpg"
+  },
+  {
+   "file": "renaissance_resort_dusk.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Renaissance resort/marketplace at dusk",
+   "original_path": "/workspace/landmarks/ref/renaissance_resort_dusk.jpg"
+  }
+ ]
+}

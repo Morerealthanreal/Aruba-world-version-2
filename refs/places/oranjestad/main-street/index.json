@@ -1,0 +1,42 @@
+{
+ "place": "main-street",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "mainstreet_tram1.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "streetcar on Main Street",
+   "original_path": "/workspace/landmarks/ref/mainstreet_tram1.jpg"
+  },
+  {
+   "file": "mainstreet_tram2.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "streetcar on Main Street",
+   "original_path": "/workspace/landmarks/ref/mainstreet_tram2.jpg"
+  },
+  {
+   "file": "tram_red_doubledecker.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "red double-decker tram",
+   "original_path": "/workspace/landmarks/ref/tram_red_doubledecker.jpg"
+  }
+ ]
+}

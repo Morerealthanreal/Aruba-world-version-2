@@ -1,0 +1,28 @@
+{
+ "place": "watty-vos-airport",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "directional-signs.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Directional_signs_on_Watty_Vos_Boulevard,_Aruba.jpeg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Caribiana",
+   "lat": 12.50795,
+   "lon": -70.009147,
+   "heading": null,
+   "date": null,
+   "shows": "Airport-end Watty Vos at 12.50795,-70.00915. The sign points to Palm Beach; the photo is the boulevard itself"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": null,
+   "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
+   "credit": "Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Same airport-end boulevard: the Commons sign photo on the left, the divided carriageways and median on the right"
+  }
+ ]
+}

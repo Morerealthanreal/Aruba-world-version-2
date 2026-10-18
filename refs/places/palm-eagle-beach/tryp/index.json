@@ -1,0 +1,42 @@
+{
+ "place": "tryp",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "tryp_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=462555214849117",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.569874,
+   "lon": -70.044882,
+   "heading": 22.8,
+   "date": "2016-04-04",
+   "shows": "street-level view toward tryp (~59 m away)",
+   "original_path": "/workspace/landmarks/mly/tryp_0.jpg"
+  },
+  {
+   "file": "tryp_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=314825560213288",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.569724,
+   "lon": -70.044915,
+   "heading": 14.3,
+   "date": "2016-04-04",
+   "shows": "street-level view toward tryp (~72 m away)",
+   "original_path": "/workspace/landmarks/mly/tryp_1.jpg"
+  },
+  {
+   "file": "tryp_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=465420384748792",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.569613,
+   "lon": -70.044939,
+   "heading": 9.9,
+   "date": "2016-04-04",
+   "shows": "street-level view toward tryp (~82 m away)",
+   "original_path": "/workspace/landmarks/mly/tryp_2.jpg"
+  }
+ ]
+}

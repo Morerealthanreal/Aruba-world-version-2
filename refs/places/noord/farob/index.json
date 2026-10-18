@@ -1,0 +1,54 @@
+{
+ "place": "farob",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "farob_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=732880677767365",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613703,
+   "lon": -70.052328,
+   "heading": 148.0,
+   "date": "2022-06-27",
+   "shows": "street-level view toward farob (~63 m away)",
+   "original_path": "/workspace/landmarks/mly/farob_0.jpg"
+  },
+  {
+   "file": "farob_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=438754274542218",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613697,
+   "lon": -70.052322,
+   "heading": 141.3,
+   "date": "2022-06-27",
+   "shows": "street-level view toward farob (~62 m away)",
+   "original_path": "/workspace/landmarks/mly/farob_1.jpg"
+  },
+  {
+   "file": "farob_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=551618413276763",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613692,
+   "lon": -70.052315,
+   "heading": 135.3,
+   "date": "2022-06-27",
+   "shows": "street-level view toward farob (~61 m away)",
+   "original_path": "/workspace/landmarks/mly/farob_2.jpg"
+  },
+  {
+   "file": "farob_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=733190054635580",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / ost360vr_Joscelin",
+   "lat": 12.613709,
+   "lon": -70.052336,
+   "heading": 155.8,
+   "date": "2022-06-27",
+   "shows": "street-level view toward farob (~64 m away)",
+   "original_path": "/workspace/landmarks/mly/farob_3.jpg"
+  }
+ ]
+}

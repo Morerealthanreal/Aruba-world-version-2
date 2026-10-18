@@ -1,0 +1,42 @@
+{
+ "place": "misc-r-series",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "r4.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "unlabelled reference (r1-r9)",
+   "original_path": "/workspace/landmarks/ref/r4.jpg"
+  },
+  {
+   "file": "r5.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "unlabelled reference (r1-r9)",
+   "original_path": "/workspace/landmarks/ref/r5.jpg"
+  },
+  {
+   "file": "r6.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "unlabelled reference (r1-r9)",
+   "original_path": "/workspace/landmarks/ref/r6.jpg"
+  }
+ ]
+}
