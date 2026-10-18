@@ -8,6 +8,7 @@ Rule: if a mural cannot be made clean with **homography + small crop** only, it 
 |----|-----|
 | `flamingos` | Corner wrap, multiple windows, lamp post; SAC photo too obstructed |
 | `nothing_to_declare` | Person, beam/wire, corner box; no single clean SAC frame with full P.A.N. oval |
+| `lionfish` | Windows above head; homography-only crop removes half the fish — need unobstructed SAC frame |
 
 ## Skip list — assessed for homography-only (this pass)
 
@@ -31,5 +32,4 @@ Rule: if a mural cannot be made clean with **homography + small crop** only, it 
 
 | ID | Ref |
 |----|-----|
-| `night_watcher` | `refs/murals/night_watcher/` SAC 13073 |
-| `lionfish` | `refs/murals/lionfish/` SAC 13093 — pass-2 window inpaint + **top crop** above dorsal fins (no top/sky inpaint) |
+| `night_watcher` | `refs/murals/night_watcher/` SAC 13073 — full-owl pass-3 quad; top-right roof/sky **flat-filled** from sampled wall white |

@@ -4,6 +4,7 @@ export const MURAL_SKIP = new Set<string>([
   // Rectify pilot: deferred (need cleaner reference photos)
   "flamingos",
   "nothing_to_declare",
+  "lionfish",
   // Original San Nicolas set: placeholders / obstructed refs
   "prikichi",
   "pelican",

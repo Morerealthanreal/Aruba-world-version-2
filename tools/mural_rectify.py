@@ -15,7 +15,6 @@ OUT_DIR = ROOT / "tools" / "sn_paintings" / "rectified"
 
 RECTIFIED_MURAL_IDS = frozenset({
     "night_watcher",
-    "lionfish",
 })
 
 DEFAULT_TARGET_H = 512
@@ -75,6 +74,32 @@ def _apply_patches(bgr: np.ndarray, patches: list[dict], w: int, h: int) -> np.n
             continue
         patch = cv2.resize(patch, (dw, dh), interpolation=cv2.INTER_LINEAR)
         out[int(dy0 * h) : int(dy0 * h) + dh, int(dx0 * w) : int(dx0 * w) + dw] = patch
+    return out
+
+
+def _sample_wall_bgr(bgr: np.ndarray, rect: list[float]) -> tuple[int, int, int]:
+    """Median BGR in a normalized rect (plain wall sample)."""
+    h, w = bgr.shape[:2]
+    x0, y0, x1, y1 = rect
+    roi = bgr[int(y0 * h) : int(y1 * h), int(x0 * w) : int(x1 * w)]
+    if roi.size == 0:
+        return (245, 245, 245)
+    med = np.median(roi.reshape(-1, 3), axis=0)
+    return int(med[0]), int(med[1]), int(med[2])
+
+
+def _flat_fill_rects(bgr: np.ndarray, rects: list[list[float]], color_bgr: tuple[int, int, int]) -> np.ndarray:
+    out = bgr.copy()
+    h, w = out.shape[:2]
+    for rect in rects:
+        x0, y0, x1, y1 = rect
+        cv2.rectangle(
+            out,
+            (int(x0 * w), int(y0 * h)),
+            (int(x1 * w), int(y1 * h)),
+            color_bgr,
+            -1,
+        )
     return out
 
 
@@ -329,6 +354,12 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     r = int(margin.get("right", 0) * w)
     if t or b or l or r:
         warped = warped[t : h - b if b else h, l : w - r if r else w]
+
+    fill_rects = cfg.get("flat_fill_rects")
+    if fill_rects:
+        sample = cfg.get("wall_sample_rect") or [0.03, 0.03, 0.10, 0.10]
+        wall = _sample_wall_bgr(warped, sample)
+        warped = _flat_fill_rects(warped, fill_rects, wall)
 
     if cfg.get("color_grade"):
         warped = apply_color_grade(warped, cfg["color_grade"])

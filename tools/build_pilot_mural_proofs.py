@@ -15,7 +15,6 @@ RECT = ROOT / "tools" / "sn_paintings" / "rectified"
 
 REF_CROP: dict[str, tuple[int, int, int, int]] = {
     "night_watcher": (120, 520, 1880, 3000),
-    "lionfish": (40, 280, 1280, 1180),
 }
 
 
