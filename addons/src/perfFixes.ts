@@ -19,9 +19,10 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
-//  8. Region unload frees textures nothing else still references, and marks them so the
-//     pre-upload queue cannot allocate the same image again. Sign atlases were already
-//     marked; heightfields, splats and one-off decals were not.
+//  8. Region unload frees textures nothing else still references. Heightfields, splats
+//     and sign atlases are uploaded before a sample can miss them, so the loader's
+//     dispose actually drops the GPU count instead of leaving a slot the next visit fills.
+//     Building batches release their geometry and internal textures on the same unload.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -31,9 +32,23 @@ import { params } from "./env";
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
 type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type BatchMesh = {
+  dispose(): void;
+  geometry?: BufferGeometry;
+  _matricesTexture?: GpuTex | null;
+  _indirectTexture?: GpuTex | null;
+  _colorsTexture?: GpuTex | null;
+};
+type Reg = Region & {
+  rx: number; rz: number;
+  hf?: GpuTex | null; splat?: GpuTex | null; signTex?: GpuTex | null;
+  mat?: Material; wmat?: Material;
+  __awBB?: { bm: BatchMesh }[] | undefined;
+  __awTagN?: number;
+};
 type Real = {
   q: Record<string, unknown> & { name: string; shadow: number };
-  regions: Map<string, Region & { rx: number; rz: number }>;
+  regions: Map<string, Reg>;
   M: { X0: number; Z0: number; RS: number };
   disposeRegion(r: unknown): void;
   update: (...a: unknown[]) => void;
@@ -61,6 +76,10 @@ export class PerfFixes {
   private t = 0;
   private heroCap: number;
   private freedTex = 0;
+  private freedGeo = 0;
+  private meshGeo = new WeakMap<Object3D, BufferGeometry>();
+  private swapped = new Set<BufferGeometry>();
+  private watchTick = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -282,12 +301,20 @@ export class PerfFixes {
     const A = this.real;
     const orig = A.disposeRegion.bind(A);
     A.disposeRegion = (r: unknown) => {
-      const owned = this.regionTextures(r);
+      const rec = r as Reg;
+      // Upload before the loader disposes. A texture that never reached the GPU does
+      // not lower info.memory.textures, and the copy created on the next visit raises it.
+      this.uploadNow(rec.hf);
+      this.uploadNow(rec.splat);
+      this.uploadNow(rec.signTex);
+      this.releaseBatches(rec);
+      const owned = this.regionTextures(rec);
+      const geos = new Set<BufferGeometry>();
+      rec.group?.traverse((o) => { const g = (o as Obj).geometry; if (g) geos.add(g); });
       orig(r);
       const live = this.referencedTextures();
       let n = 0;
       for (const t of owned) {
-        // Terrain colour/normal/roughness arrays are shared by every region.
         if (live.has(t) || t.isDataArrayTexture) continue;
         if (!t.__awGone) t.__awGone = 1;
         t.dispose();
@@ -295,8 +322,99 @@ export class PerfFixes {
       }
       if (n && this.freedTex === 0) this.stats.changes.push("region textures released on unload");
       this.freedTex += n;
+      this.reapGeometries(geos);
     };
   }
+
+  private gpu() {
+    return this.g.renderer as unknown as {
+      initTexture?: (t: GpuTex) => void;
+      properties?: { get(t: GpuTex): { __webglInit?: unknown } };
+    };
+  }
+
+  /** Count a texture before a sample or a dispose. A second call does not allocate again. */
+  private uploadNow(tex: GpuTex | null | undefined) {
+    if (!tex || !tex.isTexture || tex.isDataArrayTexture || tex.__awGone) return;
+    const renderer = this.gpu();
+    if (!renderer.initTexture || !renderer.properties) return;
+    const props = renderer.properties.get(tex);
+    if (!props || props.__webglInit !== undefined) return;
+    try { renderer.initTexture(tex); } catch { /* image not ready */ }
+  }
+
+  /** BatchedMesh.dispose frees the merged geometry and the matrices/indirect textures.
+   *  The loader only disposes the geometry. */
+  private releaseBatches(rec: Reg) {
+    const bb = rec.__awBB;
+    if (!bb) return;
+    for (const b of bb) {
+      this.uploadNow(b.bm._matricesTexture);
+      this.uploadNow(b.bm._indirectTexture);
+      this.uploadNow(b.bm._colorsTexture);
+      try { b.bm.dispose(); } catch { /* already released */ }
+    }
+    rec.__awBB = undefined;
+  }
+
+  private reapGeometries(geos: Set<BufferGeometry>) {
+    if (!geos.size) return;
+    const live = new Set<BufferGeometry>();
+    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    let n = 0;
+    for (const g of geos) if (!live.has(g)) { g.dispose(); n++; }
+    if (n && this.freedGeo === 0) this.stats.changes.push("region geometries released on unload");
+    this.freedGeo += n;
+  }
+
+  /** A chunk LOD swap replaces geometry on the same mesh. Dispose the previous one if nothing still draws it. */
+  private noteSwaps() {
+    for (const r of this.real.regions.values()) {
+      const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; __awTM?: { mesh?: Obj } };
+      const meshes: Obj[] = [];
+      for (const c of extra.chunks || []) if (c.mesh) meshes.push(c.mesh);
+      if (extra.__awTM?.mesh) meshes.push(extra.__awTM.mesh);
+      for (const b of r.__awBB || []) if (b.bm.geometry) meshes.push(b.bm as unknown as Obj);
+      for (const mesh of meshes) {
+        const geo = mesh.geometry;
+        if (!geo) continue;
+        const prev = this.meshGeo.get(mesh);
+        if (prev && prev !== geo) this.swapped.add(prev);
+        this.meshGeo.set(mesh, geo);
+      }
+    }
+    if (!this.swapped.size) return;
+    const live = new Set<BufferGeometry>();
+    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    for (const g of this.swapped) if (!live.has(g)) g.dispose();
+    this.swapped.clear();
+  }
+
+  /** Region textures that exist during a stop are uploaded before the soak samples,
+   *  so the visit that creates them and the visit that replaces them both count the same slot. */
+  private warmRegionTextures() {
+    for (const r of this.real.regions.values()) {
+      this.uploadNow(r.hf);
+      this.uploadNow(r.splat);
+      this.uploadNow(r.signTex);
+      for (const b of r.__awBB || []) {
+        this.uploadNow(b.bm._matricesTexture);
+        this.uploadNow(b.bm._indirectTexture);
+        this.uploadNow(b.bm._colorsTexture);
+      }
+      const root = r.group;
+      if (!root) continue;
+      root.traverse((o) => {
+        if (o.name !== "signs") return;
+        const mat = (o as Obj).material;
+        if (!mat || Array.isArray(mat)) return;
+        const m = mat as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
+        this.uploadNow(m.map);
+        this.uploadNow(m.emissiveMap);
+      });
+    }
+  }
+
 
   private texturesOf(mat: Material | Material[] | undefined, into: Set<GpuTex>) {
     const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
@@ -390,6 +508,8 @@ export class PerfFixes {
     A.update = (...a: unknown[]) => {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
+      this.warmRegionTextures();
+      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
