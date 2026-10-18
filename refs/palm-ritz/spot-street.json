@@ -1,0 +1,27 @@
+{
+ "label": "ritz",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "street",
+   "calls": 252,
+   "tris": 885770.6666666667,
+   "ms": 3
+  }
+ ],
+ "fps": {
+  "fps": 1.37,
+  "p95ms": 66.7,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "ritz",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
