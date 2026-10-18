@@ -167,7 +167,8 @@ def quad_facing(mesh, a, b, c, d, outward, uvs=None):
 
 
 def uv_at(p):
-    s = 0.85
+    # 0.85 repeated the grain into stripes on the big faces.
+    s = 3.4
     return ((p[0] + p[2]) / s, p[1] / s)
 
 
@@ -297,8 +298,9 @@ def crag(mesh, x, z, y0, h, rw, rd, seed):
     n = 6
     # Bulge through the middle, then a broken crown. The 2013 and 2018
     # overlooks are rounded fractured rock, not walls.
-    profile = (1.0, 1.16, 0.46)
-    fracs = (0.0, 0.48, 1.0)
+    # Wide broken crowns. A crown that shrinks to a point read as a pyramid.
+    profile = (1.0, 1.18, 0.96)
+    fracs = (0.0, 0.46, 1.0)
     rings = []
     for ri, frac in enumerate(fracs):
         row = []
@@ -331,41 +333,76 @@ def crag(mesh, x, z, y0, h, rw, rd, seed):
         )
 
 
+def rim_wall(mesh, ring, water_y):
+    """A continuous rocky rim so the pool stays a basin, not a gap in the sand."""
+    n = len(ring)
+    for i in range(n):
+        x0, z0 = ring[i]
+        x1, z1 = ring[(i + 1) % n]
+        sea = seaward(x0, z0)
+        if sea and i % 6 == 0:
+            h = 0.35
+        elif sea:
+            h = 0.85 + 0.7 * hsh(i, 3)
+        else:
+            h = 1.5 + 1.4 * hsh(i, 3)
+        ox, oz = outward_at(ring, i)
+        thick = 0.85
+        yb, yt = water_y - 0.2, water_y + h
+        a, b = (x0, yb, z0), (x1, yb, z1)
+        d, c = (x0, yt, z0), (x1, yt, z1)
+        quad_facing(mesh, a, b, c, d, (ox, 0.15, oz), uvs_for(a, b, c, d))
+        a2 = (x0 + ox * thick, yt, z0 + oz * thick)
+        b2 = (x1 + ox * thick, yt, z1 + oz * thick)
+        quad_facing(mesh, d, c, b2, a2, (0, 1, 0), uvs_for(d, c, b2, a2))
+
+
 def enclose(rock, ring, water_y, sample, detail):
-    """Landward crags, and a broken east gap the sea shows through."""
+    """A rocky rim all the way around. The east sill is lower so the surf breaks over it."""
+    rim_wall(rock, ring, water_y)
     step = 1 if detail else 2
     pts = [ring[i] for i in range(0, len(ring), step)]
     if len(pts) < 8:
         pts = list(ring)
     n = len(pts)
-    gap = 0
+    seaward_n = 0
     for i, (x, z) in enumerate(pts):
         j = (i + 1) % n
         x2, z2 = pts[j]
         if seaward(x, z) and seaward(x2, z2):
-            gap += 1
-            if detail and i % 2 == 0:
-                crag(rock, x + 0.6, z, water_y - 0.55, 2.2 + 2.6 * hsh(i, 5), 2.4, 1.8, i + 40)
+            seaward_n += 1
+            # Cobbles, slabs, and a few large blocks. One size read as a row of pyramids.
+            kind = i % 6
+            if kind == 0:
+                h, rw, rd = 0.4, 0.45, 0.38
+            elif kind == 1:
+                h, rw, rd = 2.6 + hsh(i, 5), 2.8, 2.1
+            elif kind == 2:
+                h, rw, rd = 0.7, 1.8, 1.2
+            else:
+                h = 0.9 + 1.5 * hsh(i, 5)
+                rw = 0.7 + 1.4 * hsh(i, 8)
+                rd = 0.55 + 1.1 * hsh(i, 9)
+            crag(rock, x + 0.3, z, water_y - 0.35, h, rw, rd, i + 40)
             continue
-        # Shoulders framing the gap stay tall. The west rim, where the
-        # overlook stands, is lower rock so the sea stays in frame.
+        # Shoulders stay tall. The west overlook is lower so the pool stays in frame.
         if x < -1.0:
-            h = 1.1 + 1.3 * hsh(i, 1)
+            h = 0.8 + 1.6 * hsh(i, 1)
         else:
-            h = 2.6 + 2.4 * hsh(i, 1)
+            h = 1.6 + 3.2 * hsh(i, 1)
         if not detail and i % 2:
             h *= 0.7
+        wide = 0.6 + 1.7 * hsh(i, 12)
         ox, oz = outward_at(pts, i)
-        crag(rock, x + ox * 0.8, z + oz * 0.8, water_y - 0.45, h, 2.2 + hsh(i, 6), 1.8 + hsh(i, 7), i)
-    if gap < 3:
-        raise SystemExit(f"seaward gap is only {gap} edges")
+        crag(rock, x + ox * 0.8, z + oz * 0.8, water_y - 0.45, h, wide * (1.4 + hsh(i, 6)), wide * (1.1 + hsh(i, 7)), i)
+    if seaward_n < 3:
+        raise SystemExit(f"seaward rim is only {seaward_n} edges")
     if detail:
-        # One stack in the gap, the rock that stands in the sea in the photo.
+        # The stack stands in the sea beyond the sill. One mass, not a spire of three.
         east = max(range(n), key=lambda i: pts[i][0])
         ex, ez = pts[east]
-        crag(rock, ex + 3.5, ez + 1.2, water_y - 0.2, 5.2, 2.4, 2.0, 3)
-        crag(rock, ex + 3.8, ez + 0.6, water_y + 3.6, 3.4, 1.5, 1.3, 8)
-        crag(rock, ex + 4.0, ez + 1.0, water_y + 6.2, 2.2, 1.0, 0.9, 13)
+        crag(rock, ex + 4.0, ez + 0.4, water_y - 0.2, 4.4, 2.6, 2.2, 3)
+        crag(rock, ex + 6.8, ez + 2.4, water_y - 0.15, 2.1, 1.7, 1.4, 8)
         scatter_land(rock, pts, water_y, sample)
         sea_rocks(rock, water_y)
 
@@ -415,13 +452,53 @@ def scatter_land(mesh, pts, water_y, sample):
             )
 
 
+def barrier_splash(foam, ring, water_y, sample):
+    """White water breaking over the east sill. The sand shelf east of the rim
+    sits above the pool, so the splash has to stand on that shelf, not under it."""
+    for i, (x, z) in enumerate(ring):
+        if x < 0.8 or i % 2:
+            continue
+        ground = sample(x + 1.6, z)
+        y = max(water_y + 0.45, ground + 0.05)
+        span = 1.8 + hsh(i, 4)
+        a = (x - 0.2, y, z - span * 0.45)
+        b = (x + 2.4, y + 1.55, z - 0.15)
+        c = (x + 1.6, y + 0.45, z + span)
+        d = (x - 0.3, y + 0.15, z + span * 0.4)
+        quad_facing(foam, a, b, c, d, (1, 0.35, 0))
+
+
+def ridge_barrier(mesh, foam, water_y, sample):
+    """The carved floor ends and the sand rises before the open sea. A row of
+    different-sized rocks on that rise is the barrier in the overlook photo."""
+    spots = (
+        (12.4, -7.2, 1.6, 1.3),
+        (13.1, -2.4, 3.2, 2.3),
+        (13.4, 0.4, 3.6, 2.6),
+        (12.6, 2.2, 2.1, 1.7),
+        (14.0, 7.4, 2.6, 1.9),
+        (15.4, -5.0, 1.4, 1.2),
+        (15.8, 1.0, 1.8, 1.5),
+    )
+    for i, (x, z, h, rw) in enumerate(spots):
+        ground = sample(x, z)
+        crag(mesh, x, z, ground - 0.35, h, rw, rw * 0.85, 90 + i)
+        y = ground + 0.2
+        span = 1.4 + hsh(i, 6)
+        a = (x - 0.4, y, z - span)
+        b = (x + 1.6, y + 1.1, z - 0.2)
+        c = (x + 0.8, y + 0.35, z + span)
+        d = (x - 0.6, y + 0.1, z + span * 0.4)
+        quad_facing(foam, a, b, c, d, (0.4, 0.8, 0))
+
+
 def sea_rocks(mesh, water_y):
-    """Dark rocks standing in the surf, the way the 2018 overlook frames the gap."""
+    """Dark rocks standing in the surf beyond the sill."""
     for i, (x, z, h) in enumerate((
         (8, -4, 1.6), (11, 2, 2.2), (14, 7, 1.4),
         (16, -2, 2.4), (22, 6, 1.6), (28, -6, 1.3), (18, 8, 2.8),
     )):
-        crag(mesh, x, z, water_y - 0.5, h, 1.5, 1.2, 60 + i)
+        crag(mesh, x, z, water_y - 0.5, h, 1.1 + 0.8 * hsh(i, 3), 0.9 + 0.6 * hsh(i, 4), 60 + i)
 
 
 def scrub(mesh, x, y, z, seed):
@@ -466,7 +543,10 @@ def wavy(mesh, ring, y, amp, outward=(0, 1, 0)):
 
 def sea_surface(mesh, foam, water_y):
     """Open water east of the basin, with two breaking crests."""
-    x0, x1, z0, z1 = 2.0, 70.0, -34.0, 36.0
+    # East of the rim. Starting at x=2 put the sea under the pool.
+    # The sand shelf from x=12 to about x=24 sits above the pool. Sea mesh
+    # there was buried. Open water starts where the shelf falls away.
+    x0, x1, z0, z1 = 26.0, 78.0, -34.0, 36.0
     nx, nz = 8, 6
     grid = []
     for j in range(nz + 1):
@@ -484,7 +564,7 @@ def sea_surface(mesh, foam, water_y):
             quad_facing(mesh, a, b, c, d, (0, 1, 0))
     # Breaking crests in the gap and further out, the white water in the overlook photo.
     for k in range(14):
-        x = 6 + (k % 4) * 8 + hsh(k, 2) * 2
+        x = 27 + (k % 4) * 8 + hsh(k, 2) * 2
         z = -16 + (k // 4) * 9 + hsh(k, 3) * 3
         y = water_y + 0.08
         span = 3.0 + hsh(k, 5) * 2.2
@@ -589,8 +669,9 @@ def build():
 
     m = G.Model("conchi")
     # Multiplied by the volcanic texture. The texture carries the dark grey and the rust.
-    m.material("rock", (0.82, 0.74, 0.66), rough=0.96, textured=True, normal=True)
-    water = m.material("water", (0.02, 0.42, 0.40), rough=0.2, emissive=0.02)
+    # Dark brown-black. 0.82 washed the volcanic grain out to pale grey.
+    m.material("rock", (0.55, 0.46, 0.38), rough=0.96, textured=True, normal=True)
+    water = m.material("water", (0.05, 0.62, 0.58), rough=0.15, emissive=0.04)
     sea = m.material("sea", (0.03, 0.18, 0.32), rough=0.1, emissive=0.03)
     foam = m.material("foam", (0.86, 0.90, 0.88), rough=0.4)
     shrub = m.material("shrub", (0.32, 0.34, 0.24), rough=0.9, double=True)
@@ -607,11 +688,13 @@ def build():
     enclose(lo, ring, water_y, sample, False)
     hiscrub = m.mesh(0, shrub)
     scatter_scrub(hiscrub, ring, water_y, sample)
-    water_ring = [(x * 0.86, z * 0.86) for x, z in ring]
+    water_ring = [(x * 0.78, z * 0.78) for x, z in ring]
     wavy(hiwater, water_ring, water_y, 0.1)
     wavy(lowater, water_ring[::3], water_y, 0.06)
     sea_surface(hisea, hifoam, water_y)
     sea_surface(losea, hifoam, water_y)
+    barrier_splash(hifoam, ring, water_y, sample)
+    ridge_barrier(hi, hifoam, water_y, sample)
     rock_mesh = m.mesh(0, "rock")
     if not rock_mesh.has_uv or len(rock_mesh.uv) != len(rock_mesh.pos):
         raise SystemExit(f"rock uvs {len(rock_mesh.uv)} pos {len(rock_mesh.pos)}")
@@ -670,7 +753,7 @@ def main():
         "kind": "replace",
         "new_place": True,
         "geo_source": "OSM way 796907733, pool lowered to the surf",
-        "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889) and 'Natural Pool in Aruba-July 4, 2018': open dark volcanic rock, a stack, wave splash, and the sea. 'Near Daimari Bay' and 'Boca keto, Aruba' show the landward sand terrace and low scrub, which stay. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
+        "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889): elevated view over an enclosed turquoise pool, a rocky rim and barrier between it and the open sea, white surf over the rim, and brown-black volcanic rocks of different sizes. 'Natural Pool in Aruba-July 4, 2018' is the boulder shore. 'Near Daimari Bay' and 'Boca keto, Aruba' show the landward sand terrace and low scrub, which stay outside the rim. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
         "frame": "glb origin = pool centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
         "cat": "landmark",
     })
