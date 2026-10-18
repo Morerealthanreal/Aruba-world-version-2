@@ -55,6 +55,7 @@ import { NorthInland } from "./northInland";
 import { Interiors } from "./interiors";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
+import { RodgersBeach } from "./rodgersBeach";
 
 // Set synchronously so the minified-bundle hooks can preserve stock handling when
 // either the whole add-on suite or just the motorcycle pass is disabled.
@@ -113,6 +114,8 @@ async function main() {
   const snsacrecent = params.get("snsacrecent") === "1" ? new SnSacRecentMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
+  const rodgers = params.get("rodgers") !== "0" ? new RodgersBeach(g) : null; // Rodgers Beach bay, reef and scrub
+  (window as unknown as { __awRodgers?: unknown }).__awRodgers = rodgers;
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
   const interiors = params.get("interiors") !== "0" ? new Interiors(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
