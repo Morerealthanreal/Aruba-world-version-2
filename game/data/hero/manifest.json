@@ -16049,7 +16049,7 @@
   "id": "bugaloe",
   "k": "m_bugaloe",
   "name": "Bugaloe Beach Bar (De Palm Pier)",
-  "status": "v4-grokbot (pier from the aerial, thatch from the drone still)",
+  "status": "v4-grokbot (thatched palapa on pilings, drone viewpoint)",
   "x": -8523.4,
   "z": -5313.88,
   "y": 0.05,
@@ -16058,11 +16058,11 @@
   "lod": {
    "hi": "bugaloe_lod0",
    "lo": "bugaloe_lod1",
-   "switch_m": 140
+   "switch_m": 220
   },
   "tris": {
-   "bugaloe_lod0": 2998,
-   "bugaloe_lod1": 118
+   "bugaloe_lod0": 2428,
+   "bugaloe_lod1": 206
   },
   "textures": 1,
   "hide_footprint": [
