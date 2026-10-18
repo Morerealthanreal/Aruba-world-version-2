@@ -40,6 +40,7 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     launchOptions: {
+      ...(process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {}),
       args: [
         "--use-angle=swiftshader",
         "--enable-unsafe-swiftshader",
