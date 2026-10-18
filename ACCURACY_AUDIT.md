@@ -21,8 +21,8 @@ References are visual guides only. Nothing below is a pasted photo.
 
 ## Owned, still wrong (next batches)
 
-1. **Hooiberg.** The stair is a continuous flight on the current hill (peak about 144 m). The real hill is about 165 m. Raising it is a later change that must rebuild `hooiberg_steps` against the new slope. Summit shed and mast can stay.
-2. **Conchi / Natural Pool** is still a pin and open water. Fontein and Quadirikiri now have limestone faces with the mouths cut in (Fontein gated, Quadirikiri with two mouths and two crest holes).
+1. **Hooiberg.** Peak in the terrain is about 144 m; the real hill is about 165 m. Do not lift the DEM until the staircase is retied: `hooiberg_steps` is a fixed mesh whose origin sits on the summit height, so a taller peak floats the whole stair. Step colour (green in the model) is still unverified. Summit shed and mast can stay.
+2. **Fontein, Quadirikiri, Conchi / Natural Pool** are pins and terrain only. No cave mouths or rock bowls.
 3. **San Nicolas town, non-mural.** Main street is still generic massing plus brand boxes on this branch (storefronts, beaches, cunucu houses, Balashi and the highway curbs are PR #40). Do not touch the `sn_*` mural set (PR #15), including `sn_pinkchurch` until its owner confirms it is not part of that set.
 
 ## Water tower — done in this change
@@ -30,7 +30,7 @@ References are visual guides only. Nothing below is a pasted photo.
 **Museum of Industry, San Nicolas** (OSM 7004), same origin and node names. From Bernhardstraat the old hero was a low white hall. It is now the yellow cylinder from the Commons photo: tan ribs, dark cap, a small clock on the north face, a blue glass drum on the street side, and a low yellow wing with `MUSEUM OF INDUSTRY`. The shaft is about 36 m so it reads against the one-storey town. The mural set was not edited.
 6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
 7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
-8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
+8. **Route 1, the Sasaki road, Watty Vos Boulevard.** On the owned airport end (-5600<x<-4000, -300<z<2000) the paired one-way carriageways now have a raised median and centre streetlights (`watty_lane_dashes`). Commons 'Directional signs on Watty Vos Boulevard' was taken at 12.50795, -70.00915, inside that box. The asphalt shader was not edited. Roundabout aprons, Route 1, and the Sasaki road are still unchecked. Noord and the hotel strip were not edited. `rb_monolith`, `rb_chevron` and the Sasaki station were left as they are.
 9. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
 
 ## Off limits — for their owners

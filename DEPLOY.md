@@ -1,3 +1,5 @@
+> **ship.sh / redeploy.sh are retired.** Production deploys run from GitHub Actions on push to main. See README.md.
+
 # Publish the merged preview as a SEPARATE GitHub Pages site
 
 Target: new repo **Morerealthanreal/aruba-world-preview** → https://morerealthanreal.github.io/aruba-world-preview/

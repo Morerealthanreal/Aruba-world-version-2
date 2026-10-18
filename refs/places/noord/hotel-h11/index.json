@@ -1,0 +1,18 @@
+{
+ "place": "hotel-h11",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "h11_resort_arch.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=resort_arch",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.542902,
+   "lon": -70.060356,
+   "heading": 270.6,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_resort_arch.jpg"
+  }
+ ]
+}
