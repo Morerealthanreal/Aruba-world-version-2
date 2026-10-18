@@ -1,0 +1,27 @@
+{
+ "label": "holidayinn",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "street",
+   "calls": 251,
+   "tris": 1354762,
+   "ms": 3.1
+  }
+ ],
+ "fps": {
+  "fps": 1.89,
+  "p95ms": 83.4,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "holidayinn",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}

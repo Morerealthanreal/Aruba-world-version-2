@@ -1,0 +1,33 @@
+{
+ "label": "holidayinn",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "beach",
+   "calls": 717,
+   "tris": 1580040,
+   "ms": 5.3
+  },
+  {
+   "shot": "aerial",
+   "calls": 369,
+   "tris": 1446579,
+   "ms": 3.9
+  }
+ ],
+ "fps": {
+  "fps": 1.11,
+  "p95ms": 66.8,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "holidayinn",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
