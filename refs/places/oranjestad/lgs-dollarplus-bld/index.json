@@ -1,0 +1,30 @@
+{
+ "place": "lgs-dollarplus-bld",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "lgs_dollarplus_bld_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=7094629034000221",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.521582,
+   "lon": -70.040737,
+   "heading": 192.3,
+   "date": "2024-04-03",
+   "shows": "street-level view toward lgs_dollarplus_bld (~74 m away)",
+   "original_path": "/workspace/landmarks/mly/lgs_dollarplus_bld_0.jpg"
+  },
+  {
+   "file": "lgs_dollarplus_bld_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=342502788379220",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.521557,
+   "lon": -70.040643,
+   "heading": 219.5,
+   "date": "2024-04-03",
+   "shows": "street-level view toward lgs_dollarplus_bld (~73 m away)",
+   "original_path": "/workspace/landmarks/mly/lgs_dollarplus_bld_1.jpg"
+  }
+ ]
+}
