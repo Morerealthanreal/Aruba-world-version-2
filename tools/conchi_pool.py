@@ -167,7 +167,7 @@ def quad_facing(mesh, a, b, c, d, outward, uvs=None):
 
 
 def uv_at(p):
-    s = 2.4
+    s = 0.85
     return ((p[0] + p[2]) / s, p[1] / s)
 
 
@@ -293,16 +293,23 @@ def seaward(x, z):
 
 
 def crag(mesh, x, z, y0, h, rw, rd, seed):
-    """Irregular volcanic tooth. A five-quad box read as a grey crate."""
-    n = 5
+    """Irregular volcanic mass. A near-vertical five-sided prism read as a crate."""
+    n = 6
+    # Bulge through the middle, then a broken crown. The 2013 and 2018
+    # overlooks are rounded fractured rock, not walls.
+    profile = (1.0, 1.16, 0.46)
+    fracs = (0.0, 0.48, 1.0)
     rings = []
-    for ri, frac in enumerate((0.0, 0.42, 1.0)):
+    for ri, frac in enumerate(fracs):
         row = []
-        shrink = 1.0 - ri * 0.22
+        shrink = profile[ri]
         for k in range(n):
-            ang = 2 * math.pi * (k + 0.17 * hsh(seed, ri)) / n
-            rad = (0.42 + 0.85 * hsh(seed * 5 + k, ri + 1)) * shrink
-            jy = (hsh(seed, k + ri * 3) - 0.45) * h * 0.16
+            twist = 0.55 * (hsh(seed, ri * 5 + k) - 0.5)
+            ang = 2 * math.pi * (k + twist) / n
+            rad = (0.48 + 0.85 * hsh(seed * 5 + k, ri + 1)) * shrink
+            if hsh(seed, k + ri * 9) > 0.78:
+                rad *= 0.52
+            jy = (hsh(seed, k + ri * 3) - 0.4) * h * 0.28
             row.append((
                 x + math.cos(ang) * rw * rad,
                 y0 + h * frac + jy,
@@ -314,7 +321,7 @@ def crag(mesh, x, z, y0, h, rw, rd, seed):
             j = (k + 1) % n
             a, b = rings[ri][k], rings[ri][j]
             c, d = rings[ri + 1][j], rings[ri + 1][k]
-            outward = ((a[0] + c[0]) * 0.5 - x, 0.15, (a[2] + c[2]) * 0.5 - z)
+            outward = ((a[0] + c[0]) * 0.5 - x, 0.35, (a[2] + c[2]) * 0.5 - z)
             quad_facing(mesh, a, b, c, d, outward, uvs_for(a, b, c, d))
     top = rings[-1]
     for k in range(1, n - 1):
@@ -343,9 +350,9 @@ def enclose(rock, ring, water_y, sample, detail):
         # Shoulders framing the gap stay tall. The west rim, where the
         # overlook stands, is lower rock so the sea stays in frame.
         if x < -1.0:
-            h = 1.6 + 2.4 * hsh(i, 1)
+            h = 1.1 + 1.3 * hsh(i, 1)
         else:
-            h = 3.4 + 3.2 * hsh(i, 1)
+            h = 2.6 + 2.4 * hsh(i, 1)
         if not detail and i % 2:
             h *= 0.7
         ox, oz = outward_at(pts, i)
@@ -363,30 +370,88 @@ def enclose(rock, ring, water_y, sample, detail):
         sea_rocks(rock, water_y)
 
 
+def west_shelf(mesh, ring, water_y):
+    """The overlook foreground is rock, the way the photo's near rim is, not open sand."""
+    nx, nz = 8, 7
+    x0, x1, z0, z1 = -16.0, -1.2, -14.0, 14.0
+    grid = []
+    for j in range(nz + 1):
+        row = []
+        z = z0 + (z1 - z0) * j / nz
+        for i in range(nx + 1):
+            x = x0 + (x1 - x0) * i / nx
+            if inside(x, z, ring):
+                row.append(None)
+                continue
+            h = 0.55 + 1.1 * hsh(i * 3 + j, 4) + 0.35 * math.sin(i * 0.8 + j)
+            row.append((x, water_y - 0.2 + h, z))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            corners = (grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])
+            if any(p is None for p in corners):
+                continue
+            a, b, c, d = corners
+            quad_facing(mesh, a, b, c, d, (0, 1, 0), uvs_for(a, b, c, d))
+
+
 def scatter_land(mesh, pts, water_y, sample):
     """Rocks on the west approach. The east is open water, not a boulder field."""
-    for di, dist in enumerate((7.0, 16.0)):
+    for di, dist in enumerate((4.5, 9.0, 15.0)):
         ring = radial_ring(pts, dist)
         for i, (x, z) in enumerate(ring):
-            if x > -0.5:
+            if x > -0.2:
                 continue
-            if i % 3:
+            if i % 2:
                 continue
             g = sample(x, z)
-            y0 = min(g, water_y + 0.1) - 0.45
+            y0 = min(g, water_y + 0.1) - 0.35
             crag(
                 mesh, x, z, y0,
-                1.8 + 2.2 * hsh(i, di + 3),
-                4.2 + 1.6 * hsh(i, di + 11),
-                3.2 + 1.2 * hsh(i, di + 17),
+                2.4 + 2.6 * hsh(i, di + 3),
+                1.6 + 0.8 * hsh(i, di + 11),
+                1.4 + 0.6 * hsh(i, di + 17),
                 i + di * 20,
             )
 
 
 def sea_rocks(mesh, water_y):
-    """A few dark rocks standing in the water beyond the gap."""
-    for i, (x, z, h) in enumerate(((16, -2, 2.4), (22, 6, 1.6), (28, -6, 1.3), (18, 8, 2.8))):
-        crag(mesh, x, z, water_y - 0.5, h, 1.7, 1.4, 60 + i)
+    """Dark rocks standing in the surf, the way the 2018 overlook frames the gap."""
+    for i, (x, z, h) in enumerate((
+        (8, -4, 1.6), (11, 2, 2.2), (14, 7, 1.4),
+        (16, -2, 2.4), (22, 6, 1.6), (28, -6, 1.3), (18, 8, 2.8),
+    )):
+        crag(mesh, x, z, water_y - 0.5, h, 1.5, 1.2, 60 + i)
+
+
+def scrub(mesh, x, y, z, seed):
+    """Low grey-green mounds. Boca Keto's hillside is scrub, not bare sand."""
+    for k, dx, dz, rx, ry, rz in (
+        (0, 0.0, 0.0, 1.15, 0.42, 0.85),
+        (1, 0.85, 0.35, 0.7, 0.28, 0.55),
+    ):
+        n = 5
+        top, bot = [], []
+        for i in range(n):
+            ang = 2 * math.pi * i / n + hsh(seed + k, i) * 0.4
+            rad = 0.55 + 0.6 * hsh(seed * 3 + i, k + 2)
+            top.append((x + dx + math.cos(ang) * rx * rad * 0.6, y + ry, z + dz + math.sin(ang) * rz * rad * 0.6))
+            bot.append((x + dx + math.cos(ang) * rx * rad, y, z + dz + math.sin(ang) * rz * rad))
+        for i in range(n):
+            j = (i + 1) % n
+            mesh.quad(bot[i], bot[j], top[j], top[i])
+        for i in range(1, n - 1):
+            mesh.tri(top[0], top[i + 1], top[i])
+
+
+def scatter_scrub(mesh, pts, water_y, sample):
+    """Low scrub on the sandy west terrace, in the overlook the driver sees."""
+    # East of the usual camera (local x about -10) and west of the basin.
+    for i, (x, z) in enumerate(((-8.2, -7.4), (-6.4, -1.2), (-7.6, 4.8), (-5.2, 8.6), (-9.0, 1.5))):
+        if inside(x, z, pts):
+            continue
+        g = sample(x, z)
+        scrub(mesh, x, g, z, 80 + i)
 
 
 def wavy(mesh, ring, y, amp, outward=(0, 1, 0)):
@@ -417,17 +482,17 @@ def sea_surface(mesh, foam, water_y):
             a, b = grid[j][i], grid[j][i + 1]
             c, d = grid[j + 1][i + 1], grid[j + 1][i]
             quad_facing(mesh, a, b, c, d, (0, 1, 0))
-    # Short broken crests and a splash against the gap, not stripes across the whole sea.
-    for k in range(9):
-        x = 11 + (k % 3) * 6.5 + hsh(k, 2) * 2
-        z = -10 + (k // 3) * 8 + hsh(k, 3) * 3
-        y = water_y + 0.25 + 0.2 * hsh(k, 4)
-        span = 2.2 + hsh(k, 5) * 2.4
+    # Breaking crests in the gap and further out, the white water in the overlook photo.
+    for k in range(14):
+        x = 6 + (k % 4) * 8 + hsh(k, 2) * 2
+        z = -16 + (k // 4) * 9 + hsh(k, 3) * 3
+        y = water_y + 0.08
+        span = 3.0 + hsh(k, 5) * 2.2
         a = (x, y, z)
-        b = (x + 0.8, y + 0.35, z + span * 0.35)
-        c = (x + 0.3, y + 0.1, z + span)
-        d = (x - 0.4, water_y + 0.02, z + span * 0.6)
-        quad_facing(foam, a, b, c, d, (0, 1, 0.2))
+        b = (x + 1.4, y + 0.04, z + span * 0.25)
+        c = (x + 0.5, y + 0.02, z + span)
+        d = (x - 0.4, y, z + span * 0.55)
+        quad_facing(foam, a, b, c, d, (0, 1, 0))
         # A low curl, kept short so it does not stand up as a white fin.
 
 
@@ -489,10 +554,10 @@ def _volcanic_images():
             length = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
             np_[x, y] = (int(128 + 127 * nx / length), int(128 + 127 * ny / length), int(255 * nz / length))
             h = height[y][x]
-            shade = 10 + h * 48
+            shade = 36 + h * 42
             if noise(x / n, y / n, freq * 2, 5.5) < 0.2:
-                shade = 6
-            shade = max(5, min(90, shade))
+                shade = 22
+            shade = max(22, min(120, shade))
             rust = noise(x / n, y / n, freq, 9.4)
             # A light brown stain. The stronger orange read as lava on the flat faces.
             if rust > 0.84:
@@ -525,9 +590,10 @@ def build():
     m = G.Model("conchi")
     # Multiplied by the volcanic texture. The texture carries the dark grey and the rust.
     m.material("rock", (0.82, 0.74, 0.66), rough=0.96, textured=True, normal=True)
-    water = m.material("water", (0.04, 0.62, 0.58), rough=0.16, emissive=0.05)
+    water = m.material("water", (0.02, 0.42, 0.40), rough=0.2, emissive=0.02)
     sea = m.material("sea", (0.03, 0.18, 0.32), rough=0.1, emissive=0.03)
     foam = m.material("foam", (0.86, 0.90, 0.88), rough=0.4)
+    shrub = m.material("shrub", (0.32, 0.34, 0.24), rough=0.9, double=True)
     hi = m.mesh(0, "rock")
     lo = m.mesh(1, "rock")
     hiwater, lowater = m.mesh(0, water), m.mesh(1, water)
@@ -539,6 +605,8 @@ def build():
 
     enclose(hi, ring, water_y, sample, True)
     enclose(lo, ring, water_y, sample, False)
+    hiscrub = m.mesh(0, shrub)
+    scatter_scrub(hiscrub, ring, water_y, sample)
     water_ring = [(x * 0.86, z * 0.86) for x, z in ring]
     wavy(hiwater, water_ring, water_y, 0.1)
     wavy(lowater, water_ring[::3], water_y, 0.06)
@@ -602,7 +670,7 @@ def main():
         "kind": "replace",
         "new_place": True,
         "geo_source": "OSM way 796907733, pool lowered to the surf",
-        "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889): open dark volcanic rock with the sea beyond: the east side is a gap with a stack, wave splash, and open water, and the west approach is rough rock rather than sand. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
+        "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889) and 'Natural Pool in Aruba-July 4, 2018': open dark volcanic rock, a stack, wave splash, and the sea. 'Near Daimari Bay' and 'Boca keto, Aruba' show the landward sand terrace and low scrub, which stay. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
         "frame": "glb origin = pool centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
         "cat": "landmark",
     })

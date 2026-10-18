@@ -63148,8 +63148,8 @@
    "switch_m": 220
   },
   "tris": {
-   "conchi_lod0": 1203,
-   "conchi_lod1": 315
+   "conchi_lod0": 2002,
+   "conchi_lod1": 360
   },
   "textures": 2,
   "hide_footprint": [
@@ -63303,7 +63303,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM way 796907733, pool lowered to the surf",
-  "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889): open dark volcanic rock with the sea beyond: the east side is a gap with a stack, wave splash, and open water, and the west approach is rough rock rather than sand. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
+  "ref_sources": "Commons 'Aruba-Natural-Pool-2013' (12.52444, -69.92889) and 'Natural Pool in Aruba-July 4, 2018': open dark volcanic rock, a stack, wave splash, and the sea. 'Near Daimari Bay' and 'Boca keto, Aruba' show the landward sand terrace and low scrub, which stay. Water stays at world Y 0.06. The rock grain is generated, not the photograph.",
   "frame": "glb origin = pool centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  },

@@ -11,7 +11,40 @@
    "lon": -69.928889,
    "heading": null,
    "date": "2013",
-   "shows": "Conchi natural pool: dark volcanic rock open to the sea, with waves beyond the basin"
+   "shows": "Conchi from the west rocks: dark fractured volcanic rim, turquoise basin, one sea stack, and white surf in the open east gap"
+  },
+  {
+   "file": "natural-pool-2018.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Natural_Pool_in_Aruba-July_4,_2018.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Jessicacolasacco",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2018-07-04",
+   "shows": "Shore of dark rounded boulders, white breaking surf, and a sea stack on the horizon. No sign, railing, or umbrella in frame"
+  },
+  {
+   "file": "near-daimari.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Near_Daimari_Bay_-_panoramio.jpg",
+   "license": "CC BY 3.0",
+   "credit": "James Martins",
+   "lat": 12.525111,
+   "lon": -69.927454,
+   "heading": null,
+   "date": "2004-02-24",
+   "shows": "Aerial of the basin: turquoise pool in dark rock, open to the sea, with a pale sand beach on the landward side"
+  },
+  {
+   "file": "boca-keto.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Boca_keto,_Aruba.jpg",
+   "license": "CC BY 4.0",
+   "credit": "Ginelly.Q",
+   "lat": 12.526378,
+   "lon": -69.934259,
+   "heading": null,
+   "date": "2015-08-15",
+   "shows": "Boca Keto approach west of the pool: brown gravel terrace, low grey-green scrub, a sand cove, and a rocky headland"
   },
   {
    "file": "comparison.jpg",
@@ -22,7 +55,7 @@
    "lon": null,
    "heading": null,
    "date": null,
-   "shows": "Same overlook: the Commons pool and sea on the left, the in-game basin open to the sea on the right"
+   "shows": "Same west approach: the 2013 rocky basin and sea on the left, the in-game fractured rim, stack, surf, and sandy terrace on the right"
   }
  ]
 }
