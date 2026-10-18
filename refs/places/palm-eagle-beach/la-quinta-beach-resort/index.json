@@ -1,0 +1,30 @@
+{
+ "place": "la-quinta-beach-resort",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "quinta_2015.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "resort",
+   "original_path": "/workspace/landmarks/refs/quinta_2015.jpg"
+  },
+  {
+   "file": "quinta_2015_s.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "resort",
+   "original_path": "/workspace/landmarks/refs/quinta_2015_s.jpg"
+  }
+ ]
+}

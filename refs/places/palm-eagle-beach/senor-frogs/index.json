@@ -1,0 +1,66 @@
+{
+ "place": "senor-frogs",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "senorfrogs_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1219072115193827",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.567279,
+   "lon": -70.045828,
+   "heading": 18.5,
+   "date": "2016-04-04",
+   "shows": "street-level view toward senorfrogs (~99 m away)",
+   "original_path": "/workspace/landmarks/mly/senorfrogs_0.jpg"
+  },
+  {
+   "file": "senorfrogs_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=142131874549462",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.567585,
+   "lon": -70.045667,
+   "heading": 12.3,
+   "date": "2016-04-04",
+   "shows": "street-level view toward senorfrogs (~64 m away)",
+   "original_path": "/workspace/landmarks/mly/senorfrogs_1.jpg"
+  },
+  {
+   "file": "sf_ad8_thumb__700_700_0_0_crop.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Senor Frogs",
+   "original_path": "/workspace/landmarks/refs/sf_ad8_thumb__700_700_0_0_crop.jpg"
+  },
+  {
+   "file": "sf_d76_thumb__0_200_0_0_fit.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Senor Frogs",
+   "original_path": "/workspace/landmarks/refs/sf_d76_thumb__0_200_0_0_fit.png"
+  },
+  {
+   "file": "sf_f04_thumb__700_700_0_0_crop.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Senor Frogs",
+   "original_path": "/workspace/landmarks/refs/sf_f04_thumb__700_700_0_0_crop.jpg"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "place": "radisson",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "radisson_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1517198308834030",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.575584,
+   "lon": -70.041672,
+   "heading": 281.2,
+   "date": "2024-04-03",
+   "shows": "street-level view toward radisson (~40 m away)",
+   "original_path": "/workspace/landmarks/mly/radisson_0.jpg"
+  }
+ ]
+}
