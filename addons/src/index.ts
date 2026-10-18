@@ -38,6 +38,7 @@ import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
 import { Turbo } from "./turbo";
 import { Fly } from "./fly";
+import { SgFlight } from "./flight/bridge";
 import { SnFairMurals } from "./snFairMurals";
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
@@ -96,6 +97,8 @@ async function main() {
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = motoEnabled ? new GvMoto(g) : null;
   const fly = params.get("fly") !== "0" ? new Fly(g) : null;
+  // SuperGrok flight model. Off unless ?flight=sg. Nothing is built when the flag is absent.
+  const sgflight = params.get("flight") === "sg" ? new SgFlight(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
@@ -133,7 +136,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, sgflight, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -152,6 +155,7 @@ async function main() {
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
     if (fly) fly.update(Math.min(dt, 0.1));
+    if (sgflight) sgflight.update(Math.min(dt, 0.1));
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
