@@ -1,0 +1,39 @@
+{
+  "place": "santa-anna-church",
+  "area": "noord",
+  "photos": [
+    {
+      "file": "commons_2020_front.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Church_of_Santa_Ana_Aruba.jpg",
+      "license": "CC BY-SA 4.0",
+      "credit": "Seagullbayaruba, Carlos Naranjo",
+      "lat": 12.565,
+      "lon": -70.032,
+      "heading": "southwest, west facade and south wall",
+      "date": "2020-09-15",
+      "shows": "grey-blue walls, white stepped gable, light-grey metal roof, dark spire, arched windows"
+    },
+    {
+      "file": "commons_2020_facade.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Santa_Anna_Church.jpg",
+      "license": "CC BY-SA 4.0",
+      "credit": "Musicfan1077",
+      "lat": 12.565,
+      "lon": -70.032,
+      "heading": "west, the front gable",
+      "date": "2020-09-16",
+      "shows": "grey and white front, oculus, tall louvered arch, round windows, dark spire with a cross"
+    },
+    {
+      "file": "esri_aerial.jpg",
+      "source_url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "license": "Esri World Imagery / Maxar - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Esri, Maxar. Red outline is the church footprint. The white grid south of it is the cemetery.",
+      "lat": 12.565,
+      "lon": -70.032,
+      "heading": "nadir, north up",
+      "date": null,
+      "shows": "east-west nave, tower at the west end toward the road, tomb grid immediately south"
+    }
+  ]
+}
