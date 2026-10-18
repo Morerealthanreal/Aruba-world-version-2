@@ -63127,5 +63127,35 @@
   "ref_sources": "Sea grape is the low round bush on the dune between the sand and J.E. Irausquin, placed where the aerial is dark green and clear of the fofoti. A colour sheet in the shallows shadowed the dry sand, so the beach grain and the island water shader stay as they are. Hotel windows sit on the beach face of each resort hero. Boulevard lamps and the palapa-bar strings are emissive glow, the same cheap night read used elsewhere on the map. Existing resort heroes and the fofoti sets are left in place. Original geometry.",
   "frame": "glb origin = centroid of the sea grape and the shallow samples; landmarks/eagle_dusk.py",
   "cat": "landmark"
+ },
+ {
+  "id": "watty_lane_dashes",
+  "k": "watty_lane_dashes",
+  "name": "",
+  "status": "accuracy-highway",
+  "x": -4573.03,
+  "z": 597.75,
+  "y": 22.18,
+  "rotation": 0,
+  "glb": "models/hero/watty_lane_dashes.glb",
+  "lod": {
+   "hi": "watty_lane_dashes_lod0",
+   "lo": "watty_lane_dashes_lod1",
+   "switch_m": 280
+  },
+  "tris": {
+   "watty_lane_dashes_lod0": 666,
+   "watty_lane_dashes_lod1": 336
+  },
+  "textures": 0,
+  "hide_footprint": null,
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "Midline between the paired owned Watty Vos carriageways (1562 m of median, 24 centre lights)",
+  "ref_sources": "Commons 'Directional signs on Watty Vos Boulevard, Aruba' is at 12.50795, -70.00915, which is inside the owned airport end (about x=-4254, z=1332), not the hotel strip. The sign points toward Palm Beach; the photo itself is the divided boulevard: a median between the two one-way carriageways and streetlights down the centre. The asphalt shader was not edited and ow was not changed. Nothing was added outside -5600<x<-4000, -300<z<2000.",
+  "frame": "glb origin = median centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "road"
  }
 ]
