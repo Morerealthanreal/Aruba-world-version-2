@@ -681,95 +681,101 @@ def _leaf_pad(mesh, cx, cy, cz, rx, rz, sides):
     for i in range(sides):
         mesh.tri(c, ring[i], ring[(i + 1) % sides])
 
-def _tuft(mesh, cx, cy, cz, rx, ry, rz):
-    """A leafy egg. A single flat ring reads as a plate once the sun hits it."""
-    sides = 6
-    def ring_at(y_off, scale):
-        ring = []
-        y = cy + y_off * ry
-        for i in range(sides):
-            a = (i + 0.15) / sides * math.tau
-            ca, sa = math.cos(a), math.sin(a)
-            ring.append(mesh.v(
-                cx + ca * rx * scale, y, cz + sa * rz * scale,
-                ca, y_off, sa, i / sides, 0.5 + y_off * 0.4,
-            ))
-        return ring
-    belly, upper, lower = ring_at(0.05, 1.0), ring_at(0.62, 0.55), ring_at(-0.55, 0.62)
-    top = mesh.v(cx - rx * 0.08, cy + ry, cz, -0.1, 1, 0, 0.5, 1)
-    bot = mesh.v(cx + rx * 0.05, cy - ry * 0.92, cz, 0.05, -1, 0, 0.5, 0)
-    for i in range(sides):
-        j = (i + 1) % sides
-        mesh.quad(belly[i], belly[j], upper[j], upper[i])
-        mesh.quad(lower[i], lower[j], belly[j], belly[i])
-        mesh.tri(top, upper[i], upper[j])
-        mesh.tri(bot, lower[j], lower[i])
+def _berry(mesh, cx, cy, cz, r):
+    """A solid bit of canopy so the crown is not a hollow shell."""
+    ico(mesh, cx, cy, cz, r, r * 0.78, r * 0.86)
+
+
+def _leaflet(mesh, x, y, z, nx, ny, nz, w, h):
+    """One small opaque leaf. Many of these break the crown into foliage."""
+    L = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+    nx, ny, nz = nx / L, ny / L, nz / L
+    sx, sy, sz = (1.0, 0.0, 0.0) if abs(ny) > 0.85 else (0.0, 1.0, 0.0)
+    rx, ry, rz = sy * nz - sz * ny, sz * nx - sx * nz, sx * ny - sy * nx
+    L2 = math.sqrt(rx * rx + ry * ry + rz * rz) or 1.0
+    rx, ry, rz = rx / L2, ry / L2, rz / L2
+    ux, uy, uz = ny * rz - nz * ry, nz * rx - nx * rz, nx * ry - ny * rx
+    a = mesh.v(x + rx * w, y + ry * w, z + rz * w, nx, ny, nz, 0, 0.5)
+    b = mesh.v(x - rx * w, y - ry * w, z - rz * w, nx, ny, nz, 1, 0.5)
+    c = mesh.v(x + ux * h, y + uy * h, z + uz * h, nx, ny, nz, 0.5, 1)
+    d = mesh.v(x - ux * h, y - uy * h, z - uz * h, nx, ny, nz, 0.5, 0)
+    mesh.tri(a, c, b)
+    mesh.tri(a, b, d)
 
 
 def _crown(mesh, dense):
-    """Layered, lopsided crown streamed west off the trunk tip.
+    """Rounded crown of small leaves, swept west off the trunk tip.
 
-    Coordinates are pre-scale. The tip sits near (-2.65, 1.90). Clumps stack
-    in three layers and hang further on the south side, so the mass is a
-    wind-bent canopy rather than one slab.
+    Coordinates are pre-scale. The tip sits near (-2.15, 2.15). A solid core
+    keeps it opaque; the leaves on the outside are what you see.
     """
-    clumps = (
-        # One overlapping mass streamed west. Gaps between these read as plates.
-        (-2.55, 2.00, 0.00, 1.15, 0.72, 0.85),
-        (-3.35, 2.10, -0.12, 1.35, 0.70, 0.95),
-        (-4.15, 1.90, 0.08, 1.40, 0.68, 1.00),
-        (-4.95, 1.68, -0.16, 1.15, 0.58, 0.82),
-        (-5.65, 1.48, 0.02, 0.85, 0.48, 0.62),
-        # upper bumps, still touching the mass under them
-        (-3.15, 2.55, 0.18, 0.72, 0.40, 0.55),
-        (-4.05, 2.38, -0.28, 0.78, 0.38, 0.52),
-        (-4.85, 2.10, 0.22, 0.62, 0.34, 0.45),
-        # lower droop, heavier to the south
-        (-3.45, 1.42, 0.38, 0.90, 0.42, 0.58),
-        (-4.35, 1.22, -0.40, 0.95, 0.40, 0.62),
-        (-5.15, 1.12, 0.18, 0.58, 0.32, 0.42),
-    )
     if not dense:
-        clumps = (
-            (-2.55, 1.90, 0.0, 0.7, 0.48, 0.5),
-            (-3.6, 1.85, -0.2, 0.95, 0.5, 0.55),
-            (-4.6, 1.55, -0.25, 0.75, 0.4, 0.45),
-            (-3.8, 1.25, 0.2, 0.55, 0.32, 0.35),
-        )
-    for spec in clumps:
-        _tuft(mesh, *spec)
+        for x, y, z, r in (
+            (-2.40, 2.20, 0.0, 0.42), (-3.15, 2.22, -0.12, 0.40),
+            (-3.85, 2.05, 0.1, 0.36), (-4.40, 1.90, -0.06, 0.28),
+        ):
+            _berry(mesh, x, y, z, r)
+        return
+    cx, cy, cz = -3.35, 2.18, 0.0
+    rx, ry, rz = 1.20, 0.50, 0.62
+    # Opaque core, so the sky does not show through the leaves.
+    for ix in range(-2, 3):
+        for iy in range(-1, 2):
+            for iz in range(-1, 2):
+                x, y, z = ix / 2.0, iy / 1.0, iz / 1.0
+                if x * x + y * y + z * z > 1.05:
+                    continue
+                _berry(mesh, cx + x * rx * 0.72, cy + y * ry * 0.72, cz + z * rz * 0.72, 0.34)
+    for shell, count, lift in ((0.96, 160, 0.0), (1.08, 120, 0.04)):
+        for i in range(count):
+            y = 1 - (i / (count - 1)) * 2
+            ring = math.sqrt(max(0.0, 1 - y * y))
+            theta = i * 2.399963
+            x, z = math.cos(theta) * ring, math.sin(theta) * ring
+            j = (i * 3 + int(lift * 50)) & 3
+            px = cx + x * rx * shell
+            py = cy + y * ry * shell + lift
+            pz = cz + z * rz * shell
+            _leaflet(mesh, px, py, pz, x, y * 0.55 + 0.15, z, 0.16 + (j & 1) * 0.04, 0.10 + (j >> 1) * 0.03)
 
 
 def build_tree(lod):
-    """Fofoti / divi-divi: grey twisted trunk, root flare, a wide dark crown streamed west."""
+    """Divi-divi: thick grey-brown trunk leaning west, roots on the sand, small-leaf crown."""
     bark, leaf = M(), M()
     if lod == 0:
-        # A gnarled leader: it kinks, then streams west. Not a straight pipe.
-        # Rises, then sweeps west. A path that stays low reads as a fallen log.
-        path = [(0.42, 0.02, 0.10), (0.22, 0.72, -0.26), (-0.18, 1.38, 0.30),
-                (-0.78, 1.88, -0.16), (-1.45, 2.18, 0.14), (-2.05, 2.16, -0.08),
-                (-2.55, 2.02, 0.04)]
-        tube(bark, path, 0.42, 0.09, 8, twist=3.1, knot=0.42)
-        for ang, reach, lift in ((0.4, 1.05, 0.02), (1.7, 0.85, 0.0), (2.8, 1.15, 0.04),
-                                 (4.2, 0.7, 0.0), (5.3, 0.9, 0.03)):
+        # Base sits to the east. The trunk twists and leans hard toward the
+        # west canopy, which is the right-hand trunk in a view looking north.
+        path = [(0.72, 0.04, 0.12), (0.48, 0.48, -0.38), (0.08, 1.05, 0.42),
+                (-0.42, 1.55, -0.28), (-1.05, 1.95, 0.22), (-1.62, 2.18, -0.16),
+                (-2.15, 2.16, 0.06)]
+        # A thick twist, not a pinched zigzag. Too much knot breaks the trunk into slabs.
+        tube(bark, path, 0.48, 0.13, 12, twist=2.4, knot=0.22)
+        # A spiral ridge so the trunk reads as twisted wood, not a smooth pipe.
+        ridge = []
+        for i, (x, y, z) in enumerate(path):
+            ang = i / (len(path) - 1) * 6.2
+            ridge.append((x + math.cos(ang) * 0.10, y + 0.02, z + math.sin(ang) * 0.10))
+        tube(bark, ridge, 0.09, 0.035, 5, twist=0.6, knot=0.15)
+        # Exposed roots spreading across the sand, thicker where they leave the flare.
+        for ang, reach in ((0.15, 1.55), (0.9, 1.25), (1.7, 1.65), (2.55, 1.15),
+                           (3.4, 1.45), (4.3, 1.05), (5.2, 1.35)):
+            cx, sx = math.cos(ang), math.sin(ang)
             tube(bark, [
-                (0.06, 0.18, 0.0),
-                (math.cos(ang) * reach * 0.4, lift, math.sin(ang) * reach * 0.32),
-                (math.cos(ang) * reach, 0.0, math.sin(ang) * reach * 0.7),
-            ], 0.11, 0.035, 5, twist=1.2, knot=0.25)
-        # Knots where the trunk turns, so the silhouette is lumpy.
-        for px, py, pz, rad in ((0.15, 0.85, -0.1, 0.18), (-0.7, 1.7, 0.05, 0.14), (-1.6, 2.1, 0.0, 0.11)):
-            tube(bark, [(px, py, pz), (px - 0.08, py + 0.14, pz + 0.05)], rad, rad * 0.7, 6)
-        tube(bark, [(-2.3, 2.05, 0.02), (-3.5, 1.9, -0.08), (-4.6, 1.65, -0.12), (-5.4, 1.45, -0.02)],
-             0.06, 0.025, 5, twist=1.4, knot=0.3)
+                (0.10, 0.16, 0.02),
+                (cx * reach * 0.45, 0.05, sx * reach * 0.45),
+                (cx * reach, 0.0, sx * reach),
+            ], 0.16, 0.045, 5, twist=0.8, knot=0.2)
+        for px, py, pz, rad in ((0.35, 0.55, -0.15, 0.16), (-0.15, 1.15, 0.12, 0.13),
+                                (-0.85, 1.7, -0.08, 0.11), (-1.55, 2.05, 0.04, 0.09)):
+            tube(bark, [(px, py, pz), (px - 0.06, py + 0.12, pz + 0.04)], rad, rad * 0.65, 6)
         _crown(leaf, True)
     else:
-        path = [(0.12, 0.08, 0.05), (-0.35, 0.7, -0.12), (-1.15, 1.35, 0.1), (-2.15, 1.75, -0.04)]
-        tube(bark, path, 0.22, 0.07, 5, twist=1.8, knot=0.3)
-        tube(bark, [(0.0, 0.15, 0), (0.55, 0.02, 0.35), (0.95, 0.0, 0.55)], 0.07, 0.03, 4)
+        path = [(0.55, 0.06, 0.08), (-0.15, 0.85, -0.2), (-1.15, 1.65, 0.12), (-2.05, 2.05, -0.04)]
+        tube(bark, path, 0.32, 0.10, 5, twist=2.2, knot=0.35)
+        tube(bark, [(0.05, 0.12, 0.0), (0.7, 0.02, 0.45), (1.25, 0.0, 0.7)], 0.10, 0.04, 4)
+        tube(bark, [(0.05, 0.12, 0.0), (-0.15, 0.02, -0.55), (-0.2, 0.0, -1.05)], 0.09, 0.035, 4)
         _crown(leaf, False)
-    # Phone distance: a 2 m crown sits on the sand. The Eagle Beach trees
-    # carry the canopy about twice that high.
+    # The Eagle Beach trees carry the canopy well above the sand.
     for mesh in (bark, leaf):
         mesh.p = [v * 1.65 for v in mesh.p]
     return bark, leaf

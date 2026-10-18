@@ -202,19 +202,32 @@ def scale_for(x, z):
     return 0.90 + h * 0.035
 
 
-def build_grove(lod, spots):
+def local_ground(ox, oz, x, z):
+    """Hero-local y of the terrain. The model sits on the ground at its origin."""
+    return es.height_at(ox + x, oz + z) - es.height_at(ox, oz)
+
+
+def build_grove(lod, spots, ox=None, oz=None):
     proto_b, proto_l = es.build_tree(lod)
     bark, leaf, upper = es.M(), es.M(), es.M()
     for x, z, y in spots:
         s = scale_for(x, z)
-        # Cluster base is the old root sample, which sits a little under the
-        # sand mesh. Lift so the flare rests on the beach.
-        y += 0.35
+        if ox is None:
+            # Cluster base is the old root sample, a little under the sand.
+            y += 0.35
+        else:
+            # The beach rises toward the road. A flat lift buries the south
+            # trunks, so each flare sits on the terrain under that tree.
+            # 0.55 clears the root radius, which hangs below the path.
+            y = local_ground(ox, oz, x, z) + 0.55
         stamp(bark, proto_b, x, y, z, s)
         stamp(leaf, proto_l, x, y, z, s)
-        # A few stones by the flare, as in the beach photos. Not a second canopy.
-        for dx, dz, rx, ry in ((0.9, 0.35, 0.42, 0.2), (1.2, -0.4, 0.28, 0.14), (-0.15, 0.85, 0.34, 0.16)):
-            es.ico(upper, x + dx * s, y + ry * s * 0.5, z + dz * s, rx * s, ry * s, rx * s * 0.85)
+        # Pale stones on the sand by the flare, as in the beach photos.
+        for dx, dz, rx, ry in (
+            (1.15, 0.45, 0.38, 0.18), (1.55, -0.55, 0.26, 0.12), (-0.35, 1.05, 0.32, 0.14),
+            (0.4, -1.25, 0.22, 0.10), (-1.35, 0.25, 0.28, 0.12), (1.85, 0.95, 0.18, 0.09),
+        ):
+            es.ico(upper, x + dx * s, y + ry * s * 0.45, z + dz * s, rx * s, ry * s, rx * s * 0.8)
     return bark, leaf, upper
 
 
@@ -285,7 +298,8 @@ def rewrite_grove(name, local):
     removed = drop_blobs(js)
     new = 0
     for lod, suffix in ((0, "_lod0"), (1, "_lod1")):
-        bark, leaf, upper = build_grove(lod, local)
+        ox, oz = origins()[name]
+        bark, leaf, upper = build_grove(lod, local, ox, oz)
         node_i = next(i for i, n in enumerate(js["nodes"]) if n.get("name") == name + suffix)
         new += reparent(js, blob, node_i, bark, leaf, upper) if lod == 0 else 0
         if lod == 1:
@@ -313,7 +327,8 @@ def rewrite_grove_counted(name, local):
     added = {}
     for lod in (0, 1):
         suffix = f"_lod{lod}"
-        bark, leaf, upper = build_grove(lod, local)
+        ox, oz = origins()[name]
+        bark, leaf, upper = build_grove(lod, local, ox, oz)
         node_i = next(i for i, n in enumerate(js["nodes"]) if n.get("name") == name + suffix)
         added[name + suffix] = reparent(js, blob, node_i, bark, leaf, upper)
         print(f"  {name}{suffix} dropped {removed_by.get(name + suffix, 0)} added {added[name + suffix]}")
@@ -391,7 +406,7 @@ def patch_tris(deltas):
         old = int(text[j:k])
         text = text[:j] + str(old + int(add)) + text[k:]
         print(f"  tris {key} {old} -> {old + int(add)}")
-    if not text.endswith("]"):
+    if not text.rstrip().endswith("]"):
         raise SystemExit("manifest does not end with ]")
     open(MANIFEST, "w").write(text)
 
@@ -437,9 +452,9 @@ def main():
     print("fofoti swapped")
 
 
-# Dark green, almost no blue. The previous (0.15, 0.36, 0.16) read as pale teal
-# once the sun hit a thin pad.
-FOLIAGE = [0.012, 0.055, 0.010, 1]
+# Leaf green with almost no blue. (0.15, 0.36, 0.16) went pale teal in the sun;
+# a near-black green read as flat slabs. This stays a dense divi green.
+FOLIAGE = [0.06, 0.18, 0.035, 1]
 
 
 def paint(js):
@@ -447,34 +462,38 @@ def paint(js):
         name = m.get("name")
         pbr = m.setdefault("pbrMetallicRoughness", {})
         if name == "bark":
-            # Dark weathered wood. A mid grey reads as a pale pipe in the sun.
-            pbr["baseColorFactor"] = [0.10, 0.075, 0.055, 1]
+            # Weathered grey-brown, as on the Eagle Beach divi. Near-black
+            # reads as a silhouette with no twist.
+            pbr["baseColorFactor"] = [0.20, 0.16, 0.13, 1]
         elif name == "fol":
             pbr["baseColorFactor"] = list(FOLIAGE)
             pbr["roughnessFactor"] = 0.94
             pbr["metallicFactor"] = 0.0
             m["doubleSided"] = True
         elif name == "fol2":
-            # Beach stones around the roots. fol2 is unused by the palapas.
-            pbr["baseColorFactor"] = [0.55, 0.52, 0.46, 1]
+            # Pale beach stones around the roots. fol2 is unused by the palapas.
+            pbr["baseColorFactor"] = [0.78, 0.76, 0.72, 1]
             pbr["roughnessFactor"] = 0.96
             pbr["metallicFactor"] = 0.0
 
 
 def assert_crown():
-    """Wide, flat, streamed west, and actually sitting on the trunk tip."""
+    """Rounded small-leaf crown swept west, sitting on a trunk that leans that way."""
     bark, leaf = es.build_tree(0)
     xs, ys = leaf.p[0::3], leaf.p[1::3]
     span = max(xs) - min(xs)
     thick = max(ys) - min(ys)
-    tipx, tipy = -2.65 * 1.65, 1.90 * 1.65
-    on_trunk = any((x - tipx) ** 2 + (y - tipy) ** 2 < 0.55 ** 2 for x, y in zip(xs, ys))
-    # Layered: thicker than a slab, still a wind-flattened crown rather than a ball.
-    if (min(bark.p[0::3]) > -2.5 or span < 6.5 or min(xs) > -5.5 or max(xs) > -1.2
-            or thick < 2.4 or thick > 4.4 or not (2.7 < max(ys) < 4.9) or not on_trunk):
+    # Tip of the scaled leader. A leaf must actually meet it.
+    tipx, tipy = -2.15 * 1.65, 2.16 * 1.65
+    on_trunk = any((x - tipx) ** 2 + (y - tipy) ** 2 < 0.7 ** 2 for x, y in zip(xs, ys))
+    # Wider than tall, west of the flare, and not a single flat pad.
+    if (min(bark.p[0::3]) > -1.5 or span < 3.2 or span > 6.5 or min(xs) > -4.0
+            or max(xs) > -2.5 or thick < 1.3 or thick > 3.2
+            or not (3.2 < max(ys) < 5.4) or not on_trunk):
         raise SystemExit(
-            f"crown still a tuft span={span:.2f} x={min(xs):.2f}..{max(xs):.2f} "
-            f"y={min(ys):.2f}..{max(ys):.2f} on_trunk={on_trunk}"
+            f"crown still a slab span={span:.2f} thick={thick:.2f} "
+            f"x={min(xs):.2f}..{max(xs):.2f} y={min(ys):.2f}..{max(ys):.2f} "
+            f"bark_x={min(bark.p[0::3]):.2f} on_trunk={on_trunk}"
         )
 
 
@@ -550,10 +569,156 @@ def spots_from_divi(js, blob, mesh):
     return spots
 
 
+def ensure_color(js, name, rgba, rough=0.96):
+    for i, m in enumerate(js["materials"]):
+        if m.get("name") != name:
+            continue
+        pbr = m.setdefault("pbrMetallicRoughness", {})
+        pbr["baseColorFactor"] = list(rgba)
+        pbr["roughnessFactor"] = rough
+        pbr["metallicFactor"] = 0
+        m["doubleSided"] = True
+        return i
+    js["materials"].append({
+        "name": name,
+        "doubleSided": True,
+        "pbrMetallicRoughness": {
+            "baseColorFactor": list(rgba),
+            "roughnessFactor": rough,
+            "metallicFactor": 0,
+        },
+    })
+    return len(js["materials"]) - 1
+
+
+def upsert_child_mesh(js, blob, parent_name, mesh_name, prim_meshes):
+    """Replace a dress mesh, or hang a new one off the lod group. Returns the tris delta."""
+    prims = []
+    tris = 0
+    for mesh, mi in prim_meshes:
+        if len(mesh.i) < 3:
+            continue
+        prim, n = mesh_prim(js, blob, mesh, mi)
+        prims.append(prim)
+        tris += n
+    if not prims:
+        return 0
+    existing = [i for i, m in enumerate(js["meshes"]) if m.get("name") == mesh_name]
+    if existing:
+        old = sum(js["accessors"][p["indices"]]["count"] // 3 for p in js["meshes"][existing[0]]["primitives"])
+        js["meshes"][existing[0]]["primitives"] = prims
+        return tris - old
+    js["meshes"].append({"name": mesh_name, "primitives": prims})
+    js["nodes"].append({"mesh": len(js["meshes"]) - 1})
+    parent = next(n for n in js["nodes"] if n.get("name") == parent_name)
+    parent.setdefault("children", []).append(len(js["nodes"]) - 1)
+    return tris
+
+
+def sand_sheet(ox, oz):
+    """Near-white coral sand over the Eagle Beach apron. Colour only, no texture."""
+    mesh = es.M()
+    step = 4.0
+    x0, x1 = ox - 40.0, ox + 52.0
+    z0, z1 = oz - 110.0, oz + 150.0
+    cols = int((x1 - x0) / step)
+    rows = int((z1 - z0) / step)
+    base = es.height_at(ox, oz)
+    for iz in range(rows):
+        for ix in range(cols):
+            corners = []
+            dry = True
+            # CCW from above so the face normal points up.
+            for dx, dz in ((0.0, 0.0), (0.0, step), (step, step), (step, 0.0)):
+                wx, wz = x0 + ix * step + dx, z0 + iz * step + dz
+                h = es.height_at(wx, wz)
+                if h < 0.2 or h > 4.0:
+                    dry = False
+                corners.append((wx - ox, h - base + 0.05, wz - oz))
+            if not dry:
+                continue
+            ids = [mesh.v(x, y, z, 0, 1, 0, 0, 0) for x, y, z in corners]
+            mesh.quad(ids[0], ids[1], ids[2], ids[3])
+    return mesh
+
+
+def dress_beach(js, blob, name, ox, oz, spots):
+    """White sand, driftwood, extra stones and the inland tree line. Eagle Beach hero only."""
+    if name != "eaglebeach_fx":
+        return 0
+    sand_i = ensure_color(js, "sand", [0.93, 0.91, 0.86], 0.98)
+    drift_i = ensure_color(js, "drift", [0.42, 0.36, 0.30], 0.94)
+    bark_i = mat_index(js, "bark")
+    fol_i = mat_index(js, "fol")
+    stone_i = mat_index(js, "fol2")
+    sand = sand_sheet(ox, oz)
+    wood, stones, line_b, line_l = es.M(), es.M(), es.M(), es.M()
+    # The photographed tree, the northern of the two on the open sand.
+    tx, tz = -9218.2 - ox, -3869.8 - oz
+    best = min(spots, key=lambda s: (s[0] - tx) ** 2 + (s[1] - tz) ** 2)
+    tx, tz = best[0], best[1]
+    gy = local_ground(ox, oz, tx, tz)
+
+    def gy_at(x, z):
+        return local_ground(ox, oz, x, z)
+
+    # Driftwood on the sand in front of the trunk (south, toward a viewer on the beach).
+    for dx, dz, yaw, length, rad in (
+        (-1.4, 2.6, 0.5, 1.15, 0.09), (2.0, 2.1, 1.8, 0.85, 0.07),
+        (-2.8, 1.4, 2.2, 1.25, 0.08), (0.6, 3.8, 1.1, 0.95, 0.06),
+    ):
+        x, z = tx + dx, tz + dz
+        y = gy_at(x, z) + 0.02
+        dxv, dzv = math.cos(yaw) * length, math.sin(yaw) * length
+        es.tube(wood, [
+            (x, y + rad, z),
+            (x + dxv * 0.5, y + rad * 0.9, z + dzv * 0.5),
+            (x + dxv, y + rad * 0.75, z + dzv),
+        ], rad, rad * 0.8, 6, twist=0.4, knot=0.12)
+    for dx, dz, rx, ry in (
+        (2.8, 1.6, 0.34, 0.16), (-2.2, 2.8, 0.28, 0.13), (4.2, 3.4, 0.22, 0.11),
+        (-0.6, 5.1, 0.18, 0.08), (1.4, -1.8, 0.26, 0.12),
+    ):
+        x, z = tx + dx, tz + dz
+        es.ico(stones, x, gy_at(x, z) + ry * 0.4, z, rx, ry, rx * 0.85)
+    # Low tree line inland (east, the right side when looking north toward the sea-left view).
+    proto_b, proto_l = es.build_tree(0)
+    # Stay on the sand. Further east the terrain climbs onto the boulevard.
+    # Small and well north of the postcard stand, so they read as the far tree line.
+    for dx, dz, sc in ((11, -22, 0.30), (16, -30, 0.26), (8, -28, 0.24), (14, -18, 0.28), (6, -34, 0.22)):
+        x, z = tx + dx, tz + dz
+        y = gy_at(x, z) + 0.55
+        stamp(line_b, proto_b, x, y, z, sc)
+        stamp(line_l, proto_l, x, y, z, sc)
+    return upsert_child_mesh(
+        js, blob, name + "_lod0", name + "_lod0_dress",
+        ((sand, sand_i), (wood, drift_i), (stones, stone_i), (line_b, bark_i), (line_l, fol_i)),
+    )
+
+
+def fix_sign(js, blob):
+    """The Passions board is mirrored, so BEACH reads backwards."""
+    mat = next((m for m in js["materials"] if m.get("name") == "sign"), None)
+    if mat is None or mat.get("extras", {}).get("readable"):
+        return
+    mesh = next(m for m in js["meshes"] if m.get("name") == "eaglebeach_fx_lod0")
+    prim = next(p for p in mesh["primitives"] if js["materials"][p["material"]].get("name") == "sign")
+    a = js["accessors"][prim["attributes"]["TEXCOORD_0"]]
+    bv = js["bufferViews"][a["bufferView"]]
+    start = bv.get("byteOffset", 0) + a.get("byteOffset", 0)
+    stride = bv.get("byteStride") or 4
+    for i in range(a["count"]):
+        off = start + i * stride
+        u, v = struct.unpack_from("<HH", blob, off)
+        struct.pack_into("<HH", blob, off, 65535 - u, v)
+    mat.setdefault("extras", {})["readable"] = True
+
+
 def refresh():
     """The groves are already reparented. Swap the crown meshes in place."""
     assert_crown()
     deltas = {}
+    org = origins()
     only = os.environ.get("EAGLE_FOFOTI_ONLY")
     groves = (only,) if only else GROVES
     for name in groves:
@@ -568,12 +733,21 @@ def refresh():
             # Lod1 trunks are too thin to re-cluster. Both lods share the lod0 roots.
             if spots is None:
                 spots = spots_from_divi(js, blob, mesh)
-            # spots_from_divi returns the lifted root height. build_grove lifts
-            # again, so hand it the pre-lift base.
-            local = [(x, z, y - 0.35) for x, z, y in spots]
-            bark, leaf, upper = build_grove(lod, local)
+                expect = {"eaglebeach_fx": 7, "eb_fofoti_10": 11, "eb_fofoti_11": 18}
+                if len(spots) != expect[name]:
+                    raise SystemExit(f"{name} clustered {len(spots)} trunks, want {expect[name]}")
+            # spots_from_divi returns the lifted root height. Seating ignores it
+            # and puts each flare on the terrain under that trunk.
+            local = [(x, z, y) for x, z, y in spots]
+            ox, oz = org[name]
+            bark, leaf, upper = build_grove(lod, local, ox, oz)
             deltas[f"{name}_lod{lod}"] = replace_grove_parts(js, blob, mesh, bark, leaf, upper)
             print(f"  {name} lod{lod} trees {len(spots)} delta {deltas[f'{name}_lod{lod}']}")
+        if name == "eaglebeach_fx":
+            dress = dress_beach(js, blob, name, org[name][0], org[name][1], [(x, z) for x, z, _y in spots])
+            deltas["eaglebeach_fx_lod0"] = deltas.get("eaglebeach_fx_lod0", 0) + dress
+            fix_sign(js, blob)
+            print(f"  eaglebeach dress delta {dress}")
         save_glb(path, js, blob)
     if only:
         patch_tris(deltas)
