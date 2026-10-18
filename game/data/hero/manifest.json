@@ -63098,4 +63098,99 @@
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  }
+,
+ {
+  "id": "fontein_cave",
+  "k": "fontein_cave",
+  "name": "Fontein Cave",
+  "status": "accuracy-caves",
+  "x": 6810.15,
+  "z": 2992.52,
+  "y": 24.98,
+  "rotation": 0,
+  "glb": "models/hero/fontein_cave.glb",
+  "lod": {
+   "hi": "fontein_cave_lod0",
+   "lo": "fontein_cave_lod1",
+   "switch_m": 380
+  },
+  "tris": {
+   "fontein_cave_lod0": 396,
+   "fontein_cave_lod1": 24
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    6808.1,
+    2981.6
+   ],
+   [
+    6821.2,
+    2994.0
+   ],
+   [
+    6809.1,
+    3006.7
+   ],
+   [
+    6796.0,
+    2994.3
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM node, mouth facing the nearest road",
+  "ref_sources": "Commons views of the Fontein cave mouth: one opening cut into a limestone face, metal gate set inside the shadow, talus at the foot. OSM node 540167863. Geometry only.",
+  "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "landmark"
+ },
+ {
+  "id": "quadirikiri",
+  "k": "quadirikiri",
+  "name": "Quadirikiri Cave",
+  "status": "accuracy-caves",
+  "x": 7659.22,
+  "z": 4142.28,
+  "y": 33.38,
+  "rotation": 0,
+  "glb": "models/hero/quadirikiri.glb",
+  "lod": {
+   "hi": "quadirikiri_lod0",
+   "lo": "quadirikiri_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "quadirikiri_lod0": 528,
+   "quadirikiri_lod1": 36
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    7649.0,
+    4130.7
+   ],
+   [
+    7674.7,
+    4141.9
+   ],
+   [
+    7667.3,
+    4158.9
+   ],
+   [
+    7641.6,
+    4147.7
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM node, mouth facing the nearest road",
+  "ref_sources": "Commons views of Quadirikiri: two mouths in a low limestone cliff and two holes in the crest. OSM node 540982491. Geometry only.",
+  "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "landmark"
+ }
 ]
