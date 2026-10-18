@@ -1,0 +1,42 @@
+{
+ "place": "giannis",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "giannis_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=3897797007003858",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.568343,
+   "lon": -70.045308,
+   "heading": 16.4,
+   "date": "2016-04-04",
+   "shows": "street-level view toward giannis (~37 m away)",
+   "original_path": "/workspace/landmarks/mly/giannis_0.jpg"
+  },
+  {
+   "file": "giannis_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=791209465135307",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.568173,
+   "lon": -70.045378,
+   "heading": 31.0,
+   "date": "2016-04-04",
+   "shows": "street-level view toward giannis (~57 m away)",
+   "original_path": "/workspace/landmarks/mly/giannis_1.jpg"
+  },
+  {
+   "file": "giannis_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=904536106792549",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.568507,
+   "lon": -70.04525,
+   "heading": 11.8,
+   "date": "2016-04-04",
+   "shows": "street-level view toward giannis (~18 m away)",
+   "original_path": "/workspace/landmarks/mly/giannis_2.jpg"
+  }
+ ]
+}

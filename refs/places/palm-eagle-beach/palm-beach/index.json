@@ -1,0 +1,42 @@
+{
+ "place": "palm-beach",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "palmbeach_balcony.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "view from hotel balcony",
+   "original_path": "/workspace/landmarks/ref/palmbeach_balcony.jpg"
+  },
+  {
+   "file": "palmbeach_2013.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "beach / hotel strip",
+   "original_path": "/workspace/landmarks/refs/palmbeach_2013.jpg"
+  },
+  {
+   "file": "palmbeach_ship.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "beach / hotel strip",
+   "original_path": "/workspace/landmarks/refs/palmbeach_ship.jpg"
+  }
+ ]
+}
