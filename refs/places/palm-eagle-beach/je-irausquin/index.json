@@ -35,7 +35,19 @@
    "lon": -70.0554865,
    "heading": 100,
    "date": "2021-03",
-   "shows": "Side-by-side from heading 100: kadushi columns in the gravel beside J.E. Irausquin and the in-game stems",
+   "shows": "Side-by-side from heading 100: ribbed kadushi with upright arms in the median, red path and palms beside the in-game row",
+   "original_path": "street view pano CIHM0ogKEICAgIDqxdegfg"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": "https://www.google.com/maps/@12.552272,-70.0554865,3a,75y,100h,90t/data=!3m6!1e1!3m4!1sCIHM0ogKEICAgIDqxdegfg!2e0!7i16384!8i8192",
+   "license": "unknown - reference only",
+   "credit": "Google Street View / New England Photographer; in-game frame Aruba World",
+   "lat": 12.552272,
+   "lon": -70.0554865,
+   "heading": 100,
+   "date": "2021-03",
+   "shows": "Same boulevard view beside the in-game clumps: upright ribbed arms, gravel, the red path and palms",
    "original_path": "street view pano CIHM0ogKEICAgIDqxdegfg"
   }
  ]

@@ -206,7 +206,8 @@ def stem(mesh, x, z, y0, y1, radius, lean=(0.0, 0.0), sides=8):
         for i in range(sides):
             a = i / sides * math.tau
             ca, sa = math.cos(a), math.sin(a)
-            flute = 0.72 if i % 2 else 1.0
+            # Deep ribs. A 28% pinch disappears at street distance.
+            flute = 0.38 if i % 2 else 1.0
             r = radius * scale * flute
             ring.append(mesh.v(x + ox + ca * r, y, z + oz + sa * r, ca, 0.08, sa, i / sides, t))
         rings.append(ring)
@@ -267,16 +268,18 @@ def cactus_row(js, blob):
         # Kadushi / yatu: a short trunk and upright ribbed columns that
         # branch low and stay vertical. No sideways saguaro arm.
         fork = y0 + min(0.55, h * 0.28)
-        stem(plants, x, z, y0, fork + 0.18, 0.13)
+        stem(plants, x, z, y0, fork + 0.22, 0.20, sides=10)
+        # Upright arms in a clump, separated enough to read as columns
+        # rather than one pole. No sideways saguaro arm.
         columns = (
-            (0.28, 0.04, 1.00, 0.105, 0.03, 0.0),
-            (-0.24, 0.10, 0.86, 0.095, -0.02, 0.02),
-            (0.05, -0.30, 0.74, 0.090, 0.0, -0.03),
-            (-0.10, 0.26, 0.62, 0.085, -0.02, 0.0),
-            (0.22, -0.16, 0.68, 0.080, 0.02, -0.02),
+            (0.00, 0.00, 1.05, 0.16, 0.00, 0.00),
+            (0.48, 0.10, 0.92, 0.13, 0.04, 0.00),
+            (-0.44, 0.16, 0.86, 0.12, -0.03, 0.02),
+            (0.14, -0.50, 0.78, 0.12, 0.00, -0.04),
+            (-0.18, 0.46, 0.70, 0.11, -0.02, 0.03),
         )
-        for dx, dz, frac, radius, lx, lz in columns[:3 + (nplant % 3)]:
-            stem(plants, x + dx, z + dz, fork, y0 + h * frac, radius, lean=(lx, lz))
+        for dx, dz, frac, radius, lx, lz in columns[:4 + (nplant % 2)]:
+            stem(plants, x + dx, z + dz, fork, y0 + h * frac, radius, lean=(lx, lz), sides=10)
     xs, ys, zs = plants.p[0::3], plants.p[1::3], plants.p[2::3]
     if not xs or max(ys) - min(ys) > 12 or max(abs(v) for v in xs) > 220:
         raise SystemExit("cactus mesh left hero-local metres")
@@ -361,8 +364,186 @@ def cactus_only():
     print("kadushi row rebuilt")
 
 
+def _rock(mesh, x, y, z, rx, ry, rz):
+    """A low tan boulder. Five sides, no texture."""
+    top = mesh.v(x, y + ry, z, 0, 1, 0, 0.5, 1)
+    ring = []
+    for i in range(5):
+        a = i / 5 * math.tau + 0.4
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(
+            x + ca * rx, y + 0.04, z + sa * rz, ca, 0.25, sa, i / 5, 0,
+        ))
+    for i in range(5):
+        mesh.i += [top, ring[i], ring[(i + 1) % 5]]
+
+
+X0, Z0, RS = -10800.0, -11800.0, 1000.0
+HERO_XZ = (-9263.3, -3589.2)
+_hcache = {}
+
+
+def _height_at(x, z):
+    rx = int((x - X0) // RS)
+    rz = int((z - Z0) // RS)
+    im = _hcache.get((rx, rz))
+    if im is False:
+        return 0.0
+    if im is None:
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"../game/data/real/h_{rx}_{rz}.png")
+        if not os.path.exists(p):
+            _hcache[(rx, rz)] = False
+            return 0.0
+        from PIL import Image
+        im = Image.open(p).convert("RGB")
+        _hcache[(rx, rz)] = im
+    lx = x - (X0 + rx * RS)
+    lz = z - (Z0 + rz * RS)
+    px = max(0, min(im.size[0] - 1, int(round(lx / 4.0))))
+    py = max(0, min(im.size[1] - 1, int(round(lz / 4.0))))
+    r, g, b = im.getpixel((px, py))
+    return (r * 256 + g) / 100.0 - 50.0
+
+
+def _shift_prim(js, blob, prim, shifts):
+    """Move each vertex down onto the gravel. shifts are (x, z, dy) cluster keys."""
+    a = js["accessors"][prim["attributes"]["POSITION"]]
+    bv = js["bufferViews"][a["bufferView"]]
+    start = bv.get("byteOffset", 0) + a.get("byteOffset", 0)
+    pos = []
+    for i in range(a["count"]):
+        x, y, z = struct.unpack_from("<fff", blob, start + i * 12)
+        dy = 0.0
+        best = 1e9
+        for cx, cz, d in shifts:
+            dist = (x - cx) ** 2 + (z - cz) ** 2
+            if dist < best and dist < 2.25:
+                best = dist
+                dy = d
+        pos += [x, y + dy, z]
+    xs, ys, zs = pos[0::3], pos[1::3], pos[2::3]
+    prim["attributes"]["POSITION"] = add_view(
+        js, blob, f32(pos), 34962, a["count"], "VEC3", 5126,
+        [min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)],
+    )
+
+
+def seat_only():
+    """Drop each clump onto the ground under it.
+
+    The hero origin sits on the high side of the boulevard. A plant fifteen
+    metres toward the beach was left floating above the gravel. One pass.
+    """
+    path = os.path.join(HERO, "irausquinfx.glb")
+    js, blob = load_glb(path)
+    rock = next(m for m in js["materials"] if m.get("name") == "rock")
+    if rock.get("extras", {}).get("seated"):
+        raise SystemExit("kadushi already seated")
+    mesh = next(m for m in js["meshes"] if m.get("name") == "irausquinfx_lod0_cactus")
+    prim = mesh["primitives"][0]
+    a = js["accessors"][prim["attributes"]["POSITION"]]
+    bv = js["bufferViews"][a["bufferView"]]
+    start = bv.get("byteOffset", 0) + a.get("byteOffset", 0)
+    clusters = []
+    for i in range(a["count"]):
+        x, y, z = struct.unpack_from("<fff", blob, start + i * 12)
+        for c in clusters:
+            if abs(x - c[0]) < 0.9 and abs(z - c[1]) < 0.9:
+                c[2] = min(c[2], y)
+                break
+        else:
+            clusters.append([x, z, y])
+    ox, oz = HERO_XZ
+    anchor_h = _height_at(ox, oz)
+    shifts = []
+    for x, z, base in clusters:
+        ground = _height_at(ox + x, oz + z)
+        # Hero y is the ground at the origin. Local y 0 is that height.
+        shifts.append((x, z, (ground - anchor_h) - base))
+    if not shifts or max(abs(s[2]) for s in shifts) > 8:
+        raise SystemExit("seat shift left the boulevard")
+    _shift_prim(js, blob, prim, shifts)
+    rock_prim = next(p for p in mesh["primitives"] if p["material"] == js["materials"].index(rock))
+    _shift_prim(js, blob, rock_prim, shifts)
+    rock["extras"] = {"seated": True}
+    save_glb(path, js, blob)
+    print(f"seated {len(shifts)} plants, anchor ground {anchor_h:.2f}")
+
+
+def rocks_only():
+    """Grey-tan boulders in the gravel beside the kadushi, from the boulevard photo.
+
+    Appends one colour primitive. Does not rebuild the columns, so it can run
+    after cactus_row has already grouped the node. Not idempotent.
+    """
+    path = os.path.join(HERO, "irausquinfx.glb")
+    js, blob = load_glb(path)
+    if any(m.get("name") == "rock" for m in js["materials"]):
+        raise SystemExit("rocks already added")
+    mesh = next(m for m in js["meshes"] if m.get("name") == "irausquinfx_lod0_cactus")
+    prim = mesh["primitives"][0]
+    a = js["accessors"][prim["attributes"]["POSITION"]]
+    bv = js["bufferViews"][a["bufferView"]]
+    start = bv.get("byteOffset", 0) + a.get("byteOffset", 0)
+    clusters = []
+    for i in range(a["count"]):
+        x, y, z = struct.unpack_from("<fff", blob, start + i * 12)
+        for c in clusters:
+            if abs(x - c[0]) < 0.9 and abs(z - c[1]) < 0.9:
+                c[2] = min(c[2], y)
+                break
+        else:
+            clusters.append([x, z, y])
+    if len(clusters) < 30:
+        raise SystemExit(f"only {len(clusters)} plants for rocks")
+    rocks = M()
+    placed = 0
+    for n, (x, z, y0) in enumerate(sorted(clusters, key=lambda c: -c[0])):
+        if n % 2:
+            continue
+        shift = 1.15 + (n % 5) * 0.18
+        side = 0.7 if (n // 2) % 2 == 0 else -0.55
+        _rock(
+            rocks, x + shift, y0, z + side,
+            0.48 + (n % 3) * 0.12, 0.32 + (n % 4) * 0.06, 0.42 + (n % 3) * 0.1,
+        )
+        placed += 1
+    if placed < 10 or len(rocks.i) > 4000:
+        raise SystemExit(f"rock count looks wrong {placed} tris {len(rocks.i)//3}")
+    js["materials"].append({
+        "name": "rock",
+        "pbrMetallicRoughness": {
+            "baseColorFactor": [0.62, 0.54, 0.44, 1],
+            "roughnessFactor": 0.95,
+            "metallicFactor": 0,
+        },
+    })
+    mat = len(js["materials"]) - 1
+    nv = len(rocks.p) // 3
+    xs, ys, zs = rocks.p[0::3], rocks.p[1::3], rocks.p[2::3]
+    pa = add_view(js, blob, f32(rocks.p), 34962, nv, "VEC3", 5126,
+                  [min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)])
+    na = add_view(js, blob, f32(rocks.n), 34962, nv, "VEC3", 5126)
+    ua = add_view(js, blob, f32(rocks.u), 34962, nv, "VEC2", 5126)
+    ia = add_view(
+        js, blob, struct.pack("<" + "H" * len(rocks.i), *rocks.i),
+        34963, len(rocks.i), "SCALAR", 5123,
+    )
+    mesh["primitives"].append({
+        "attributes": {"POSITION": pa, "NORMAL": na, "TEXCOORD_0": ua},
+        "indices": ia, "material": mat,
+    })
+    save_glb(path, js, blob)
+    patch_tris({"irausquinfx_lod0": len(rocks.i) // 3})
+    print(f"rocks {placed} tris {len(rocks.i)//3}")
+
+
 if __name__ == "__main__":
-    if os.environ.get("EAGLE_ROAD_CACTUS") == "1":
+    if os.environ.get("EAGLE_ROAD_SEAT") == "1":
+        seat_only()
+    elif os.environ.get("EAGLE_ROAD_ROCKS") == "1":
+        rocks_only()
+    elif os.environ.get("EAGLE_ROAD_CACTUS") == "1":
         cactus_only()
     elif os.environ.get("EAGLE_ROAD") == "1":
         main()
