@@ -160,6 +160,8 @@ function roleOf(name: string, geometry: BufferGeometry, outfit: OilOutfit): Role
   if (outfit.hideHelmet && name === "Worker_Yellow" && box.minY > 1.66) return "helmet";
   // Hair, hoods, and tall collars sit above the eyes. Hats stay cloth so they keep their colour.
   if (box.minY > 1.58 && name !== "Beige" && name !== "Worker_Yellow" && name !== "Earrings") return "hair";
+  // The male punk pack's red crest is a spike. It is not Aruba street hair, so it stays off.
+  if (name === "Red" && box.maxY > 1.9) return "helmet";
   // Shoes and tall boots. Sandals replace them. Trousers run well above the calf.
   if (box.maxY < 0.5 && box.minY < 0.16 && !name.startsWith("Skin")) return "shoe";
   return "cloth";
@@ -257,10 +259,10 @@ function tameHair(geometry: BufferGeometry) {
   const pos = geometry.getAttribute("position");
   let maxY = -1;
   for (let i = 0; i < pos.count; i++) maxY = Math.max(maxY, pos.getY(i));
-  if (maxY < 1.9) return;
+  if (maxY < 1.88) return;
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
-    if (y > 1.8) pos.setY(i, 1.8 + (y - 1.8) * 0.12);
+    if (y > 1.72) pos.setY(i, 1.72 + (y - 1.72) * 0.15);
   }
   pos.needsUpdate = true;
 }
@@ -340,11 +342,12 @@ if (uAwKind > 0.5 && uAwKind < 1.5) {
   float awFold = sin(vAwBind.y * awFreq + vAwBind.x * 1.4 + (awBroad - 0.5) * 1.2);
   float awTrough = smoothstep(0.25, -0.85, awFold);
   float awRidge = smoothstep(0.2, 0.9, awFold);
-  float awDepth = mix(0.16, 0.42, smoothstep(0.72, 0.18, awLuma));
-  normal = normalize(normal + vec3((awStroke - 0.5) * 0.22, (awBroad - 0.5) * 0.12, 0.0));
+  float awDepth = mix(0.07, 0.40, smoothstep(0.82, 0.22, awLuma));
+  float awNudge = mix(0.05, 0.22, smoothstep(0.82, 0.28, awLuma));
+  normal = normalize(normal + vec3((awStroke - 0.5) * awNudge, (awBroad - 0.5) * awNudge * 0.5, 0.0));
   diffuseColor.rgb *= mix(1.0, 1.0 - awDepth, awTrough);
-  diffuseColor.rgb *= mix(1.0, 1.06, awRidge);
-  diffuseColor.rgb *= 1.0 + (awStroke - 0.5) * mix(0.05, 0.12, smoothstep(0.7, 0.2, awLuma));
+  diffuseColor.rgb *= mix(1.0, 1.04, awRidge);
+  diffuseColor.rgb *= 1.0 + (awStroke - 0.5) * mix(0.025, 0.12, smoothstep(0.8, 0.25, awLuma));
   if (uAwPrint > 0.5) {
     float awSpot = exp(-pow(length((vAwBind.xy - vec2(0.04, awEyeY - 0.55)) / vec2(0.035, 0.045)), 2.0));
     awSpot += exp(-pow(length((vAwBind.xy - vec2(-0.05, awEyeY - 0.78)) / vec2(0.03, 0.04)), 2.0));
@@ -412,7 +415,7 @@ if (uAwEye < 0.5) {
 }
 `);
   };
-  material.customProgramCacheKey = () => `aw-oil-person-v3:${kind}:${eye}:${part}:${print}`;
+  material.customProgramCacheKey = () => `aw-oil-person-v4:${kind}:${eye}:${part}:${print}`;
   return material;
 }
 
