@@ -50,6 +50,64 @@ SPECS = {
 ROOF_GREY = (0.40, 0.38, 0.34)
 ROOF_TAN = (0.46, 0.36, 0.28)
 
+# 5-wide, 7-tall. Drawn as white quads on the trim mesh, in front of a dark
+# panel. A sign texture counted against the phone soak (limit 4), so the
+# names are geometry.
+GLYPH = {
+    "A": (" ### ", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"),
+    "B": ("#### ", "#   #", "#   #", "#### ", "#   #", "#   #", "#### "),
+    "E": ("#####", "#    ", "#    ", "#### ", "#    ", "#    ", "#####"),
+    "G": (" ### ", "#   #", "#    ", "# ###", "#   #", "#   #", " ### "),
+    "H": ("#   #", "#   #", "#   #", "#####", "#   #", "#   #", "#   #"),
+    "I": ("#####", "  #  ", "  #  ", "  #  ", "  #  ", "  #  ", "#####"),
+    "L": ("#    ", "#    ", "#    ", "#    ", "#    ", "#    ", "#####"),
+    "N": ("#   #", "##  #", "# # #", "#  ##", "#   #", "#   #", "#   #"),
+    "O": (" ### ", "#   #", "#   #", "#   #", "#   #", "#   #", " ### "),
+    "R": ("#### ", "#   #", "#   #", "#### ", "# #  ", "#  # ", "#   #"),
+    "S": (" ####", "#    ", "#    ", " ### ", "    #", "    #", "#### "),
+    "Y": ("#   #", "#   #", " # # ", "  #  ", "  #  ", "  #  ", "  #  "),
+    "'": (" ##  ", " ##  ", " #   ", "     ", "     ", "     ", "     "),
+    "!": ("  #  ", "  #  ", "  #  ", "  #  ", "     ", "     ", "  #  "),
+}
+
+
+def draw_sign_text(mesh, text, left, right, y_top, y_bot, oxn, ozn):
+    glyphs = [GLYPH[ch] for ch in text if ch in GLYPH]
+    if not glyphs:
+        return
+    cell_w = 5
+    gap = 1
+    total = len(glyphs) * cell_w + (len(glyphs) - 1) * gap
+    span = 0.86
+    u0 = (1 - span) / 2
+    lx, lz = left
+    rx, rz = right
+    pad = 0.08
+    y0 = y_top - (y_top - y_bot) * pad
+    y1 = y_bot + (y_top - y_bot) * pad
+
+    def xz(u):
+        return (
+            lx + (rx - lx) * u + oxn * 0.05,
+            lz + (rz - lz) * u + ozn * 0.05,
+        )
+
+    for i, glyph in enumerate(glyphs):
+        origin = i * (cell_w + gap)
+        for row, bits in enumerate(glyph):
+            for col, bit in enumerate(bits):
+                if bit != "#":
+                    continue
+                ua = u0 + span * (origin + col) / total
+                ub = u0 + span * (origin + col + 1) / total
+                va = row / 7
+                vb = (row + 1) / 7
+                ax, az = xz(ua)
+                bx, bz = xz(ub)
+                ya = y0 + (y1 - y0) * va
+                yb = y0 + (y1 - y0) * vb
+                mesh.quad((ax, ya, az), (ax, yb, az), (bx, yb, bz), (bx, ya, bz))
+
 
 def build(roads, buildings):
     by_name = {}
@@ -106,7 +164,7 @@ def build(roads, buildings):
     roof_grey = M.material("r_grey", ROOF_GREY, 0.7)
     roof_tan = M.material("r_tan", ROOF_TAN, 0.7)
     mass = M.material("mass", (0.50, 0.42, 0.34), 0.85)
-    signmat = M.material("sign", (0.12, 0.12, 0.12), 0.55, textured=True, emissive=0.4)
+    signmat = M.material("sign", (0.10, 0.09, 0.08), 0.6)
     wall_mats = {}
     for name, spec in SPECS.items():
         wall_mats[name] = M.material("w_" + name.split()[0].lower().replace("'", ""), spec["wall"], 0.82)
@@ -114,33 +172,6 @@ def build(roads, buildings):
     # geometry, and the phone soak is already at the cap once the named fronts,
     # two roofs, the sign, the glass and the trim are in.
     extra_wall = M.material("w_up", (0.90, 0.82, 0.62), 0.82)
-    labels = []
-    for b in chosen:
-        spec = SPECS.get(b.get("n") or "")
-        labels.append(spec["sign"] if spec else "")
-    from accuracy_batch3 import sign_png
-    # One atlas, a slice per shop, so the signs are not the same picture.
-    import io
-    from PIL import Image, ImageDraw, ImageFont
-    font_path = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
-    atlas = Image.new("RGBA", (1024, 128), (20, 18, 16, 255))
-    draw = ImageDraw.Draw(atlas)
-    nslot = max(1, len(labels))
-    slot_w = 1024 // nslot
-    font = ImageFont.truetype(font_path, 64)
-    for i, text in enumerate(labels):
-        if not text:
-            continue
-        size = 64
-        font = ImageFont.truetype(font_path, size)
-        while font.getlength(text) > slot_w - 16 and size > 18:
-            size -= 4
-            font = ImageFont.truetype(font_path, size)
-        tw = font.getlength(text)
-        draw.text((i * slot_w + (slot_w - tw) / 2, (128 - size) / 2 - 2), text, fill=(245, 240, 230, 255), font=font)
-    buf = io.BytesIO()
-    atlas.save(buf, "PNG")
-    png = buf.getvalue()
 
     for i, b in enumerate(chosen):
         ring = [(x - ox, z - oz) for x, z in ccw(b["p"])]
@@ -207,23 +238,22 @@ def build(roads, buildings):
                 (mx - px * 0.7 + oxn * 0.08, 2.05, mz - pz * 0.7 + ozn * 0.08),
             )
         if spec:
-            u0, u1 = i / nslot, (i + 1) / nslot
             half = min(2.2, L * 0.32)
             # Screen-left is toward c when standing in the road.
             left = (mx + px * half + oxn * 0.16, mz + pz * half + ozn * 0.16)
             right = (mx - px * half + oxn * 0.16, mz - pz * half + ozn * 0.16)
-            top, bot = (2.85 if h < 5 else 3.15), (2.35 if h < 5 else 2.55)
+            top, bot = (3.25 if h < 5 else 3.40), (2.28 if h < 5 else 2.45)
             Sm = M.mesh(0, signmat)
             Sm.quad(
                 (left[0], top, left[1]), (left[0], bot, left[1]),
                 (right[0], bot, right[1]), (right[0], top, right[1]),
-                uvs=((u0, 0), (u0, 1), (u1, 1), (u1, 0)),
             )
+            draw_sign_text(M.mesh(0, trim), spec["sign"], left, right, top, bot, oxn, ozn)
     nprim = sum(1 for lod in (0, 1) for mesh in M.lod[lod].values() if mesh.tris)
     if nprim > 11:
         raise SystemExit(f"{ID} has {nprim} geometries; the phone soak allows 12")
     print("primitives", nprim)
-    info = write_glb(M, HERO / f"{ID}.glb", images=[png])
+    info = write_glb(M, HERO / f"{ID}.glb")
     check_glb(HERO / f"{ID}.glb")
     y = sample_h(ox, oz, {})
     labels = [b.get("n") or "unnamed" for b in chosen]
@@ -246,7 +276,7 @@ def append_manifest(info, ox, oz, y, hide):
         "glb": f"models/hero/{ID}.glb",
         "lod": {"hi": f"{ID}_lod0", "lo": f"{ID}_lod1", "switch_m": 150},
         "tris": {f"{ID}_lod0": info["lod0"], f"{ID}_lod1": info["lod1"]},
-        "textures": 1,
+        "textures": 0,
         "hide_footprint": [[round(p[0], 2), round(p[1], 2)] for p in hide],
         "hide": [],
         "sign": False,
@@ -256,7 +286,8 @@ def append_manifest(info, ox, oz, y, hide):
         "ref_sources": (
             "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; "
             "the other lots share one tan roof so the row stays inside the phone geometry budget. "
-            "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
+            "Each OSM shop has its own sign, drawn as white letters (NANO'S, SHIRLEY'S, HOOLO!, BONGO) "
+            "so the row does not add a texture. "
             "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
             "The two unnamed lots stay two-storey and share a cream wall. "
             "Charlie's, Fan Bar, and the sn_* mural set are unchanged."
@@ -286,11 +317,12 @@ def upsert(info, ox, oz, y, hide):
         item["x"] = round(ox, 2)
         item["z"] = round(oz, 2)
         item["tris"] = {f"{ID}_lod0": info["lod0"], f"{ID}_lod1": info["lod1"]}
-        item["textures"] = 1
+        item["textures"] = 0
         item["ref_sources"] = (
             "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; "
             "the other lots share one tan roof so the row stays inside the phone geometry budget. "
-            "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
+            "Each OSM shop has its own sign, drawn as white letters (NANO'S, SHIRLEY'S, HOOLO!, BONGO) "
+            "so the row does not add a texture. "
             "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
             "The two unnamed lots stay two-storey and share a cream wall. "
             "Charlie's, Fan Bar, and the sn_* mural set are unchanged."
