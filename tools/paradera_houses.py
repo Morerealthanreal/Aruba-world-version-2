@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Five Paradera houses, each matched to the roof on its own lot.
 
-Aerial of the lots (Esri, visual guide only): a is a low tan roof in a dirt
-yard, b and c are red tile (hip and gable, so the two red roofs are not the
-same shape), d is a light flat roof, e is a pale flat roof on grey walls.
+Aerial of the lots (Esri, visual guide only): a is a dark earth roof in a
+dirt yard, b and c are orange tile (hip and gable, so the two orange roofs
+are not the same shape), d is a light flat roof, e is a pale flat roof.
 No photo textures. Does not move the church or the earlier cunucu houses.
 """
 import json
@@ -24,11 +24,12 @@ TAKEN = [(-3381.0, -1902.0), (-3091.0, -1887.0), (-1714.7, 990.4), (-1599.8, 101
 IDS = ["para_house_a", "para_house_b", "para_house_c", "para_house_d", "para_house_e"]
 # kind, wall, roof, porch, wall height, roof rise
 STYLES = {
-    "para_house_a": ("hip", (0.84, 0.76, 0.62), (0.55, 0.42, 0.30), True, 2.7, 0.9),
-    "para_house_b": ("hip", (0.94, 0.92, 0.86), (0.66, 0.24, 0.14), True, 3.15, 1.55),
-    "para_house_c": ("gable", (0.95, 0.94, 0.90), (0.72, 0.22, 0.12), True, 3.2, 1.85),
-    "para_house_d": ("flat", (0.92, 0.92, 0.90), (0.78, 0.79, 0.78), False, 3.0, 0.22),
-    "para_house_e": ("flat", (0.70, 0.70, 0.68), (0.90, 0.90, 0.88), False, 2.75, 0.18),
+    # Albedo stays under ~0.62 so the sun does not blow the roofs out to white.
+    "para_house_a": ("hip", (0.46, 0.38, 0.28), (0.34, 0.26, 0.16), True, 2.7, 0.9),
+    "para_house_b": ("hip", (0.72, 0.66, 0.56), (0.48, 0.24, 0.13), True, 3.15, 1.55),
+    "para_house_c": ("gable", (0.76, 0.70, 0.60), (0.52, 0.26, 0.14), True, 3.2, 1.85),
+    "para_house_d": ("flat", (0.70, 0.70, 0.66), (0.58, 0.58, 0.54), False, 3.0, 0.22),
+    "para_house_e": ("flat", (0.50, 0.50, 0.48), (0.64, 0.63, 0.58), False, 2.75, 0.18),
 }
 
 
@@ -179,8 +180,8 @@ def main():
     by_id = {e["id"]: e for e in data}
     ref = (
         "Each house follows the roof on its own lot in the Esri aerial: "
-        "a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, "
-        "and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture."
+        "a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, "
+        "and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture."
     )
     entries = []
     for id_ in IDS:

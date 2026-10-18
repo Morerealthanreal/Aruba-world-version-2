@@ -63171,7 +63171,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63218,7 +63218,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63273,7 +63273,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63320,7 +63320,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  },
@@ -63367,7 +63367,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM building footprint",
-  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a low tan hip in a dirt yard, a red hip, a red gable, a light flat roof, and a pale flat roof on grey walls. Same OSM footprints. Not a photo texture.",
+  "ref_sources": "Each house follows the roof on its own lot in the Esri aerial: a dark earth hip in a dirt yard, an orange hip, an orange gable, a light flat roof, and a paler flat roof on grey walls. Sampled from the Esri aerial of each lot. Not a photo texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "house"
  }
