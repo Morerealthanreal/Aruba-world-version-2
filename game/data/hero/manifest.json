@@ -63148,8 +63148,8 @@
    "switch_m": 380
   },
   "tris": {
-   "fontein_cave_lod0": 1944,
-   "fontein_cave_lod1": 452
+   "fontein_cave_lod0": 1874,
+   "fontein_cave_lod1": 508
   },
   "textures": 2,
   "hide_footprint": [
@@ -63195,8 +63195,8 @@
    "switch_m": 400
   },
   "tris": {
-   "quadirikiri_lod0": 2224,
-   "quadirikiri_lod1": 888
+   "quadirikiri_lod0": 2286,
+   "quadirikiri_lod1": 940
   },
   "textures": 2,
   "hide_footprint": [
