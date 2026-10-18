@@ -22,6 +22,8 @@ export class ScubaHook {
   private fogColor = 0;
   private fogDensity = 0;
   private fogSaved = false;
+  /** Live readout for the gauge and for checks. */
+  readonly stats = { diving: false, depth: 0, fishX: 0, fishY: -1.6, fishZ: 0 };
 
   constructor(g: AGame) {
     this.g = g;
@@ -132,6 +134,11 @@ export class ScubaHook {
 
     if (press && this.dive.y > -1.4) this.exit(walk);
     const depth = Math.max(0, -this.dive.y);
+    this.stats.diving = true;
+    this.stats.depth = depth;
+    this.stats.fishX = this.school.ax;
+    this.stats.fishY = this.school.ay;
+    this.stats.fishZ = this.school.az;
     const text = `Scuba · air ${Math.ceil(this.dive.air)}s · ${depth.toFixed(1)} m · C surface`;
     if (this.gauge.textContent !== text) this.gauge.textContent = text;
   }
@@ -171,7 +178,7 @@ export class ScubaHook {
       this.fogDensity = fog.density;
       this.fogSaved = true;
       fog.color.set(0x0b6a86);
-      fog.density = Math.max(fog.density, 0.04);
+      fog.density = Math.max(fog.density, 0.08);
     }
   }
 
