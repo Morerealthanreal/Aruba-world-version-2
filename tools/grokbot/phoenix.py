@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hero_glb import Model, check_glb, write_glb  # noqa: E402
+from hero_glb import Model, check_glb, fold_body, write_glb  # noqa: E402
 from hotelkit import Frame, balcony_wing, hip_roof, obox, vquad  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,6 +85,8 @@ def build():
     for lod in (0, 1):
         hip_roof(M.mesh(lod, "tile"), FHIDE, -0.6, FHIDE.L + 0.6, -8.6, 8.6, top, 2.6)
 
+    # One opaque mesh per LOD. Glass stays separate so the night pass still lights it.
+    fold_body(M, keep={"glass"})
     info = write_glb(M, HERO / "divephoenix.glb")
     check_glb(HERO / "divephoenix.glb")
     if not (2800 <= info["lod0"] <= 4500):
