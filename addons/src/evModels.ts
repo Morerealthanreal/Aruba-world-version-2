@@ -8,8 +8,8 @@ import { createLoco, loadLocomotion, stepLoco, straightenDress, swingFemaleArms,
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, findCharacterFace, loadCharacterSource, loadFacePortraits,
-  setCharacterPortrait, styleCharacter,
+  acquireCharacterBones, CHARACTER_PALETTES, findCharacterFace, loadCharacterSource,
+  loadFacePortraits, releaseCharacterBones, setCharacterPortrait, styleCharacter,
   updateCharacterPaint, type CharacterPaint,
 } from "./characters";
 
@@ -226,10 +226,11 @@ function loadNpcRigs() {
     .catch((e) => console.warn("[aw-npc] detailed rigs", e)));
 }
 function upgradeNpc(n: Npc, sourceIndex: number) {
-  if (n.detail || !npcSources) return;
+  if (n.detail || !npcSources || !n.g.parent) return;
   const source = npcSources[sourceIndex % npcSources.length];
   const inner = skClone(source.scene);
   inner.rotation.y = Math.PI;
+  acquireCharacterBones(inner, window.game?.renderer);
   const selected = CHARACTER_PALETTES[(sourceIndex * 2 + 1) % CHARACTER_PALETTES.length];
   const palette = sourceIndex % npcSources.length === 1
     ? { ...selected, top: selected.dress }
@@ -361,4 +362,17 @@ export function flashBar(m: EvModel, time: number, ph: number, on: boolean) {
   m.bar.forEach((b, i) => { const mat = b.material as MeshBasicMaterial; const left = i % 2 === 0; const lit = on && (left ? k < 4 && (k & 1) === 0 : k >= 4 && (k & 1) === 0);
     mat.color.setHex(lit ? (left ? m.colors[0] : m.colors[1]) : 0x202024); if (lit) mat.color.multiplyScalar(3); });
 }
-export function disposeTree(o: Object3D) { o.traverse((c) => { const m = c as Mesh; if (m.isMesh && (m.material as Material) && (m.material as MeshBasicMaterial).isMeshBasicMaterial) (m.material as Material).dispose(); }); }
+export function disposeTree(o: Object3D) {
+  // Bone textures go back to the character pool. Painted materials do not own
+  // the shared atlas or the oil portrait, so disposing the material is enough.
+  releaseCharacterBones(o);
+  o.traverse((c) => {
+    const m = c as Mesh;
+    if (!m.isMesh || !m.material) return;
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    for (const mat of mats) {
+      if (!mat) continue;
+      if ((mat as MeshBasicMaterial).isMeshBasicMaterial || mat.userData?.awPaint) mat.dispose();
+    }
+  });
+}

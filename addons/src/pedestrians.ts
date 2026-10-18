@@ -9,7 +9,8 @@ import { createLoco, loadLocomotion, slewYaw, stepLoco, straightenDress, swingFe
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import {
-  CHARACTER_PALETTES, FACE_CARD_TRIS, findCharacterFace, loadCharacterSource, loadFacePortraits,
+  acquireCharacterBones, CHARACTER_PALETTES, disposeForeignCharacter, FACE_CARD_TRIS,
+  findCharacterFace, loadCharacterSource, loadFacePortraits,
   releaseCharacterLoader, setCharacterPortrait, styleCharacter,
   updateCharacterPaint, type CharacterMetrics, type CharacterPaint,
 } from "./characters";
@@ -132,6 +133,8 @@ export class PedestrianCrowds {
   private makeRig(source: CharacterSource, slot: number, locoClips: LocoClips | null): CharacterRig {
     const inner = skClone(source.gl.scene);
     inner.rotation.y = Math.PI;
+    // Upload the shared bone texture before the rig is ever drawn.
+    acquireCharacterBones(inner, this.g.renderer);
     const phase = slot * 1.61803398875;
     const selected = CHARACTER_PALETTES[(slot * 2 + source.kind) % CHARACTER_PALETTES.length];
     const palette = source.kind === 1 ? { ...selected, top: selected.dress } : selected;
@@ -396,6 +399,7 @@ export class PedestrianCrowds {
       const ped = this.amb.peds.pop()!;
       ped.g.visible = false;
       ped.g.parent?.remove(ped.g);
+      disposeForeignCharacter(ped.g);
     }
     if ((this.scanIn -= dt) <= 0) {
       this.scanIn = 2;

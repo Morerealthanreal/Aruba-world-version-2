@@ -1,7 +1,7 @@
 import {
-  BufferGeometry, Color, DoubleSide, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
-  Matrix4, Mesh, MeshStandardMaterial, SkinnedMesh, SRGBColorSpace, Texture, TextureLoader,
-  Vector2, Vector3, Vector4,
+  BufferGeometry, Color, DataTexture, DoubleSide, Float32BufferAttribute, FloatType,
+  LinearFilter, LinearMipmapLinearFilter, Matrix4, Mesh, MeshStandardMaterial, RGBAFormat,
+  SkinnedMesh, SRGBColorSpace, Texture, TextureLoader, Vector2, Vector3, Vector4,
   type BufferAttribute, type InterleavedBufferAttribute, type Object3D,
   type WebGLRenderer,
 } from "three";
@@ -96,6 +96,11 @@ export function loadFacePortraits(renderer?: WebGLRenderer): Promise<void> {
       face.generateMipmaps = true;
       face.anisotropy = 4;
       face.needsUpdate = true;
+      // The loader built a second Texture around the same bitmap. Drop it
+      // before it can upload, or the phone soak counts both.
+      const extra = loaded as Texture & { __awGone?: number };
+      extra.__awGone = 1;
+      extra.dispose();
     }).catch((error) => {
       console.warn("[aw-characters] face portrait", file, error);
     }))).then(() => undefined);
@@ -313,6 +318,120 @@ export function releaseCharacterLoader() {
   ktxReleased = true;
   ktxLoader?.dispose();
   ktxLoader = null;
+}
+
+// One bone texture per live skeleton. Three builds a DataTexture the first time
+// a skinned mesh is drawn and never frees it, so a crash scene that spawns and
+// leaves was a new GPU texture per person. The pool reuses those textures.
+const bonePool = new Map<number, DataTexture[]>();
+
+function boneTextureSize(bones: number) {
+  let size = Math.sqrt(bones * 4);
+  size = Math.ceil(size / 4) * 4;
+  return Math.max(size, 4);
+}
+
+function retireTexture(texture: Texture | null | undefined) {
+  if (!texture) return;
+  (texture as Texture & { __awGone?: number }).__awGone = 1;
+  texture.dispose();
+}
+
+/** Give every skinned mesh in the rig a pooled bone texture and upload it now. */
+export function acquireCharacterBones(root: Object3D, renderer?: WebGLRenderer | null) {
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (!mesh.isSkinnedMesh || !mesh.skeleton || mesh.userData.awBones) return;
+    const skeleton = mesh.skeleton;
+    const size = boneTextureSize(skeleton.bones.length);
+    const free = bonePool.get(size) || [];
+    bonePool.set(size, free);
+    let texture = free.pop();
+    if (!texture) {
+      const matrices = new Float32Array(size * size * 4);
+      if (skeleton.boneMatrices?.length) matrices.set(skeleton.boneMatrices);
+      texture = new DataTexture(matrices, size, size, RGBAFormat, FloatType);
+      texture.name = "aw:character-bones";
+      texture.userData.awBonePool = size;
+      texture.needsUpdate = true;
+      if (renderer) {
+        try { renderer.initTexture(texture); } catch { /* first draw uploads it */ }
+      }
+    }
+    const previous = skeleton.boneTexture;
+    if (previous && previous !== texture) {
+      const pooled = previous.userData?.awBonePool as number | undefined;
+      if (pooled) {
+        const list = bonePool.get(pooled) || [];
+        list.push(previous);
+        bonePool.set(pooled, list);
+      } else retireTexture(previous);
+    }
+    const image = texture.image as { data: Float32Array };
+    skeleton.boneMatrices = image.data;
+    skeleton.boneTexture = texture;
+    mesh.userData.awBones = 1;
+  });
+}
+
+/** Return pooled bone textures when a rig leaves the scene. The GPU entry stays. */
+export function releaseCharacterBones(root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (!mesh.isSkinnedMesh || !mesh.skeleton) return;
+    const texture = mesh.skeleton.boneTexture;
+    mesh.userData.awBones = 0;
+    mesh.skeleton.boneTexture = null;
+    mesh.skeleton.boneMatrices = new Float32Array(Math.max(1, mesh.skeleton.bones.length) * 16);
+    if (!texture) return;
+    const size = texture.userData?.awBonePool as number | undefined;
+    if (size) {
+      const free = bonePool.get(size) || [];
+      free.push(texture);
+      bonePool.set(size, free);
+    } else retireTexture(texture);
+  });
+}
+
+const MAP_SLOTS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap"] as const;
+
+/**
+ * The base game loads a full ped GLB per person and clones a material per mesh.
+ * Those rigs are removed from the crowd; free their textures so they are not
+ * uploaded on a later drive past the same town.
+ */
+export function disposeForeignCharacter(root: Object3D) {
+  const textures = new Set<Texture>();
+  const geometries = new Set<BufferGeometry>();
+  root.traverse((object) => {
+    const mesh = object as Mesh;
+    if (mesh.isMesh) {
+      if (mesh.geometry) geometries.add(mesh.geometry);
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of materials) {
+        if (!material) continue;
+        const maps = material as unknown as Record<string, Texture | null | undefined>;
+        for (const slot of MAP_SLOTS) {
+          const map = maps[slot];
+          if (map?.isTexture) textures.add(map);
+        }
+        material.dispose();
+      }
+    }
+    const skinned = object as SkinnedMesh;
+    if (skinned.isSkinnedMesh && skinned.skeleton?.boneTexture) {
+      const texture = skinned.skeleton.boneTexture;
+      skinned.skeleton.boneTexture = null;
+      if (texture.userData?.awBonePool) {
+        const size = texture.userData.awBonePool as number;
+        const free = bonePool.get(size) || [];
+        free.push(texture);
+        bonePool.set(size, free);
+      } else textures.add(texture);
+    }
+  });
+  for (const texture of textures) retireTexture(texture);
+  for (const geometry of geometries) geometry.dispose();
 }
 
 function warmCharacterTextures(renderer: WebGLRenderer, root: Object3D) {
