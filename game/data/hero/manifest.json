@@ -63144,7 +63144,7 @@
    "switch_m": 150
   },
   "tris": {
-   "snmain_bars_lod0": 168,
+   "snmain_bars_lod0": 144,
    "snmain_bars_lod1": 60
   },
   "textures": 1,
@@ -63187,7 +63187,7 @@
   "kind": "replace",
   "new_place": false,
   "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
-  "ref_sources": "Zeppenfeldstraat east of Charlie's. Roofs follow the Esri aerial of each footprint (Nano's greyer, the two-storey lots lighter tan, Bongo a little redder). Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. Wall colours are the painted range of this street; no front-on photo of these four doors was found. The two unnamed lots stay two-storey. Charlie's, Fan Bar, and the sn_* mural set are unchanged.",
+  "ref_sources": "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; the other lots share one tan roof so the row stays inside the phone geometry budget. Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. Wall colours are the painted range of this street; no front-on photo of these four doors was found. The two unnamed lots stay two-storey and share a cream wall. Charlie's, Fan Bar, and the sn_* mural set are unchanged.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "store"
  }

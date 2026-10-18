@@ -44,14 +44,11 @@ SPECS = {
     "Hoolo! Beauty Salon": {"wall": (0.93, 0.72, 0.62), "base": (0.93, 0.72, 0.62), "sign": "HOOLO!", "awning": False, "door": (0.20, 0.32, 0.38)},
     "Bongo Bar": {"wall": (0.62, 0.16, 0.16), "base": (0.12, 0.18, 0.36), "sign": "BONGO", "awning": False, "door": (0.10, 0.10, 0.10)},
 }
-# Median roof pixel on the aerial, pulled down so the sun does not blow it white.
-ROOFS = {
-    "Nano's": (0.40, 0.38, 0.34),
-    "Shirley's": (0.46, 0.36, 0.28),
-    "Hoolo! Beauty Salon": (0.48, 0.37, 0.32),
-    "Bongo Bar": (0.46, 0.32, 0.24),
-}
-EXTRA_ROOFS = ((0.55, 0.44, 0.34), (0.50, 0.40, 0.30))
+# Two roof colours, not six. This row loads on the phone soak (622 m from the
+# san-nicolas waypoint) and the soak allows 12 new geometries. Nano's aerial
+# median is the grey one; the other five footprints are the same tan family.
+ROOF_GREY = (0.40, 0.38, 0.34)
+ROOF_TAN = (0.46, 0.36, 0.28)
 
 
 def build(roads, buildings):
@@ -102,25 +99,21 @@ def build(roads, buildings):
                 raise SystemExit(f"{b.get('n')} sits in {e['id']} hide")
 
     M = Model(ID)
+    # One mesh per material. Model.mesh() already reuses a material's mesh, so the
+    # geometry count is the number of materials that receive triangles, on both LODs.
     trim = M.material("trim", WHITE, 0.75)
     glass = M.material("glass", GLASS, 0.3, double=True)
-    roof_mats = {}
-    for name, col in ROOFS.items():
-        roof_mats[name] = M.material("r_" + name.split()[0].lower().replace("'", ""), col, 0.7)
-    for i, col in enumerate(EXTRA_ROOFS):
-        roof_mats[f"extra{i}"] = M.material(f"r_extra{i}", col, 0.7)
+    roof_grey = M.material("r_grey", ROOF_GREY, 0.7)
+    roof_tan = M.material("r_tan", ROOF_TAN, 0.7)
+    mass = M.material("mass", (0.50, 0.42, 0.34), 0.85)
     signmat = M.material("sign", (0.12, 0.12, 0.12), 0.55, textured=True, emissive=0.4)
     wall_mats = {}
-    door_mats = {}
     for name, spec in SPECS.items():
         wall_mats[name] = M.material("w_" + name.split()[0].lower().replace("'", ""), spec["wall"], 0.82)
-        door_mats[name] = M.material("d_" + name.split()[0].lower().replace("'", ""), spec["door"], 0.75)
-    # Two unnamed lots keep their own colours so they are not copies of a named shop.
-    extra_walls = [
-        M.material("w_up_a", (0.90, 0.82, 0.62), 0.82),
-        M.material("w_up_b", (0.86, 0.70, 0.72), 0.82),
-    ]
-    awning = M.material("awning", (0.90, 0.90, 0.88), 0.5, double=True)
+    # Both unnamed lots share one cream wall. A second wall colour would be another
+    # geometry, and the phone soak is already at the cap once the named fronts,
+    # two roofs, the sign, the glass and the trim are in.
+    extra_wall = M.material("w_up", (0.90, 0.82, 0.62), 0.82)
     labels = []
     for b in chosen:
         spec = SPECS.get(b.get("n") or "")
@@ -149,95 +142,87 @@ def build(roads, buildings):
     atlas.save(buf, "PNG")
     png = buf.getvalue()
 
-    for lod in (0, 1):
-        for i, b in enumerate(chosen):
-            ring = [(x - ox, z - oz) for x, z in ccw(b["p"])]
-            bx, bz = cent(b["p"])
-            road = closest_on(roads, bx, bz, ROAD)
-            if math.hypot(road[0] - bx, road[1] - bz) > 30:
-                raise SystemExit(f"{b.get('n')} is {math.hypot(road[0]-bx, road[1]-bz):.0f} m off {ROAD}")
-            best, bi = 1e18, 0
-            for k in range(len(ring)):
-                a, c = ring[k], ring[(k + 1) % len(ring)]
-                mx, mz = (a[0] + c[0]) / 2 + ox, (a[1] + c[1]) / 2 + oz
-                d = (mx - road[0]) ** 2 + (mz - road[1]) ** 2
-                if d < best:
-                    best, bi = d, k
-            a, c = ring[bi], ring[(bi + 1) % len(ring)]
-            dx, dz = c[0] - a[0], c[1] - a[1]
-            L = math.hypot(dx, dz) or 1
-            oxn, ozn = dz / L, -dx / L
-            name = b.get("n") or ""
-            spec = SPECS.get(name)
-            if spec:
-                wall = wall_mats[name]
-                base_c = spec["base"]
-                roofm = roof_mats[name]
-            else:
-                wall = extra_walls[i % 2]
-                base_c = None
-                roofm = roof_mats[f"extra{i % 2}"]
-            Wm, Rm = M.mesh(lod, wall), M.mesh(lod, roofm)
-            h = 6.2 if (b.get("h") or 0) >= 6 else 3.7
-            wall_ring(Wm, ring, 0.05, h)
-            fan(Rm, ring, h + 0.08, up=True)
-            if lod == 0 and base_c and base_c != spec["wall"]:
-                base = M.material(f"base{i}", base_c, 0.85)
-                wall_ring(M.mesh(lod, base), ring, 0.05, 0.85)
-            if lod == 0:
-                wall_ring(M.mesh(lod, trim), ring, h - 0.06, h + 0.22)
-            if lod == 1:
-                continue
-            mx, mz = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
-            px, pz = -dz / L, dx / L
-            door_m = door_mats[name] if spec else glass
-            Dm = M.mesh(lod, door_m)
-            door = [
-                (mx - px * 0.45 + oxn * 0.08, 0.08, mz - pz * 0.45 + ozn * 0.08),
-                (mx + px * 0.45 + oxn * 0.08, 0.08, mz + pz * 0.45 + ozn * 0.08),
-                (mx + px * 0.45 + oxn * 0.08, 2.15, mz + pz * 0.45 + ozn * 0.08),
-                (mx - px * 0.45 + oxn * 0.08, 2.15, mz - pz * 0.45 + ozn * 0.08),
-            ]
-            Dm.quad(door[0], door[1], door[2], door[3])
-            Gm = M.mesh(lod, glass)
-            if h > 5:
-                for side in (-1, 1):
-                    wx, wz = mx + px * side * min(1.4, L * 0.22), mz + pz * side * min(1.4, L * 0.22)
-                    Gm.quad(
-                        (wx - px * 0.4 + oxn * 0.08, 3.5, wz - pz * 0.4 + ozn * 0.08),
-                        (wx + px * 0.4 + oxn * 0.08, 3.5, wz + pz * 0.4 + ozn * 0.08),
-                        (wx + px * 0.4 + oxn * 0.08, 5.2, wz + pz * 0.4 + ozn * 0.08),
-                        (wx - px * 0.4 + oxn * 0.08, 5.2, wz - pz * 0.4 + ozn * 0.08),
-                    )
-            elif spec and spec["awning"]:
-                depth = 1.1
-                y0 = 2.35
-                Am = M.mesh(lod, awning)
-                Am.quad(
-                    (a[0], y0, a[1]), (c[0], y0, c[1]),
-                    (c[0] + oxn * depth, y0 + 0.35, c[1] + ozn * depth),
-                    (a[0] + oxn * depth, y0 + 0.35, a[1] + ozn * depth),
-                )
-            else:
+    for i, b in enumerate(chosen):
+        ring = [(x - ox, z - oz) for x, z in ccw(b["p"])]
+        bx, bz = cent(b["p"])
+        road = closest_on(roads, bx, bz, ROAD)
+        if math.hypot(road[0] - bx, road[1] - bz) > 30:
+            raise SystemExit(f"{b.get('n')} is {math.hypot(road[0]-bx, road[1]-bz):.0f} m off {ROAD}")
+        best, bi = 1e18, 0
+        for k in range(len(ring)):
+            a, c = ring[k], ring[(k + 1) % len(ring)]
+            mx, mz = (a[0] + c[0]) / 2 + ox, (a[1] + c[1]) / 2 + oz
+            d = (mx - road[0]) ** 2 + (mz - road[1]) ** 2
+            if d < best:
+                best, bi = d, k
+        a, c = ring[bi], ring[(bi + 1) % len(ring)]
+        dx, dz = c[0] - a[0], c[1] - a[1]
+        L = math.hypot(dx, dz) or 1
+        oxn, ozn = dz / L, -dx / L
+        name = b.get("n") or ""
+        spec = SPECS.get(name)
+        wall = wall_mats[name] if spec else extra_wall
+        roofm = roof_grey if name == "Nano's" else roof_tan
+        h = 6.2 if (b.get("h") or 0) >= 6 else 3.7
+        # Far LOD is one shared mass, so distance does not multiply the geometry count.
+        wall_ring(M.mesh(1, mass), ring, 0.05, h)
+        fan(M.mesh(1, mass), ring, h + 0.08, up=True)
+        wall_ring(M.mesh(0, wall), ring, 0.05, h)
+        fan(M.mesh(0, roofm), ring, h + 0.08, up=True)
+        wall_ring(M.mesh(0, trim), ring, h - 0.06, h + 0.22)
+        mx, mz = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
+        px, pz = -dz / L, dx / L
+        # Doors and windows share the glass mesh. A material per door was most of
+        # the soak overrun.
+        Gm = M.mesh(0, glass)
+        Gm.quad(
+            (mx - px * 0.45 + oxn * 0.08, 0.08, mz - pz * 0.45 + ozn * 0.08),
+            (mx + px * 0.45 + oxn * 0.08, 0.08, mz + pz * 0.45 + ozn * 0.08),
+            (mx + px * 0.45 + oxn * 0.08, 2.15, mz + pz * 0.45 + ozn * 0.08),
+            (mx - px * 0.45 + oxn * 0.08, 2.15, mz - pz * 0.45 + ozn * 0.08),
+        )
+        if h > 5:
+            for side in (-1, 1):
+                wx, wz = mx + px * side * min(1.4, L * 0.22), mz + pz * side * min(1.4, L * 0.22)
                 Gm.quad(
-                    (mx - px * 0.7 + oxn * 0.08, 1.2, mz - pz * 0.7 + ozn * 0.08),
-                    (mx + px * 0.7 + oxn * 0.08, 1.2, mz + pz * 0.7 + ozn * 0.08),
-                    (mx + px * 0.7 + oxn * 0.08, 2.05, mz + pz * 0.7 + ozn * 0.08),
-                    (mx - px * 0.7 + oxn * 0.08, 2.05, mz - pz * 0.7 + ozn * 0.08),
+                    (wx - px * 0.4 + oxn * 0.08, 3.5, wz - pz * 0.4 + ozn * 0.08),
+                    (wx + px * 0.4 + oxn * 0.08, 3.5, wz + pz * 0.4 + ozn * 0.08),
+                    (wx + px * 0.4 + oxn * 0.08, 5.2, wz + pz * 0.4 + ozn * 0.08),
+                    (wx - px * 0.4 + oxn * 0.08, 5.2, wz - pz * 0.4 + ozn * 0.08),
                 )
-            if spec:
-                u0, u1 = i / nslot, (i + 1) / nslot
-                half = min(2.2, L * 0.32)
-                # Screen-left is toward c when standing in the road.
-                left = (mx + px * half + oxn * 0.16, mz + pz * half + ozn * 0.16)
-                right = (mx - px * half + oxn * 0.16, mz - pz * half + ozn * 0.16)
-                top, bot = (2.85 if h < 5 else 3.15), (2.35 if h < 5 else 2.55)
-                Sm = M.mesh(lod, signmat)
-                Sm.quad(
-                    (left[0], top, left[1]), (left[0], bot, left[1]),
-                    (right[0], bot, right[1]), (right[0], top, right[1]),
-                    uvs=((u0, 0), (u0, 1), (u1, 1), (u1, 0)),
-                )
+        elif spec and spec["awning"]:
+            depth = 1.1
+            y0 = 2.35
+            Tm = M.mesh(0, trim)
+            Tm.quad(
+                (a[0], y0, a[1]), (c[0], y0, c[1]),
+                (c[0] + oxn * depth, y0 + 0.35, c[1] + ozn * depth),
+                (a[0] + oxn * depth, y0 + 0.35, a[1] + ozn * depth),
+            )
+        else:
+            Gm.quad(
+                (mx - px * 0.7 + oxn * 0.08, 1.2, mz - pz * 0.7 + ozn * 0.08),
+                (mx + px * 0.7 + oxn * 0.08, 1.2, mz + pz * 0.7 + ozn * 0.08),
+                (mx + px * 0.7 + oxn * 0.08, 2.05, mz + pz * 0.7 + ozn * 0.08),
+                (mx - px * 0.7 + oxn * 0.08, 2.05, mz - pz * 0.7 + ozn * 0.08),
+            )
+        if spec:
+            u0, u1 = i / nslot, (i + 1) / nslot
+            half = min(2.2, L * 0.32)
+            # Screen-left is toward c when standing in the road.
+            left = (mx + px * half + oxn * 0.16, mz + pz * half + ozn * 0.16)
+            right = (mx - px * half + oxn * 0.16, mz - pz * half + ozn * 0.16)
+            top, bot = (2.85 if h < 5 else 3.15), (2.35 if h < 5 else 2.55)
+            Sm = M.mesh(0, signmat)
+            Sm.quad(
+                (left[0], top, left[1]), (left[0], bot, left[1]),
+                (right[0], bot, right[1]), (right[0], top, right[1]),
+                uvs=((u0, 0), (u0, 1), (u1, 1), (u1, 0)),
+            )
+    nprim = sum(1 for lod in (0, 1) for mesh in M.lod[lod].values() if mesh.tris)
+    if nprim > 11:
+        raise SystemExit(f"{ID} has {nprim} geometries; the phone soak allows 12")
+    print("primitives", nprim)
     info = write_glb(M, HERO / f"{ID}.glb", images=[png])
     check_glb(HERO / f"{ID}.glb")
     y = sample_h(ox, oz, {})
@@ -269,11 +254,12 @@ def append_manifest(info, ox, oz, y, hide):
         "new_place": False,
         "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
         "ref_sources": (
-            "Zeppenfeldstraat east of Charlie's. Roofs follow the Esri aerial of each footprint "
-            "(Nano's greyer, the two-storey lots lighter tan, Bongo a little redder). "
+            "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; "
+            "the other lots share one tan roof so the row stays inside the phone geometry budget. "
             "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
             "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
-            "The two unnamed lots stay two-storey. Charlie's, Fan Bar, and the sn_* mural set are unchanged."
+            "The two unnamed lots stay two-storey and share a cream wall. "
+            "Charlie's, Fan Bar, and the sn_* mural set are unchanged."
         ),
         "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
         "cat": "store",
@@ -302,11 +288,12 @@ def upsert(info, ox, oz, y, hide):
         item["tris"] = {f"{ID}_lod0": info["lod0"], f"{ID}_lod1": info["lod1"]}
         item["textures"] = 1
         item["ref_sources"] = (
-            "Zeppenfeldstraat east of Charlie's. Roofs follow the Esri aerial of each footprint "
-            "(Nano's greyer, the two-storey lots lighter tan, Bongo a little redder). "
+            "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; "
+            "the other lots share one tan roof so the row stays inside the phone geometry budget. "
             "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
             "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
-            "The two unnamed lots stay two-storey. Charlie's, Fan Bar, and the sn_* mural set are unchanged."
+            "The two unnamed lots stay two-storey and share a cream wall. "
+            "Charlie's, Fan Bar, and the sn_* mural set are unchanged."
         )
     if not found:
         raise SystemExit(f"{ID} missing from manifest")
