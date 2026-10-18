@@ -121,7 +121,7 @@ function parentHairToHead(
   // portrait's top edge sits under the crown instead of cutting the skin.
   const faceOpen = (theta: number, phi: number) => Math.sin(phi) > 0.64 && theta > 1.22;
   // Temples hang a little lower than the brow so the side rim is not a level cut.
-  const thetaOf = (t: number, phi: number) => t * thetaMax * (1 + 0.16 * Math.abs(Math.cos(phi)));
+  const thetaOf = (t: number, phi: number) => t * thetaMax * (1 + 0.28 * Math.abs(Math.cos(phi)));
   const shells: { start: number; kept: boolean[][] }[] = [];
   for (const shell of [
     { scale: 1, along: 0.02, out: true },
@@ -247,7 +247,7 @@ function parentHairToHead(
       centers.push([
         last[0] * (1 - t * 0.35) + side * (0.012 + 0.018 * wave) + Math.sin(t * Math.PI * 2) * 0.01,
         last[1] - tail * t,
-        last[2] * (1 - t * 0.35) - 0.05 * belly - back * t,
+        last[2] * (1 - t * 0.35) - 0.08 * belly - back * t,
       ]);
       radii.push(Math.max(0.014, radius * (0.88 - t * 0.22) * (0.58 + 0.42 * Math.sin(t * Math.PI * 2.2))));
     }
