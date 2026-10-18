@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Divi Aruba Phoenix Beach Resort: the red-tile village on the Palm Beach bend.
+"""Divi Aruba Phoenix Beach Resort: long red-roofed wing and the tall tower.
 
-Same hero id, origin and OSM footprint. The Esri aerial puts a chain of
-red hip roofs on this ring, running from the beach (northwest) to the street,
-with the pool on the ocean side. The neighbouring white high-rise is a
-different building and stays outside this footprint. Walls are cream, roofs
-are terracotta hips, balconies face the pool. Two and three storeys, which
-is what the roofs show; the OSM height tag on this way is not the roof.
+Same hero id and origin. The resort aerial looks in from the beach: a long
+light-grey wing of about six storeys under red-tile hips, and a tall slim
+peach tower at the south end of that wing. The Esri ring is the red-roof
+chain; the tower stands just south of it, where that photo puts it.
 """
 import json
 import re
@@ -31,6 +29,9 @@ RAIL = (0.90, 0.88, 0.84)
 GLASS = (0.22, 0.30, 0.36)
 TILE = (0.64, 0.26, 0.16)
 ROOF = (0.78, 0.62, 0.48)
+PEACH = (0.86, 0.62, 0.42)
+PEACH_SH = (0.72, 0.50, 0.34)
+TEAL = (0.22, 0.55, 0.62)
 
 FH = 3.15
 
@@ -44,6 +45,7 @@ def build():
     for n, c, r in (
         ("wall", CREAM, .85), ("recess", CREAM_SH, .9), ("slab", WHITE, .75),
         ("rail", RAIL, .5), ("glass", GLASS, .25), ("tile", TILE, .75), ("roof", ROOF, .85),
+        ("peach", PEACH, .82), ("peachsh", PEACH_SH, .88), ("teal", TEAL, .6),
     ):
         M.material(n, lin(c), rough=r)
     mats = {"wall": "wall", "recess": "recess", "slab": "slab", "rail": "rail", "glass": "glass", "fin": "wall"}
@@ -52,7 +54,6 @@ def build():
     # light grey, glass balconies, red-tile hips. It runs north-south on the
     # street side of this ring. Lower red-roof blocks sit on the pool side.
     # a->b runs north to south, so +v is west, toward the pool and the beach.
-    # The tall peach tower in that photo stands outside this footprint.
     wings = [
         ((-8826.0, -4938.0), (-8812.0, -4884.0), 9.0, 6),
         ((-8830.0, -4880.0), (-8816.0, -4828.0), 9.0, 6),
@@ -79,6 +80,19 @@ def build():
         if lod == 0:
             for u in (2.0, FL.L / 2, FL.L - 2.0):
                 obox(M.mesh(0, "slab"), FL, u - 0.22, u + 0.22, -6.5, -5.9, 0.3, 3.9)
+    # Tall slim peach tower at the south end of the long wing. The resort
+    # aerial, shot from the beach, puts it on the right of that wing.
+    tower_mats = dict(mats)
+    tower_mats["wall"] = "peach"
+    tower_mats["recess"] = "peachsh"
+    tower_mats["fin"] = "peach"
+    FT = Frame((-8846.0, -4822.0), (-8830.0, -4806.0), O)
+    ttop = balcony_wing(M, FT, 0, FT.L, 7.4, 0.4, 14, FH, 4.2, tower_mats, depth=1.2)
+    for lod in (0, 1):
+        obox(M.mesh(lod, "peach"), FT, -0.4, FT.L + 0.4, -7.8, 7.8, ttop, ttop + 1.6)
+        obox(M.mesh(lod, "teal"), FT, FT.L * 0.28, FT.L * 0.72, 7.5, 7.7, ttop + 1.7, ttop + 4.2)
+        obox(M.mesh(lod, "slab"), FT, -0.2, FT.L + 0.2, -7.6, 7.6, ttop + 4.2, ttop + 4.6)
+
     # the low block this hero already hides, just west of the ring (named Dive Phoenix)
     FHIDE = Frame((-8894.0, -4836.0), (-8870.0, -4816.0), O)
     top = balcony_wing(M, FHIDE, 0, FHIDE.L, 8.0, 0.3, 2, FH, 4.0, mats, depth=1.2, faces=(1,))
@@ -110,9 +124,13 @@ def patch(info):
     block = block.replace('"textures": 2', '"textures": 0', 1)
     old = '"ref_sources": "diviresorts.com Divi Aruba Phoenix (white tower, Palm Beach)"'
     new = ('"ref_sources": "diviresorts.com resort aerial: long light-grey wing, about six '
-           'storeys, glass balconies, red-tile hips; the tall peach tower stands outside '
-           'this footprint. Esri aerial: the red roofs run north-south on the street side '
-           'of the ring, pool to the west. Built by tools/grokbot/phoenix.py"')
+           'storeys, glass balconies, red-tile hips, and the tall slim peach tower at the '
+           'south end of that wing. Esri aerial: the red roofs run north-south on the street '
+           'side of the ring, pool to the west. Built by tools/grokbot/phoenix.py"')
+    block = block.replace(
+        "the tall peach tower stands outside this footprint.",
+        "the tall slim peach tower stands at the south end of that wing.",
+        1)
     prev = ('"ref_sources": "Esri aerial over OSM: chain of red hip roofs from the beach '
             '(northwest) to the street, pool on the ocean side; cream walls. The white '
             'high-rise northeast of the ring is a different building. Built by tools/grokbot/phoenix.py"')
