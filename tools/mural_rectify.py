@@ -99,6 +99,17 @@ def _sample_wall_bgr(bgr: np.ndarray, rect: list[float]) -> tuple[int, int, int]
     return _wall_pixels_median_bgr(roi)
 
 
+def _harmonize_tile_background(bgr: np.ndarray, wall_bgr: tuple[int, int, int]) -> np.ndarray:
+    """Flat-fill low-saturation mural margins so the tile matches the cream building wall."""
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    sat = hsv[:, :, 1]
+    val = hsv[:, :, 2]
+    mask = (sat < 50) & (val > 110) & (val < 252)
+    out = bgr.copy()
+    out[mask] = wall_bgr
+    return out
+
+
 def _sample_wall_below_roof(
     bgr: np.ndarray,
     roof_y_left: float,
@@ -412,10 +423,17 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
             raise RuntimeError(f"cv2 could not read {base_path}")
         fill_polys = list(cfg.get("flat_fill_polys") or [])
         if fill_polys:
-            wall = _sample_wall_bgr(
-                warped, cfg.get("wall_sample_rect") or [0.52, 0.14, 0.62, 0.24]
-            )
+            fixed = cfg.get("wall_fill_bgr")
+            if fixed and len(fixed) >= 3:
+                wall = (int(fixed[0]), int(fixed[1]), int(fixed[2]))
+            else:
+                wall = _sample_wall_bgr(
+                    warped, cfg.get("wall_sample_rect") or [0.52, 0.14, 0.62, 0.24]
+                )
             warped = _flat_fill_polys(warped, fill_polys, wall)
+        harmonize = cfg.get("harmonize_background_bgr")
+        if harmonize and len(harmonize) >= 3:
+            warped = _harmonize_tile_background(warped, tuple(int(x) for x in harmonize[:3]))
         rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)
         if cfg.get("color_balance", False):
             rgb = mild_color_balance(rgb)

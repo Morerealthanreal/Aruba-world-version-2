@@ -20,7 +20,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const url =
-  "http://127.0.0.1:8777/?q=high&t=11&freeze=1&addons=1&snmurals=1&snfair=0&snlater=0&snfamous=0&snsacrecent=0&peds=0&traffic=0&far=1";
+  "http://127.0.0.1:8777/?q=high&t=11&freeze=1&addons=1&snmurals=1&snfair=0&snlater=0&snfamous=0&snsacrecent=0&peds=0&traffic=0&far=1&_awAddons=r326";
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForFunction(() => window.game && window.game.ready, null, { timeout: 180000 });
 await page.waitForSelector("#loading", { state: "hidden", timeout: 180000 });

@@ -230,10 +230,6 @@ export class SnMurals {
   }
 
   private suppressSkyDecoys() {
-    const walk = this.g.S?.walk;
-    if (!walk || Math.hypot(walk.x - 6369.8, walk.z - 9310.35) > 160) return;
-    const group = this.g.scene.getObjectByName("hero");
-    if (!group) return;
     const owlX = 6376.26;
     const owlZ = 9392.15;
     const markHidden = (o: THREE.Object3D) => {
@@ -250,6 +246,17 @@ export class SnMurals {
         }
         p = p.parent;
       }
+      const m = o as THREE.Mesh;
+      if (m.isMesh) {
+        this.tmp.set(0, 0, 0);
+        m.getWorldPosition(this.tmp);
+        const nearKorps = Math.hypot(this.tmp.x - 6369.8, this.tmp.z - 9310.35) < 90;
+        const nearOwl = Math.hypot(this.tmp.x - owlX, this.tmp.z - owlZ) < 45;
+        const r = m.geometry?.boundingSphere?.radius ?? 0;
+        if (this.tmp.y > 9 && r < 12 && (nearKorps || nearOwl) && !nm.includes("sn-mural") && !nm.includes("palm")) {
+          markHidden(o);
+        }
+      }
     });
   }
 
@@ -263,7 +270,7 @@ export class SnMurals {
       if (found.has(child)) continue;
       child.getWorldPosition(this.tmp);
       for (const h of doc.hide_heroes) {
-        const hideR = h.id === "sn_owl" ? 160 : 2.5;
+        const hideR = 2.5;
         if (Math.hypot(this.tmp.x - h.x, this.tmp.z - h.z) < hideR) {
           this.hidden.push(child);
           found.add(child);

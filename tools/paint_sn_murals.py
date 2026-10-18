@@ -1118,7 +1118,6 @@ def main():
         "note": "Pilot murals (night_watcher, lionfish, flamingos, nothing_to_declare) are perspective-rectified from verified SAC photos with masks/inpaint; other tiles are procedural placeholders until rectified.",
         "hide_heroes": [
             {"id": "sn_lionfish", "x": 6518.5, "z": 9318.0, "why": "approximate lionfish panel sitting on the Prikichi wall"},
-            {"id": "sn_owl", "x": 6376.3, "z": 9392.1, "why": "approximate owl about 80 m off the police-station Night Watcher"},
             {"id": "sn_flamingo", "x": 6628.5, "z": 9493.0, "why": "approximate flamingo off the Stuyvesantstraat coordinate"},
             {"id": "sn_iguana", "x": 6526.3, "z": 9386.0, "why": "approximate iguana overlapping the Mujer Azul block"},
             {"id": "sn_alankar", "x": 6572.8, "z": 9435.5, "why": "approximate Miss Alice panel at the Alankar centroid, off the street wall"},

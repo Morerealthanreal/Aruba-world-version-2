@@ -16,10 +16,11 @@
 import { BatchedMesh, Box3, Frustum, Matrix4, Sphere, Vector3, type BufferGeometry, type Camera, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
 import { tintKorpsPolitieShell } from "./bldFacadeTint";
+import { tintKorpsMeshesUnder } from "./korpsFacade";
 
 type M = Mesh & { isInstancedMesh?: boolean };
 type Reg = {
-  state: string; group?: Object3D; __awBB?: Batch[]; __awSeal?: boolean;
+  state: string; rx?: number; rz?: number; group?: Object3D; __awBB?: Batch[]; __awSeal?: boolean;
   __awStack?: Object3D[]; __awConfirm?: boolean; __awOpen?: Map<string, Batch>; __awNC?: number; __awWait?: number;
   __awHot?: number; __awHideStack?: Object3D[];
 };
@@ -175,7 +176,10 @@ export class BldBatch {
       }
       if (stack.length) break;
       if (R.state === "built") {
-        if (R.__awConfirm) { R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; R.__awHot = 0; this.stats.regions++; }
+        if (R.__awConfirm) {
+          if (R.rx === 17 && R.rz === 21 && R.group) tintKorpsMeshesUnder(R.group);
+          R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; R.__awHot = 0; this.stats.regions++;
+        }
         else { R.__awConfirm = true; R.__awStack = [R.group]; }
       } else { R.__awStack = undefined; R.__awWait = 0; if (!R.__awHideStack) R.__awHot = 0; }
       if (performance.now() - t0 >= this.budget) break;
