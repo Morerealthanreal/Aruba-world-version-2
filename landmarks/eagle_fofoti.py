@@ -212,7 +212,9 @@ def build_grove(lod, spots):
         y += 0.35
         stamp(bark, proto_b, x, y, z, s)
         stamp(leaf, proto_l, x, y, z, s)
-        # One canopy. A second copy shifted up read as a stack of floating sheets.
+        # A few stones by the flare, as in the beach photos. Not a second canopy.
+        for dx, dz, rx, ry in ((0.9, 0.35, 0.42, 0.2), (1.2, -0.4, 0.28, 0.14), (-0.15, 0.85, 0.34, 0.16)):
+            es.ico(upper, x + dx * s, y + ry * s * 0.5, z + dz * s, rx * s, ry * s, rx * s * 0.85)
     return bark, leaf, upper
 
 
@@ -437,7 +439,7 @@ def main():
 
 # Dark green, almost no blue. The previous (0.15, 0.36, 0.16) read as pale teal
 # once the sun hit a thin pad.
-FOLIAGE = [0.035, 0.13, 0.028, 1]
+FOLIAGE = [0.012, 0.055, 0.010, 1]
 
 
 def paint(js):
@@ -445,12 +447,18 @@ def paint(js):
         name = m.get("name")
         pbr = m.setdefault("pbrMetallicRoughness", {})
         if name == "bark":
-            pbr["baseColorFactor"] = [0.30, 0.26, 0.22, 1]
-        elif name in ("fol", "fol2"):
+            # Dark weathered wood. A mid grey reads as a pale pipe in the sun.
+            pbr["baseColorFactor"] = [0.10, 0.075, 0.055, 1]
+        elif name == "fol":
             pbr["baseColorFactor"] = list(FOLIAGE)
             pbr["roughnessFactor"] = 0.94
             pbr["metallicFactor"] = 0.0
             m["doubleSided"] = True
+        elif name == "fol2":
+            # Beach stones around the roots. fol2 is unused by the palapas.
+            pbr["baseColorFactor"] = [0.55, 0.52, 0.46, 1]
+            pbr["roughnessFactor"] = 0.96
+            pbr["metallicFactor"] = 0.0
 
 
 def assert_crown():
@@ -461,8 +469,9 @@ def assert_crown():
     thick = max(ys) - min(ys)
     tipx, tipy = -2.65 * 1.65, 1.90 * 1.65
     on_trunk = any((x - tipx) ** 2 + (y - tipy) ** 2 < 0.55 ** 2 for x, y in zip(xs, ys))
+    # Layered: thicker than a slab, still a wind-flattened crown rather than a ball.
     if (min(bark.p[0::3]) > -2.5 or span < 6.5 or min(xs) > -5.5 or max(xs) > -1.2
-            or thick > 2.4 or not (2.7 < max(ys) < 4.8) or not on_trunk):
+            or thick < 2.4 or thick > 4.4 or not (2.7 < max(ys) < 4.9) or not on_trunk):
         raise SystemExit(
             f"crown still a tuft span={span:.2f} x={min(xs):.2f}..{max(xs):.2f} "
             f"y={min(ys):.2f}..{max(ys):.2f} on_trunk={on_trunk}"
@@ -545,15 +554,20 @@ def refresh():
     """The groves are already reparented. Swap the crown meshes in place."""
     assert_crown()
     deltas = {}
-    for name in GROVES:
+    only = os.environ.get("EAGLE_FOFOTI_ONLY")
+    groves = (only,) if only else GROVES
+    for name in groves:
         path = os.path.join(HERO, name + ".glb")
         js, blob = load_glb(path)
         paint(js)
+        spots = None
         for lod in (0, 1):
             mesh = divi_mesh(js, f"{name}_lod{lod}_divi")
             if mesh is None:
                 raise SystemExit(f"{name} lod{lod} has no divi mesh to refresh")
-            spots = spots_from_divi(js, blob, mesh)
+            # Lod1 trunks are too thin to re-cluster. Both lods share the lod0 roots.
+            if spots is None:
+                spots = spots_from_divi(js, blob, mesh)
             # spots_from_divi returns the lifted root height. build_grove lifts
             # again, so hand it the pre-lift base.
             local = [(x, z, y - 0.35) for x, z, y in spots]
@@ -561,6 +575,10 @@ def refresh():
             deltas[f"{name}_lod{lod}"] = replace_grove_parts(js, blob, mesh, bark, leaf, upper)
             print(f"  {name} lod{lod} trees {len(spots)} delta {deltas[f'{name}_lod{lod}']}")
         save_glb(path, js, blob)
+    if only:
+        patch_tris(deltas)
+        print("fofoti crowns refreshed", only)
+        return
     for name in KITS:
         path = os.path.join(HERO, name + ".glb")
         js, blob = load_glb(path)

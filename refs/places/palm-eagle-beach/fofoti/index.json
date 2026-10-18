@@ -23,8 +23,32 @@
    "lon": null,
    "heading": null,
    "date": "2019-05-01",
-   "shows": "Side-by-side of the Eagle Beach divi-divi and the in-game crown: wide dark-green canopy leaning with the wind over a twisted trunk",
+   "shows": "Side-by-side of the Eagle Beach divi-divi and the in-game crown: dark gnarled trunk and a swept layered canopy over the sand",
    "original_path": "refs/places/palm-eagle-beach/fofoti/comparison.jpg"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "DDJJ; in-game frame Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2019-05-01",
+   "shows": "Same-viewpoint compare: gnarled wind-bent trunk and a layered lopsided canopy over Eagle Beach sand",
+   "original_path": "refs/places/palm-eagle-beach/fofoti/compare.jpg"
+  },
+  {
+   "file": "divi-trunk-2015.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Aruba_Divi_Tree.jpg",
+   "license": "CC0",
+   "credit": "sbmeaper1",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": "2015-12-22",
+   "shows": "Second divi-divi: twisted trunk, exposed roots, and one swept canopy over the sand and sea",
+   "original_path": "https://commons.wikimedia.org/wiki/File:Aruba_Divi_Tree.jpg"
   }
  ]
 }
