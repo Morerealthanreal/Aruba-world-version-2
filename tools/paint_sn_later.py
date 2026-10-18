@@ -12,6 +12,13 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
+
+_TOOLS = Path(__file__).resolve().parent
+import sys
+
+if str(_TOOLS) not in sys.path:
+    sys.path.insert(0, str(_TOOLS))
+from mural_pack import pack_atlas as pack
 SRC = ROOT / "tools" / "sn_paintings" / "later"
 OUT_IMG = ROOT / "game" / "textures" / "sn_later_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_later_murals.json"
@@ -113,36 +120,6 @@ def fit(path: Path, tw: int, th: int, flip: bool = False, crop=None, mode: str =
         canvas.paste(im, (x0, 0))
     return canvas
 
-
-def pack(images: list[Image.Image]):
-    pad = 2
-    max_w = 2048
-    order = sorted(range(len(images)), key=lambda i: (-images[i].size[1], -images[i].size[0]))
-    rows = []
-    for i in order:
-        w, h = images[i].size
-        placed = False
-        for row in rows:
-            if row["x"] + w <= max_w:
-                row["items"].append((i, row["x"]))
-                row["x"] += w + pad
-                row["h"] = max(row["h"], h)
-                placed = True
-                break
-        if not placed:
-            rows.append({"x": w + pad, "h": h, "items": [(i, 0)]})
-    boxes = [None] * len(images)
-    y = 0
-    for row in rows:
-        for i, x in row["items"]:
-            w, h = images[i].size
-            boxes[i] = (x, y, w, h)
-        y += row["h"] + pad
-    atlas_h = (max(4, y - pad) + 3) & ~3
-    atlas = Image.new("RGB", (max_w, atlas_h), (16, 16, 16))
-    for im, (px, py, w, h) in zip(images, boxes):
-        atlas.paste(im, (px, py))
-    return atlas, boxes
 
 
 def load_buildings():
