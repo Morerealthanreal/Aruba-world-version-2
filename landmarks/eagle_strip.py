@@ -693,11 +693,88 @@ def build_tree(lod):
         ico(leaf, -1.9, 2.05, 0, 1.2, 0.32, 0.75)
     return bark, leaf
 
+def _board(mesh, x0, y0, z0, x1, y1, z1, half_w):
+    """Flat rafter from the hub out to the rim. Double-sided material shows the underside."""
+    dx, dz = x1 - x0, z1 - z0
+    sl = math.sqrt(dx * dx + dz * dz) or 1.0
+    sx, sz = -dz / sl * half_w, dx / sl * half_w
+    a = mesh.v(x0 - sx, y0, z0 - sz, 0, 1, 0, 0, 0)
+    b = mesh.v(x0 + sx, y0, z0 + sz, 0, 1, 0, 1, 0)
+    c = mesh.v(x1 + sx, y1, z1 + sz, 0, 1, 0, 1, 1)
+    d = mesh.v(x1 - sx, y1, z1 - sz, 0, 1, 0, 0, 1)
+    mesh.quad(a, b, c, d)
+
+def _thatch_rings(mesh, layers, sides):
+    rings = []
+    for li, (y, r) in enumerate(layers):
+        ring = []
+        v = li / max(1, len(layers) - 1)
+        for i in range(sides):
+            a = i / sides * math.tau
+            ca, sa = math.cos(a), math.sin(a)
+            nx, ny, nz = ca * 0.72, 0.58, sa * 0.72
+            L = math.sqrt(nx * nx + ny * ny + nz * nz)
+            ring.append(mesh.v(ca * r, y, sa * r, nx / L, ny / L, nz / L, i / sides, v))
+        rings.append(ring)
+    for li in range(len(rings) - 1):
+        for i in range(sides):
+            j = (i + 1) % sides
+            mesh.quad(rings[li][i], rings[li][j], rings[li + 1][j], rings[li + 1][i])
+    return rings
+
+def _fringe(mesh, y, r, sides, lengths, flare):
+    """Hanging straw strips. Lengths alternate so the hem is ragged, not a second cone."""
+    for i in range(sides):
+        a0 = i / sides * math.tau
+        a1 = (i + 1) / sides * math.tau
+        drop = lengths[i % len(lengths)]
+        ca0, sa0 = math.cos(a0), math.sin(a0)
+        ca1, sa1 = math.cos(a1), math.sin(a1)
+        nx, nz = ca0 + ca1, sa0 + sa1
+        L = math.sqrt(nx * nx + nz * nz) or 1.0
+        nx, nz = nx / L, nz / L
+        b0 = mesh.v(ca0 * r, y, sa0 * r, nx, 0.15, nz, 0, 0)
+        b1 = mesh.v(ca1 * r, y, sa1 * r, nx, 0.15, nz, 1, 0)
+        t0 = mesh.v(ca0 * (r + flare), y - drop, sa0 * (r + flare), nx, -0.25, nz, 0, 1)
+        t1 = mesh.v(ca1 * (r + flare), y - drop, sa1 * (r + flare), nx, -0.25, nz, 1, 1)
+        mesh.quad(b0, b1, t1, t0)
+
+def _finial(mesh, y0, y1):
+    tip = mesh.v(0, y1, 0, 0, 1, 0, 0.5, 1)
+    ring = []
+    for i in range(4):
+        a = (i + 0.5) / 4 * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(ca * 0.04, y0, sa * 0.04, ca, 0.35, sa, 0, 0))
+    for i in range(4):
+        mesh.tri(tip, ring[i], ring[(i + 1) % 4])
+
 def build_palapa(lod):
+    """Eagle Beach palapa: one post, radial rafters, a layered straw cap,
+    a long ragged fringe and a wooden finial. Not a bare cone."""
     wood, thatch = M(), M()
-    sides = 8 if lod == 0 else 5
-    pole(wood, 2.15, 0.075, 5 if lod == 0 else 4)
-    cone(thatch, 2.05, 2.72, 1.65 if lod == 0 else 1.5, sides, 0.42 if lod == 0 else 0.2)
+    if lod == 0:
+        pole(wood, 2.12, 0.072, 6)
+        sides = 10
+        _thatch_rings(thatch, [(2.64, 0.16), (2.46, 0.62), (2.20, 1.12), (1.94, 1.58)], sides)
+        # close the peak so the finial sits in straw, not a hole
+        top = thatch.v(0, 2.72, 0, 0, 1, 0, 0.5, 0)
+        for i in range(sides):
+            a = i / sides * math.tau
+            b = thatch.v(math.cos(a) * 0.16, 2.64, math.sin(a) * 0.16, 0, 1, 0, i / sides, 0.15)
+            c = thatch.v(math.cos((i + 1) / sides * math.tau) * 0.16, 2.64, math.sin((i + 1) / sides * math.tau) * 0.16, 0, 1, 0, (i + 1) / sides, 0.15)
+            thatch.tri(top, b, c)
+        _fringe(thatch, 2.20, 1.12, sides, (0.26, 0.40, 0.32, 0.46, 0.28, 0.38, 0.34, 0.44, 0.30, 0.42), 0.06)
+        _fringe(thatch, 1.94, 1.58, sides, (0.78, 0.50, 0.92, 0.56, 0.84, 0.48, 0.96, 0.60, 0.72, 0.54), 0.16)
+        for i in range(8):
+            a = (i + 0.5) / 8 * math.tau
+            _board(wood, 0.0, 2.16, 0.0, math.cos(a) * 1.45, 1.96, math.sin(a) * 1.45, 0.032)
+        _finial(wood, 2.55, 2.98)
+    else:
+        pole(wood, 2.08, 0.07, 4)
+        sides = 6
+        _thatch_rings(thatch, [(2.52, 0.28), (2.00, 1.48)], sides)
+        _fringe(thatch, 2.00, 1.48, sides, (0.55, 0.38, 0.62, 0.42, 0.58, 0.40), 0.12)
     return wood, thatch
 
 def build_brolly(lod):
