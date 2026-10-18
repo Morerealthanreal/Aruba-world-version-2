@@ -26,7 +26,6 @@ import { Look } from "./look";
 import { Flora } from "./flora";
 import { JobPump } from "./jobPump";
 import { FarCity } from "./farCity";
-import "./bootPrefetch"; // side effect: starts at module load, before A asks for its textures
 import { ContextGuard } from "./contextGuard";
 import { FrameGraph } from "./frameGraph";
 import { Kids } from "./kids";
