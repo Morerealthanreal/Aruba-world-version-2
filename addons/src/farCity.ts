@@ -9,37 +9,6 @@
 import { BatchedMesh, BufferAttribute, BufferGeometry, Color, DataTexture, Mesh, MeshLambertMaterial, RGBAFormat, Sphere, UnsignedByteType, type Object3D } from "three";
 import type { AGame } from "./env";
 import { multiDrawCull, type CullSet } from "./bldBatch";
-import { KORPS_MAX_X, KORPS_MAX_Z, KORPS_MIN_X, KORPS_MIN_Z } from "./korpsFacade";
-
-const FAR_KORPS_DISCARD = `
-varying vec3 vFarWP;
-float awFarKorpsDrop(vec3 p) {
-  if (p.x >= ${KORPS_MIN_X} && p.x <= ${KORPS_MAX_X} && p.z >= ${KORPS_MIN_Z} && p.z <= ${KORPS_MAX_Z}) return 1.0;
-  if (length(vec2(p.x - 6376.26, p.z - 9392.15)) < 28.0) return 1.0;
-  return 0.0;
-}`;
-
-function applyFarKorpsDiscardShader(sh: { vertexShader: string; fragmentShader: string }) {
-  sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", `#include <common>\n${FAR_KORPS_DISCARD}`)
-    .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvFarWP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
-  sh.fragmentShader = sh.fragmentShader
-    .replace("#include <common>", `#include <common>\n${FAR_KORPS_DISCARD}`)
-    .replace(
-      "#include <clipping_planes_fragment>",
-      "#include <clipping_planes_fragment>\nif (awFarKorpsDrop(vFarWP) > 0.5) discard;",
-    );
-}
-
-function patchFarKorpsDiscard(mat: MeshLambertMaterial, key: string) {
-  const prev = mat.onBeforeCompile?.bind(mat);
-  mat.onBeforeCompile = (sh, r) => {
-    if (prev) prev(sh, r);
-    applyFarKorpsDiscardShader(sh);
-  };
-  const prevKey = mat.customProgramCacheKey?.bind(mat);
-  mat.customProgramCacheKey = () => (prevKey ? prevKey() + "|" : "") + key;
-}
 
 type Reg = { state: string; rx: number; rz: number; group?: { visible: boolean } };
 const ROOF_FLAT = [0xcfcac0, 0xbdb9b0, 0xb6b9bb, 0xd6d2c8];
@@ -118,16 +87,14 @@ export class FarCity {
     geo.setAttribute("aReg", new BufferAttribute(R, 1));
     geo.setIndex(new BufferAttribute(I, 1));
     const mat = new MeshLambertMaterial({ vertexColors: true, side: 2 });
-    patchFarKorpsDiscard(mat, "awFarCityK");
     const tex = this.tex;
-    const prev = mat.onBeforeCompile?.bind(mat);
-    mat.onBeforeCompile = (sh, r) => {
-      if (prev) prev(sh, r);
+    mat.onBeforeCompile = (sh) => {
       sh.uniforms.uMask = { value: tex };
       sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nattribute float aReg; uniform sampler2D uMask;")
         .replace("#include <project_vertex>", "#include <project_vertex>\n  { float rx = floor(aReg / 32.0), rz = aReg - rx * 32.0;\n    if (texture2D(uMask, (vec2(rx, rz) + 0.5) / 32.0).r > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }");
     };
+    mat.customProgramCacheKey = () => "awFarCity";
     const mesh = new Mesh(geo, mat);
     mesh.name = "aw:farCity";
     mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false; mesh.matrixAutoUpdate = false;
@@ -154,7 +121,7 @@ export class FarCity {
     for (let k = 0; k < ni; k += 3) { const r = R[I[k]], d = tfill[r]; tfill[r] += 3; I2[d] = remap[I[k]]; I2[d + 1] = remap[I[k + 1]]; I2[d + 2] = remap[I[k + 2]]; }
     const regs: number[] = []; for (let r = 0; r < NR; r++) if (tc[r + 1] > tc[r]) regs.push(r);
     const mat = new MeshLambertMaterial({ vertexColors: true, side: 2 });
-    patchFarKorpsDiscard(mat, "awFarCityBK");
+    mat.customProgramCacheKey = () => "awFarCityB";
     const bm = new BatchedMesh(regs.length, nv, ni, mat) as BatchedMesh & { userData: { awb?: CullSet } };
     const n = regs.length, cs: CullSet & { reg: Uint16Array; n: number } = { cx: new Float32Array(n), cy: new Float32Array(n), cz: new Float32Array(n), r: new Float32Array(n), vis: new Uint16Array(n), nVis: 0, reg: new Uint16Array(n), n };
     const all = new Sphere(), s = new Sphere();

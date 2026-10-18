@@ -7,7 +7,6 @@ import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
 import { NightLights } from "./nightLights";
-import { installKorpsFacade } from "./korpsFacade";
 import { FpsGuard } from "./fpsGuard";
 import { Preload } from "./preload";
 import { MobilePerf } from "./mobilePerf";
@@ -66,7 +65,6 @@ async function main() {
   if (params.get("addons") === "0") return;
   if (params.get("hud") !== "0") mountHud();
   const g = await whenGameReady();
-  installKorpsFacade(g);
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;

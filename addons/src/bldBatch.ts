@@ -15,12 +15,9 @@
 // Geometry is world space (identity matrices), so no per-instance matrix work.
 import { BatchedMesh, Box3, Frustum, Matrix4, Sphere, Vector3, type BufferGeometry, type Camera, type Material, type Mesh, type Object3D } from "three";
 import type { AGame } from "./env";
-import { tintKorpsPolitieShell } from "./bldFacadeTint";
-import { tintKorpsMeshesUnder } from "./korpsFacade";
-
 type M = Mesh & { isInstancedMesh?: boolean };
 type Reg = {
-  state: string; rx?: number; rz?: number; group?: Object3D; __awBB?: Batch[]; __awSeal?: boolean;
+  state: string; group?: Object3D; __awBB?: Batch[]; __awSeal?: boolean;
   __awStack?: Object3D[]; __awConfirm?: boolean; __awOpen?: Map<string, Batch>; __awNC?: number; __awWait?: number;
   __awHot?: number; __awHideStack?: Object3D[];
 };
@@ -176,10 +173,7 @@ export class BldBatch {
       }
       if (stack.length) break;
       if (R.state === "built") {
-        if (R.__awConfirm) {
-          if (R.rx === 17 && R.rz === 21 && R.group) tintKorpsMeshesUnder(R.group);
-          R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; R.__awHot = 0; this.stats.regions++;
-        }
+        if (R.__awConfirm) { R.__awSeal = true; R.__awStack = undefined; R.__awOpen = undefined; R.__awHot = 0; this.stats.regions++; }
         else { R.__awConfirm = true; R.__awStack = [R.group]; }
       } else { R.__awStack = undefined; R.__awWait = 0; if (!R.__awHideStack) R.__awHot = 0; }
       if (performance.now() - t0 >= this.budget) break;
@@ -202,7 +196,6 @@ export class BldBatch {
     const icount = geo.index ? geo.index.count : 0;
     let b = R.__awOpen?.get(key);
     if (!b || b.n >= b.cap || b.usedV + vcount > b.maxV || b.usedI + icount > b.maxI) b = this.newBatch(R, m, geo, key) || undefined;
-    tintKorpsPolitieShell(geo, m.name);
     if (!b || !this.addGeo(b, geo)) {
       if (b && b.n === 0) { b.bm.dispose(); if (R.__awOpen?.get(key) === b) R.__awOpen.delete(key); }
       if (this.stats.failed < 3) console.warn("[aw-bb] skip", m.name, "v", vcount, "i", icount);

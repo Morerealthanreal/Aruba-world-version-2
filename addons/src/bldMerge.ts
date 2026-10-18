@@ -7,7 +7,6 @@
 import { Mesh, type BufferGeometry, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
-import { tintKorpsPolitieShell } from "./bldFacadeTint";
 type Reg = { state: string; group?: Object3D; __awBM?: boolean };
 type M = Mesh & { isInstancedMesh?: boolean };
 export class BldMerge {
@@ -41,7 +40,6 @@ export class BldMerge {
   }
   private mergeList(root: Object3D, list: M[]) {
     if (!list[0].parent) return; // region was unloaded meanwhile
-    for (const m of list) tintKorpsPolitieShell(m.geometry as BufferGeometry, m.name);
     const merged = mergeGeometries(list.map((m) => m.geometry as BufferGeometry));
     if (!merged) { this.stats.after += list.length; return; }
     merged.computeBoundingSphere(); merged.computeBoundingBox();
