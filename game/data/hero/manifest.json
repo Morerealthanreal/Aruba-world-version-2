@@ -63249,7 +63249,7 @@
    "switch_m": 200
   },
   "tris": {
-   "apt_usa_dep_lod0": 554,
+   "apt_usa_dep_lod0": 923,
    "apt_usa_dep_lod1": 22
   },
   "textures": 0,
@@ -63276,7 +63276,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM building 'USA Departures'",
-  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream walls, teal pitched gables (two slopes and a ridge, not a flat triangle), white columns, yellow airline boards, USA Departures letters. A curb palm is already in the world vegetation. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
+  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream fascia, teal pitched gables with glass in the gable ends, a glass curtain wall, white colonnade, yellow airline boards, USA Departures letters, curb palms, and people at the doors. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  },
@@ -63323,7 +63323,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM building 'Non-USA Departures'",
-  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream walls, teal pitched gables (two slopes and a ridge, not a flat triangle), white columns, yellow airline boards, USA Departures letters. A curb palm is already in the world vegetation. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
+  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream fascia, teal pitched gables with glass in the gable ends, a glass curtain wall, white colonnade, yellow airline boards, USA Departures letters, curb palms, and people at the doors. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  },
@@ -63482,7 +63482,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM building 'Arrivals'",
-  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream walls, teal pitched gables (two slopes and a ridge, not a flat triangle), white columns, yellow airline boards, USA Departures letters. A curb palm is already in the world vegetation. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
+  "ref_sources": "Queen Beatrix landside. USA Departures matches Commons 'Aruba Airport US departures terminal': yellow-cream fascia, teal pitched gables with glass in the gable ends, a glass curtain wall, white colonnade, yellow airline boards, USA Departures letters, curb palms, and people at the doors. Arrivals keeps the folded blue fascia. Non-USA Departures keeps the sawtooth on its own footprint. airport_fx, apt_tealroof, and the control tower are unchanged. The hall names are letter geometry, with no embedded image, so the phone soak does not gain a texture.",
   "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  }
