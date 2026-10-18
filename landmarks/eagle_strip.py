@@ -681,8 +681,69 @@ def _leaf_pad(mesh, cx, cy, cz, rx, rz, sides):
     for i in range(sides):
         mesh.tri(c, ring[i], ring[(i + 1) % sides])
 
+def _tuft(mesh, cx, cy, cz, rx, ry, rz):
+    """One leafy clump. Overlapped, these read as a solid crown rather than a sheet."""
+    sides = 6
+    ring = []
+    for i in range(sides):
+        a = (i + 0.5) / sides * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(cx + ca * rx, cy, cz + sa * rz, ca, 0.25, sa, i / sides, 0.5))
+    top = mesh.v(cx, cy + ry, cz, 0, 1, 0, 0.5, 1)
+    bot = mesh.v(cx, cy - ry * 0.8, cz, 0, -1, 0, 0.5, 0)
+    for i in range(sides):
+        j = (i + 1) % sides
+        mesh.tri(top, ring[i], ring[j])
+        mesh.tri(bot, ring[j], ring[i])
+
+
+def _crown(mesh, dense):
+    """Wide flat mass streamed west, wrapped onto the upper trunk.
+
+    Coordinates are pre-scale. The trunk tip sits near (-2.65, 1.90); clumps
+    cover that point and run west, drooping with the wind. Nothing reaches
+    back over the roots.
+    """
+    clumps = (
+        # swallow the fork and the tip, including above the wood
+        (-1.85, 1.68, 0.02, 0.62, 0.42, 0.48),
+        (-2.30, 1.92, 0.08, 0.78, 0.55, 0.58),
+        (-2.65, 2.02, 0.00, 0.70, 0.50, 0.52),
+        (-2.25, 1.70, -0.18, 0.58, 0.40, 0.46),
+        # the body of the crown
+        (-2.95, 1.90, 0.02, 0.95, 0.55, 0.72),
+        (-3.00, 1.72, 0.48, 0.72, 0.42, 0.50),
+        (-2.90, 1.68, -0.46, 0.70, 0.42, 0.50),
+        (-3.25, 2.02, -0.05, 0.62, 0.40, 0.48),
+        (-3.60, 1.80, 0.04, 0.98, 0.56, 0.78),
+        (-3.55, 2.05, 0.18, 0.66, 0.40, 0.48),
+        (-3.95, 1.96, -0.08, 0.60, 0.38, 0.44),
+        (-3.65, 1.52, -0.16, 0.68, 0.36, 0.52),
+        (-4.25, 1.68, 0.02, 0.88, 0.50, 0.64),
+        (-4.20, 1.92, 0.42, 0.58, 0.36, 0.42),
+        (-4.55, 1.82, 0.02, 0.55, 0.36, 0.42),
+        (-4.30, 1.48, -0.40, 0.55, 0.30, 0.40),
+        (-4.85, 1.54, 0.08, 0.72, 0.42, 0.50),
+        (-4.80, 1.74, -0.22, 0.52, 0.32, 0.38),
+        (-5.15, 1.64, 0.04, 0.50, 0.30, 0.38),
+        (-5.40, 1.42, 0.02, 0.58, 0.32, 0.40),
+        (-5.35, 1.58, 0.28, 0.44, 0.26, 0.32),
+        (-5.70, 1.48, -0.04, 0.46, 0.26, 0.32),
+        (-5.90, 1.32, -0.06, 0.46, 0.24, 0.30),
+    )
+    if not dense:
+        clumps = (
+            (-2.15, 1.78, 0.0, 0.85, 0.50, 0.6),
+            (-3.35, 1.72, 0.05, 1.15, 0.55, 0.8),
+            (-4.55, 1.52, 0.0, 0.95, 0.42, 0.6),
+            (-5.55, 1.36, 0.0, 0.6, 0.28, 0.4),
+        )
+    for spec in clumps:
+        _tuft(mesh, *spec)
+
+
 def build_tree(lod):
-    """Fofoti / divi-divi: grey twisted trunk, root flare on the sand, crown streamed west."""
+    """Fofoti / divi-divi: grey twisted trunk, root flare, a wide dark crown streamed west."""
     bark, leaf = M(), M()
     if lod == 0:
         path = [(0.08, 0.12, 0.02), (-0.02, 0.5, 0.14), (-0.32, 0.92, -0.06),
@@ -694,21 +755,16 @@ def build_tree(lod):
                 (math.cos(ang) * reach * 0.45, 0.05, math.sin(ang) * reach * 0.35),
                 (math.cos(ang) * reach, 0.0, math.sin(ang) * reach * 0.72),
             ], 0.08, 0.028, 4)
+        # A leader inside the canopy, so the leaves have a branch to sit on.
+        tube(bark, [(-2.15, 1.62, 0.02), (-3.3, 1.52, 0.04), (-4.5, 1.38, -0.02), (-5.4, 1.26, 0.02)],
+             0.04, 0.016, 4)
         tube(bark, [(-1.1, 1.4, 0.04), (-1.65, 1.58, 0.42), (-2.2, 1.66, 0.68)], 0.05, 0.022, 4)
-        for cx, cy, cz, rx, rz in (
-            (-0.85, 1.58, 0.05, 0.85, 0.55),
-            (-1.55, 1.68, -0.02, 1.05, 0.62),
-            (-2.15, 1.62, 0.1, 0.8, 0.5),
-            (-1.2, 1.72, -0.38, 0.5, 0.34),
-            (-1.85, 1.55, 0.42, 0.48, 0.32),
-        ):
-            _leaf_pad(leaf, cx, cy, cz, rx, rz, 8)
-            _leaf_pad(leaf, cx, cy + 0.14, cz, rx * 0.82, rz * 0.82, 8)
+        _crown(leaf, True)
     else:
         path = [(0.05, 0.1, 0), (-0.7, 1.15, 0.05), (-1.7, 1.7, 0)]
         tube(bark, path, 0.16, 0.06, 4)
         tube(bark, [(0.0, 0.15, 0), (0.55, 0.02, 0.35), (0.95, 0.0, 0.55)], 0.06, 0.03, 4)
-        _leaf_pad(leaf, -1.7, 1.85, 0.0, 1.15, 0.7, 6)
+        _crown(leaf, False)
     # Phone distance: a 2 m crown sits on the sand. The Eagle Beach trees
     # carry the canopy about twice that high.
     for mesh in (bark, leaf):

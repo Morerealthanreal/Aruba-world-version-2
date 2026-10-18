@@ -212,7 +212,7 @@ def build_grove(lod, spots):
         y += 0.35
         stamp(bark, proto_b, x, y, z, s)
         stamp(leaf, proto_l, x, y, z, s)
-        stamp(upper, proto_l, x, y + 0.16 * s, z, s * 0.92)
+        # One canopy. A second copy shifted up read as a stack of floating sheets.
     return bark, leaf, upper
 
 
@@ -414,11 +414,7 @@ def main():
     for name in KITS:
         path = os.path.join(HERO, name + ".glb")
         js, blob = load_glb(path)
-        for m in js["materials"]:
-            if m.get("name") == "bark":
-                m["pbrMetallicRoughness"]["baseColorFactor"] = [0.32, 0.28, 0.24, 1]
-            elif m.get("name") == "fol":
-                m["pbrMetallicRoughness"]["baseColorFactor"] = [0.15, 0.36, 0.16, 1]
+        paint(js)
         removed_trees = 0
         if name != "eb_fofoti_north":
             removed_trees = filter_kit(js, blob, name, *org[name], occupied)
@@ -434,12 +430,141 @@ def main():
             deltas[f"{name}_lod{lod}"] = (nb + nl - old_b - old_l) * ninst - (old_b + old_l) * removed_trees
             print(f"  {name} lod{lod} {old_b + old_l} -> {nb + nl} tris x {ninst}")
         save_glb(path, js, blob)
-    # the crown must be a slab streamed west, not an icosphere
-    bark, leaf = es.build_tree(0)
-    if min(bark.p[0::3]) > -2.5 or not (2.8 < max(leaf.p[1::3]) < 4.5):
-        raise SystemExit("tree prototype is still a blob")
+    assert_crown()
     patch_tris(deltas)
     print("fofoti swapped")
+
+
+# Dark green, almost no blue. The previous (0.15, 0.36, 0.16) read as pale teal
+# once the sun hit a thin pad.
+FOLIAGE = [0.035, 0.13, 0.028, 1]
+
+
+def paint(js):
+    for m in js["materials"]:
+        name = m.get("name")
+        pbr = m.setdefault("pbrMetallicRoughness", {})
+        if name == "bark":
+            pbr["baseColorFactor"] = [0.30, 0.26, 0.22, 1]
+        elif name in ("fol", "fol2"):
+            pbr["baseColorFactor"] = list(FOLIAGE)
+            pbr["roughnessFactor"] = 0.94
+            pbr["metallicFactor"] = 0.0
+            m["doubleSided"] = True
+
+
+def assert_crown():
+    """Wide, flat, streamed west, and actually sitting on the trunk tip."""
+    bark, leaf = es.build_tree(0)
+    xs, ys = leaf.p[0::3], leaf.p[1::3]
+    span = max(xs) - min(xs)
+    thick = max(ys) - min(ys)
+    tipx, tipy = -2.65 * 1.65, 1.90 * 1.65
+    on_trunk = any((x - tipx) ** 2 + (y - tipy) ** 2 < 0.55 ** 2 for x, y in zip(xs, ys))
+    if (min(bark.p[0::3]) > -2.5 or span < 6.5 or min(xs) > -5.5 or max(xs) > -1.2
+            or thick > 2.4 or not (2.7 < max(ys) < 4.8) or not on_trunk):
+        raise SystemExit(
+            f"crown still a tuft span={span:.2f} x={min(xs):.2f}..{max(xs):.2f} "
+            f"y={min(ys):.2f}..{max(ys):.2f} on_trunk={on_trunk}"
+        )
+
+
+def divi_mesh(js, name):
+    found = [m for m in js["meshes"] if m.get("name") == name]
+    if len(found) != 1:
+        return None
+    return found[0]
+
+
+def replace_grove_parts(js, blob, mesh, bark, leaf, upper):
+    old = 0
+    for prim in mesh["primitives"]:
+        old += js["accessors"][prim["indices"]]["count"] // 3
+    prims = []
+    new = 0
+    for part, mat_name in ((bark, "bark"), (leaf, "fol"), (upper, "fol2")):
+        mi = mat_index(js, mat_name)
+        if mi is None or len(part.i) < 3:
+            continue
+        prim, n = mesh_prim(js, blob, part, mi)
+        prims.append(prim)
+        new += n
+    if not prims:
+        raise SystemExit("grove refresh produced an empty crown")
+    mesh["primitives"] = prims
+    return new - old
+
+
+def spots_from_divi(js, blob, mesh):
+    prim = None
+    for p in mesh["primitives"]:
+        if js["materials"][p["material"]].get("name") == "bark":
+            prim = p
+            break
+    if prim is None:
+        raise SystemExit("divi mesh has no bark")
+    pos, _ = read_acc(js, blob, prim["attributes"]["POSITION"])
+    pts = [(p[0], p[1], p[2]) for p in pos]
+    # Roots sit just above the sand after the earlier lift.
+    ground = [p for p in pts if p[1] < 1.3]
+    found = []
+    for x, y, z in ground:
+        hit = None
+        for c in found:
+            if math.hypot(x - c[0], z - c[1]) < 4.2:
+                hit = c
+                break
+        if hit is None:
+            found.append([x, z, y, 1])
+            continue
+        n = hit[3]
+        hit[0] = (hit[0] * n + x) / (n + 1)
+        hit[1] = (hit[1] * n + z) / (n + 1)
+        hit[2] = min(hit[2], y)
+        hit[3] = n + 1
+    spots = [(c[0], c[1], c[2]) for c in found if c[3] >= 4]
+    if len(spots) < 3:
+        raise SystemExit(f"could not recover grove trunks ({len(spots)})")
+    return spots
+
+
+def refresh():
+    """The groves are already reparented. Swap the crown meshes in place."""
+    assert_crown()
+    deltas = {}
+    for name in GROVES:
+        path = os.path.join(HERO, name + ".glb")
+        js, blob = load_glb(path)
+        paint(js)
+        for lod in (0, 1):
+            mesh = divi_mesh(js, f"{name}_lod{lod}_divi")
+            if mesh is None:
+                raise SystemExit(f"{name} lod{lod} has no divi mesh to refresh")
+            spots = spots_from_divi(js, blob, mesh)
+            # spots_from_divi returns the lifted root height. build_grove lifts
+            # again, so hand it the pre-lift base.
+            local = [(x, z, y - 0.35) for x, z, y in spots]
+            bark, leaf, upper = build_grove(lod, local)
+            deltas[f"{name}_lod{lod}"] = replace_grove_parts(js, blob, mesh, bark, leaf, upper)
+            print(f"  {name} lod{lod} trees {len(spots)} delta {deltas[f'{name}_lod{lod}']}")
+        save_glb(path, js, blob)
+    for name in KITS:
+        path = os.path.join(HERO, name + ".glb")
+        js, blob = load_glb(path)
+        paint(js)
+        for lod in (0, 1):
+            bark, leaf = es.build_tree(lod)
+            old_b = js["accessors"][next(m for m in js["meshes"] if m["name"] == f"{name}_bark{lod}")["primitives"][0]["indices"]]["count"] // 3
+            old_l = js["accessors"][next(m for m in js["meshes"] if m["name"] == f"{name}_leaf{lod}")["primitives"][0]["indices"]]["count"] // 3
+            nb = replace_named(js, blob, f"{name}_bark{lod}", bark)
+            nl = replace_named(js, blob, f"{name}_leaf{lod}", leaf)
+            node = node_for_mesh(js, f"{name}_bark{lod}")
+            ninst = js["accessors"][node["extensions"]["EXT_mesh_gpu_instancing"]["attributes"]["TRANSLATION"]]["count"]
+            deltas[f"{name}_lod{lod}"] = (nb + nl - old_b - old_l) * ninst
+            print(f"  {name} lod{lod} {old_b + old_l} -> {nb + nl} tris x {ninst}")
+        save_glb(path, js, blob)
+    patch_tris(deltas)
+    print("fofoti crowns refreshed")
 
 
 def node_positions(path, ox, oz):
@@ -451,6 +576,11 @@ def node_positions(path, ox, oz):
 
 if __name__ == "__main__":
     if os.environ.get("EAGLE_FOFOTI") == "1":
-        main()
+        probe, _ = load_glb(os.path.join(HERO, "eaglebeach_fx.glb"))
+        lod0 = next(n for n in probe["nodes"] if n.get("name") == "eaglebeach_fx_lod0")
+        if "children" in lod0:
+            refresh()
+        else:
+            main()
     else:
         print("eagle_fofoti: set EAGLE_FOFOTI=1 to replace the fofoti meshes")
