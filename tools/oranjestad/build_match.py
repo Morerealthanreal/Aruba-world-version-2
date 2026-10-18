@@ -283,46 +283,50 @@ def palm_at(prim, x, y, z, h=5.2):
         prim.tri(base_r, tip, mid, col)
 
 
-def leaf_fan(prim, x, y, z, r, color, tilt=-0.25):
-    """A spray of leaf cards. Reads as foliage, not a sphere."""
-    for i in range(6):
-        ang = i * math.tau / 6 + 0.35
-        c, s = math.cos(ang), math.sin(ang)
-        tip = (x + c * r, y + r * tilt, z + s * r)
-        side = (x + s * r * 0.42, y + r * 0.15, z - c * r * 0.42)
-        prim.tri((x, y, z), tip, side, color)
-        prim.tri((x, y, z), side, tip, color)
+def leaf_clump(prim, x, y, z, r, h, color, yaw):
+    """Two upright leaf cards. A flat radial blade disappears edge-on from the street."""
+    c, s = math.cos(yaw), math.sin(yaw)
+    prim.quad(
+        (x - c * r, y, z - s * r),
+        (x + c * r, y, z + s * r),
+        (x + c * r * 0.82, y + h, z + s * r * 0.82),
+        (x - c * r * 0.82, y + h, z - s * r * 0.82),
+        color,
+    )
+    c2, s2 = math.cos(yaw + 1.35), math.sin(yaw + 1.35)
+    prim.quad(
+        (x - c2 * r, y + 0.06, z - s2 * r),
+        (x + c2 * r, y + 0.06, z + s2 * r),
+        (x + c2 * r * 0.78, y + h * 0.9, z + s2 * r * 0.78),
+        (x - c2 * r * 0.78, y + h * 0.9, z - s2 * r * 0.78),
+        color,
+    )
 
 
 def shade_tree(prim, x, y, z):
-    """Leafy sidewalk tree. Crowns are overlapping fans, not green balls."""
-    D.cyl(prim, x, y, z, 0.16, 3.3, TRUNK, seg=5)
-    crown = y + 2.7
-    for ang, length, lift in (
-        (0.3, 1.15, 0.85),
-        (1.5, 1.35, 1.05),
-        (2.7, 1.2, 0.75),
-        (4.0, 1.25, 0.95),
-        (5.2, 1.1, 0.7),
-    ):
-        D.cyl(prim, x + math.cos(ang) * 0.2, crown, z + math.sin(ang) * 0.2, 0.05, lift, TRUNK, seg=4)
-        leaf_fan(
+    """Leafy crown. Overlapping upright cards, not a green ball and not a cylinder fan.
+
+    The cylinder crowns doubled the gable meshes and the phone soak never settled.
+    """
+    D.box(prim, x, y + 1.15, z, 0.22, 2.3, 0.22, TRUNK)
+    crown = y + 2.05
+    for i in range(6):
+        ang = i * math.tau / 6 + 0.3
+        leaf_clump(
             prim,
-            x + math.cos(ang) * length,
-            crown + lift * 0.9,
-            z + math.sin(ang) * length,
-            1.7,
-            LEAF if ang < 3 else LEAF_DARK,
-            tilt=-0.35,
+            x + math.cos(ang) * 0.48,
+            crown + (0.12 if i % 2 else 0.0),
+            z + math.sin(ang) * 0.48,
+            0.78,
+            0.95,
+            LEAF if i % 2 == 0 else LEAF_DARK,
+            ang + 0.4,
         )
-    leaf_fan(prim, x, crown + 1.7, z, 1.9, LEAF, tilt=0.08)
-    leaf_fan(prim, x + 0.45, crown + 1.05, z - 0.35, 1.15, LEAF_DARK, tilt=-0.4)
-    leaf_fan(prim, x - 0.5, crown + 1.15, z + 0.4, 1.2, LEAF, tilt=-0.25)
+    leaf_clump(prim, x, crown + 0.55, z, 0.7, 0.72, LEAF, 0.6)
 
 
 def shrub(prim, x, y, z):
-    leaf_fan(prim, x, y + 0.15, z, 0.38, LEAF, tilt=-0.15)
-    leaf_fan(prim, x + 0.12, y + 0.05, z, 0.28, LEAF_DARK, tilt=-0.4)
+    leaf_clump(prim, x, y, z, 0.28, 0.36, LEAF, 0.4)
 
 
 def lamp_at(prim, x, y, z, face=(0.0, 1.0)):
@@ -1182,7 +1186,7 @@ def median_trees(paint, buildings, road, origin, h0):
                 shrub(paint, tx - ox + ux * 0.7, gy - h0, tz - oz + uz * 0.7)
                 shrub(paint, tx - ox - ux * 0.55, gy - h0, tz - oz - uz * 0.55)
                 placed += 1
-            next_at += 8.5
+            next_at += 12.0
         walked += seg
 
 

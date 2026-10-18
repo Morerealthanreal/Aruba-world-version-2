@@ -59508,7 +59508,7 @@
    "switch_m": 260
   },
   "tris": {
-   "ora_gable0_lod0": 9770,
+   "ora_gable0_lod0": 5806,
    "ora_gable0_lod1": 180
   },
   "textures": 1,
@@ -59638,7 +59638,7 @@
    "switch_m": 260
   },
   "tris": {
-   "ora_gable1_lod0": 21361,
+   "ora_gable1_lod0": 10449,
    "ora_gable1_lod1": 350
   },
   "textures": 1,
@@ -59828,7 +59828,7 @@
    "switch_m": 260
   },
   "tris": {
-   "ora_gable2_lod0": 15725,
+   "ora_gable2_lod0": 6037,
    "ora_gable2_lod1": 190
   },
   "textures": 1,
