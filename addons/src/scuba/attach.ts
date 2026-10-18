@@ -1,11 +1,13 @@
 // Scuba. Off unless ?scuba=1. Press C at the water's edge to drop under.
-// Buoyancy and an air gauge, blue fog, a caustic sheet on the surface, and a
-// pooled school of reef fish (fewer on Low). H again... C climbs out near the surface.
-import { AdditiveBlending, CanvasTexture, DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, type FogExp2 } from "three";
+// Buoyancy and an air gauge, blue fog, a caustic sheet on the surface, and the
+// fish, coral, and (at Boca Catalina) turtle of the two real shore reefs.
+// C climbs out near the surface.
+import { AdditiveBlending, CanvasTexture, DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, RepeatWrapping, type FogExp2, type Group } from "three";
 import type { AGame } from "../env";
 import { createSchool, stepSchool, type School } from "./boids";
 import { AIR_SECONDS, createDive, stepDive, SWIM_SPEED, type DiveState } from "./dive";
 import { fishCount, ReefFish } from "./fish";
+import { buildReefs, buildTurtle, nearestReef, placeTurtle, reefDistance, type ReefSite } from "./reef";
 
 type Walk = { x: number; z: number; y: number; vy: number; g: number };
 
@@ -14,6 +16,8 @@ export class ScubaHook {
   private readonly keys = new Set<string>();
   private readonly school: School;
   private readonly fish: ReefFish;
+  private readonly reefs: Group[];
+  private readonly turtle: Group;
   private readonly caustic: Mesh;
   private readonly gauge: HTMLDivElement;
   private readonly dive: DiveState = createDive(-2);
@@ -22,6 +26,8 @@ export class ScubaHook {
   private fogColor = 0;
   private fogDensity = 0;
   private fogSaved = false;
+  private site: ReefSite = nearestReef(0, 0);
+  private swimT = 0;
   /** Live readout for the gauge and for checks. */
   readonly stats = { diving: false, depth: 0, fishX: 0, fishY: -1.6, fishZ: 0 };
 
@@ -33,6 +39,10 @@ export class ScubaHook {
     this.fish = new ReefFish(this.school);
     this.fish.mesh.visible = false;
     g.scene.add(this.fish.mesh);
+    this.reefs = buildReefs();
+    for (const reef of this.reefs) g.scene.add(reef);
+    this.turtle = buildTurtle();
+    g.scene.add(this.turtle);
 
     const canvas = document.createElement("canvas");
     canvas.width = 128;
@@ -127,6 +137,20 @@ export class ScubaHook {
 
     stepSchool(this.school, dt);
     this.fish.update();
+    this.swimT += dt;
+    const near = nearestReef(walk.x, walk.z);
+    const onReef = reefDistance(near, walk.x, walk.z) < 80;
+    if (onReef) {
+      this.site = near;
+      this.school.ax = near.x;
+      this.school.ay = near.y;
+      this.school.az = near.z;
+      this.school.radius = 16;
+    }
+    this.reefs[0].visible = onReef && near.name === "Boca Catalina";
+    this.reefs[1].visible = onReef && near.name === "Mangel Halto";
+    this.turtle.visible = this.reefs[0].visible;
+    if (this.turtle.visible) placeTurtle(this.turtle, this.swimT);
     this.caustic.position.x = walk.x;
     this.caustic.position.z = walk.z;
     const mat = this.caustic.material as MeshBasicMaterial;
@@ -139,7 +163,8 @@ export class ScubaHook {
     this.stats.fishX = this.school.ax;
     this.stats.fishY = this.school.ay;
     this.stats.fishZ = this.school.az;
-    const text = `Scuba · air ${Math.ceil(this.dive.air)}s · ${depth.toFixed(1)} m · C surface`;
+    const where = onReef ? this.site.name : "open water";
+    const text = `Scuba · ${where} · air ${Math.ceil(this.dive.air)}s · ${depth.toFixed(1)} m · C surface`;
     if (this.gauge.textContent !== text) this.gauge.textContent = text;
   }
 
@@ -157,10 +182,12 @@ export class ScubaHook {
     this.dive.air = AIR_SECONDS;
     walk.y = this.dive.y;
     walk.vy = 0;
-    const ahead = (this.g.S as unknown as { camYaw: number }).camYaw || 0;
-    this.school.ax = walk.x - Math.sin(ahead) * 6;
-    this.school.ay = -1.8;
-    this.school.az = walk.z - Math.cos(ahead) * 6;
+    this.site = nearestReef(walk.x, walk.z);
+    const here = reefDistance(this.site, walk.x, walk.z) < 80;
+    this.school.ax = here ? this.site.x : walk.x;
+    this.school.ay = here ? this.site.y : -1.8;
+    this.school.az = here ? this.site.z : walk.z;
+    this.school.radius = here ? 16 : 8;
     for (let i = 0; i < this.school.n; i++) {
       const a = (i / this.school.n) * Math.PI * 2;
       this.school.x[i] = this.school.ax + Math.cos(a) * 3.5;
@@ -189,6 +216,8 @@ export class ScubaHook {
     walk.vy = 0;
     this.fish.mesh.visible = false;
     this.caustic.visible = false;
+    for (const reef of this.reefs) reef.visible = false;
+    this.turtle.visible = false;
     this.gauge.style.display = "none";
     const walker = (this.g as AGame & { walker?: { visible: boolean } }).walker;
     if (walker) walker.visible = true;
