@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Beach-side detail for the J.E. Irausquin low-rise hotels.
 
-Amsterdam Manor's long beach walls get stepped white gables and a railed
-balcony under each bay. La Cabana's beach walls get a white arch colonnade.
-Existing walls, roofs and sign images are not rewritten.
+Amsterdam Manor's beach walls get stepped white gables with red tile behind
+them, tall enough to read from the street, and a railed balcony under each
+bay. La Cabana's beach walls get a storey-tall arch colonnade with a dark
+opening, a cream wall tint and a pitched red tile roof. Sign images are not rewritten.
 
-Does not call eagle_strip.main(). Run with EAGLE_HOTELS=1.
+Does not call eagle_strip.main(). Not idempotent. Run with EAGLE_HOTELS=1
+on the main-branch hotel meshes.
 """
 import json
 import math
@@ -205,15 +207,14 @@ def near_sign(box, x, z, pad=3.5):
 
 
 def gable(mesh, cx, cz, tx, tz, nx, nz, y0, rise, half):
-    """Stepped gable. The outline narrows, it is not a triangle with lines on it."""
+    """Stepped gable. Thick enough to read from the street, not a paper edge."""
     tx, tz, nx, nz = frame(tx, tz, nx, nz)
-    # Strong taper so the part that clears the roof still reads as steps, not a slab.
-    fracs = (1.0, 0.74, 0.50, 0.30, 0.14)
+    fracs = (1.0, 0.70, 0.46, 0.26, 0.12)
     steps = len(fracs)
     for i, frac in enumerate(fracs):
-        hy = rise / steps * 0.52
+        hy = rise / steps * 0.55
         y = y0 + rise * (i + 0.5) / steps
-        obox(mesh, cx + nx * 0.7, y, cz + nz * 0.7, tx, tz, nx, nz, half * frac, hy, 0.48)
+        obox(mesh, cx + nx * 0.85, y, cz + nz * 0.85, tx, tz, nx, nz, half * frac, hy, 0.95)
 
 
 def balcony(mesh, cx, cz, tx, tz, nx, nz, y, half):
@@ -236,11 +237,11 @@ def balcony(mesh, cx, cz, tx, tz, nx, nz, y, half):
 
 
 def arch(mesh, cx, cz, tx, tz, nx, nz, y0=0.15):
-    """A pier, a semicircular band, and the other pier. The band shares the spring line."""
+    """A ground-floor colonnade bay. The opening is a storey tall, not a window."""
     tx, tz, nx, nz = frame(tx, tz, nx, nz)
-    spring = 2.15
-    outer, inner = 1.22, 0.78
-    deep = 0.18
+    spring = 3.45
+    outer, inner = 1.95, 1.48
+    deep = 0.55
     segs = 8
 
     def at(radius, ang, y_lift):
@@ -290,6 +291,28 @@ def beach_walls(segments, min_len):
     return out
 
 
+def beach_fronts(segments, min_len, max_x=0.0):
+    """Western walls, with the normal turned toward the beach.
+
+    La Cabana's wings are wound so the long beach facades point inland.
+    Flip those and keep the western half, longest first, so the arches land
+    on the boulevard side.
+    """
+    fronts = []
+    for length, nx, nz, p, q, ytop in segments:
+        if length < min_len:
+            continue
+        if nx > 0:
+            nx, nz = -nx, -nz
+        if nx > -0.72:
+            continue
+        if (p[0] + q[0]) * 0.5 > max_x:
+            continue
+        fronts.append((length, nx, nz, p, q, ytop))
+    fronts.sort(key=lambda s: -s[0])
+    return fronts
+
+
 def walk(wall, inset, step, limit):
     length, nx, nz, p, q, ytop = wall
     dx, dz = q[0] - p[0], q[2] - p[2]
@@ -303,57 +326,183 @@ def walk(wall, inset, step, limit):
         n += 1
 
 
+def add_quad(mesh, a, b, c, d):
+    """One quad. Winding follows a→b→c→d; the normal is (b-a) × (c-a)."""
+    ux, uy, uz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+    vx, vy, vz = c[0] - a[0], c[1] - a[1], c[2] - a[2]
+    nx = uy * vz - uz * vy
+    ny = uz * vx - ux * vz
+    nz = ux * vy - uy * vx
+    L = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
+    nx, ny, nz = nx / L, ny / L, nz / L
+    ids = [mesh.v(p[0], p[1], p[2], nx, ny, nz, 0, 0) for p in (a, b, c, d)]
+    mesh.quad(ids[0], ids[1], ids[2], ids[3])
+
+
+def pitched_roof(mesh, wall):
+    """Red tile slope the beach can see, plus a fascia under the eave.
+
+    The hero roof is a flat cap. A pitch rising inland, and a band under the
+    eave, are what read as a tile roof from the boulevard.
+    """
+    length, nx, nz, p, q, ytop = wall
+    dx, dz = q[0] - p[0], q[2] - p[2]
+    L = math.hypot(dx, dz) or 1
+    tx, tz = dx / L, dz / L
+    tx, tz, nx, nz = frame(tx, tz, nx, nz)
+    # The slope sits inland of the parapet, so from the boulevard the
+    # readable piece is a tile band proud of the top floor.
+    out, inn = 1.8, 3.4
+    y_eave = ytop - 0.05
+    y_ridge = ytop + 2.6
+
+    def pt(base, n_off, y):
+        return (base[0] + nx * n_off, y, base[2] + nz * n_off)
+
+    e0, e1 = pt(p, out, y_eave), pt(q, out, y_eave)
+    r0, r1 = pt(p, -inn, y_ridge), pt(q, -inn, y_ridge)
+    # Slope: beach eave toward the ridge. Flip if the normal points down.
+    ux, uy, uz = e1[0] - e0[0], e1[1] - e0[1], e1[2] - e0[2]
+    vx, vy, vz = r1[0] - e0[0], r1[1] - e0[1], r1[2] - e0[2]
+    ny = uz * vx - ux * vz
+    if ny < 0:
+        add_quad(mesh, e0, r0, r1, e1)
+    else:
+        add_quad(mesh, e0, e1, r1, r0)
+    # Fascia on the beach side, tall enough to read above the top floor.
+    f0, f1 = pt(p, out, y_eave - 3.2), pt(q, out, y_eave - 3.2)
+    fx, fy, fz = e1[0] - e0[0], e1[1] - e0[1], e1[2] - e0[2]
+    gx, gy, gz = e0[0] - f0[0], e0[1] - f0[1], e0[2] - f0[2]
+    fnx = fy * gz - fz * gy
+    fnz = fx * gy - fy * gx
+    if fnx * nx + fnz * nz < 0:
+        add_quad(mesh, f0, e0, e1, f1)
+    else:
+        add_quad(mesh, f0, f1, e1, e0)
+
+
+def mouth(mesh, cx, cz, tx, tz, nx, nz):
+    """Dark opening in front of the solid wall, inside the arch ring.
+
+    The wall mesh is not cut, so the shade has to cover the facade texture
+    or the arch reads as a hoop painted on a window.
+    """
+    tx, tz, nx, nz = frame(tx, tz, nx, nz)
+    spring, inner = 3.45, 1.48
+    top = spring + inner * 0.42
+    bot = 0.18
+    obox(mesh, cx + nx * 0.30, (top + bot) * 0.5, cz + nz * 0.30, tx, tz, nx, nz,
+         inner * 0.70, (top - bot) * 0.5, 0.18)
+
+
+def ensure_color(js, name, color, rough=0.88):
+    for i, m in enumerate(js["materials"]):
+        if m.get("name") == name:
+            pbr = m.setdefault("pbrMetallicRoughness", {})
+            pbr["baseColorFactor"] = color
+            pbr["roughnessFactor"] = rough
+            pbr["metallicFactor"] = 0.0
+            m["doubleSided"] = True
+            return i
+    js["materials"].append({
+        "name": name,
+        "doubleSided": True,
+        "pbrMetallicRoughness": {
+            "baseColorFactor": color, "metallicFactor": 0.0, "roughnessFactor": rough,
+        },
+    })
+    return len(js["materials"]) - 1
+
+
 def amsterdam(js, blob):
     mesh = next(m for m in js["meshes"] if m.get("name") == "amsterdam_lod0")
     before = len(mesh["primitives"])
     avoid = sign_box(js, blob, mesh)
-    g = es.M()
+    g, roofs = es.M(), es.M()
     bays = 0
     for wall in beach_walls(wall_segments(js, blob, "amsterdam_lod0"), 16):
         if bays >= 8:
             break
-        for cx, cz, tx, tz, nx, nz, ytop in walk(wall, 8.0, 14.0, 3):
-            if bays >= 6 or near_sign(avoid, cx, cz, 6):
+        for cx, cz, tx, tz, nx, nz, ytop in walk(wall, 5.0, 9.5, 5):
+            if bays >= 8 or near_sign(avoid, cx, cz, 6):
                 continue
-            # Peak clears the ridge. A gable that stops at the eave disappears into the roof.
-            base = ytop + 0.55
-            rise = 6.0
-            gable(g, cx, cz, tx, tz, nx, nz, base, rise, 3.35)
+            # The lowest step overlaps the eave so the gable grows out of the wall.
+            base = ytop - 0.15
+            rise = 7.4
+            gable(g, cx, cz, tx, tz, nx, nz, base, rise, 4.05)
+            # Red tile behind the steps, full gable height, a little narrower
+            # than the bottom step so the white steps cut a silhouette out of it.
+            obox(roofs, cx + nx * 0.18, base + rise * 0.48, cz + nz * 0.18,
+                 tx, tz, nx, nz, 3.55, rise * 0.48, 0.22)
             balcony(b := es.M(), cx, cz, tx, tz, nx, nz, max(2.4, ytop * 0.48), 2.15)
-            # stitch balcony into g so one primitive carries the bay
             g.p += b.p
             g.n += b.n
             g.u += b.u
-            base = (len(g.p) // 3) - (len(b.p) // 3)
-            g.i += [i + base for i in b.i]
+            base_i = (len(g.p) // 3) - (len(b.p) // 3)
+            g.i += [i + base_i for i in b.i]
             bays += 1
     if bays < 3:
         raise SystemExit(f"amsterdam only placed {bays} bays")
+    ensure_color(js, "tile", [0.62, 0.15, 0.07, 1], 0.78)
+    ensure_color(js, "lroof", [0.62, 0.15, 0.07, 1], 0.78)
     tris = append_prim(js, blob, "amsterdam_lod0", g, mat_of(js, "trim"))
+    tris += append_prim(js, blob, "amsterdam_lod0", roofs, mat_of(js, "tile"))
     after = len(next(m for m in js["meshes"] if m.get("name") == "amsterdam_lod0")["primitives"])
-    if after != before + 1:
+    if after != before + 2:
         raise SystemExit("amsterdam primitive count changed unexpectedly")
     print(f"  amsterdam bays {bays} tris {tris}")
     return tris
 
 
+def sign_centers(js, blob, mesh):
+    """One centre per sign board. The resort has two, far apart."""
+    spots = []
+    for prim in mesh["primitives"]:
+        if js["materials"][prim["material"]].get("name") != "sign":
+            continue
+        for p in positions(js, blob, prim):
+            for c in spots:
+                if abs(p[0] - c[0]) < 8 and abs(p[2] - c[1]) < 8:
+                    n = c[2]
+                    c[0] = (c[0] * n + p[0]) / (n + 1)
+                    c[1] = (c[1] * n + p[2]) / (n + 1)
+                    c[2] = n + 1
+                    break
+            else:
+                spots.append([p[0], p[2], 1])
+    return spots
+
+
 def lacabana(js, blob):
     mesh = next(m for m in js["meshes"] if m.get("name") == "m_lacabana_lod0")
     before = len(mesh["primitives"])
-    avoid = sign_box(js, blob, mesh)
-    arches = es.M()
+    signs = sign_centers(js, blob, mesh)
+    arches, shade, roofs = es.M(), es.M(), es.M()
     n = 0
-    for wall in beach_walls(wall_segments(js, blob, "m_lacabana_lod0"), 22)[:2]:
-        for cx, cz, tx, tz, nx, nz, ytop in walk(wall, 3.2, 4.4, 8):
-            if n >= 14 or near_sign(avoid, cx, cz, 4):
+    for wall in beach_fronts(wall_segments(js, blob, "m_lacabana_lod0"), 18)[:2]:
+        pitched_roof(roofs, wall)
+        for cx, cz, txx, tzz, nx, nz, ytop in walk(wall, 4.2, 5.4, 8):
+            if n >= 12 or any(abs(cx - s[0]) < 5 and abs(cz - s[1]) < 5 for s in signs):
                 continue
-            arch(arches, cx, cz, tx, tz, nx, nz)
+            arch(arches, cx, cz, txx, tzz, nx, nz)
+            mouth(shade, cx, cz, txx, tzz, nx, nz)
             n += 1
     if n < 6:
         raise SystemExit(f"lacabana only placed {n} arches")
+    # Cream walls, red tile. Multiply the pale facade swatch; do not recolor
+    # its pixels, or the factor stacks and the plaster goes brown.
+    for name in ("facade", "facade_g"):
+        ensure_color(js, name, [1.0, 0.90, 0.70, 1], 0.82)
+    ensure_color(js, "lwall", [0.98, 0.86, 0.68, 1], 0.86)
+    ensure_color(js, "trim", [0.98, 0.95, 0.90, 1], 0.8)
+    ensure_color(js, "tile", [0.82, 0.20, 0.07, 1], 0.74)
+    ensure_color(js, "lroof", [0.82, 0.20, 0.07, 1], 0.74)
+    shade_i = ensure_color(js, "shade", [0.14, 0.11, 0.09, 1], 0.95)
     tris = append_prim(js, blob, "m_lacabana_lod0", arches, mat_of(js, "trim"))
+    tris += append_prim(js, blob, "m_lacabana_lod0", shade, shade_i)
+    tris += append_prim(js, blob, "m_lacabana_lod0", roofs, mat_of(js, "tile"))
     after = len(next(m for m in js["meshes"] if m.get("name") == "m_lacabana_lod0")["primitives"])
-    if after != before + 1:
+    if after != before + 3:
         raise SystemExit("lacabana primitive count changed unexpectedly")
     print(f"  lacabana arches {n} tris {tris}")
     return tris

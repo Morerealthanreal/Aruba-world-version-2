@@ -4964,7 +4964,7 @@
    "switch_m": 300
   },
   "tris": {
-   "m_lacabana_lod0": 1532,
+   "m_lacabana_lod0": 1108,
    "m_lacabana_lod1": 32
   },
   "textures": 2,
@@ -6198,7 +6198,7 @@
    "switch_m": 140
   },
   "tris": {
-   "amsterdam_lod0": 1382,
+   "amsterdam_lod0": 1754,
    "amsterdam_lod1": 144
   },
   "textures": 2,
