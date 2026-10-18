@@ -3,7 +3,7 @@
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
 // Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0,
 // ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap).
-import { whenGameReady, params } from "./env";
+import { whenGameReady, params, type AGame } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
 import { NightLights } from "./nightLights";
@@ -20,7 +20,8 @@ import { TrafficSystem } from "./trafficLife";
 import { PedestrianCrowds } from "./pedestrians";
 import { attachPlayerLocomotion } from "./locomotion";
 import { WorldAudio } from "./audio";
-import { AudioEngine } from "./audio/audio";
+import { AudioSystem } from "./audio/index";
+import { Vector3 } from "three";
 import { mountUI } from "./ui";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
@@ -91,8 +92,7 @@ async function main() {
   const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
   // ?audio=sg swaps A's world audio for the SuperGrok synth engine (experimental).
   const audio = params.get("audio") !== "0" && params.get("audio") !== "sg" ? new WorldAudio(g) : null;
-  const sgaudio = params.get("audio") === "sg" ? new AudioEngine() : null;
-  if (sgaudio) sgaudio.bindGestureResume();
+  const sgaudio = params.get("audio") === "sg" ? makeSgAudio(g) : null;
   const radio = params.get("radio") !== "0" && params.get("audio") !== "0" ? new Radio(g) : null;
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
@@ -149,16 +149,7 @@ async function main() {
     if (traffic) traffic.update(dt);
     if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
     if (audio) audio.update();
-    if (sgaudio) {
-      const S = g.S as unknown as { mode: string } & Record<string, { x: number; y: number; z: number; s?: number; thr?: number }>;
-      const w = (g as unknown as { walker?: { position: { x: number; y: number; z: number } } }).walker;
-      if (S.mode === "walk" && w) sgaudio.updateAmbient(w.position.x, w.position.z, w.position.y);
-      const v = S[S.mode];
-      if (S.mode !== "walk" && v && typeof v.s === "number") {
-        const kind = S.mode === "plane" ? "plane" : "car";
-        sgaudio.updateEngine(kind, 800 + Math.abs(v.s) * 90, Math.max(0, Math.min(1, v.thr ?? 0.5)), Math.min(dt, 0.1));
-      }
-    }
+    if (sgaudio) sgaudio.tick(Math.min(dt, 0.1));
     if (radio) radio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
@@ -196,3 +187,41 @@ async function main() {
   console.info("[aw-addons] day/night + night lights + fps guard active", g.real?.q?.name);
 }
 main().catch((e) => console.error("[aw-addons] failed", e));
+
+// FIX 5: SuperGrok AudioSystem behind ?audio=sg. Zones use real Aruba world coordinates; zone and
+// footstep buffers are synthesised here (no audio files ship with the game).
+function makeSgAudio(g: AGame) {
+  const sys = new AudioSystem(g.camera, { quality: "medium", zones: [
+    { x: -9700, z: -3100, radius: 500, sound: "beach_eagle", volume: 0.45, loop: true },   // Eagle Beach
+    { x: -10065, z: -2330, radius: 300, sound: "beach_manchebo", volume: 0.4, loop: true },   // Manchebo (own key: zones sharing a key overwrite each other)
+    { x: -7159, z: 142, radius: 400, sound: "town", volume: 0.25, loop: true },      // Oranjestad centre
+  ] });
+  const ctx = sys.listener.context, sr = ctx.sampleRate;
+  const noise = (sec: number, shape: (t: number) => number) => { const n = Math.floor(sec * sr), b = ctx.createBuffer(1, n, sr), d = b.getChannelData(0); let lp = 0; for (let i = 0; i < n; i++) { lp += (Math.random() * 2 - 1 - lp) * 0.08; d[i] = lp * shape(i / sr); } return b; };
+  const surf = noise(6, (t) => 1.6 * (0.55 + 0.45 * Math.sin(t * Math.PI / 3) ** 2));
+  sys.setZoneBuffer("beach_eagle", surf); sys.setZoneBuffer("beach_manchebo", surf);
+  sys.setZoneBuffer("town", noise(4, () => 0.6));
+  const step = noise(0.09, (t) => 2.5 * Math.exp(-t * 45));
+  for (const s of ["sand", "asphalt", "concrete", "dirt", "grass", "wood"] as const) sys.setFootstepBuffer(s, step);
+  const resume = () => { if (ctx.state === "suspended") ctx.resume(); };
+  addEventListener("pointerdown", resume); addEventListener("keydown", resume);
+  const pos = new Vector3(), last = new Vector3(); let dist = 0, first = true;
+  const eng = { rpm: 0, load: 0, on: true };
+  const stats = { mode: "", dist: 0 };
+  return { sys, stats, tick(dt: number) {
+    const S = g.S as unknown as { mode: string } & Record<string, { x: number; y: number; z: number; s?: number; thr?: number }>;
+    const w = (g as unknown as { walker?: { position: Vector3 } }).walker;
+    const walk = S.mode === "walk" && !!w;
+    const v = S[S.mode];
+    if (walk) pos.copy(w!.position); else if (v) pos.set(v.x, v.y, v.z);
+    if (first) { last.copy(pos); first = false; }
+    const d = Math.hypot(pos.x - last.x, pos.z - last.z); last.copy(pos);
+    if (walk && d < 5) dist += d;
+    let e: typeof eng | null = null;
+    if (!walk && v && typeof v.s === "number") { eng.rpm = Math.min(1, 0.15 + Math.abs(v.s) / 45); eng.load = Math.max(0, Math.min(1, v.thr ?? 0.5)); e = eng; }
+    const real = g.real as unknown as { heightAt: (x: number, z: number) => number } | null;
+    const surf = real && real.heightAt(pos.x, pos.z) < 2.5 ? "sand" : "asphalt";
+    sys.update(dt, e, pos, surf, walk && d > 0.001, dist * 0.6);
+    stats.mode = S.mode; stats.dist = dist;
+  } };
+}
