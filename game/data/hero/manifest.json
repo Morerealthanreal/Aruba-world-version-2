@@ -17717,7 +17717,7 @@
    "switch_m": 394
   },
   "tris": {
-   "eaglebeach_fx_lod0": 18877,
+   "eaglebeach_fx_lod0": 35677,
    "eaglebeach_fx_lod1": 1853
   },
   "textures": 1,
@@ -50803,7 +50803,7 @@
    "switch_m": 400
   },
   "tris": {
-   "eb_fofoti_11_lod0": 22543,
+   "eb_fofoti_11_lod0": 47743,
    "eb_fofoti_11_lod1": 4723
   },
   "textures": 0,
@@ -50932,7 +50932,7 @@
    "switch_m": 400
   },
   "tris": {
-   "eb_fofoti_10_lod0": 13779,
+   "eb_fofoti_10_lod0": 29179,
    "eb_fofoti_10_lod1": 2889
   },
   "textures": 0,
@@ -60131,7 +60131,7 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_north_lod0": 38738,
+   "eb_north_lod0": 65338,
    "eb_north_lod1": 8866
   },
   "textures": 1,
@@ -60160,7 +60160,7 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_south_lod0": 15432,
+   "eb_south_lod0": 26632,
    "eb_south_lod1": 3395
   },
   "textures": 1,
@@ -60189,7 +60189,7 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_mid_lod0": 19058,
+   "eb_mid_lod0": 33058,
    "eb_mid_lod1": 4153
   },
   "textures": 1,
@@ -62903,7 +62903,7 @@
    "switch_m": 220
   },
   "tris": {
-   "eb_fofoti_north_lod0": 7924,
+   "eb_fofoti_north_lod0": 17724,
    "eb_fofoti_north_lod1": 994
   },
   "textures": 0,

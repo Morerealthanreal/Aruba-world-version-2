@@ -718,25 +718,25 @@ def _crown(mesh, dense):
         return
     cx, cy, cz = -3.35, 2.18, 0.0
     rx, ry, rz = 1.20, 0.50, 0.62
-    # Opaque core, so the sky does not show through the leaves.
-    for ix in range(-2, 3):
-        for iy in range(-1, 2):
-            for iz in range(-1, 2):
-                x, y, z = ix / 2.0, iy / 1.0, iz / 1.0
-                if x * x + y * y + z * z > 1.05:
+    # A fine core. Large berries read as slabs at the postcard distance.
+    for ix in range(-3, 4):
+        for iy in range(-2, 3):
+            for iz in range(-2, 3):
+                x, y, z = ix / 3.0, iy / 2.0, iz / 2.0
+                if x * x + y * y + z * z > 1.02:
                     continue
-                _berry(mesh, cx + x * rx * 0.72, cy + y * ry * 0.72, cz + z * rz * 0.72, 0.34)
-    for shell, count, lift in ((0.96, 160, 0.0), (1.08, 120, 0.04)):
+                _berry(mesh, cx + x * rx * 0.78, cy + y * ry * 0.78, cz + z * rz * 0.78, 0.13)
+    for shell, count, lift in ((0.86, 180, 0.0), (1.00, 220, 0.02), (1.08, 160, 0.04)):
         for i in range(count):
             y = 1 - (i / (count - 1)) * 2
             ring = math.sqrt(max(0.0, 1 - y * y))
             theta = i * 2.399963
             x, z = math.cos(theta) * ring, math.sin(theta) * ring
-            j = (i * 3 + int(lift * 50)) & 3
+            j = (i * 5 + int(lift * 40)) & 7
             px = cx + x * rx * shell
             py = cy + y * ry * shell + lift
             pz = cz + z * rz * shell
-            _leaflet(mesh, px, py, pz, x, y * 0.55 + 0.15, z, 0.16 + (j & 1) * 0.04, 0.10 + (j >> 1) * 0.03)
+            _leaflet(mesh, px, py, pz, x, y * 0.35 + 0.25, z, 0.075 + (j & 3) * 0.012, 0.048 + (j >> 2) * 0.01)
 
 
 def build_tree(lod):
