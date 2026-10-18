@@ -462,12 +462,13 @@ def _at(west, ux, uz, dist):
     return (west[0] + ux * dist, west[1] + uz * dist)
 
 
-def add_pillar(b, x, z, height):
+def add_pillar(b, x, z, height, yaw):
+    """Square stucco pier. Faces are parallel to the wall and the edges are vertical."""
     g = coast.mesh_height(x, z)
-    b.box(0, "tan", x - 0.18, g, z - 0.18, x + 0.18, g + height, z + 0.18)
+    b.box_yaw(0, "tan", x, g, z, 0.22, height, 0.22, yaw)
 
 
-def add_bar_run(b, a, c, y0, y1, spacing):
+def add_bar_run(b, a, c, y0, y1, spacing, yaw):
     dx, dz = c[0] - a[0], c[1] - a[1]
     length = math.hypot(dx, dz)
     if length < 0.35:
@@ -478,7 +479,7 @@ def add_bar_run(b, a, c, y0, y1, spacing):
         t = i / n
         x = a[0] + dx * t
         z = a[1] + dz * t
-        b.box(0, "black", x - 0.018, y0, z - 0.018, x + 0.018, y1, z + 0.018)
+        b.box_yaw(0, "black", x, y0, z, 0.018, y1 - y0, 0.018, yaw)
 
 
 def add_double_gate(b, x, z, along, g):
@@ -523,6 +524,7 @@ def add_photo_wall(b, west, east, gates):
     dx, dz = east[0] - west[0], east[1] - west[1]
     length = math.hypot(dx, dz) or 1.0
     ux, uz = dx / length, dz / length
+    yaw = math.atan2(uz, ux)
     # Photo: about 1.2 m of stucco, then about 1 m of iron.
     solid_h = 1.20
     bar_top = 2.20
@@ -547,7 +549,7 @@ def add_photo_wall(b, west, east, gates):
     posts.sort()
     for p in posts:
         px, pz = _at(west, ux, uz, p)
-        add_pillar(b, px, pz, pillar_h)
+        add_pillar(b, px, pz, pillar_h, yaw)
     for a, c in zip(posts, posts[1:]):
         if c - a < 0.55 or covered((a + c) * 0.5):
             continue
@@ -555,7 +557,7 @@ def add_photo_wall(b, west, east, gates):
         a2 = _at(west, ux, uz, c - 0.26)
         wall_run(b, a1, a2, "tan", 0.13, solid_h)
         g = coast.mesh_height((a1[0] + a2[0]) * 0.5, (a1[1] + a2[1]) * 0.5)
-        add_bar_run(b, a1, a2, g + solid_h - 0.04, g + bar_top, 0.22)
+        add_bar_run(b, a1, a2, g + solid_h - 0.04, g + bar_top, 0.22, yaw)
     for a, c, kind in gates:
         mx, mz = _at(west, ux, uz, (a + c) * 0.5)
         g = coast.mesh_height(mx, mz)
@@ -693,9 +695,10 @@ def build_street_match(b, bld, role, weg):
         for y0, y1 in ((2.48, 3.55), (3.85, 5.15)):
             mid = spot(basis, -9.0, 3.35)
             b.box_yaw(0, "shadow", mid[0], gnd + y0, mid[1], 5.6, y1 - y0, 0.48, yaw)
+        col_yaw = math.atan2(uz, ux)
         for along_m in (-14.4, -12.1, -9.8, -7.5, -5.2, -3.2):
             col = spot(basis, along_m, 2.15)
-            b.box(0, "white", col[0] - 0.16, gnd + 2.35, col[1] - 0.16, col[0] + 0.16, gnd + 5.35, col[1] + 0.16)
+            b.box_yaw(0, "white", col[0], gnd + 2.35, col[1], 0.16, 3.0, 0.16, col_yaw)
         low0, low1 = spot(basis, -14.7, 1.45), spot(basis, -3.0, 1.45)
         up0, up1 = spot(basis, -14.7, 1.35), spot(basis, -3.0, 1.35)
         slab = [
