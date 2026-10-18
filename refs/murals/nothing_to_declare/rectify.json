@@ -1,0 +1,32 @@
+{
+  "photo": "street-photo.jpg",
+  "target_h": 700,
+  "src_quad": [[760, 60], [2060, 20], [2100, 3260], [720, 3300]],
+  "src_inpaint_polys": [
+    [[1180, 1720], [1680, 1660], [1620, 3080], [1120, 3120]],
+    [[720, 0], [2100, 0], [2110, 450], [730, 500]],
+    [[720, 350], [2100, 310], [2110, 650], [730, 690]]
+  ],
+  "src_inpaint_radius": 24,
+  "inpaint_rects": [
+    [0.0, 0.0, 1.0, 0.05]
+  ],
+  "inpaint_radius": 10,
+  "composite": {
+    "bottom_photo": "street-photo-wiki.jpg",
+    "bottom_src_quad": [[820, 1680], [2120, 1660], [2100, 2760], [800, 2780]],
+    "split": 0.54,
+    "feather": 0.1
+  },
+  "color_balance": false,
+  "color_grade": {
+    "saturation": 1.45,
+    "value": 1.18,
+    "warmth": 10
+  },
+  "post_inpaint_rects": [
+    [0.0, 0.0, 1.0, 0.075]
+  ],
+  "post_inpaint_radius": 9,
+  "crop_margin": { "top": 0.012 }
+}

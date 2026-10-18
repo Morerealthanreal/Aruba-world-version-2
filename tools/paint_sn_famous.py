@@ -214,7 +214,7 @@ SPECS = [
         "world_h": STOREY_H,
         "ph": 210,
         "sources": [
-            "Street Art Cities marker 13072 (12.4357908, -69.912014), Doormanstraat, created 23 Nov 2017",
+            "Street Art Cities marker 13072 — Livin La Vida Loca (Sjembakkus, Beazarility), Doormanstraat; refs/murals/crazy/",
         ],
     },
     {
@@ -246,7 +246,7 @@ SPECS = [
         "world_h": STOREY_H,
         "ph": 200,
         "sources": [
-            "Street Art Cities marker 13084 (12.4349448, -69.9101217), Stuyvesantstraat, created 23 Sep 2016",
+            "Street Art Cities marker 13084 — Bond Bini (Bond Truluv), Stuyvesantstraat; refs/murals/stuyvesant/",
         ],
     },
     {

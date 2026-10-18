@@ -15,6 +15,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
+from mural_rectify import RECTIFIED_MURAL_IDS, load_rectified_pil
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT_IMG = ROOT / "game" / "textures" / "sn_mural_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_murals.json"
@@ -335,14 +337,10 @@ def wash(draw, box, c1, c2, steps=18):
 
 
 def paint_night(w, h):
-    """Farid Rueda owl: cream wall, mandala face, ear tufts, teal beak.
-
-    The field runs to the edges of a wide wall. The owl stays tall in the
-    middle, so the cream is the painted wall rather than a square panel.
-    """
-    im = Image.new("RGB", (w, h), (236, 226, 204))
+    """Farid Rueda owl (SAC 13073). Hand-painted; refs/murals/night_watcher/ for verification only."""
+    im = Image.new("RGB", (w, h), (248, 248, 246))
     d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, w, h), (246, 238, 218), (214, 202, 176))
+    wash(d, (0, 0, w, h), (252, 252, 250), (238, 236, 228))
     r = rng(21)
     for _ in range(70):
         x, y = r.randint(0, w), r.randint(0, h)
@@ -447,7 +445,8 @@ def paint_night(w, h):
 
 
 def paint_lion(w, h):
-    im = Image.new("RGB", (w, h), (12, 12, 14))
+    """DOPIE lionfish (SAC 13093). Flat black field + fish only — no building windows or sky."""
+    im = Image.new("RGB", (w, h), (8, 8, 10))
     d = ImageDraw.Draw(im, "RGBA")
     # fins left
     cols_l = [(40, 170, 160), (70, 190, 120), (230, 170, 60), (40, 140, 180)]
@@ -461,15 +460,18 @@ def paint_lion(w, h):
         # fin eyes
         d.ellipse([w * 0.86, y0 + h * 0.02, w * 0.92, y0 + h * 0.09], outline=(30, 20, 16), width=2)
     # head
-    d.ellipse([w * 0.34, h * 0.08, w * 0.68, h * 0.92], fill=(150, 90, 40))
-    d.ellipse([w * 0.40, h * 0.16, w * 0.62, h * 0.84], fill=(196, 140, 60))
-    for i in range(7):
-        yy = h * (0.2 + i * 0.09)
-        d.arc([w * 0.38, yy, w * 0.64, yy + h * 0.12], 200, 340, fill=(70, 40, 24), width=3)
+    d.ellipse([w * 0.34, h * 0.08, w * 0.68, h * 0.92], fill=(168, 72, 88))
+    d.ellipse([w * 0.40, h * 0.16, w * 0.62, h * 0.84], fill=(214, 118, 98))
+    for i in range(9):
+        yy = h * (0.18 + i * 0.075)
+        col = (120, 40, 90) if i % 2 == 0 else (70, 28, 72)
+        d.arc([w * 0.38, yy, w * 0.64, yy + h * 0.11], 200, 340, fill=col, width=max(3, h // 80))
+    d.polygon([(w * 0.44, h * 0.20), (w * 0.58, h * 0.22), (w * 0.56, h * 0.34), (w * 0.46, h * 0.32)], fill=(240, 200, 80))
     d.ellipse([w * 0.44, h * 0.28, w * 0.52, h * 0.48], outline=(20, 140, 150), width=4)
     d.ellipse([w * 0.52, h * 0.30, w * 0.60, h * 0.48], outline=(20, 130, 160), width=4)
     d.ellipse([w * 0.46, h * 0.34, w * 0.50, h * 0.42], fill=(230, 240, 220))
     d.polygon([(w * 0.46, h * 0.78), (w * 0.56, h * 0.78), (w * 0.52, h * 0.92)], fill=(230, 226, 214))
+    d.text((w * 0.72, h * 0.88), "DOPIE", fill=(120, 60, 160))
     grain(im, 8, 11)
     return im
 
@@ -499,11 +501,7 @@ def paint_turtles(w, h):
 
 
 def paint_flamingo(w, h):
-    """Profile flamingo head on a geometric facade, beak to the right.
-
-    The wall is a long low strip, so the head fills the height and the
-    triangles run the full width. A white shutter band sits along the bottom.
-    """
+    """Graffmapping flamingo (SAC 13091). Painted field only — no lamp post, sky, or real window openings."""
     im = Image.new("RGB", (w, h), (48, 176, 196))
     d = ImageDraw.Draw(im, "RGBA")
     # faceted field, left to right, full height above the shutters
@@ -572,13 +570,7 @@ def paint_flamingo(w, h):
         (w * 0.46, h * 0.32), (w * 0.56, h * 0.34), (w * 0.52, h * 0.48), (w * 0.44, h * 0.44),
     ], fill=(236, 228, 220))
 
-    # upper windows on the right, dark rectangles in the colour field
-    for i, x in enumerate((0.62, 0.74, 0.86)):
-        d.rectangle([w * x, h * 0.06, w * (x + 0.07), h * 0.28], fill=(28, 32, 40))
-        d.rectangle([w * x, h * 0.06, w * (x + 0.07), h * 0.28], outline=(210, 214, 216), width=2)
-        d.line([(w * (x + 0.035), h * 0.08), (w * (x + 0.035), h * 0.26)], fill=(180, 184, 188), width=1)
-
-    # roller shutters
+    # roller shutters (painted band on the real wall)
     d.rectangle([0, shut, w, h], fill=(232, 232, 230))
     d.rectangle([0, shut, w, shut + max(3, h // 40)], fill=(190, 192, 194))
     step = max(8, w // 140)
@@ -844,22 +836,61 @@ def paint_mujer(w, h):
 
 
 def paint_declare(w, h):
-    im = Image.new("RGB", (w, h), (168, 132, 86))
+    """Nothing to declare / P.A.N. cornmeal box (SAC 13075). Hand-painted flat box face — no people or sky."""
+    im = Image.new("RGB", (w, h), (168, 128, 88))
     d = ImageDraw.Draw(im, "RGBA")
-    wash(d, (0, 0, w, h), (186, 148, 96), (120, 86, 52))
-    # doorway
-    d.rectangle([w * 0.22, h * 0.08, w * 0.78, h * 0.98], fill=(150, 112, 70))
-    # sack
+    wash(d, (0, 0, w, h), (194, 150, 102), (132, 96, 62))
+    # corrugated cardboard bands
+    for y in range(0, h, max(6, h // 48)):
+        d.line([(0, y), (w, y)], fill=(148, 108, 72, 40), width=1)
+    # main panel
+    d.rectangle([w * 0.08, h * 0.06, w * 0.94, h * 0.94], fill=(178, 132, 92))
+    d.rectangle([w * 0.10, h * 0.08, w * 0.92, h * 0.92], outline=(110, 78, 48), width=max(2, w // 200))
+    # folded top flap shadow
     d.polygon([
-        (w * 0.30, h * 0.18), (w * 0.70, h * 0.16), (w * 0.74, h * 0.88), (w * 0.26, h * 0.90),
-    ], fill=(196, 154, 96))
-    d.rectangle([w * 0.36, h * 0.28, w * 0.64, h * 0.62], outline=(40, 30, 20), width=2)
-    for i in range(8):
-        x = w * (0.38 + i * 0.03)
-        d.line([(x, h * 0.32), (x, h * 0.58)], fill=(20, 16, 14), width=2)
-    d.ellipse([w * 0.40, h * 0.64, w * 0.62, h * 0.82], fill=(210, 180, 60))
-    d.ellipse([w * 0.46, h * 0.68, w * 0.56, h * 0.78], fill=(40, 110, 50))
-    grain(im, 11, 16)
+        (w * 0.10, h * 0.08), (w * 0.92, h * 0.08), (w * 0.88, h * 0.16), (w * 0.14, h * 0.16),
+    ], fill=(140, 100, 68))
+    # teal P.A.N. oval
+    ox0, oy0, ox1, oy1 = w * 0.52, h * 0.22, w * 0.88, h * 0.62
+    d.ellipse([ox0, oy0, ox1, oy1], fill=(24, 118, 108))
+    d.ellipse([ox0 + w * 0.01, oy0 + h * 0.01, ox1 - w * 0.01, oy1 - h * 0.01], outline=(18, 90, 82), width=3)
+    # P.A.N. lettering
+    try:
+        from PIL import ImageFont
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", max(18, int(h * 0.11)))
+        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", max(10, int(h * 0.028)))
+    except OSError:
+        font = small = None
+    cx, cy = (ox0 + ox1) / 2, (oy0 + oy1) / 2
+    for ch, dx, col in (("P", -0.11, (248, 210, 60)), (".", -0.02, (248, 210, 60)), ("A", 0.06, (248, 180, 50)), (".", 0.14, (248, 180, 50)), ("N", 0.24, (240, 150, 40))):
+        d.text((cx + w * dx, cy - h * 0.05), ch, fill=col, font=font, anchor="mm")
+    # vertical product text
+    lines = [
+        "PRE-COOKED",
+        "WHITE CORN",
+        "MAIZ BLANCO",
+        "PRECOCIDA",
+        "10x100 g",
+    ]
+    ty = h * 0.20
+    for line in lines:
+        d.text((w * 0.14, ty), line, fill=(28, 24, 20), font=small)
+        ty += h * 0.055
+    # barcode block
+    bx0, by0 = w * 0.78, h * 0.22
+    d.rectangle([bx0, by0, w * 0.90, h * 0.58], fill=(248, 244, 236))
+    for i in range(28):
+        x = bx0 + (w * 0.12) * i / 28
+        bw = max(1, int(w * 0.0025 * (1 + (i % 3))))
+        d.rectangle([x, by0 + h * 0.02, x + bw, by0 + h * 0.34], fill=(30, 26, 22))
+    d.text((w * 0.84, h * 0.60), "B", fill=(20, 18, 16), font=small, anchor="mm")
+    # side flap tear (left)
+    d.polygon([
+        (w * 0.08, h * 0.10), (w * 0.18, h * 0.12), (w * 0.16, h * 0.88), (w * 0.08, h * 0.90),
+    ], fill=(156, 112, 76))
+    for y in range(int(h * 0.14), int(h * 0.86), max(5, h // 40)):
+        d.line([(w * 0.09, y), (w * 0.17, y + 2)], fill=(120, 86, 56), width=1)
+    grain(im, 11, 14)
     return im
 
 
@@ -877,6 +908,22 @@ PAINT = {
     "mujer_azul": paint_mujer,
     "nothing_to_declare": paint_declare,
 }
+
+
+def fit_atlas_tile(im: Image.Image, max_w: int = 2048) -> Image.Image:
+    w, h = im.size
+    if w <= max_w:
+        return im
+    nh = max(4, int(round(h * max_w / w)))
+    return im.resize((max_w, nh), Image.Resampling.LANCZOS)
+
+
+def mural_tile(spec: dict) -> Image.Image:
+    mid = spec["id"]
+    if mid in RECTIFIED_MURAL_IDS:
+        im = load_rectified_pil(mid)
+        return fit_atlas_tile(im)
+    return PAINT[mid](spec["pw"], spec["ph"])
 
 
 def pack(images):
@@ -964,8 +1011,8 @@ def main():
     images = []
     placed = []
     for spec in SPECS:
-        im = PAINT[spec["id"]](spec["pw"], spec["ph"])
-        if not spec.get("sharp"):
+        im = mural_tile(spec)
+        if spec["id"] not in RECTIFIED_MURAL_IDS and not spec.get("sharp"):
             im = im.filter(ImageFilter.SMOOTH)
         images.append(im)
         if spec.get("unwrap"):
@@ -973,7 +1020,7 @@ def main():
             continue
         b, w, dist, facing, t, qx, qz = choose_wall(spec["lat"], spec["lng"], spec["bld"], spec["wall"])
         # Fit the painted aspect inside the real wall.
-        aspect = spec["pw"] / spec["ph"]
+        aspect = im.size[0] / im.size[1]
         bld_h = float(b.get("h") or 3.4)
         if spec.get("fill"):
             # Edge to edge on this face. Paint aspect matches the wall.
@@ -1070,7 +1117,7 @@ def main():
     doc = {
         "atlas": "textures/sn_mural_atlas.jpg",
         "atlas_px": [aw, ah],
-        "note": "Original paintings. Public photos were visual reference only and are not embedded.",
+        "note": "Pilot murals (night_watcher, lionfish, flamingos, nothing_to_declare) are perspective-rectified from verified SAC photos with masks/inpaint; other tiles are procedural placeholders until rectified.",
         "hide_heroes": [
             {"id": "sn_lionfish", "x": 6518.5, "z": 9318.0, "why": "approximate lionfish panel sitting on the Prikichi wall"},
             {"id": "sn_owl", "x": 6376.3, "z": 9392.1, "why": "approximate owl about 80 m off the police-station Night Watcher"},
