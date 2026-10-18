@@ -100,6 +100,17 @@ def _crop_to_art(bgr: np.ndarray, art_poly: list[list[float]] | None) -> np.ndar
     return crop
 
 
+def apply_color_grade(bgr: np.ndarray, grade: dict[str, Any]) -> np.ndarray:
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
+    hsv[:, :, 1] *= float(grade.get("saturation", 1.0))
+    hsv[:, :, 2] *= float(grade.get("value", 1.0))
+    warm = float(grade.get("warmth", 0))
+    if warm:
+        hsv[:, :, 0] = (hsv[:, :, 0] + warm) % 180
+    hsv = np.clip(hsv, 0, 255)
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+
 def mild_color_balance(rgb: np.ndarray) -> np.ndarray:
     f = rgb.astype(np.float32)
     bh = max(2, int(f.shape[0] * 0.03))
@@ -136,13 +147,16 @@ def _process_face(
 
     warped = _warp_quad(bgr, face["src_quad"], out_w, out_h)
 
+    window_polys = list(face.get("window_polys") or [])
     mask = _polys_to_mask(
-        face.get("inpaint_polys") or [],
+        (face.get("inpaint_polys") or []) + window_polys,
         out_w,
         out_h,
         face.get("inpaint_rects"),
     )
     rad = int(face.get("inpaint_radius", 10))
+    if mask.any() and window_polys:
+        mask = cv2.dilate(mask, np.ones((7, 7), np.uint8), iterations=2)
     passes = int(face.get("inpaint_passes", 2 if mask.any() else 1))
     for _ in range(passes):
         warped = _inpaint(warped, mask, radius=rad)
@@ -170,6 +184,53 @@ def _stitch_horizontal(faces: list[np.ndarray], gap: int = 0) -> np.ndarray:
     return np.concatenate(parts, axis=1)
 
 
+def _warp_from_file(
+    ref_dir: Path,
+    photo_name: str,
+    src_quad: list,
+    target_h: int,
+    square: bool = False,
+) -> np.ndarray:
+    bgr = cv2.imread(str(ref_dir / photo_name))
+    if bgr is None:
+        raise RuntimeError(f"cannot read {photo_name}")
+    qw, qh = _quad_size(np.float32(src_quad))
+    if square:
+        out_w, out_h = target_h, target_h
+    else:
+        scale = target_h / max(qh, 1.0)
+        out_w = max(4, int(round(qw * scale)))
+        out_h = target_h
+    return _warp_quad(bgr, src_quad, out_w, out_h)
+
+
+def _composite_bottom(
+    top: np.ndarray,
+    bottom: np.ndarray,
+    split: float,
+    feather: float,
+) -> np.ndarray:
+    """Replace lower portion of top with bottom (same size), feathered."""
+    h, w = top.shape[:2]
+    if bottom.shape[:2] != (h, w):
+        bottom = cv2.resize(bottom, (w, h), interpolation=cv2.INTER_LANCZOS4)
+    # Match bottom color tone to top before blending.
+    top_lab = cv2.cvtColor(top, cv2.COLOR_BGR2LAB).astype(np.float32)
+    bot_lab = cv2.cvtColor(bottom, cv2.COLOR_BGR2LAB).astype(np.float32)
+    for c in range(3):
+        bot_lab[:, :, c] += top_lab[:, :, c].mean() - bot_lab[:, :, c].mean()
+    bottom = cv2.cvtColor(np.clip(bot_lab, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+    y0 = int(split * h)
+    f = max(1, int(feather * h))
+    out = top.copy()
+    out[y0 + f :] = bottom[y0 + f :]
+    for i in range(f):
+        a = i / max(1, f - 1)
+        y = y0 + i
+        out[y] = cv2.addWeighted(top[y], 1 - a, bottom[y], a, 0)
+    return out
+
+
 def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     ref_dir = REF_ROOT / mural_id
     cfg_path = ref_dir / "rectify.json"
@@ -188,7 +249,16 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
         bgr = _inpaint(bgr, sm, radius=int(cfg.get("src_inpaint_radius", 18)))
 
     th = int(cfg.get("target_h", target_h))
+    window_masks: dict[str, list] = {}
+    masks_path = ref_dir / "window_masks.json"
+    if masks_path.is_file():
+        window_masks = json.loads(masks_path.read_text())
+
     if cfg.get("faces"):
+        for i, f in enumerate(cfg["faces"]):
+            key = f.get("mask_key", f"face_{i}")
+            if key in window_masks:
+                f.setdefault("window_polys", []).extend(window_masks[key])
         warped_faces = [_process_face(bgr, f, th) for f in cfg["faces"]]
         warped = _stitch_horizontal(warped_faces, gap=int(cfg.get("stitch_gap", 0)))
     else:
@@ -199,9 +269,45 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
             "inpaint_rects": cfg.get("inpaint_rects"),
             "patch_rects": cfg.get("patch_rects"),
             "inpaint_radius": cfg.get("inpaint_radius", 10),
+            "inpaint_passes": cfg.get("inpaint_passes", 2),
             "art_poly": cfg.get("art_poly"),
         }
+        if "face_0" in window_masks:
+            face.setdefault("window_polys", []).extend(window_masks["face_0"])
         warped = _process_face(bgr, face, th)
+        for rect in cfg.get("cleanup_inpaint_rects") or []:
+            x0, y0, x1, y1 = rect
+            h, w = warped.shape[:2]
+            cm = np.zeros((h, w), dtype=np.uint8)
+            cv2.rectangle(
+                cm,
+                (int(x0 * w), int(y0 * h)),
+                (int(x1 * w), int(y1 * h)),
+                255,
+                -1,
+            )
+            warped = _inpaint(warped, cm, radius=int(cfg.get("cleanup_radius", 6)))
+
+    post_rects = cfg.get("post_inpaint_rects")
+    comp = cfg.get("composite")
+    if comp:
+        bottom = _warp_from_file(
+            ref_dir,
+            comp["bottom_photo"],
+            comp["bottom_src_quad"],
+            th,
+            bool(cfg.get("square")),
+        )
+        warped = _composite_bottom(
+            warped,
+            bottom,
+            float(comp.get("split", 0.7)),
+            float(comp.get("feather", 0.05)),
+        )
+        if post_rects:
+            h, w = warped.shape[:2]
+            pm = _polys_to_mask([], w, h, post_rects)
+            warped = _inpaint(warped, pm, radius=int(cfg.get("post_inpaint_radius", 8)))
 
     # Global inpaint on stitched result (person, pole, etc.)
     h, w = warped.shape[:2]
@@ -225,6 +331,9 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     r = int(margin.get("right", 0) * w)
     if t or b or l or r:
         warped = warped[t : h - b if b else h, l : w - r if r else w]
+
+    if cfg.get("color_grade"):
+        warped = apply_color_grade(warped, cfg["color_grade"])
 
     rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)
     if cfg.get("color_balance", True):
