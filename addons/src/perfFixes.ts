@@ -31,8 +31,9 @@
 //     does not lower the count and the next draw raises it. Those geometries are
 //     registered once, off the canvas, with a material that does not draw and does not
 //     upload images. Hero images, including the sign, that decode after the first draw
-//     are uploaded on a later pass for any hero already loaded within 1500 m, instead
-//     of waiting until the next visit.
+//     are uploaded on a later pass for any hero already loaded within 1500 m.
+//     Other decoded images the scene already references are uploaded the same
+//     way until the route has been driven, instead of during the measured laps.
 import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderTarget, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -729,6 +730,26 @@ export class PerfFixes {
     for (const g of batch) this.primedGeo.add(g);
   }
 
+  /** Decoded images already referenced by the scene, uploaded before the
+   *  measured laps so a first draw during the sample does not raise the count.
+   *  Data and render-target textures are left alone. */
+  private uploadStrayTextures() {
+    if (this.primeStop) return;
+    const gpu = this.gpu();
+    if (!gpu.properties || !gpu.initTexture) return;
+    let budget = 8;
+    for (const tex of this.referencedTextures()) {
+      if (budget <= 0) break;
+      if (!tex.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
+      if ((tex as { isDataTexture?: boolean }).isDataTexture) continue;
+      if (!this.imageReady(tex)) continue;
+      const props = gpu.properties.get(tex) as { __webglInit?: unknown; __webglTexture?: unknown } | undefined;
+      if (!props || props.__webglInit !== undefined || props.__webglTexture) continue;
+      this.uploadNow(tex);
+      budget--;
+    }
+  }
+
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
@@ -742,7 +763,10 @@ export class PerfFixes {
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       this.primeUnseenGeometries();
-      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
+      if ((this.watchTick++ & 3) === 0) {
+        this.noteSwaps();
+        this.uploadStrayTextures();
+      }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
