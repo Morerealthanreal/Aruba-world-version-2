@@ -15,6 +15,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
+from mural_rectify import RECTIFIED_MURAL_IDS, load_rectified_pil
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT_IMG = ROOT / "game" / "textures" / "sn_mural_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_murals.json"
@@ -908,6 +910,22 @@ PAINT = {
 }
 
 
+def fit_atlas_tile(im: Image.Image, max_w: int = 2048) -> Image.Image:
+    w, h = im.size
+    if w <= max_w:
+        return im
+    nh = max(4, int(round(h * max_w / w)))
+    return im.resize((max_w, nh), Image.Resampling.LANCZOS)
+
+
+def mural_tile(spec: dict) -> Image.Image:
+    mid = spec["id"]
+    if mid in RECTIFIED_MURAL_IDS:
+        im = load_rectified_pil(mid)
+        return fit_atlas_tile(im)
+    return PAINT[mid](spec["pw"], spec["ph"])
+
+
 def pack(images):
     """Shelf-pack tallest first so the two large tiles share rows with offcuts."""
     pad = 2
@@ -993,8 +1011,8 @@ def main():
     images = []
     placed = []
     for spec in SPECS:
-        im = PAINT[spec["id"]](spec["pw"], spec["ph"])
-        if not spec.get("sharp"):
+        im = mural_tile(spec)
+        if spec["id"] not in RECTIFIED_MURAL_IDS and not spec.get("sharp"):
             im = im.filter(ImageFilter.SMOOTH)
         images.append(im)
         if spec.get("unwrap"):
@@ -1002,7 +1020,7 @@ def main():
             continue
         b, w, dist, facing, t, qx, qz = choose_wall(spec["lat"], spec["lng"], spec["bld"], spec["wall"])
         # Fit the painted aspect inside the real wall.
-        aspect = spec["pw"] / spec["ph"]
+        aspect = im.size[0] / im.size[1]
         bld_h = float(b.get("h") or 3.4)
         if spec.get("fill"):
             # Edge to edge on this face. Paint aspect matches the wall.
@@ -1099,7 +1117,7 @@ def main():
     doc = {
         "atlas": "textures/sn_mural_atlas.jpg",
         "atlas_px": [aw, ah],
-        "note": "Original paintings. Public photos were visual reference only and are not embedded.",
+        "note": "Pilot murals (night_watcher, lionfish, flamingos, nothing_to_declare) are perspective-rectified from verified SAC photos with masks/inpaint; other tiles are procedural placeholders until rectified.",
         "hide_heroes": [
             {"id": "sn_lionfish", "x": 6518.5, "z": 9318.0, "why": "approximate lionfish panel sitting on the Prikichi wall"},
             {"id": "sn_owl", "x": 6376.3, "z": 9392.1, "why": "approximate owl about 80 m off the police-station Night Watcher"},

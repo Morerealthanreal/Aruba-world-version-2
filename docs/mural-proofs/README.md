@@ -1,10 +1,15 @@
 # Mural proof images
 
-Hand-painted mural pilot (PR workflow after #132 rejection):
+## Pilot workflow (Justin accuracy path)
 
-1. Download and verify the real wall photo → `refs/murals/<id>/street-photo.jpg` + `SOURCES.md`.
-2. Rebuild the artwork as a **flat hand-painted texture** in `tools/paint_sn_murals.py` (no crop/blur/posterize of the photo).
-3. Regenerate atlas: `python tools/paint_sn_murals.py`
-4. Build side-by-sides: `python tools/build_pilot_mural_proofs.py` → `docs/mural-proofs/<id>_pilot.jpg`
+1. Verify SAC photo → `refs/murals/<id>/street-photo.jpg` + `SOURCES.md`
+2. Define homography + masks → `refs/murals/<id>/rectify.json`
+3. Build flat tile: `python3 tools/mural_rectify.py`
+4. Pack atlas: `python3 tools/paint_sn_murals.py` (rectified IDs auto-used)
+5. Proofs: `python3 tools/build_pilot_mural_proofs.py` → `*_pilot.jpg`
 
-SAC recent murals stay **off by default** (`?snsacrecent=1` to preview).
+Rules: 4-point homography, mask sky/fixtures/people, inpaint or flat-fill obstructions, **light colour balance only** (no blur/posterize/grain).
+
+SAC recent: **off by default** (`?snsacrecent=1`).
+
+Perf estimate: `python3 tools/mural_atlas_perf.py`

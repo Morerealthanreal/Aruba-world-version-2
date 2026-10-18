@@ -20,8 +20,8 @@ export function loadMuralAtlas(path: string, renderer: WebGLRenderer): Promise<T
     job = new THREE.TextureLoader().loadAsync(key).then((tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-      tex.generateMipmaps = false;
-      tex.minFilter = THREE.LinearFilter;
+      tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
       bakeMuralAtlas(tex, renderer);
       ready.set(key, tex);
