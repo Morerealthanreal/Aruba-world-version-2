@@ -21,7 +21,7 @@ export class Helicopter {
   private readonly tmp = new THREE.Vector3();
   private readonly tmp2 = new THREE.Vector3();
   private readonly up = new THREE.Vector3(0, 1, 0);
-  private readonly camOffset = new THREE.Vector3(0, 4.5, -12);
+  private readonly camOffset = new THREE.Vector3(0, 5.4, -16);
   private readonly camLook = new THREE.Vector3();
 
   private collective = 0;
@@ -186,66 +186,71 @@ export class Helicopter {
   }
 
   private buildGeometry(): void {
-    // Layout: origin is REST_HEIGHT above the ground when parked, so the skids touch the ground there.
-    // Main rotor radius 3.3 m on a short mast, clear of the tail fin and the tail rotor.
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.4, metalness: 0.2 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 });
-    const accent = new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.45 });
-    const HUB_Y = 0.85;
+    // Robinson R44 Raven II, the type Aruba Heli Tours flew from the Seaport Marina Heliport:
+    // white cabin, blue cove, two-blade 10.06 m rotor, skid gear, tail rotor on the left.
+    // Origin is REST_HEIGHT above the ground when parked, so the skid bottoms touch there.
+    const white = new THREE.MeshStandardMaterial({ color: 0xf7f7f5, roughness: 0.38, metalness: 0.12 });
+    const blue = new THREE.MeshStandardMaterial({ color: 0x1a6fbf, roughness: 0.45, metalness: 0.08 });
+    const glass = new THREE.MeshStandardMaterial({ color: 0x2c6f86, roughness: 0.12, metalness: 0.25 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a2e32, roughness: 0.5, metalness: 0.2 });
+    const HUB_Y = 1.95;
+    const add = (mesh: THREE.Mesh, parent: THREE.Object3D = this.group) => { parent.add(mesh); return mesh; };
 
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 2.2), bodyMat);
-    cabin.position.set(0, -0.15, 0.2);
-    this.group.add(cabin);
+    const belly = add(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.42, 2.5), blue));
+    belly.position.set(0, -0.55, 0.35);
+    const cabin = add(new THREE.Mesh(new THREE.BoxGeometry(1.48, 1.05, 2.15), white));
+    cabin.position.set(0, 0.05, 0.15);
+    const nose = add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.85), glass));
+    nose.position.set(0, 0.02, 1.45);
+    nose.rotation.x = -0.18;
+    const door = add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.62, 0.85), glass));
+    door.position.set(0.74, 0.12, 0.25);
+    const doorL = door.clone();
+    doorL.position.x = -0.74;
+    this.group.add(doorL);
 
-    const tailBoom = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 3.2), bodyMat);
-    tailBoom.position.set(0, -0.05, -2.2);
-    this.group.add(tailBoom);
+    const boom = add(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 4.3, 8), white));
+    boom.rotation.x = Math.PI / 2;
+    boom.position.set(0, 0.05, -2.7);
+    const fin = add(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.85, 0.55), white));
+    fin.position.set(0, 0.45, -4.85);
+    const stab = add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.05, 0.28), white));
+    stab.position.set(0, 0.15, -4.55);
+    const stripe = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 3.6), blue));
+    stripe.position.set(0.12, 0.02, -2.5);
 
-    const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.5), accent);
-    tailFin.position.set(0, 0.3, -3.6);
-    this.group.add(tailFin);
+    const mast = add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.15, 8), dark));
+    mast.position.set(0, 1.25, 0.2);
 
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45, 6), darkMat);
-    mast.position.set(0, 0.62, 0);
-    this.group.add(mast);
-
-    // Main rotor (spins about Y)
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.15, 8), darkMat);
-    hub.position.y = HUB_Y;
-    this.mainRotor.add(hub);
-    for (let i = 0; i < 2; i++) {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 3.3), darkMat);
-      blade.position.set(0, HUB_Y, i === 0 ? 1.65 : -1.65);
-      this.mainRotor.add(blade);
+    this.mainRotor.position.set(0, 0, 0.2);
+    const hub = add(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.14, 8), dark), this.mainRotor);
+    hub.position.set(0, HUB_Y, 0);
+    // 5.03 m blades, symmetric about the mast so they spin on the mast axis.
+    for (const z of [2.515, -2.515]) {
+      const blade = add(new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.035, 5.03), dark), this.mainRotor);
+      blade.position.set(0, HUB_Y, z);
     }
-    this.mainRotor.position.y = 0;
 
-    // Tail rotor (disc in the YZ plane, spins about X)
-    const tHub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.08, 6), darkMat);
+    const tHub = add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 6), dark), this.tailRotor);
     tHub.rotation.z = Math.PI / 2;
-    this.tailRotor.add(tHub);
-    for (let i = 0; i < 2; i++) {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.5, 0.06), darkMat);
-      b.position.y = i === 0 ? 0.25 : -0.25;
-      this.tailRotor.add(b);
+    for (const y of [0.36, -0.36]) {
+      const b = add(new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.72, 0.08), dark), this.tailRotor);
+      b.position.y = y;
     }
-    this.tailRotor.position.set(0.2, 0.25, -3.55);
+    // R44 tail rotor is on the left. +X is the pilot's left in this frame.
+    this.tailRotor.position.set(0.22, 0.42, -5.15);
 
-    // Skids: bottoms at -REST_HEIGHT, struts up to the cabin floor
-    const skidMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.3 });
-    for (const side of [-0.7, 0.7]) {
-      const skid = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 2.4), skidMat);
-      skid.position.set(side, -REST_HEIGHT + 0.04, 0);
-      this.group.add(skid);
-      const strutF = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 5), skidMat);
-      strutF.position.set(side, -0.94, 0.6);
-      this.group.add(strutF);
-      const strutR = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 5), skidMat);
-      strutR.position.set(side, -0.94, -0.6);
-      this.group.add(strutR);
+    const skidMat = new THREE.MeshStandardMaterial({ color: 0x242424, metalness: 0.35, roughness: 0.45 });
+    for (const side of [-1.05, 1.05]) {
+      const skid = add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 3.15), skidMat));
+      skid.position.set(side, -REST_HEIGHT + 0.035, 0.15);
+      for (const z of [0.7, -0.55]) {
+        const strut = add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 5), skidMat));
+        strut.position.set(side, -0.88, z);
+      }
     }
 
-    const shadows = this.options.quality !== 'low'; // keep Low cheap: no shadow-pass draws for the heli
+    const shadows = this.options.quality !== 'low';
     this.group.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) {
         o.castShadow = shadows;

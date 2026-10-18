@@ -1,6 +1,7 @@
 // Glue between the SuperGrok Helicopter (TASK 11) and A's game. Off unless ?heli=1.
-// On foot, a small helicopter is parked on the nearest open, flat patch of dry ground (re-parked near you
-// whenever you walk more than 300 m away from it). Walk up and press H (or tap the prompt) to climb in.
+// An R44 is parked at the Seaport Marina Heliport in Oranjestad, where Aruba Heli Tours kept theirs.
+// The published pad sits on the marina pier; the DEM has no pier deck, so the skids sit on the nearest
+// flat ground just inland of that point. Walk up and press H (or tap the prompt) to climb in.
 // Controls: Space climb, Shift or Z descend, nothing held = hold altitude; W/S cyclic forward/back,
 // A/D cyclic left/right, Q/E (or Left/Right arrows) tail-rotor yaw, X (held) cuts the engine (autorotation),
 // H on the ground to climb out. Phone: gas = climb, brake = descend, joystick = cyclic, left/right buttons = yaw.
@@ -25,10 +26,11 @@ type Game = AGame & {
 };
 
 const SEA = 0;
-/** How close (m) the player has to be to climb in. */
-const BOARD_RADIUS = 9;
-/** Re-park the heli near the player once they are this far (m) from it. */
-const REPARK_DIST = 300;
+/** How close (m) the player has to be to climb in. The rotor is 10 m across, so the door is a short walk. */
+const BOARD_RADIUS = 12;
+/** Seaport Marina Heliport stand-in: flat ground inland of 12.5169, -70.0386 (the pier itself is below the DEM).
+ *  Nose points west, out over the harbour. */
+const HELIPAD = { x: -7380, z: 360, yaw: -Math.PI / 2 };
 /** Climb / descent rates (m/s) the altitude-hold loop aims for. */
 const CLIMB = 6;
 const DESCEND = -3.5;
@@ -45,7 +47,6 @@ export class HeliHook {
   private readonly prompt: HTMLDivElement;
   private readonly camPos = new Vector3();
   private placed = false;
-  private searchT = 0;
   private interactQueued = false;
   private hint = "";
   private hintT = 0;
@@ -114,14 +115,7 @@ export class HeliHook {
     if (heli.isOccupied && S.mode !== "walk") this.leave(false); // switched to car/moto/plane mid-flight
 
     if (!heli.isOccupied) {
-      if (S.mode === "walk") {
-        this.searchT -= dt;
-        const far = !this.placed || Math.hypot(heli.position.x - a.x, heli.position.z - a.z) > REPARK_DIST;
-        if (far && this.searchT <= 0) {
-          this.searchT = 0.5;
-          if (this.findPad(a.x, a.z)) this.park();
-        }
-      }
+      if (!this.placed) this.parkAtHeliport();
       if (this.placed && S.mode === "walk" && interact && this.near(a)) {
         this.board();
         interact = false; // one press boards; don't climb straight back out below
@@ -177,7 +171,7 @@ export class HeliHook {
     else if (heli.isOccupied) text = heli.isOnGround
       ? "H: climb out · Space: take off"
       : "Space up · Shift/Z down · W/S/A/D cyclic · Q/E yaw · X engine";
-    else if (this.placed && S.mode === "walk" && this.near(a)) text = "🚁 H: fly the helicopter";
+    else if (this.placed && S.mode === "walk" && this.near(a)) text = "H: board the helicopter";
     if (this.prompt.textContent !== text) this.prompt.textContent = text;
     const show = text ? "block" : "none";
     if (this.prompt.style.display !== show) this.prompt.style.display = show;
@@ -188,10 +182,18 @@ export class HeliHook {
     return Math.hypot(p.x - a.x, p.z - a.z) < BOARD_RADIUS;
   }
 
-  private park(): void {
+  /** Park once on the Seaport stand. Retry until the terrain tile has a real height. */
+  private parkAtHeliport(): void {
+    const h = this.hAt(HELIPAD.x, HELIPAD.z);
+    if (!(h > 1)) return;
+    if (this.padOk(HELIPAD.x, HELIPAD.z)) {
+      this.spot.x = HELIPAD.x; this.spot.z = HELIPAD.z; this.spot.y = h;
+    } else if (!this.findPad(HELIPAD.x, HELIPAD.z)) {
+      this.spot.x = HELIPAD.x; this.spot.z = HELIPAD.z; this.spot.y = h;
+    }
     const grp = this.heli.group;
     grp.position.set(this.spot.x, this.spot.y + REST_HEIGHT, this.spot.z);
-    grp.rotation.set(0, Math.random() * Math.PI * 2, 0);
+    grp.rotation.set(0, HELIPAD.yaw, 0);
     grp.visible = true;
     this.placed = true;
   }
