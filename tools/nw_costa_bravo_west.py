@@ -184,38 +184,83 @@ def add_balcony(b, a, c, g, ox, oz, ux, uz):
     o1 = (c1[0] + ox * depth, y, c1[2] + oz * depth)
     b.quad(0, "white", [c0, c1, o1, o0], (0, 1, 0))
     b.quad(0, "white", [o0, o1, c1, c0], (0, -1, 0))
-    rail_y0, rail_y1 = y + 0.04, y + 0.92
-    b.beam(0, "iron", (o0[0], rail_y1, o0[2]), (o1[0], rail_y1, o1[2]), 0.02, 0.018)
-    steps = 5
+    rail_y0, rail_y1 = y + 0.05, y + 0.95
+    b.beam(0, "iron", (o0[0], rail_y1, o0[2]), (o1[0], rail_y1, o1[2]), 0.035, 0.03)
+    b.beam(0, "iron", (o0[0], rail_y0 + 0.08, o0[2]), (o1[0], rail_y0 + 0.08, o1[2]), 0.02, 0.018)
+    steps = 6
     for i in range(steps + 1):
         t = i / steps
         x = o0[0] + (o1[0] - o0[0]) * t
         z = o0[2] + (o1[2] - o0[2]) * t
-        b.box(0, "iron", x - 0.02, rail_y0, z - 0.02, x + 0.02, rail_y1, z + 0.02)
+        b.box(0, "iron", x - 0.028, rail_y0, z - 0.028, x + 0.028, rail_y1, z + 0.028)
     # Side rails back to the wall.
     for end in (o0, o1):
         wall = (end[0] - ox * depth, rail_y1, end[2] - oz * depth)
-        b.beam(0, "iron", (end[0], rail_y1, end[2]), wall, 0.018, 0.016)
+        b.beam(0, "iron", (end[0], rail_y1, end[2]), wall, 0.03, 0.025)
     yaw = math.atan2(uz, ux)
     coast.add_opening(b, mx + ox * 0.12, mz + oz * 0.12, g + 2.85, yaw)
 
 
+def _frond(b, lod, mat, crown, ang, reach, lift, droop, width, steps):
+    """A flat arched leaf, not a stick. Both faces, because the shared material is single-sided."""
+    sx, sz = -math.sin(ang), math.cos(ang)
+    pts = []
+    for s in range(steps + 1):
+        t = s / steps
+        rad = 0.12 + reach * t
+        y = crown[1] + math.sin(t * math.pi) * lift - t * droop
+        pts.append((crown[0] + math.cos(ang) * rad, y, crown[2] + math.sin(ang) * rad))
+    for s in range(steps):
+        t0, t1 = s / steps, (s + 1) / steps
+        w0, w1 = width * (1.0 - 0.72 * t0), width * (1.0 - 0.72 * t1)
+        p, q = pts[s], pts[s + 1]
+        a = (p[0] - sx * w0, p[1], p[2] - sz * w0)
+        c = (p[0] + sx * w0, p[1], p[2] + sz * w0)
+        d = (q[0] + sx * w1, q[1], q[2] + sz * w1)
+        e = (q[0] - sx * w1, q[1], q[2] - sz * w1)
+        b.quad(lod, mat, [a, c, d, e], (0, 1, 0))
+        b.quad(lod, mat, [c, a, e, d], (0, -1, 0))
+
+
 def add_palm(b, x, z):
     g = coast.mesh_height(x, z)
-    cx, cz, y = x, z, g - 0.05
-    for i in range(4):
-        ny = y + 1.15
-        b.cyl(0, "trunk", cx, y, cz, 0.16 - i * 0.015, ny, 0.13 - i * 0.012, 6)
-        cx, cz, y = cx + 0.04, cz + 0.02, ny
-    b.cyl(1, "trunk", x, g, z, 0.12, g + 4.2, 0.07, 5)
-    for k in range(7):
-        ang = k * math.tau / 7.0
-        mid = (cx + math.cos(ang) * 0.9, y + 0.25, cz + math.sin(ang) * 0.9)
-        tip = (cx + math.cos(ang) * 2.1, y - 0.4, cz + math.sin(ang) * 2.1)
-        b.beam(0, "palm", (cx, y + 0.1, cz), mid, 0.09, 0.03)
-        b.beam(0, "palm", mid, tip, 0.05, 0.018)
-        if k % 2 == 0:
-            b.beam(1, "palm", (cx, y, cz), tip, 0.07, 0.03)
+    cx, cz, y = x, z, g - 0.04
+    for i in range(5):
+        ny = y + 1.05
+        b.cyl(0, "trunk", cx, y, cz, 0.20 - i * 0.02, ny, 0.16 - i * 0.018, 7)
+        cx, cz, y = cx + 0.03, cz + 0.015, ny
+    b.cyl(1, "trunk", x, g, z, 0.13, g + 4.8, 0.07, 5)
+    crown = (cx, y + 0.08, cz)
+    for k in range(12):
+        ang = k * math.tau / 12.0
+        _frond(b, 0, "palm" if k % 2 == 0 else "palmd", crown, ang, 2.55, 0.95, 1.15, 0.20, 4)
+    for k in range(8):
+        ang = k * math.tau / 8.0 + 0.2
+        _frond(b, 0, "palm", crown, ang, 1.55, 0.7, 0.35, 0.14, 3)
+    for k in range(5):
+        ang = k * math.tau / 5.0
+        tip = (crown[0] + math.cos(ang) * 2.2, crown[1] - 0.35, crown[2] + math.sin(ang) * 2.2)
+        b.beam(1, "palm", crown, tip, 0.06, 0.02)
+
+
+def add_shrub(b, x, z, scale=1.0):
+    """A low rounded bush in the parking strip. Domes, not a star of sticks."""
+    g = coast.mesh_height(x, z)
+    layers = ((0.16, 0.62, 0.08), (0.34, 0.78, 0.22), (0.22, 0.42, 0.52))
+    for li, (ry, rad, yoff) in enumerate(layers):
+        y = g + yoff * scale
+        sides = 7
+        mat = "shrub" if li % 2 == 0 else "shrubd"
+        ring = []
+        for i in range(sides):
+            ang = i * math.tau / sides + li * 0.3
+            ring.append((x + math.cos(ang) * rad * scale, y, z + math.sin(ang) * rad * scale))
+        crown = (x, y + ry * scale, z)
+        for i in range(sides):
+            j = (i + 1) % sides
+            b.tri(0, mat, ring[i], ring[j], crown, (0, 1, 0))
+        if li == 1:
+            b.cyl(1, "shrub", x, g, z, 0.28 * scale, g + 0.55 * scale, 0.16 * scale, 5)
 
 
 def add_pad(b, mx, mz, ox, oz, ux, uz, g):
@@ -276,9 +321,12 @@ def build():
     b.mat("wood", (0.42, 0.30, 0.20), 0.72)
     b.mat("iron", (0.22, 0.23, 0.24), 0.5)
     b.mat("trunk", coast.TRUNK, 0.9)
-    b.mat("palm", (0.20, 0.40, 0.16), 0.8)
-    b.mat("pad", (0.72, 0.70, 0.66), 0.9)
-    stucco = ((0.94, 0.91, 0.86), (0.90, 0.84, 0.74), (0.86, 0.80, 0.70))
+    b.mat("palm", (0.18, 0.46, 0.16), 0.78)
+    b.mat("palmd", (0.12, 0.32, 0.12), 0.82)
+    b.mat("shrub", (0.22, 0.42, 0.16), 0.84)
+    b.mat("shrubd", (0.14, 0.30, 0.12), 0.86)
+    b.mat("pad", (0.46, 0.44, 0.40), 0.94)
+    stucco = ((0.90, 0.78, 0.58), (0.86, 0.74, 0.54), (0.93, 0.84, 0.66))
     for i, rgb in enumerate(stucco):
         b.mat(f"w{i}", rgb, 0.82)
 
@@ -320,9 +368,19 @@ def build():
             far_pad = closest(bravo, mx + out_x * 5.5, mz + out_z * 5.5)
             if far_pad and far_pad[0] > 3.4:
                 add_pad(b, mx, mz, out_x, out_z, ux, uz, gnd)
-            px, pz = mx + out_x * 6.2, mz + out_z * 6.2
-            if closest(bravo, px, pz)[0] > 3.6 and not on_any(polys, px, pz) and idx % 2 == 0:
+            # Palms sit in the strip beside the pad, the way the satellite shows them
+            # between the bays, not as a stick in the middle of the driveway.
+            side = 1.0 if idx % 2 == 0 else -1.0
+            span = edge_len(a, c)
+            px = mx + ux * side * min(1.7, span * 0.34) + out_x * 4.6
+            pz = mz + uz * side * min(1.7, span * 0.34) + out_z * 4.6
+            if closest(bravo, px, pz)[0] > 3.2 and not on_any(polys, px, pz):
                 add_palm(b, px, pz)
+                plants += 1
+            sx = mx - ux * side * 0.9 + out_x * 2.4
+            sz = mz - uz * side * 0.9 + out_z * 2.4
+            if closest(bravo, sx, sz)[0] > 2.4 and not on_any(polys, sx, sz):
+                add_shrub(b, sx, sz, 0.7)
                 plants += 1
         hides.append([round(pt[0], 1), round(pt[1], 1)])
 
@@ -461,7 +519,8 @@ def entry(ox, oz, y0, tris, hides):
         "ref_sources": (
             "North side of Costa Bravo between Diamante and Sero Callejón. "
             "Satellite of this block (https://www.google.com/maps/@12.599858,-70.043234,131m/data=!3m1!1e3) "
-            "shows repeating red-tile townhouse bays, palms, and parking. "
+            "shows repeating red-tile gable bays facing Costa Bravo, with palms and shrubs in the parking strip. "
+            "There is no Street View on this carriageway. "
             "Gold Coast Diamante 75 (https://remaxaruba.com/property/details/gold-coast-diamante-75) "
             "is a two-storey corner unit on this row: upstairs bedrooms with balconies. "
             "Original geometry, no photos in the mesh."
