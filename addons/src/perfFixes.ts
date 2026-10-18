@@ -25,13 +25,16 @@
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
 //     that swaps geometry disposes the previous one. That geometry check is every fourth
 //     frame; running it every frame left the forced-GC heap with almost no room.
-//     Meshes that were built and then hidden never reached the GPU, so the next drive
-//     uploaded them and the count climbed after the scene itself had settled. A few of
-//     those are drawn once, off to the side of the real frame, so both measure cycles
-//     already include them. Hero images, including the sign, that decode after that
-//     first draw are uploaded on a later pass for any hero already loaded within
-//     1500 m, instead of waiting until the next visit.
-import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
+//     renderer.info.memory.geometries only grows inside WebGLGeometries.get, which runs
+//     from a real scene render. A hidden mesh, a chunk that changes LOD before it is
+//     drawn, or an overview block's other LOD levels never enter that map, so dispose
+//     does not lower the count and the next draw raises it. Those geometries are
+//     registered once, off the canvas, with a material that does not draw and does not
+//     upload images. Hero images, including the sign, that decode after the first draw
+//     are uploaded on a later pass for any hero already loaded within 1500 m, and any
+//     other image already referenced by the scene is uploaded the same way, instead of
+//     waiting until a later visit.
+import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderTarget, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
 import { TileInstances } from "./tileInst";
@@ -96,7 +99,15 @@ export class PerfFixes {
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
-  private primeIdle = 0;
+  private primeScene: Scene | null = null;
+  private primeMat: MeshBasicMaterial | null = null;
+  private primeTarget: WebGLRenderTarget | null = null;
+  private primeCam: PerspectiveCamera | null = null;
+  private primeHolders: Mesh[] = [];
+  private primeEmpty = new BufferGeometry();
+  private primeSentinel = new BufferGeometry();
+  private primeLive = false;
+  private primeQuiet = 0;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -584,56 +595,148 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
-  /** A mesh the camera never drew is absent from renderer.info until a later drive.
-   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
-   *  irrelevant: renderBufferDirect does not consult them. */
+  /** Register geometries the camera has not drawn yet.
+   *
+   *  WebGLGeometries.get (the call that raises info.memory.geometries and arms
+   *  dispose) runs from projectObject, not from renderBufferDirect. Chunk LOD
+   *  swaps and overview blocks then dispose a geometry that was never counted,
+   *  and the replacement raises the count while the live scene does not.
+   *  A scratch scene render hits projectObject. The material stays invisible,
+   *  so nothing is drawn and no image is uploaded. The 1x1 target keeps this
+   *  off the canvas. */
   private primeUnseenGeometries() {
-    if (this.primeIdle > 0) { this.primeIdle--; return; }
-    const renderer = this.g.renderer as unknown as {
-      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
+    if (this.primeQuiet > 0) this.primeQuiet--;
+    const scanScene = this.primeQuiet === 0;
+    const batch: BufferGeometry[] = [];
+    const seen = new Set<BufferGeometry>();
+    const limit = 16;
+    const add = (g?: BufferGeometry | null) => {
+      if (!g || g === this.primeEmpty || !g.isBufferGeometry) return;
+      if (this.primedGeo.has(g) || seen.has(g) || batch.length >= limit) return;
+      seen.add(g);
+      batch.push(g);
     };
-    if (!renderer.renderBufferDirect) return;
-    const cam = this.g.camera;
-    let budget = 16;
-    const draw = (mesh: Obj | null | undefined) => {
-      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
-      if (this.primedGeo.has(mesh.geometry)) return;
-      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      if (!mat) return;
-      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
-      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
-      if (savedCount !== undefined) inst.count = 1;
-      try {
-        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
-        this.primedGeo.add(mesh.geometry);
-        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
-        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
-        budget--;
-      } catch {
-        // A mesh that cannot draw here would otherwise sit at the front of the walk
-        // and spend the budget forever. The normal frame can still upload it.
-        this.primedGeo.add(mesh.geometry);
-      } finally {
-        if (savedCount !== undefined) inst.count = savedCount;
-      }
+    const lodsOf = (o: Obj | null | undefined) => {
+      const lods = (o?.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
+      if (!lods) return;
+      for (const g of lods) add(g);
     };
-    const walk = (root: Obj | null | undefined) => {
-      if (!root || budget <= 0) return;
-      const stack: Obj[] = [root];
-      while (stack.length && budget > 0) {
+    const world = this.real as unknown as { ovBlocks?: Obj[] };
+    for (const block of world.ovBlocks || []) {
+      add(block.geometry);
+      lodsOf(block);
+    }
+    for (const r of this.real.regions.values()) {
+      if (batch.length >= limit) break;
+      const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; roadMesh?: Obj };
+      for (const c of extra.chunks || []) add(c.mesh?.geometry);
+      extra.roadMesh?.traverse((o) => add((o as Obj).geometry));
+      for (const b of r.__awBB || []) add(b.bm.geometry);
+    }
+    if (scanScene && batch.length < limit) {
+      const stack: Obj[] = [this.g.scene as unknown as Obj];
+      while (stack.length && batch.length < limit) {
         const o = stack.pop()!;
-        draw(o);
+        add(o.geometry);
+        lodsOf(o);
         for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
       }
-    };
-    for (const r of this.real.regions.values()) {
-      if (budget <= 0) break;
-      if (r.state === "loading" || r.state === "failed") continue;
-      walk(r.group);
-      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
     }
-    if (budget > 0) walk(this.real.hero?.group);
-    if (budget === 16) this.primeIdle = 2;
+    if (!batch.length) {
+      if (scanScene) this.primeQuiet = 4;
+      return;
+    }
+    this.primeQuiet = 0;
+    if (!this.primeScene || !this.primeMat || !this.primeTarget || !this.primeCam) {
+      this.primeScene = new Scene();
+      this.primeMat = new MeshBasicMaterial();
+      this.primeMat.visible = false;
+      this.primeTarget = new WebGLRenderTarget(1, 1);
+      this.primeCam = new PerspectiveCamera();
+      for (let i = 0; i < limit + 1; i++) {
+        const holder = new Mesh(this.primeEmpty, this.primeMat);
+        holder.frustumCulled = false;
+        holder.matrixAutoUpdate = false;
+        holder.layers.enableAll();
+        holder.visible = false;
+        this.primeScene.add(holder);
+        this.primeHolders.push(holder);
+      }
+    }
+    const holders = this.primeHolders;
+    const renderer = this.g.renderer;
+    const renderHolders = () => {
+      const prevTarget = renderer.getRenderTarget();
+      const prevSort = renderer.sortObjects;
+      const prevClear = renderer.autoClear;
+      const shadow = renderer.shadowMap;
+      const prevAuto = shadow.autoUpdate;
+      const prevNeed = shadow.needsUpdate;
+      const before = renderer.info.memory.geometries;
+      renderer.sortObjects = false;
+      renderer.autoClear = false;
+      shadow.autoUpdate = false;
+      shadow.needsUpdate = false;
+      let threw = false;
+      let grew = false;
+      try {
+        renderer.setRenderTarget(this.primeTarget);
+        renderer.render(this.primeScene!, this.primeCam!);
+        grew = renderer.info.memory.geometries > before;
+      } catch {
+        threw = true;
+      } finally {
+        renderer.sortObjects = prevSort;
+        renderer.autoClear = prevClear;
+        shadow.autoUpdate = prevAuto;
+        shadow.needsUpdate = prevNeed;
+        renderer.setRenderTarget(prevTarget);
+        for (const holder of holders) {
+          holder.visible = false;
+          holder.geometry = this.primeEmpty;
+        }
+      }
+      return { threw, grew };
+    };
+    if (!this.primeLive) {
+      holders[limit].visible = true;
+      holders[limit].geometry = this.primeSentinel;
+      const probe = renderHolders();
+      if (probe.threw || !probe.grew) return;
+      this.primeLive = true;
+      this.primedGeo.add(this.primeSentinel);
+    }
+    for (let i = 0; i < limit; i++) {
+      const geo = batch[i];
+      holders[i].visible = !!geo;
+      holders[i].geometry = geo || this.primeEmpty;
+    }
+    const primed = renderHolders();
+    if (primed.threw) {
+      // projectObject threw on the first geometry. Skip it so the walk moves on.
+      if (batch[0]) this.primedGeo.add(batch[0]);
+      return;
+    }
+    for (const g of batch) this.primedGeo.add(g);
+  }
+
+  /** Images already on a live mesh, decoded, and not yet on the GPU. Uploading
+   *  them here means a later sample does not count the first upload. Data and
+   *  render-target textures are left alone. */
+  private uploadStrayTextures() {
+    const gpu = this.gpu();
+    if (!gpu.properties || !gpu.initTexture) return;
+    let budget = 8;
+    for (const tex of this.referencedTextures()) {
+      if (budget <= 0) break;
+      if (!tex.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
+      if ((tex as { isDataTexture?: boolean }).isDataTexture) continue;
+      if (!this.imageReady(tex)) continue;
+      const props = gpu.properties.get(tex) as { __webglInit?: unknown; __webglTexture?: unknown } | undefined;
+      if (!props || props.__webglInit !== undefined || props.__webglTexture) continue;
+      this.uploadNow(tex);
+      budget--;
+    }
   }
 
   /** Runs right after A's per-frame world update, before A renders. */
@@ -641,13 +744,17 @@ export class PerfFixes {
     const A = this.real;
     const orig = A.update.bind(A);
     A.update = (...a: unknown[]) => {
+      // Before the world update, so a chunk or overview swap disposes a geometry
+      // that is already in the GPU map and the count does not climb.
+      this.primeUnseenGeometries();
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
+      this.primeUnseenGeometries();
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
-        this.primeUnseenGeometries();
+        this.uploadStrayTextures();
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
