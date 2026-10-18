@@ -1,0 +1,102 @@
+{
+ "place": "riu",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "riu_antillas.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/workspace/landmarks/refs/riu_antillas.jpg"
+  },
+  {
+   "file": "riu_palace_2015.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/workspace/landmarks/refs/riu_palace_2015.jpg"
+  },
+  {
+   "file": "riu_highrisehotelsarubajpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_HighrisehotelsArubajpg.jpg"
+  },
+  {
+   "file": "riu_hotelriupalacearubain2015jpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_HotelRiuPalaceArubain2015jpg.jpg"
+  },
+  {
+   "file": "riu_riuarubajpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_RIUARUBAjpg.jpg"
+  },
+  {
+   "file": "riu_riupalaceantillasarubajpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_RIUPalaceAntillasArubajpg.jpg"
+  },
+  {
+   "file": "riu_riuarubaresort183153177000jpeg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_RiuArubaResort183153177000jpeg.jpg"
+  },
+  {
+   "file": "riu_riuarubaresortjpeg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "RIU hotels",
+   "original_path": "/tmp/refs/riu_RiuArubaResortjpeg.jpg"
+  }
+ ]
+}

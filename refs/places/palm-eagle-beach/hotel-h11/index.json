@@ -1,0 +1,90 @@
+{
+ "place": "hotel-h11",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "h11_amsterdam.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=amsterdam",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.555622,
+   "lon": -70.054643,
+   "heading": 270.8,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_amsterdam.jpg"
+  },
+  {
+   "file": "h11_laquinta.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=laquinta",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.546416,
+   "lon": -70.059219,
+   "heading": 297.7,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_laquinta.jpg"
+  },
+  {
+   "file": "h11_divephoenix.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=divephoenix",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.562894,
+   "lon": -70.051987,
+   "heading": 56.7,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_divephoenix.jpg"
+  },
+  {
+   "file": "h11_rb_pbboulders.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=rb_pbboulders",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.553276,
+   "lon": -70.051494,
+   "heading": 118.0,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_rb_pbboulders.jpg"
+  },
+  {
+   "file": "h11_pin_t_sup_casa_houseware.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=pin_t_sup_casa_houseware",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.553119,
+   "lon": -70.051338,
+   "heading": 154.1,
+   "date": null,
+   "shows": "street-level view toward h11 (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11_pin_t_sup_casa_houseware.jpg"
+  },
+  {
+   "file": "h11b_lacabana_ring.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=lacabana_ring",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.55415,
+   "lon": -70.054853,
+   "heading": 194.4,
+   "date": null,
+   "shows": "street-level view toward h11b (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11b_lacabana_ring.jpg"
+  },
+  {
+   "file": "h11b_embassysuites.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=embassysuites",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / None",
+   "lat": 12.562863,
+   "lon": -70.052095,
+   "heading": 243.2,
+   "date": null,
+   "shows": "street-level view toward h11b (~None m away)",
+   "original_path": "/workspace/landmarks/mly/h11b_embassysuites.jpg"
+  }
+ ]
+}
