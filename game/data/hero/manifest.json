@@ -63127,5 +63127,68 @@
   "ref_sources": "Sea grape is the low round bush on the dune between the sand and J.E. Irausquin, placed where the aerial is dark green and clear of the fofoti. A colour sheet in the shallows shadowed the dry sand, so the beach grain and the island water shader stay as they are. Hotel windows sit on the beach face of each resort hero. Boulevard lamps and the palapa-bar strings are emissive glow, the same cheap night read used elsewhere on the map. Existing resort heroes and the fofoti sets are left in place. Original geometry.",
   "frame": "glb origin = centroid of the sea grape and the shallow samples; landmarks/eagle_dusk.py",
   "cat": "landmark"
+ },
+ {
+  "id": "snmain_bars",
+  "k": "snmain_bars",
+  "name": "",
+  "status": "accuracy-sn-bars",
+  "x": 6942.83,
+  "z": 9661.86,
+  "y": 13.21,
+  "rotation": 0,
+  "glb": "models/hero/snmain_bars.glb",
+  "lod": {
+   "hi": "snmain_bars_lod0",
+   "lo": "snmain_bars_lod1",
+   "switch_m": 150
+  },
+  "tris": {
+   "snmain_bars_lod0": 902,
+   "snmain_bars_lod1": 60
+  },
+  "textures": 0,
+  "hide_footprint": [
+   [
+    6927.1,
+    9664.2
+   ],
+   [
+    6931.1,
+    9650.7
+   ],
+   [
+    6937.6,
+    9652.6
+   ],
+   [
+    6958.1,
+    9658.8
+   ],
+   [
+    6953.8,
+    9673.0
+   ],
+   [
+    6949.1,
+    9671.6
+   ],
+   [
+    6944.5,
+    9670.2
+   ],
+   [
+    6933.2,
+    9666.5
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": false,
+  "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
+  "ref_sources": "Zeppenfeldstraat east of Charlie's. Nano's roof is the greyer aerial median; the other lots share one tan roof so the row stays inside the phone geometry budget. Each OSM shop has its own sign, drawn as white letters (NANO'S, SHIRLEY'S, HOOLO!, BONGO) so the row does not add a texture. Wall colours are the painted range of this street; no front-on photo of these four doors was found. The two unnamed lots stay two-storey and share a cream wall. Charlie's, Fan Bar, and the sn_* mural set are unchanged.",
+  "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "store"
  }
 ]
