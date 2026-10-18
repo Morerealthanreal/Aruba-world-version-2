@@ -1,0 +1,64 @@
+name: Build & deploy (surge)
+# Manual-only until verified. To go live on every push to main, add:
+#   push: { branches: [main] }
+# and change the default domain below to aruba-world-justin.surge.sh.
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Surge domain to deploy to"
+        default: "aruba-world-justin-preview.surge.sh"
+        required: true
+      run_tests:
+        description: "Run Playwright e2e/screenshot tests (slow, non-blocking)"
+        type: boolean
+        default: false
+concurrency:
+  group: surge-${{ github.event.inputs.domain || 'aruba-world-justin.surge.sh' }}
+  cancel-in-progress: false
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DOMAIN: ${{ github.event.inputs.domain || 'aruba-world-justin.surge.sh' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install add-on deps
+        run: npm ci --prefix addons
+      - name: Build deploy/
+        run: sh make-deploy.sh && echo "$DOMAIN" > deploy/CNAME
+      - name: Manifest check (built vs previous commit)
+        run: |
+          if git show HEAD~1:game/data/hero/manifest.json > /tmp/prev.json 2>/dev/null; then
+            python3 tools/check_manifest.py /tmp/prev.json deploy/data/hero/manifest.json
+          else echo "no previous manifest; skipping"; fi
+      - name: Manifest check (built vs currently live, warn only)
+        continue-on-error: true
+        run: |
+          curl -fsS --max-time 60 "https://aruba-world-justin.surge.sh/data/hero/manifest.json?nc=$(date +%s)" -o /tmp/live.json
+          python3 tools/check_manifest.py /tmp/live.json deploy/data/hero/manifest.json
+      - name: Playwright tests (non-blocking)
+        if: ${{ github.event.inputs.run_tests == 'true' }}
+        continue-on-error: true
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          CI=1 npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: test-artifacts, path: tests/artifacts, if-no-files-found: ignore }
+      - name: Deploy to surge
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+          SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+        run: npx --yes surge@latest ./deploy "$DOMAIN"
+      - name: Verify
+        run: |
+          sleep 5
+          curl -fsS --max-time 60 -o /dev/null -w "index: %{http_code}\n" "https://$DOMAIN/?q=low"
+          curl -fsS --max-time 60 "https://$DOMAIN/data/hero/manifest.json?nc=$(date +%s)" -o /tmp/dep.json
+          python3 tools/check_manifest.py deploy/data/hero/manifest.json /tmp/dep.json
