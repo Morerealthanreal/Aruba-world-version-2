@@ -25,6 +25,10 @@
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
 //     that swaps geometry disposes the previous one. That geometry check is every fourth
 //     frame; running it every frame left the forced-GC heap with almost no room.
+//     Meshes that were built and then hidden never reached the GPU, so the next drive
+//     uploaded them and the count climbed after the scene itself had settled. A few of
+//     those are drawn once, off to the side of the real frame, so both measure cycles
+//     already include them.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -83,6 +87,8 @@ export class PerfFixes {
   private liveRegionGeo = new Set<BufferGeometry>();
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
+  private primedGeo = new WeakSet<BufferGeometry>();
+  private primeIdle = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -503,6 +509,58 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
+  /** A mesh the camera never drew is absent from renderer.info until a later drive.
+   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
+   *  irrelevant: renderBufferDirect does not consult them. */
+  private primeUnseenGeometries() {
+    if (this.primeIdle > 0) { this.primeIdle--; return; }
+    const renderer = this.g.renderer as unknown as {
+      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
+    };
+    if (!renderer.renderBufferDirect) return;
+    const cam = this.g.camera;
+    let budget = 16;
+    const draw = (mesh: Obj | null | undefined) => {
+      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
+      if (this.primedGeo.has(mesh.geometry)) return;
+      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!mat) return;
+      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
+      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
+      if (savedCount !== undefined) inst.count = 1;
+      try {
+        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
+        this.primedGeo.add(mesh.geometry);
+        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
+        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
+        budget--;
+      } catch {
+        // A mesh that cannot draw here would otherwise sit at the front of the walk
+        // and spend the budget forever. The normal frame can still upload it.
+        this.primedGeo.add(mesh.geometry);
+      } finally {
+        if (savedCount !== undefined) inst.count = savedCount;
+      }
+    };
+    const walk = (root: Obj | null | undefined) => {
+      if (!root || budget <= 0) return;
+      const stack: Obj[] = [root];
+      while (stack.length && budget > 0) {
+        const o = stack.pop()!;
+        draw(o);
+        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
+      }
+    };
+    for (const r of this.real.regions.values()) {
+      if (budget <= 0) break;
+      if (r.state === "loading" || r.state === "failed") continue;
+      walk(r.group);
+      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
+    }
+    if (budget > 0) walk(this.real.hero?.group);
+    if (budget === 16) this.primeIdle = 2;
+  }
+
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
@@ -511,7 +569,10 @@ export class PerfFixes {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       this.warmRegionTextures();
-      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
+      if ((this.watchTick++ & 3) === 0) {
+        this.noteSwaps();
+        this.primeUnseenGeometries();
+      }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
