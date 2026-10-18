@@ -1,0 +1,28 @@
+{
+  "place": "ritz",
+  "area": "palm-eagle-beach",
+  "photos": [
+    {
+      "file": "yt_b3OMuBzd69w_street.jpg",
+      "source_url": "https://www.youtube.com/watch?v=b3OMuBzd69w",
+      "license": "unknown - reference only",
+      "credit": "video still, street approach Dec 2022; rights belong to the original author",
+      "lat": 12.583,
+      "lon": -70.044,
+      "heading": "west, toward the arrival court from the drive",
+      "date": "2022-12",
+      "shows": "pale yellow arrival block, white cornices, red-tile hip, tall arched window over three ground arches"
+    },
+    {
+      "file": "esri_aerial.jpg",
+      "source_url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "license": "Esri World Imagery / Maxar - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Esri, Maxar. Red outline is the OSM footprint of hero ritz.",
+      "lat": 12.583,
+      "lon": -70.044,
+      "heading": "nadir, north up",
+      "date": null,
+      "shows": "north and south beach wings (dark balcony slabs) and the white flat roofs between them"
+    }
+  ]
+}

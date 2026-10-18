@@ -1,0 +1,42 @@
+{
+ "place": "thecove-neon",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "thecove_neon_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1123607548711611",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.574991,
+   "lon": -70.043561,
+   "heading": 356.3,
+   "date": "2024-04-03",
+   "shows": "street-level view toward thecove_neon (~22 m away)",
+   "original_path": "/workspace/landmarks/mly/thecove_neon_0.jpg"
+  },
+  {
+   "file": "thecove_neon_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=2824818787673974",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.57499,
+   "lon": -70.043691,
+   "heading": 349.5,
+   "date": "2024-04-03",
+   "shows": "street-level view toward thecove_neon (~23 m away)",
+   "original_path": "/workspace/landmarks/mly/thecove_neon_1.jpg"
+  },
+  {
+   "file": "thecove_neon_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=448865906217822",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.574802,
+   "lon": -70.044057,
+   "heading": 64.2,
+   "date": "2016-04-04",
+   "shows": "street-level view toward thecove_neon (~64 m away)",
+   "original_path": "/workspace/landmarks/mly/thecove_neon_2.jpg"
+  }
+ ]
+}

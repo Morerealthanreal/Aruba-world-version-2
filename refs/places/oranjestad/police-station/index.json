@@ -1,0 +1,18 @@
+{
+ "place": "police-station",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "polis_ora.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police",
+   "original_path": "/workspace/landmarks/refs/web/polis_ora.jpg"
+  }
+ ]
+}

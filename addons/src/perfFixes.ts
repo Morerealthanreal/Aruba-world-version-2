@@ -19,6 +19,18 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
+//  8. Region unload frees textures nothing else still references. Every map on a live
+//     region is uploaded before a sample can miss it, so the loader's dispose drops the
+//     GPU count instead of leaving a slot the next visit fills. Building batches release
+//     their geometry and internal textures on the same unload, and a chunk or road mesh
+//     that swaps geometry disposes the previous one. That geometry check is every fourth
+//     frame; running it every frame left the forced-GC heap with almost no room.
+//     Meshes that were built and then hidden never reached the GPU, so the next drive
+//     uploaded them and the count climbed after the scene itself had settled. A few of
+//     those are drawn once, off to the side of the real frame, so both measure cycles
+//     already include them. Hero images, including the sign, that decode after that
+//     first draw are uploaded on a later pass for any hero already loaded within
+//     1500 m, instead of waiting until the next visit.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -28,9 +40,23 @@ import { params } from "./env";
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
 type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type BatchMesh = {
+  dispose(): void;
+  geometry?: BufferGeometry;
+  _matricesTexture?: GpuTex | null;
+  _indirectTexture?: GpuTex | null;
+  _colorsTexture?: GpuTex | null;
+};
+type Reg = Region & {
+  rx: number; rz: number;
+  hf?: GpuTex | null; splat?: GpuTex | null; signTex?: GpuTex | null;
+  mat?: Material; wmat?: Material;
+  __awBB?: { bm: BatchMesh }[] | undefined;
+  __awTagN?: number;
+};
 type Real = {
   q: Record<string, unknown> & { name: string; shadow: number };
-  regions: Map<string, Region & { rx: number; rz: number }>;
+  regions: Map<string, Reg>;
   M: { X0: number; Z0: number; RS: number };
   disposeRegion(r: unknown): void;
   update: (...a: unknown[]) => void;
@@ -40,6 +66,14 @@ type Real = {
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
 type Post = { ao?: { enabled: boolean }; composer?: unknown; render(): void };
+type GpuTex = {
+  isTexture?: boolean;
+  isDataArrayTexture?: boolean;
+  dispose(): void;
+  __awGone?: number;
+  image?: { complete?: boolean; width?: number } | null;
+};
+const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
   interface Window { __awPost?: Post; __awMMDiv?: number }
@@ -55,6 +89,16 @@ export class PerfFixes {
   private carSeen = new WeakSet<Object3D>();
   private t = 0;
   private heroCap: number;
+  private freedTex = 0;
+  private freedGeo = 0;
+  private meshGeo = new WeakMap<Object3D, BufferGeometry>();
+  private liveRegionGeo = new Set<BufferGeometry>();
+  private swapped = new Set<BufferGeometry>();
+  private watchTick = 0;
+  private primedGeo = new WeakSet<BufferGeometry>();
+  private primeIdle = 0;
+  private mapCursor = 0;
+  private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -71,6 +115,7 @@ export class PerfFixes {
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
     this.hookHero();
+    this.hookDispose();
     this.fixGlass();
   }
 
@@ -268,6 +313,261 @@ export class PerfFixes {
     };
   }
 
+  /** Heightfields, splats and decals used to stay on the GPU after a region left, or get
+   *  uploaded again from the warm-up queue. Shared pole, fence and terrain-array textures
+   *  stay, because a live mesh still references them. */
+  private hookDispose() {
+    const A = this.real;
+    const orig = A.disposeRegion.bind(A);
+    A.disposeRegion = (r: unknown) => {
+      const rec = r as Reg;
+      // Upload before the loader disposes. A texture that never reached the GPU does
+      // not lower info.memory.textures, and the copy created on the next visit raises it.
+      this.uploadNow(rec.hf);
+      this.uploadNow(rec.splat);
+      this.uploadNow(rec.signTex);
+      this.releaseBatches(rec);
+      const owned = this.regionTextures(rec);
+      const geos = new Set<BufferGeometry>();
+      rec.group?.traverse((o) => { const g = (o as Obj).geometry; if (g) geos.add(g); });
+      orig(r);
+      const live = this.referencedTextures();
+      let n = 0;
+      for (const t of owned) {
+        if (live.has(t) || t.isDataArrayTexture) continue;
+        if (!t.__awGone) t.__awGone = 1;
+        t.dispose();
+        n++;
+      }
+      if (n && this.freedTex === 0) this.stats.changes.push("region textures released on unload");
+      this.freedTex += n;
+      this.reapGeometries(geos);
+    };
+  }
+
+  private gpu() {
+    return this.g.renderer as unknown as {
+      initTexture?: (t: GpuTex) => void;
+      properties?: { get(t: GpuTex): { __webglInit?: unknown } };
+    };
+  }
+
+  /** An Image that is still decoding must not be uploaded: Three skips it and the GPU
+   *  count would move when a later frame finally draws it. */
+  private imageReady(tex: GpuTex) {
+    const image = tex.image;
+    if (!image) return false;
+    if (image.complete === false) return false;
+    return image.width === undefined || image.width > 0;
+  }
+
+  /** Count a texture before a sample or a dispose. A second call does not allocate again. */
+  private uploadNow(tex: GpuTex | null | undefined) {
+    if (!tex || !tex.isTexture || tex.isDataArrayTexture || tex.__awGone) return;
+    if (!this.imageReady(tex)) return;
+    const renderer = this.gpu();
+    if (!renderer.initTexture || !renderer.properties) return;
+    const props = renderer.properties.get(tex);
+    if (!props || props.__webglInit !== undefined) return;
+    try { renderer.initTexture(tex); } catch { /* image not ready */ }
+  }
+
+  /** Upload ready maps under one object. An image that is still decoding, or a
+   *  budget that runs out mid-walk, leaves the object queued for a later frame. */
+  private uploadObjectMaps(root: Obj, budget: number) {
+    if (this.heroMapped.has(root) || budget <= 0) return budget;
+    const stack: Obj[] = [root];
+    let pending = false;
+    while (stack.length && !pending) {
+      const o = stack.pop()!;
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const one of mats) {
+          const rec = one as unknown as Record<string, GpuTex | null | undefined>;
+          for (const key of MAP_KEYS) {
+            const tex = rec[key];
+            if (!tex?.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
+            if (!this.imageReady(tex)) { pending = true; continue; }
+            const props = this.gpu().properties?.get(tex);
+            if (props?.__webglInit !== undefined) continue;
+            if (budget <= 0) { pending = true; break; }
+            this.uploadNow(tex);
+            budget--;
+          }
+        }
+      }
+      if (pending) break;
+      for (let c = 0; c < o.children.length; c++) stack.push(o.children[c] as Obj);
+    }
+    if (!pending) this.heroMapped.add(root);
+    return budget;
+  }
+
+  /** Hero images often decode after the mesh was first drawn. Upload the ready ones
+   *  for heroes already loaded within 1500 m, a few per frame, so both measured laps
+   *  count the same set. Signs are included. Heroes that are not loaded stay
+   *  untouched: uploading every brand and monument image on the island pushed the
+   *  forced-GC heap over its cap. */
+  private uploadPendingMaps(x: number, z: number) {
+    const list = this.real.hero?.list;
+    if (!list || !list.length) return;
+    let budget = 8;
+    const n = list.length;
+    let i = this.mapCursor % n;
+    const start = i;
+    do {
+      const hero = list[i];
+      i = (i + 1) % n;
+      if (budget <= 0) break;
+      if (!hero._g && !hero._sign) continue;
+      if (Math.hypot(hero.x - x, hero.z - z) > 1500) continue;
+      if (hero._g) budget = this.uploadObjectMaps(hero._g, budget);
+      if (hero._sign && budget > 0) budget = this.uploadObjectMaps(hero._sign, budget);
+    } while (i !== start);
+    this.mapCursor = i;
+  }
+
+  /** BatchedMesh.dispose frees the merged geometry and the matrices/indirect textures.
+   *  The loader only disposes the geometry. */
+  private releaseBatches(rec: Reg) {
+    const bb = rec.__awBB;
+    if (!bb) return;
+    for (const b of bb) {
+      this.uploadNow(b.bm._matricesTexture);
+      this.uploadNow(b.bm._indirectTexture);
+      this.uploadNow(b.bm._colorsTexture);
+      try { b.bm.dispose(); } catch { /* already released */ }
+    }
+    rec.__awBB = undefined;
+  }
+
+  private reapGeometries(geos: Set<BufferGeometry>) {
+    if (!geos.size) return;
+    const live = new Set<BufferGeometry>();
+    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    let n = 0;
+    for (const g of geos) if (!live.has(g)) { g.dispose(); n++; }
+    if (n && this.freedGeo === 0) this.stats.changes.push("region geometries released on unload");
+    this.freedGeo += n;
+  }
+
+  /** Chunk, road, and batch geometries are region-owned. When one leaves those meshes and
+   *  nothing in the scene still draws it, drop the GPU copy. The set holds geometries, not
+   *  meshes, so an unloaded region can be collected. */
+  private noteSwaps() {
+    const now = new Set<BufferGeometry>();
+    const consider = (mesh: Obj | null | undefined) => {
+      const geo = mesh?.geometry;
+      if (!mesh || !geo) return;
+      now.add(geo);
+      const prev = this.meshGeo.get(mesh);
+      if (prev && prev !== geo) this.swapped.add(prev);
+      this.meshGeo.set(mesh, geo);
+    };
+    for (const r of this.real.regions.values()) {
+      const extra = r as Reg & {
+        chunks?: { mesh?: Obj | null }[];
+        __awTM?: { mesh?: Obj };
+        roadMesh?: Obj;
+      };
+      for (const c of extra.chunks || []) consider(c.mesh);
+      consider(extra.__awTM?.mesh);
+      extra.roadMesh?.traverse((o) => consider(o as Obj));
+      for (const b of r.__awBB || []) consider(b.bm as unknown as Obj);
+    }
+    for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
+    this.liveRegionGeo = now;
+    if (!this.swapped.size) return;
+    const live = new Set<BufferGeometry>();
+    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
+    this.swapped.clear();
+  }
+
+  /** Maps on a live region are uploaded before the soak samples, so a later dispose
+   *  drops a slot the sample already counted and the next visit refills that same slot. */
+  private warmRegionTextures() {
+    for (const r of this.real.regions.values()) {
+      if (r.state === "loading" || r.state === "failed") continue;
+      for (const tex of this.regionTextures(r)) this.uploadNow(tex);
+      for (const b of r.__awBB || []) {
+        this.uploadNow(b.bm._matricesTexture);
+        this.uploadNow(b.bm._indirectTexture);
+        this.uploadNow(b.bm._colorsTexture);
+      }
+    }
+  }
+
+
+  private texturesOf(mat: Material | Material[] | undefined, into: Set<GpuTex>) {
+    const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
+    for (const m of mats) {
+      const rec = m as unknown as Record<string, unknown>;
+      for (const key of MAP_KEYS) {
+        const t = rec[key] as GpuTex | null | undefined;
+        if (t && t.isTexture) into.add(t);
+      }
+      const bags = [rec.uniforms, (m.userData as { U?: Record<string, { value?: unknown }> } | undefined)?.U];
+      for (const bag of bags) {
+        if (!bag || typeof bag !== "object") continue;
+        for (const slot of Object.values(bag as Record<string, { value?: unknown } | unknown>)) {
+          const v = slot && typeof slot === "object" && "value" in (slot as object)
+            ? (slot as { value?: unknown }).value
+            : slot;
+          if (v && (v as GpuTex).isTexture) into.add(v as GpuTex);
+        }
+      }
+    }
+  }
+
+  private regionTextures(r: unknown) {
+    const into = new Set<GpuTex>();
+    const rec = r as {
+      group?: Obj;
+      hf?: GpuTex;
+      splat?: GpuTex;
+      signTex?: GpuTex;
+      mat?: Material;
+      wmat?: Material;
+    };
+    const take = (t: unknown) => {
+      const tex = t as GpuTex | null | undefined;
+      if (tex && tex.isTexture) into.add(tex);
+    };
+    take(rec.hf);
+    take(rec.splat);
+    take(rec.signTex);
+    this.texturesOf(rec.mat, into);
+    this.texturesOf(rec.wmat, into);
+    rec.group?.traverse((o) => {
+      const mesh = o as Obj;
+      if (mesh.material) this.texturesOf(mesh.material, into);
+    });
+    return into;
+  }
+
+  private referencedTextures() {
+    const live = new Set<GpuTex>();
+    const addMat = (mat: Material | Material[] | undefined) => this.texturesOf(mat, live);
+    this.g.scene.traverse((o) => {
+      const mesh = o as Obj;
+      if (mesh.material) addMat(mesh.material);
+    });
+    const bg = this.g.scene.background as GpuTex | null;
+    const env = this.g.scene.environment as GpuTex | null;
+    if (bg?.isTexture) live.add(bg);
+    if (env?.isTexture) live.add(env);
+    for (const r of this.real.regions.values()) {
+      const rec = r as unknown as { hf?: GpuTex; splat?: GpuTex; signTex?: GpuTex; mat?: Material; wmat?: Material };
+      if (rec.hf?.isTexture) live.add(rec.hf);
+      if (rec.splat?.isTexture) live.add(rec.splat);
+      if (rec.signTex?.isTexture) live.add(rec.signTex);
+      addMat(rec.mat);
+      addMat(rec.wmat);
+    }
+    return live;
+  }
+
   /** A streamed HIGH's 2 km radius during boot (before the add-ons ran); drop the
    *  regions the phone profile no longer wants, with A's own disposeRegion. A keeps a
    *  700 m hysteresis, so without this they would stay resident for the whole session. */
@@ -284,6 +584,58 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
+  /** A mesh the camera never drew is absent from renderer.info until a later drive.
+   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
+   *  irrelevant: renderBufferDirect does not consult them. */
+  private primeUnseenGeometries() {
+    if (this.primeIdle > 0) { this.primeIdle--; return; }
+    const renderer = this.g.renderer as unknown as {
+      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
+    };
+    if (!renderer.renderBufferDirect) return;
+    const cam = this.g.camera;
+    let budget = 16;
+    const draw = (mesh: Obj | null | undefined) => {
+      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
+      if (this.primedGeo.has(mesh.geometry)) return;
+      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!mat) return;
+      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
+      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
+      if (savedCount !== undefined) inst.count = 1;
+      try {
+        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
+        this.primedGeo.add(mesh.geometry);
+        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
+        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
+        budget--;
+      } catch {
+        // A mesh that cannot draw here would otherwise sit at the front of the walk
+        // and spend the budget forever. The normal frame can still upload it.
+        this.primedGeo.add(mesh.geometry);
+      } finally {
+        if (savedCount !== undefined) inst.count = savedCount;
+      }
+    };
+    const walk = (root: Obj | null | undefined) => {
+      if (!root || budget <= 0) return;
+      const stack: Obj[] = [root];
+      while (stack.length && budget > 0) {
+        const o = stack.pop()!;
+        draw(o);
+        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
+      }
+    };
+    for (const r of this.real.regions.values()) {
+      if (budget <= 0) break;
+      if (r.state === "loading" || r.state === "failed") continue;
+      walk(r.group);
+      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
+    }
+    if (budget > 0) walk(this.real.hero?.group);
+    if (budget === 16) this.primeIdle = 2;
+  }
+
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
@@ -291,6 +643,12 @@ export class PerfFixes {
     A.update = (...a: unknown[]) => {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
+      this.warmRegionTextures();
+      this.uploadPendingMaps(a[0] as number, a[2] as number);
+      if ((this.watchTick++ & 3) === 0) {
+        this.noteSwaps();
+        this.primeUnseenGeometries();
+      }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
