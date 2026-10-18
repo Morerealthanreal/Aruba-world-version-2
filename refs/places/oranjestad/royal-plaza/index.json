@@ -1,0 +1,39 @@
+{
+  "place": "royal-plaza",
+  "area": "oranjestad",
+  "photos": [
+    {
+      "file": "street.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:ARUBA-oranjestad-royalplaza.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Bgabel",
+      "lat": 12.5216,
+      "lon": -70.0374,
+      "heading": 40,
+      "date": "2011-11-24",
+      "shows": "pink Dutch gables with white trim, teal awnings, white balconies, spiral stair, gold dome, flags, palms, white bollards and a clock post"
+    },
+    {
+      "file": "harbour.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Downtown_Oranjestad,_Aruba_(4901401611).jpg",
+      "license": "CC BY 2.0",
+      "credit": "David Stanley",
+      "lat": 12.519793,
+      "lon": -70.034236,
+      "heading": 55,
+      "date": "2009-04-06",
+      "shows": "the same pink gable row and gold dome from the water, with flags and the spiral stair"
+    },
+    {
+      "file": "dome.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:ROYAL_PLAZA_IN_ORANJESTAD,_ARUBA.JPG",
+      "license": "CC BY-SA 3.0",
+      "credit": "KLOTZ",
+      "lat": 12.5214,
+      "lon": -70.0372,
+      "heading": 45,
+      "date": "2004-02-12",
+      "shows": "gold dome on a pink drum with a white balustrade, teal-and-white striped awning, clock post, palms and the spiral stair"
+    }
+  ]
+}
