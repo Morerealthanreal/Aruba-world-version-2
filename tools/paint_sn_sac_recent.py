@@ -8,6 +8,12 @@ from pathlib import Path
 
 from PIL import Image
 
+_TOOLS = Path(__file__).resolve().parent
+import sys
+if str(_TOOLS) not in sys.path:
+    sys.path.insert(0, str(_TOOLS))
+from mural_pack import pack_atlas as pack
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tools" / "sn_paintings" / "sacrecent"
 OUT_IMG = ROOT / "game" / "textures" / "sn_sac_recent_atlas.jpg"
@@ -126,36 +132,6 @@ def fit(path: Path, tw: int, th: int, flip: bool = False, stretch: float = 1.0, 
     return _place(im, tw, align, field)
 
 
-def pack(images: list[Image.Image]):
-    pad = 2
-    max_w = 2048
-    order = sorted(range(len(images)), key=lambda i: (-images[i].size[1], -images[i].size[0]))
-    rows = []
-    for i in order:
-        w, h = images[i].size
-        placed = False
-        for row in rows:
-            if row["x"] + w <= max_w:
-                row["items"].append((i, row["x"]))
-                row["x"] += w + pad
-                row["h"] = max(row["h"], h)
-                placed = True
-                break
-        if not placed:
-            rows.append({"x": w + pad, "h": h, "items": [(i, 0)]})
-    boxes = [None] * len(images)
-    y = 0
-    for row in rows:
-        for i, x in row["items"]:
-            w, h = images[i].size
-            boxes[i] = (x, y, w, h)
-        y += row["h"] + pad
-    atlas_h = (max(4, y - pad) + 3) & ~3
-    atlas = Image.new("RGB", (max_w, atlas_h), (18, 18, 18))
-    for im, (px, py, w, h) in zip(images, boxes):
-        atlas.paste(im, (px, py))
-    return atlas, boxes
-
 
 def load_buildings():
     by = {}
@@ -214,24 +190,6 @@ SPECS = [
         "ph": 200,
         "sources": [
             "Street Art Cities marker 76469056-7946-4a7e-8ba8-c6afe18f11ff (12.4349439, -69.9107193), created for Aruba Art Week",
-        ],
-    },
-    {
-        "id": "walker_woman",
-        "name": "Dreamer (David Walker style)",
-        "artist": "David Walker",
-        "year": 2016,
-        "lat": 12.43605,
-        "lng": -69.91235,
-        "address": "Piet Heinstraat face, San Nicolas",
-        "bld": 9085,
-        "wall": 3,
-        "src": "sac-walker.jpg",
-        "mode": "exact",
-        "world_h": STOREY_H,
-        "ph": 210,
-        "sources": [
-            "Aruba Art Fair / Art Week portrait walls on Piet Heinstraat (tour maps; visual reference only). SAC marker 13097 is mis-tagged to Belgium and was not used for placement.",
         ],
     },
     {
