@@ -248,13 +248,27 @@ def emit_cliff(rock, dark, length, height, depth, mouths, detail, drip_mesh=None
     back = -max(6.0, depth * 0.55)
 
     def face_x(i, bi, x):
-        xx = x + (hash01(i // 2 + bi * 5, 6) - 0.5) * (0.28 if detail else 0.12)
+        amp = (0.9 if bi == 2 else 0.55) if detail else 0.16
+        xx = x + (hash01(i // 2 + bi * 5, 6) - 0.5) * amp
+        # The brow steps in and out. A constant overhang reads as a floor plate.
+        if bi == 2:
+            xx += (hash01(i, 14) - 0.35) * (1.4 if detail else 0.45)
         end = min(i, n - 1 - i) / max(1.0, n * 0.1)
         if end < 1:
             xx *= 0.62 + 0.38 * end
         return max(0.08, xx)
 
     face = [[face_x(i, bi, beds[bi][2]) for bi in range(len(beds))] for i in range(n)]
+    # One height per vertex per bed boundary, so neighbouring quads share
+    # an edge. Independent jitter left sky-coloured cracks along every course.
+    wob = 0.16 if detail else 0.04
+    ys = []
+    for i in range(n):
+        col = []
+        for b in range(len(beds) + 1):
+            base = beds[0][0] if b == 0 else beds[b - 1][1]
+            col.append(base + (hash01(i * 3 + b, 11) - 0.5) * wob)
+        ys.append(col)
 
     def rock_quad(a, b, c, d, outward):
         quad_facing(rock, a, b, c, d, outward, uvs_for(a, b, c, d, outward))
@@ -263,28 +277,27 @@ def emit_cliff(rock, dark, length, height, depth, mouths, detail, drip_mesh=None
         z0, z1 = zs[i], zs[i + 1]
         midz = (z0 + z1) * 0.5
         for bi, (y0, y1, _x) in enumerate(beds):
-            yb = y0 + (hash01(i, bi + 11) - 0.5) * 0.05
-            yt = y1 + (hash01(i + 1, bi + 12) - 0.5) * 0.05
+            yb0, yb1 = ys[i][bi], ys[i + 1][bi]
+            yt0, yt1 = ys[i][bi + 1], ys[i + 1][bi + 1]
             midy = (y0 + y1) * 0.5
             open_bed = bi <= 1 and covered(midz, midy, openings)
             x0, x1 = face[i][bi], face[i + 1][bi]
             if not open_bed:
-                a = (x0, yb, z0)
-                b = (x1, yb, z1)
-                c = (x1, yt, z1)
-                d = (x0, yt, z0)
-                # Recessed course under the brow, and the thin dark streaks.
+                a = (x0, yb0, z0)
+                b = (x1, yb1, z1)
+                c = (x1, yt1, z1)
+                d = (x0, yt0, z0)
+                # The recessed course is the shadow under the brow. Pale colour
+                # stays on the hanging fingers, not on a full-width band.
                 if bi == 1:
                     quad_facing(dark, a, b, c, d, (1, 0, 0))
-                elif bi in (4, 6) and drip_mesh is not None:
-                    quad_facing(drip_mesh, a, b, c, d, (1, 0, 0))
                 else:
                     rock_quad(a, b, c, d, (1, 0.02, 0))
             if bi + 1 >= len(beds):
                 continue
             nx0, nx1 = face[i][bi + 1], face[i + 1][bi + 1]
-            la, lb = (x0, yt, z0), (x1, yt, z1)
-            lc, ld = (nx1, yt, z1), (nx0, yt, z0)
+            la, lb = (x0, yt0, z0), (x1, yt1, z1)
+            lc, ld = (nx1, yt1, z1), (nx0, yt0, z0)
             projecting = (nx0 + nx1) > (x0 + x1) + 0.2
             if open_bed and not projecting:
                 continue
@@ -292,11 +305,11 @@ def emit_cliff(rock, dark, length, height, depth, mouths, detail, drip_mesh=None
                 quad_facing(dark, la, lb, lc, ld, (0, -1, 0))
             else:
                 rock_quad(la, ld, lc, lb, (0, 1, 0))
-        crest = height * (0.9 + 0.08 * hash01(i, 2))
-        a = (face[i][-1], crest, z0)
-        b = (face[i + 1][-1], height * (0.9 + 0.08 * hash01(i + 1, 2)), z1)
-        c = (back + 0.4, b[1] * 0.94, z1)
-        d = (back + 0.4, crest * 0.94, z0)
+        crest0, crest1 = ys[i][-1], ys[i + 1][-1]
+        a = (face[i][-1], crest0, z0)
+        b = (face[i + 1][-1], crest1, z1)
+        c = (back + 0.4, crest1 * 0.94, z1)
+        d = (back + 0.4, crest0 * 0.94, z0)
         rock_quad(a, b, c, d, (0, 1, 0))
         a = (back, -0.35, z1)
         b = (back, height * 0.9, z1)
@@ -343,17 +356,27 @@ def emit_cliff(rock, dark, length, height, depth, mouths, detail, drip_mesh=None
     if drip_mesh is None:
         return
     for i in range(1, n - 1):
-        if hash01(i, 20) < 0.28:
-            continue
         z = zs[i]
         over = covered(z, 0.5, openings)
-        y = lip - 0.02
-        x = 0.7 + hash01(i, 19) * 2.5
-        hang = 0.55 + hash01(i, 21) * (1.7 if over else 0.85)
-        rad = 0.12 + hash01(i, 22) * 0.16
-        drip(drip_mesh, x, y, z, hang, rad)
-        if over or hash01(i, 23) > 0.6:
-            drip(drip_mesh, x + 0.35, y - 0.04, z + 0.28, hang * 0.55, rad * 0.7)
+        y = lip - 0.04
+        count = 2 if (over or hash01(i, 20) > 0.4) else 1
+        for k in range(count):
+            x = 1.5 + hash01(i * 3 + k, 19) * 1.9
+            hang = 0.28 + hash01(i + k, 21) * (0.85 if over else 0.45)
+            rad = 0.22 + hash01(i + k, 22) * 0.28
+            drip(drip_mesh, x, y, z + (k - 1) * 0.28, hang, rad)
+        if hash01(i, 24) > 0.55:
+            # A narrow pale streak on the face. A full course of this colour
+            # read as a white stripe across the wall.
+            sx = face[i][min(5, len(beds) - 1)] + 0.03
+            w = 0.16 + hash01(i, 25) * 0.14
+            h = 0.9 + hash01(i, 26) * 1.5
+            zy = beds[min(5, len(beds) - 1)][1] - 0.05
+            a = (sx, zy, z - w)
+            b = (sx, zy, z + w)
+            c = (sx - 0.04, zy - h, z + w * 0.55)
+            d = (sx - 0.04, zy - h, z - w * 0.55)
+            quad_facing(drip_mesh, a, b, c, d, (1, 0, 0))
 
 
 def knuckle(mesh, x, y, z, w, h):
@@ -371,17 +394,25 @@ def knuckle(mesh, x, y, z, w, h):
 
 
 def drip(mesh, x, y, z, length, rad):
-    """A limestone finger hanging from the brow. Four triangles, point down."""
+    """A short knobby pendant. A long cone read as a white icicle."""
     n = 4
-    ring = []
+    top, mid = [], []
     for k in range(n):
-        a = 2 * math.pi * k / n
-        ring.append((x + math.cos(a) * rad, y, z + math.sin(a) * rad * 0.65))
-    tip = (x + (hash01(int(z * 3), 2) - 0.5) * 0.12, y - length, z)
+        a = 2 * math.pi * k / n + 0.4
+        j = 0.7 + hash01(k + int(z * 5) + int(x * 3), 3) * 0.55
+        top.append((x + math.cos(a) * rad * j, y, z + math.sin(a) * rad * 0.72 * j))
+        mid.append((
+            x + math.cos(a) * rad * j * 0.72,
+            y - length * 0.62,
+            z + math.sin(a) * rad * 0.5 * j,
+        ))
+    tip = (x + (hash01(int(z * 3), 2) - 0.5) * 0.08, y - length, z)
     for k in range(n):
-        a, b = ring[k], ring[(k + 1) % n]
-        outward = ((a[0] + b[0]) * 0.5 - x, -0.2, (a[2] + b[2]) * 0.5 - z)
-        tri_facing(mesh, a, b, tip, outward, (uv_at(a, 0), uv_at(b, 0), uv_at(tip, 0)))
+        a, b = top[k], top[(k + 1) % n]
+        c, d = mid[(k + 1) % n], mid[k]
+        outward = ((a[0] + b[0]) * 0.5 - x, -0.15, (a[2] + b[2]) * 0.5 - z)
+        quad_facing(mesh, a, b, c, d, outward)
+        tri_facing(mesh, d, c, tip, outward)
 
 
 def mouth_void(mesh, mz, mw, mh):
@@ -501,8 +532,8 @@ def _limestone_images():
             pits = noise(u, v, freq * 6, 8.8)
             stain = noise(u * 0.4, v * 2.2, freq, 3.1)
             # Thin horizontal bedding lines. A sine across the face read as scallops.
-            band = (v * 7.0 + stain * 0.15) % 1.0
-            line = 28 if band < 0.07 else 0
+            band = (v * 3.2 + stain * 0.2) % 1.0
+            line = 12 if band < 0.045 else 0
             shade = 74 + grain * 34 + (stain - 0.5) * 16 - line
             if pits < 0.13:
                 shade = 18 + grain * 8
@@ -520,12 +551,11 @@ def _limestone_images():
 
 
 def bush(mesh, x, z, seed):
-    """A rounded thicket. Flat cards read as green shards along the path."""
-    ry = 0.9 + hash01(seed, 1) * 0.85
-    rx = 1.15 + hash01(seed, 2) * 0.55
-    lump(mesh, x, 0.0, z, rx, ry, rx * 0.85, seed)
-    if hash01(seed, 7) > 0.4:
-        lump(mesh, x + 0.65, 0.0, z + 0.4, rx * 0.62, ry * 0.7, rx * 0.55, seed + 3)
+    """A low wide thicket. Tall crowns washed out to lime cones."""
+    ry = 0.28 + hash01(seed, 1) * 0.22
+    rx = 0.95 + hash01(seed, 2) * 0.45
+    lump(mesh, x, 0.0, z, rx, ry, rx * 0.9, seed)
+    lump(mesh, x + 0.75, 0.0, z + 0.3, rx * 0.65, ry * 0.7, rx * 0.55, seed + 3)
 
 
 def pear(mesh, x, z, seed):
@@ -544,7 +574,7 @@ def pear(mesh, x, z, seed):
 def emit_verge(shrub, cactus, length, openings, detail):
     """Dense scrub against the cliff foot. The path itself stays clear."""
     half = length * 0.5
-    step = 1.7 if detail else 4.2
+    step = 1.85 if detail else 4.4
     i = 0
     z = -half + 0.6
     while z < half - 0.6:
@@ -557,7 +587,7 @@ def emit_verge(shrub, cactus, length, openings, detail):
             # In front of the brow (the lip is near x=3.7), two rows, so the path sees a thicket.
             x = 4.3 + hash01(i, 3) * 1.1
             bush(shrub, x, z, i)
-            if detail and hash01(i, 8) > 0.25:
+            if detail and hash01(i, 8) > 0.55:
                 bush(cactus, x + 1.7, z + 0.55, i + 9)
             if hash01(i, 5) > 0.55:
                 pear(cactus, x + 0.4, z + 0.3, i + 4)
@@ -568,7 +598,7 @@ def emit_verge(shrub, cactus, length, openings, detail):
 def emit_path(mesh, length):
     """Fontein's approach is a pale stone and dirt path along the wall."""
     half = length * 0.5
-    nx, nz = 3, 16
+    nx, nz = 1, 8
     x0, x1 = 7.6, 13.4
     for j in range(nz):
         z0 = -half + length * j / nz
@@ -576,7 +606,7 @@ def emit_path(mesh, length):
         for i in range(nx):
             xa = x0 + (x1 - x0) * i / nx
             xb = x0 + (x1 - x0) * (i + 1) / nx
-            lift = (hash01(i + j * 3, 4) - 0.5) * 0.08
+            lift = (hash01(i + j * 3, 4) - 0.5) * 0.03
             y = 0.02 + lift
             a = (xa, y, z0)
             b = (xb, y, z0)
@@ -640,15 +670,15 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate_on=False, sig
 
     model = G.Model(name)
     model.material("rock", ROCK, rough=0.94, textured=True, normal=True)
-    model.material("drip", (0.93, 0.91, 0.84), rough=0.8)
+    model.material("drip", (0.50, 0.48, 0.44), rough=0.97)
     model.material("mouth", MOUTH, rough=1.0, double=False)
     model.material("iron", IRON, rough=0.55)
-    model.material("shrub", (0.20, 0.40, 0.14), rough=0.95, double=True)
-    model.material("cactus", (0.32, 0.50, 0.18), rough=0.85, double=True)
+    model.material("shrub", (0.045, 0.11, 0.035), rough=0.98, double=True)
+    model.material("cactus", (0.09, 0.16, 0.055), rough=0.92, double=True)
     model.material("board", (0.93, 0.91, 0.84), rough=0.7)
     model.material("ink", (0.12, 0.13, 0.12), rough=0.6, double=True)
     model.material("post", (0.35, 0.28, 0.18), rough=0.8)
-    model.material("path", (0.78, 0.70, 0.52), rough=0.92)
+    model.material("path", (0.36, 0.28, 0.16), rough=0.97)
     hi, him = model.mesh(0, "rock"), model.mesh(0, "mouth")
     lo, lom = model.mesh(1, "rock"), model.mesh(1, "mouth")
     emit_cliff(hi, him, length, height, depth, mouths, True, model.mesh(0, "drip"))
