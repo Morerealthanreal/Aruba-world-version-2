@@ -1,15 +1,46 @@
 // Time-of-day model. One day is a full turn of t in 0..1 (0 midnight, 0.5 noon).
-// Sun: real solar geometry for Aruba (12.5 deg N) at the equinox, solar noon 12:30, so it
-// rises due east at 06:30, culminates 77.5 deg high in the south and sets due west at 18:30.
-// Tropical twilight is short (the sun drops almost vertically): civil dusk ends ~18:54,
-// nautical ~19:18. Every colour below is keyed by sun elevation in degrees and written into
-// one preallocated sample (no per-frame allocation).
+// Sun: real solar geometry for Aruba (12.5 deg N, 70.0 deg W, clocks on UTC-4) for the in-game
+// date (today in Aruba by default, ?date=YYYY-MM-DD to pick one). NOAA declination + equation of
+// time give solar noon 12:24..12:54 and sunrise ~06:13..07:06 / sunset ~18:12..19:10 across the
+// year; the noon sun stands 54..90 deg high (it passes straight overhead in late April and mid
+// August, and in June it culminates in the north). Tropical twilight is short (the sun drops almost
+// vertically). Every colour below is keyed by sun elevation in degrees and written into one
+// preallocated sample (no per-frame allocation).
 import { Color } from "three";
 
 const DEG = Math.PI / 180;
 const LAT = 12.5 * DEG;
-const DECL = 0;
-const NOON = 12.5 / 24;
+const LON = -70.0, TZ = -4;
+let DECL = 0;
+let NOON = 12.5 / 24;
+
+/** Today's solar numbers (read-only outside; set by setSolarDate). Hours are local clock time. */
+export const solar = { date: "", declDeg: 0, noonH: 12.5, sunriseH: 6.5, sunsetH: 18.5, noonElevDeg: 77.5 };
+
+/** NOAA low-precision solar position for a calendar day (good to ~1 minute / 0.1 deg). */
+export function setSolarDate(d: Date) {
+  const y = d.getUTCFullYear(), start = Date.UTC(y, 0, 1);
+  const doy = Math.floor((Date.UTC(y, d.getUTCMonth(), d.getUTCDate()) - start) / 864e5) + 1;
+  const yl = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
+  const g = (2 * Math.PI / yl) * (doy - 1);
+  const eot = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  DECL = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g)
+    - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const noonMin = 720 - 4 * LON - eot + TZ * 60; // local clock minutes
+  NOON = noonMin / 1440;
+  const cosH0 = (Math.sin(-0.833 * DEG) - Math.sin(LAT) * Math.sin(DECL)) / (Math.cos(LAT) * Math.cos(DECL));
+  const h0 = Math.acos(Math.max(-1, Math.min(1, cosH0))) / DEG / 15;
+  solar.date = `${y}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  solar.declDeg = DECL / DEG; solar.noonH = noonMin / 60; solar.sunriseH = solar.noonH - h0; solar.sunsetH = solar.noonH + h0;
+  solar.noonElevDeg = 90 - Math.abs(LAT / DEG - DECL / DEG);
+}
+
+/** ?date=YYYY-MM-DD, else today's calendar date on Aruba's clock (UTC-4). */
+export function solarDateFromParams(q: string | null): Date {
+  const m = q && /^(\d{4})-(\d{2})-(\d{2})$/.exec(q);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return new Date(Date.now() + TZ * 3600e3);
+}
 
 export type DaySample = {
   t: number;
@@ -67,8 +98,8 @@ const ZENITH: Ramp = [
   [15, 0.075, 0.18, 0.46], [30, 0.074, 0.18, 0.48], [90, 0.07, 0.175, 0.49],
 ];
 const HOR_SUN: Ramp = [
-  [-18, 0.03, 0.042, 0.085], [-12, 0.045, 0.05, 0.095], [-8, 0.14, 0.085, 0.1], [-5, 0.42, 0.19, 0.1],
-  [-2, 0.78, 0.34, 0.12], [0, 0.95, 0.46, 0.18], [3, 0.98, 0.6, 0.32], [7, 0.82, 0.66, 0.5],
+  [-18, 0.03, 0.042, 0.085], [-12, 0.045, 0.05, 0.095], [-8, 0.14, 0.085, 0.1], [-5, 0.48, 0.18, 0.09],
+  [-2, 0.9, 0.33, 0.1], [0, 1.05, 0.44, 0.15], [3, 1.04, 0.58, 0.28], [7, 0.82, 0.66, 0.5],
   [15, 0.6, 0.64, 0.7], [30, 0.5, 0.58, 0.7], [90, 0.46, 0.55, 0.69],
 ];
 const HOR_ANTI: Ramp = [
@@ -77,16 +108,16 @@ const HOR_ANTI: Ramp = [
   [15, 0.4, 0.49, 0.63], [30, 0.4, 0.5, 0.65], [90, 0.42, 0.52, 0.67],
 ];
 const GLOW: Ramp = [
-  [-12, 0, 0, 0], [-8, 0.08, 0.035, 0.02], [-5, 0.25, 0.1, 0.035], [-2, 0.42, 0.18, 0.05], [0, 0.55, 0.26, 0.07],
-  [3, 0.55, 0.32, 0.12], [7, 0.45, 0.33, 0.18], [15, 0.34, 0.3, 0.24], [30, 0.28, 0.27, 0.24], [90, 0.26, 0.26, 0.24],
+  [-12, 0, 0, 0], [-8, 0.08, 0.035, 0.02], [-5, 0.3, 0.1, 0.035], [-2, 0.5, 0.19, 0.05], [0, 0.64, 0.27, 0.07],
+  [3, 0.62, 0.33, 0.11], [7, 0.45, 0.33, 0.18], [15, 0.34, 0.3, 0.24], [30, 0.28, 0.27, 0.24], [90, 0.26, 0.26, 0.24],
 ];
 // Belt of Venus: pink band above the anti-solar horizon at dusk/dawn
 const BELT: Ramp = [
   [-10, 0, 0, 0], [-6, 0.05, 0.03, 0.05], [-3, 0.13, 0.065, 0.09], [0, 0.11, 0.055, 0.07], [4, 0.03, 0.015, 0.015], [8, 0, 0, 0],
 ];
 const CLOUD_LIT: Ramp = [
-  [-18, 0.03, 0.036, 0.06], [-12, 0.04, 0.045, 0.075], [-8, 0.1, 0.075, 0.11], [-5, 0.38, 0.2, 0.21],
-  [-2, 0.82, 0.38, 0.24], [0, 1.0, 0.52, 0.3], [3, 1.02, 0.7, 0.46], [7, 1.0, 0.84, 0.68],
+  [-18, 0.03, 0.036, 0.06], [-12, 0.04, 0.045, 0.075], [-8, 0.1, 0.075, 0.11], [-5, 0.44, 0.19, 0.22],
+  [-2, 0.95, 0.38, 0.24], [0, 1.1, 0.5, 0.27], [3, 1.08, 0.68, 0.42], [7, 1.0, 0.84, 0.68],
   [15, 1.0, 0.97, 0.92], [30, 1.0, 1.0, 0.99], [90, 1.0, 1.0, 1.0],
 ];
 const CLOUD_SHADE: Ramp = [
