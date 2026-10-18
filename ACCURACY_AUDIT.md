@@ -28,7 +28,7 @@ References are visual guides only. Nothing below is a pasted photo.
 ## Water tower — done in this change
 
 **Museum of Industry, San Nicolas** (OSM 7004), same origin and node names. From Bernhardstraat the old hero was a low white hall. It is now the yellow cylinder from the Commons photo: tan ribs, dark cap, a small clock on the north face, a blue glass drum on the street side, and a low yellow wing with `MUSEUM OF INDUSTRY`. The shaft is about 36 m so it reads against the one-storey town. The mural set was not edited.
-6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** residential fabric is generic OSM massing. San Nicolas has the house kit; these towns do not.
+6. **Paradera, Piedra Plat, Tanki Leendert, Sabana Basora, Pos Chiquito** still have a lot of generic OSM massing. Paradera now has the first yellow house plus five more on their own lots, each matched to that lot's roof in the aerial: a dark earth hip, an orange hip, an orange gable, and two different light flat roofs. They are no longer one shared kit. Piedra Plat, Tanki Leendert, Sabana Basora and Pos Chiquito still have one house each.
 7. **Balashi brewery** is a small box. The tank models nearby are a separate hero.
 8. **Route 1, the Sasaki road, Watty Vos Boulevard.** Lane count, roundabout aprons, markings, sidewalks and curbs have not been checked from the driver's seat. `rb_monolith`, `rb_chevron` and the Sasaki station exist and were left as they are.
 9. **Terminal height.** Airside wall in the photos is two storeys. `airport_fx` tops out near 6 m. Rescaling it would distort the jet bridges and aircraft, so it was left.
