@@ -1,0 +1,90 @@
+{
+ "place": "santa-anna-church",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "ch_hurchofantanarubajpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "church",
+   "original_path": "/workspace/landmarks/ref/ch_hurchofantanarubajpg.jpg"
+  },
+  {
+   "file": "ch_tnnsatholicchurch1jpg.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "church",
+   "original_path": "/workspace/landmarks/ref/ch_tnnsatholicchurch1jpg.jpg"
+  },
+  {
+   "file": "arubast.annachurch3893816689.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Santa Anna church, Noord",
+   "original_path": "/tmp/refs/ArubaSt.AnnaChurch3893816689.jpg"
+  },
+  {
+   "file": "santaannachurch.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Santa Anna church, Noord",
+   "original_path": "/tmp/refs/SantaAnnaChurch.jpg"
+  },
+  {
+   "file": "stannachurchnoord2.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Santa Anna church, Noord",
+   "original_path": "/tmp/refs/StAnnaChurchNoord2.JPG"
+  },
+  {
+   "file": "cem1.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "cemetery",
+   "original_path": "/tmp/refs/cem1.jpg"
+  },
+  {
+   "file": "cem2.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "cemetery",
+   "original_path": "/tmp/refs/cem2.jpg"
+  }
+ ]
+}

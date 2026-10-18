@@ -1,0 +1,5 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"Aruba World place reference index","type":"object","required":["place","area","photos"],
+"properties":{"place":{"type":"string"},"area":{"type":"string"},"photos":{"type":"array","items":{"type":"object","required":["file","license","credit","shows"],
+"properties":{"file":{"type":"string","pattern":"\\.jpg$"},"source_url":{"type":["string","null"]},"license":{"type":"string"},"credit":{"type":"string"},
+"lat":{"type":["number","null"]},"lon":{"type":["number","null"]},"heading":{"type":["number","null"],"minimum":0,"maximum":360},
+"date":{"type":["string","null"]},"shows":{"type":"string"},"original_path":{"type":"string"}}}}}}

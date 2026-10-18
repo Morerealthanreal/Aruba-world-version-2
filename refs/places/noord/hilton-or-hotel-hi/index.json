@@ -1,0 +1,66 @@
+{
+ "place": "hilton-or-hotel-hi",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "aerial.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel grounds / aerial (hi set)",
+   "original_path": "/tmp/refs/hi/aerial.jpg"
+  },
+  {
+   "file": "bike-lighthouse.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel grounds / aerial (hi set)",
+   "original_path": "/tmp/refs/hi/bike-lighthouse.jpg"
+  },
+  {
+   "file": "courtyard-path.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel grounds / aerial (hi set)",
+   "original_path": "/tmp/refs/hi/courtyard-path.jpg"
+  },
+  {
+   "file": "outdoor-pool-trees.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel grounds / aerial (hi set)",
+   "original_path": "/tmp/refs/hi/outdoor-pool-trees.jpg"
+  },
+  {
+   "file": "palm-trees-pool-outdoor.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel grounds / aerial (hi set)",
+   "original_path": "/tmp/refs/hi/palm-trees-pool-outdoor.jpg"
+  }
+ ]
+}
