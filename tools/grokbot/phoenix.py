@@ -7,6 +7,7 @@ peach tower at the south end of that wing. The Esri ring is the red-roof
 chain; the tower stands just south of it, where that photo puts it.
 """
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hero_glb import Model, check_glb, fold_body, write_glb  # noqa: E402
-from hotelkit import Frame, balcony_wing, hip_roof, obox, vquad  # noqa: E402
+from hotelkit import Frame, balcony_wing, hip_roof, obox, tri_out, vquad  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 HERO = ROOT / "game" / "models" / "hero"
@@ -32,6 +33,12 @@ ROOF = (0.78, 0.62, 0.48)
 PEACH = (0.86, 0.62, 0.42)
 PEACH_SH = (0.72, 0.50, 0.34)
 TEAL = (0.22, 0.55, 0.62)
+POOL = (0.22, 0.58, 0.78)
+BLUEU = (0.15, 0.40, 0.75)
+THATCH = (0.55, 0.36, 0.16)
+TRUNK = (0.38, 0.24, 0.12)
+FROND = (0.14, 0.40, 0.16)
+BULB = (1.0, 0.86, 0.45)
 
 FH = 3.15
 
@@ -40,14 +47,46 @@ def lin(c):
     return tuple(round(v ** 2.2, 4) for v in c)
 
 
+def hquad(mesh, F, u0, u1, v0, v1, y):
+    A, B = F.p(u0, v0, y), F.p(u1, v0, y)
+    C, D = F.p(u1, v1, y), F.p(u0, v1, y)
+    cen = F.p((u0 + u1) / 2, (v0 + v1) / 2, y - 1)
+    tri_out(mesh, A, B, C, cen)
+    tri_out(mesh, A, C, D, cen)
+
+
+def palm(M, F, u, v, h=7.0):
+    obox(M.mesh(0, "trunk"), F, u - 0.16, u + 0.16, v - 0.16, v + 0.16, 0.4, h)
+    crown, cen = F.p(u, v, h), F.p(u, v, h - 2)
+    mesh = M.mesh(0, "frond")
+    for i in range(4):
+        a = i * math.tau / 4 + 0.4
+        du, dv = math.cos(a) * 2.3, math.sin(a) * 2.3
+        tri_out(mesh, crown, F.p(u + du * 0.3, v + dv * 0.3, h - 0.15), F.p(u + du, v + dv, h - 1.4), cen)
+
+
+def umbrella(M, F, u, v, color, y0=1.3):
+    obox(M.mesh(0, "trunk"), F, u - 0.05, u + 0.05, v - 0.05, v + 0.05, y0, y0 + 1.8)
+    top, cen = F.p(u, v, y0 + 2.05), F.p(u, v, y0)
+    mesh = M.mesh(0, color)
+    for i in range(4):
+        a0, a1 = i * math.tau / 4, (i + 1) * math.tau / 4
+        tri_out(mesh, top,
+                F.p(u + math.cos(a0) * 1.3, v + math.sin(a0) * 1.3, y0 + 1.6),
+                F.p(u + math.cos(a1) * 1.3, v + math.sin(a1) * 1.3, y0 + 1.6), cen)
+
+
 def build():
     M = Model("divephoenix")
     for n, c, r in (
         ("wall", CREAM, .85), ("recess", CREAM_SH, .9), ("slab", WHITE, .75),
         ("rail", RAIL, .5), ("glass", GLASS, .25), ("tile", TILE, .75), ("roof", ROOF, .85),
         ("peach", PEACH, .82), ("peachsh", PEACH_SH, .88), ("teal", TEAL, .6),
+        ("pool", POOL, .3), ("blueu", BLUEU, .55), ("thatch", THATCH, .9),
+        ("trunk", TRUNK, .85), ("frond", FROND, .8),
     ):
         M.material(n, lin(c), rough=r)
+    M.material("bulb", lin(BULB), rough=.4, emissive=.85)
     mats = {"wall": "wall", "recess": "recess", "slab": "slab", "rail": "rail", "glass": "glass", "fin": "wall"}
 
     # Resort aerial (diviresorts.com): the long wing is about six storeys,
@@ -99,8 +138,24 @@ def build():
     for lod in (0, 1):
         hip_roof(M.mesh(lod, "tile"), FHIDE, -0.6, FHIDE.L + 0.6, -8.6, 8.6, top, 2.6)
 
-    # One opaque mesh per LOD. Glass stays separate so the night pass still lights it.
-    fold_body(M, keep={"glass"})
+    # Pool court and beach, west of the long wing (+v). The aerial has the pool
+    # in the court, palms, and thatched umbrellas on the sand in the foreground.
+    FC = Frame((-8824.0, -4936.0), (-8814.0, -4830.0), O)
+    water = 1.45
+    hquad(M.mesh(0, "pool"), FC, 28, 78, 16, 34, water)
+    hquad(M.mesh(1, "pool"), FC, 28, 78, 16, 34, water)
+    obox(M.mesh(0, "slab"), FC, 26, 80, 14, 36, water - 0.22, water - 0.04)
+    for u, v in ((24, 20), (40, 38), (58, 18), (72, 40)):
+        palm(M, FC, u, v)
+    for u, v, col in ((32, 40, "thatch"), (48, 44, "thatch"), (64, 42, "thatch"),
+                      (36, 14.5, "blueu"), (55, 14.5, "blueu")):
+        umbrella(M, FC, u, v, col, y0=water)
+    uu = 30
+    while uu < 76:
+        hquad(M.mesh(0, "bulb"), FC, uu - 0.2, uu + 0.2, 14.2, 14.7, water + 0.35)
+        uu += 9
+    # One opaque mesh per LOD. Glass and bulbs stay named so the night pass lights them.
+    fold_body(M, keep={"glass", "bulb"})
     info = write_glb(M, HERO / "divephoenix.glb")
     check_glb(HERO / "divephoenix.glb")
     if not (2800 <= info["lod0"] <= 4500):
@@ -108,7 +163,11 @@ def build():
     if info["lod1"] >= 600:
         raise SystemExit(f"lod1 {info['lod1']}")
     patch(info)
+    def world(u, v, y):
+        x, yy, z = FC.p(u, v, y)
+        return (round(x + O[0], 1), round(z + O[1], 1), round(yy, 2))
     print("phoenix", info)
+    print("beach", world(50, 70, 12), "court", world(52, 25, 1.4), "wing", world(40, -6, 16))
     return info
 
 
@@ -125,8 +184,9 @@ def patch(info):
     old = '"ref_sources": "diviresorts.com Divi Aruba Phoenix (white tower, Palm Beach)"'
     new = ('"ref_sources": "diviresorts.com resort aerial: long light-grey wing, about six '
            'storeys, glass balconies, red-tile hips, and the tall slim peach tower at the '
-           'south end of that wing. Esri aerial: the red roofs run north-south on the street '
-           'side of the ring, pool to the west. Built by tools/grokbot/phoenix.py"')
+           'south end of that wing, pool court with palms and beach umbrellas to the west. '
+           'Esri aerial: the red roofs run north-south on the street side of the ring. '
+           'Built by tools/grokbot/phoenix.py"')
     block = block.replace(
         "the tall peach tower stands outside this footprint.",
         "the tall slim peach tower stands at the south end of that wing.",
@@ -134,10 +194,16 @@ def patch(info):
     prev = ('"ref_sources": "Esri aerial over OSM: chain of red hip roofs from the beach '
             '(northwest) to the street, pool on the ocean side; cream walls. The white '
             'high-rise northeast of the ring is a different building. Built by tools/grokbot/phoenix.py"')
+    current = ('"ref_sources": "diviresorts.com resort aerial: long light-grey wing, about six '
+                'storeys, glass balconies, red-tile hips; the tall slim peach tower stands at the '
+                'south end of that wing. Esri aerial: the red roofs run north-south on the street '
+                'side of the ring, pool to the west. Built by tools/grokbot/phoenix.py"')
     if old in block:
         block = block.replace(old, new, 1)
     elif prev in block:
         block = block.replace(prev, new, 1)
+    elif current in block:
+        block = block.replace(current, new, 1)
     elif "diviresorts.com resort aerial" not in block:
         raise SystemExit("phoenix ref anchor missing")
     block = block.replace(
