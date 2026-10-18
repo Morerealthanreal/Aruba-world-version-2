@@ -79,8 +79,8 @@ export class PerfFixes {
   private freedTex = 0;
   private freedGeo = 0;
   private meshGeo = new WeakMap<Object3D, BufferGeometry>();
+  private liveRegionGeo = new Set<BufferGeometry>();
   private swapped = new Set<BufferGeometry>();
-  private watchTick = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -368,28 +368,36 @@ export class PerfFixes {
     this.freedGeo += n;
   }
 
-  /** A chunk, road, or batch mesh that gets a new geometry. Dispose the previous one if nothing still draws it.
-   *  WeakMap only: a strong set of meshes kept unloaded regions alive and the heap climbed every loop. */
+  /** Chunk, road, and batch geometries are region-owned. When one leaves those meshes and
+   *  nothing in the scene still draws it, drop the GPU copy. The set holds geometries, not
+   *  meshes, so an unloaded region can be collected. */
   private noteSwaps() {
+    const now = new Set<BufferGeometry>();
+    const consider = (mesh: Obj | null | undefined) => {
+      const geo = mesh?.geometry;
+      if (!mesh || !geo) return;
+      now.add(geo);
+      const prev = this.meshGeo.get(mesh);
+      if (prev && prev !== geo) this.swapped.add(prev);
+      this.meshGeo.set(mesh, geo);
+    };
     for (const r of this.real.regions.values()) {
-      const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; __awTM?: { mesh?: Obj } };
-      const meshes: Obj[] = [];
-      r.group?.traverse((o) => { const m = o as Obj; if (m.geometry) meshes.push(m); });
-      for (const c of extra.chunks || []) if (c.mesh) meshes.push(c.mesh);
-      if (extra.__awTM?.mesh) meshes.push(extra.__awTM.mesh);
-      for (const b of r.__awBB || []) if (b.bm.geometry) meshes.push(b.bm as unknown as Obj);
-      for (const mesh of meshes) {
-        const geo = mesh.geometry;
-        if (!geo) continue;
-        const prev = this.meshGeo.get(mesh);
-        if (prev && prev !== geo) this.swapped.add(prev);
-        this.meshGeo.set(mesh, geo);
-      }
+      const extra = r as Reg & {
+        chunks?: { mesh?: Obj | null }[];
+        __awTM?: { mesh?: Obj };
+        roadMesh?: Obj;
+      };
+      for (const c of extra.chunks || []) consider(c.mesh);
+      consider(extra.__awTM?.mesh);
+      extra.roadMesh?.traverse((o) => consider(o as Obj));
+      for (const b of r.__awBB || []) consider(b.bm as unknown as Obj);
     }
+    for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
+    this.liveRegionGeo = now;
     if (!this.swapped.size) return;
     const live = new Set<BufferGeometry>();
     this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
-    for (const g of this.swapped) if (!live.has(g)) g.dispose();
+    for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
     this.swapped.clear();
   }
 
@@ -501,7 +509,7 @@ export class PerfFixes {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       this.warmRegionTextures();
-      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
+      this.noteSwaps();
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
