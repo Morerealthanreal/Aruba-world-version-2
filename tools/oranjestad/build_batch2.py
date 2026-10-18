@@ -787,9 +787,11 @@ def build_malls(chain, samples):
     paint, signs = Prim(), Prim()
     columns = []
     for hid, color in colors.items():
-        # The marketplace hero already has its gold dome, arches and tenant signs.
-        if hid == "renmarket":
-            print("  arcade renmarket: existing exterior kept")
+        # Royal Plaza and Renaissance are rebuilt as the photo facades.
+        # Their arcade banners and columns used to float in front of that
+        # geometry. The marketplace hero already has its own exterior.
+        if hid in ("renmarket", "royalplaza", "renmall"):
+            print(f"  arcade {hid}: folded into the photo-matched facade")
             continue
         hero = heroes.get(hid)
         if not hero:

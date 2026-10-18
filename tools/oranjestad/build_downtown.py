@@ -677,11 +677,16 @@ def gable_pts(kind):
             (0.66, 3.45), (0.76, 2.95), (0.85, 2.15), (0.93, 1.15),
             (1.00, 0.40),
         ]
-    # scrolled pediment
+    # scrolled pediment: shoulder volutes and a raised centre
     return [
-        (0.00, 0.50), (0.08, 0.85), (0.18, 1.70), (0.30, 2.70),
-        (0.42, 3.35), (0.50, 3.60), (0.58, 3.35), (0.70, 2.70),
-        (0.82, 1.70), (0.92, 0.85), (1.00, 0.50),
+        (0.00, 0.30), (0.06, 0.50),
+        (0.12, 1.45), (0.18, 0.72),
+        (0.26, 1.85), (0.36, 2.70),
+        (0.44, 3.25), (0.50, 3.55),
+        (0.56, 3.25), (0.64, 2.70),
+        (0.74, 1.85), (0.82, 0.72),
+        (0.88, 1.45), (0.94, 0.50),
+        (1.00, 0.30),
     ]
 
 
@@ -814,6 +819,18 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
 
         # Cap is the wall colour. A white top reads as a pale slab down the street.
         ribbon(world(t0, top0), world(t1, top1), cap(t1, h1p, out), cap(t0, h0p, out), color)
+        # White border on the silhouette. The coloured face stays in front;
+        # the trim is only the lip past the coloured edge.
+        lip = 0.28
+
+        def brim(t, h, extra):
+            return (
+                a[0] + tx * L * t + nx * (inset + 0.18) - ox,
+                y_eave + h + extra - h0,
+                a[1] + tz * L * t + nz * (inset + 0.18) - oz,
+            )
+
+        ribbon(brim(t0, h0p, 0.0), brim(t1, h1p, 0.0), brim(t1, h1p, lip), brim(t0, h0p, lip), trim)
         back = -0.55
 
         def backp(t, y):
@@ -829,11 +846,40 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
         else:
             prim.quad(backp(t0, yb), backp(t1, yb), backp(t1, top1), backp(t0, top0), color)
         ribbon(cap(t0, h0p, out), cap(t1, h1p, out), backp(t1, top1), backp(t0, top0), color)
+    # Round window in the gable, the white oculus on the postcard row.
+    ti, hi = max(pts, key=lambda p: p[1])
+    centre = world(0.5, y_eave + hi * 0.58)
+    px, py, pz = centre[0] + nx * 0.18, centre[1], centre[2] + nz * 0.18
+    gx, gz = px + nx * 0.04, pz + nz * 0.04
+    radius = 0.38 * scale
+    seg = 8
+    for i in range(seg):
+        a0 = math.tau * i / seg
+        a1 = math.tau * (i + 1) / seg
+
+        def ring(ang, rad, px=px, py=py, pz=pz):
+            return (
+                px + tx * math.cos(ang) * rad,
+                py + math.sin(ang) * rad,
+                pz + tz * math.cos(ang) * rad,
+            )
+
+        prim.tri((px, py, pz), ring(a0, radius), ring(a1, radius), trim)
+        glass_c = (0.72, 0.84, 0.90)
+
+        def grin(ang, rad, gx=gx, py=py, gz=gz):
+            return (
+                gx + tx * math.cos(ang) * rad,
+                py + math.sin(ang) * rad,
+                gz + tz * math.cos(ang) * rad,
+            )
+
+        prim.tri((gx, py, gz), grin(a1, radius * 0.62), grin(a0, radius * 0.62), glass_c)
     # white finial on the peak, so each gable has a bright marker from the sidewalk
     ti, hi = max(pts, key=lambda p: p[1])
     tip = world(ti, y_eave + hi)
-    box(prim, tip[0], tip[1] + 0.28, tip[2], 0.18, 0.42, 0.18, color)
-    box(prim, tip[0], tip[1] + 0.52, tip[2], 0.28, 0.08, 0.28, trim)
+    box(prim, tip[0], tip[1] + 0.28, tip[2], 0.16, 0.46, 0.16, trim)
+    box(prim, tip[0], tip[1] + 0.55, tip[2], 0.28, 0.08, 0.28, trim)
 
 
 def load_roads():
