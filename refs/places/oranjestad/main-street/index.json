@@ -11,7 +11,7 @@
    "lon": null,
    "heading": null,
    "date": null,
-   "shows": "streetcar on Main Street",
+   "shows": "pastel gable row: pink, white scrolled, light blue and yellow fronts, orange tile roofs, white trim and a palm",
    "original_path": "/workspace/landmarks/ref/mainstreet_tram1.jpg"
   },
   {
@@ -37,6 +37,17 @@
    "date": null,
    "shows": "red double-decker tram",
    "original_path": "/workspace/landmarks/ref/tram_red_doubledecker.jpg"
+  },
+  {
+   "file": "trolley-view.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Oranjestad_trolley_-_operator%27s_view.jpg",
+   "license": "CC BY-SA 2.0",
+   "credit": "Roger Wollstadt",
+   "lat": 12.51996,
+   "lon": -70.03473,
+   "heading": 270,
+   "date": "2014-01-15",
+   "shows": "looking west down Main Street from the trolley: brick tram path, red planter beds, shade trees and palms, two-storey shopfronts"
   }
  ]
 }

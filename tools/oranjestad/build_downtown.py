@@ -677,11 +677,16 @@ def gable_pts(kind):
             (0.66, 3.45), (0.76, 2.95), (0.85, 2.15), (0.93, 1.15),
             (1.00, 0.40),
         ]
-    # scrolled pediment
+    # scrolled pediment: shoulder volutes and a raised centre
     return [
-        (0.00, 0.50), (0.08, 0.85), (0.18, 1.70), (0.30, 2.70),
-        (0.42, 3.35), (0.50, 3.60), (0.58, 3.35), (0.70, 2.70),
-        (0.82, 1.70), (0.92, 0.85), (1.00, 0.50),
+        (0.00, 0.30), (0.06, 0.50),
+        (0.12, 1.45), (0.18, 0.72),
+        (0.26, 1.85), (0.36, 2.70),
+        (0.44, 3.25), (0.50, 3.55),
+        (0.56, 3.25), (0.64, 2.70),
+        (0.74, 1.85), (0.82, 0.72),
+        (0.88, 1.45), (0.94, 0.50),
+        (1.00, 0.30),
     ]
 
 
@@ -762,7 +767,7 @@ def nearest_seg(p, line):
     return seg
 
 
-def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.0):
+def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.0, inset=0.10):
     ox, oz = origin
     dx, dz = b[0] - a[0], b[1] - a[1]
     L = hypot(dx, dz) or 1
@@ -778,8 +783,6 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
         pts.append((t, h))
     # pull the parapet just outside the wall; the back face sits ~1m into
     # the roof so the gable has a visible end when you look along the street
-    inset = 0.10
-
     def world(t, y):
         return (
             a[0] + tx * L * t + nx * inset - ox,
@@ -816,6 +819,18 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
 
         # Cap is the wall colour. A white top reads as a pale slab down the street.
         ribbon(world(t0, top0), world(t1, top1), cap(t1, h1p, out), cap(t0, h0p, out), color)
+        # White border on the silhouette. The coloured face stays in front;
+        # the trim is only the lip past the coloured edge.
+        lip = 0.28
+
+        def brim(t, h, extra):
+            return (
+                a[0] + tx * L * t + nx * (inset + 0.18) - ox,
+                y_eave + h + extra - h0,
+                a[1] + tz * L * t + nz * (inset + 0.18) - oz,
+            )
+
+        ribbon(brim(t0, h0p, 0.0), brim(t1, h1p, 0.0), brim(t1, h1p, lip), brim(t0, h0p, lip), trim)
         back = -0.55
 
         def backp(t, y):
@@ -831,11 +846,40 @@ def parapet(prim, a, b, outward, y_eave, color, trim, origin, h0, kind, scale=1.
         else:
             prim.quad(backp(t0, yb), backp(t1, yb), backp(t1, top1), backp(t0, top0), color)
         ribbon(cap(t0, h0p, out), cap(t1, h1p, out), backp(t1, top1), backp(t0, top0), color)
+    # Round window in the gable, the white oculus on the postcard row.
+    ti, hi = max(pts, key=lambda p: p[1])
+    centre = world(0.5, y_eave + hi * 0.58)
+    px, py, pz = centre[0] + nx * 0.18, centre[1], centre[2] + nz * 0.18
+    gx, gz = px + nx * 0.04, pz + nz * 0.04
+    radius = 0.38 * scale
+    seg = 8
+    for i in range(seg):
+        a0 = math.tau * i / seg
+        a1 = math.tau * (i + 1) / seg
+
+        def ring(ang, rad, px=px, py=py, pz=pz):
+            return (
+                px + tx * math.cos(ang) * rad,
+                py + math.sin(ang) * rad,
+                pz + tz * math.cos(ang) * rad,
+            )
+
+        prim.tri((px, py, pz), ring(a0, radius), ring(a1, radius), trim)
+        glass_c = (0.72, 0.84, 0.90)
+
+        def grin(ang, rad, gx=gx, py=py, gz=gz):
+            return (
+                gx + tx * math.cos(ang) * rad,
+                py + math.sin(ang) * rad,
+                gz + tz * math.cos(ang) * rad,
+            )
+
+        prim.tri((gx, py, gz), grin(a1, radius * 0.62), grin(a0, radius * 0.62), glass_c)
     # white finial on the peak, so each gable has a bright marker from the sidewalk
     ti, hi = max(pts, key=lambda p: p[1])
     tip = world(ti, y_eave + hi)
-    box(prim, tip[0], tip[1] + 0.28, tip[2], 0.18, 0.42, 0.18, color)
-    box(prim, tip[0], tip[1] + 0.52, tip[2], 0.28, 0.08, 0.28, trim)
+    box(prim, tip[0], tip[1] + 0.28, tip[2], 0.16, 0.46, 0.16, trim)
+    box(prim, tip[0], tip[1] + 0.55, tip[2], 0.28, 0.08, 0.28, trim)
 
 
 def load_roads():
@@ -963,7 +1007,9 @@ def build_facade(prim, glass, b, edge, origin, h0, uv, kind):
             prim.tri(peak, e1, e0, TERRACOTTA)
         else:
             prim.tri(peak, e0, e1, TERRACOTTA)
-    parapet(prim, a, bb, outward, eave, b["color"], WHITE, origin, h0, kind, scale=1.0)
+    parapet(
+        prim, a, bb, outward, eave, b["color"], WHITE, origin, h0, kind, scale=b.get("gscale", 1.0)
+    )
     # white cornice along the street
     nx, nz = outward
     dx, dz = bb[0] - a[0], bb[1] - a[1]
@@ -979,9 +1025,10 @@ def build_facade(prim, glass, b, edge, origin, h0, uv, kind):
         prim.quad(p0, p1, p2, p3, WHITE)
     else:
         prim.quad(p1, p0, p3, p2, WHITE)
-    # Terracotta eave the sidewalk sees under the gable. Ground photos of
-    # Caya G.F. Betico Croes show tile roofs, not a white slab on the skyline.
-    lip, drop = 2.4, 1.05
+    # Terracotta eave the sidewalk sees under the gable. The west postcard
+    # block has a deep tile roof; the long straight run keeps a short lip.
+    lip = b.get("lip", 2.4)
+    drop = 1.05 if lip > 1.2 else 0.42
     t0 = (a[0] + nx * 0.12 - ox, cornice_y - 0.04, a[1] + nz * 0.12 - oz)
     t1 = (bb[0] + nx * 0.12 - ox, cornice_y - 0.04, bb[1] + nz * 0.12 - oz)
     t2 = (bb[0] + nx * lip - ox, cornice_y - drop, bb[1] + nz * lip - oz)
@@ -1014,6 +1061,59 @@ def build_facade(prim, glass, b, edge, origin, h0, uv, kind):
         prim.quad(d0, d1, d2, d3, DOOR)
     else:
         prim.quad(d1, d0, d3, d2, DOOR)
+    if b.get("lip", 2.4) < 0.8 and L > 3.2:
+        # Roller shutters on the low trolley-street shops. The postcard
+        # block (deep tile lip) keeps an open glass shopfront.
+        shutter = (0.88, 0.89, 0.90)
+        sy0 = ground + 0.5 - h0
+        sy1 = ground + 2.68 - h0
+        m2 = 0.3 + dw + 0.2
+        if m2 < L - margin - 0.5:
+            q0 = (a[0] + tx * m2 + nx * 0.22 - ox, sy0, a[1] + tz * m2 + nz * 0.22 - oz)
+            q1 = (bb[0] - tx * margin + nx * 0.22 - ox, sy0, bb[1] - tz * margin + nz * 0.22 - oz)
+            q2 = (bb[0] - tx * margin + nx * 0.22 - ox, sy1, bb[1] - tz * margin + nz * 0.22 - oz)
+            q3 = (a[0] + tx * m2 + nx * 0.22 - ox, sy1, a[1] + tz * m2 + nz * 0.22 - oz)
+            prim.quad(q0, q1, q2, q3, shutter)
+            prim.quad(q1, q0, q3, q2, shutter)
+    # White floor belt, so each front reads as two storeys from the sidewalk.
+    by0 = ground + 3.48 - h0
+    by1 = by0 + 0.16
+    b0 = (a[0] + nx * 0.18 - ox, by0, a[1] + nz * 0.18 - oz)
+    b1 = (bb[0] + nx * 0.18 - ox, by0, bb[1] + nz * 0.18 - oz)
+    b2 = (bb[0] + nx * 0.18 - ox, by1, bb[1] + nz * 0.18 - oz)
+    b3 = (a[0] + nx * 0.18 - ox, by1, a[1] + nz * 0.18 - oz)
+    if face_out:
+        prim.quad(b0, b1, b2, b3, WHITE)
+    else:
+        prim.quad(b1, b0, b3, b2, WHITE)
+    if b.get("balcony") and L > 3.5:
+        # Yellow and pink fronts on the postcard block carry a white balustrade.
+        slab_y = ground + 4.15 - h0
+        depth = 1.05
+        s0 = (a[0] + tx * 0.4 + nx * 0.2 - ox, slab_y, a[1] + tz * 0.4 + nz * 0.2 - oz)
+        s1 = (bb[0] - tx * 0.4 + nx * 0.2 - ox, slab_y, bb[1] - tz * 0.4 + nz * 0.2 - oz)
+        s2 = (bb[0] - tx * 0.4 + nx * depth - ox, slab_y + 0.08, bb[1] - tz * 0.4 + nz * depth - oz)
+        s3 = (a[0] + tx * 0.4 + nx * depth - ox, slab_y + 0.08, a[1] + tz * 0.4 + nz * depth - oz)
+        if face_out:
+            prim.quad(s0, s1, s2, s3, WHITE)
+        else:
+            prim.quad(s1, s0, s3, s2, WHITE)
+        posts = max(2, min(6, int(L / 1.5)))
+        for k in range(posts):
+            t = 0.4 + (L - 0.8) * (k + 0.5) / posts
+            px = a[0] + tx * t + nx * (depth - 0.08)
+            pz = a[1] + tz * t + nz * (depth - 0.08)
+            box(prim, px - ox, slab_y + 0.48, pz - oz, 0.10, 0.72, 0.10, WHITE)
+        ry0 = slab_y + 0.78
+        ry1 = ry0 + 0.08
+        r0 = (a[0] + tx * 0.4 + nx * depth - ox, ry0, a[1] + tz * 0.4 + nz * depth - oz)
+        r1 = (bb[0] - tx * 0.4 + nx * depth - ox, ry0, bb[1] - tz * 0.4 + nz * depth - oz)
+        r2 = (bb[0] - tx * 0.4 + nx * depth - ox, ry1, bb[1] - tz * 0.4 + nz * depth - oz)
+        r3 = (a[0] + tx * 0.4 + nx * depth - ox, ry1, a[1] + tz * 0.4 + nz * depth - oz)
+        if face_out:
+            prim.quad(r0, r1, r2, r3, WHITE)
+        else:
+            prim.quad(r1, r0, r3, r2, WHITE)
     # sign board
     sw = min(L * 0.62, 7.2)
     if sw > 1.6 and uv:
@@ -1127,7 +1227,7 @@ def chunk_buildings(picked):
     return [g for g in groups if g]
 
 
-def make_street_glb(buildings, atlas, road):
+def make_street_glb(buildings, atlas, road, extra=None):
     # origin at mean centroid
     ox = sum(b["c"][0] for b in buildings) / len(buildings)
     oz = sum(b["c"][1] for b in buildings) / len(buildings)
@@ -1209,8 +1309,12 @@ def make_street_glb(buildings, atlas, road):
     # Face the roadway (opposite the side offset) so the blade reads from the street.
     signs.quad(corners[1], corners[0], corners[3], corners[2], WHITE, ((u1, v0), (u0, v0), (u0, v1), (u1, v1)))
 
+    if extra:
+        extra(paint, buildings, road, (ox, oz), h0)
     glb = Glb("tmp")
-    glb.mat("paint", rough=0.86)
+    # Double-sided so a view down the street does not show window frames
+    # with the wall missing behind them.
+    glb.mat("paint", rough=0.86, double=True)
     glb.mat("glass", color=[1, 1, 1, 1], rough=0.18, metal=0.04)
     glb.images.append((atlas.png(), "image/png"))
     glb.add(paint, "paint")

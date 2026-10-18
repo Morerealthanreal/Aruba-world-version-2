@@ -1,0 +1,28 @@
+{
+  "place": "renaissance-mall",
+  "area": "oranjestad",
+  "photos": [
+    {
+      "file": "lgsmith-front.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Oranjestad_-Centro_de_Aruba-_L.G._Smith_Blvd_-_Renaissance_Mall_-_panoramio.jpg",
+      "license": "CC BY 3.0",
+      "credit": "Wikimedia Commons / panoramio",
+      "lat": 12.5225,
+      "lon": -70.0382,
+      "heading": 40,
+      "date": null,
+      "shows": "yellow entrance with a curved scroll pediment, round window and white columns, orange tile roof, taller yellow hotel wing behind, black lamps with red banners, square stone planters with palms"
+    },
+    {
+      "file": "boulevard-lamps.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Aruba_Oranjestad_MainStreet.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Set1536",
+      "lat": 12.522,
+      "lon": -70.038,
+      "heading": 330,
+      "date": "2009-04-10",
+      "shows": "ochre pavilion, terracotta roof, white criss-cross sidewalk rail, palms, ornate lamps with shield banners"
+    }
+  ]
+}
