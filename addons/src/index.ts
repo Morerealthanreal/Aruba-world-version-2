@@ -31,6 +31,7 @@ import { FrameGraph } from "./frameGraph";
 import { Kids } from "./kids";
 import { SplitJobs } from "./splitJobs";
 import { HiPerf } from "./hiPerf";
+import { PhoneHigh } from "./phoneHigh";
 import { HiLook } from "./hiLook";
 import { Emergency } from "./emergency";
 import { Crash } from "./crash";
@@ -67,6 +68,7 @@ async function main() {
   const g = await whenGameReady();
   // perf fixes first: the FPS guard reads the (possibly capped) pixel ratio as its base
   const perf = params.get("perf") !== "0" ? new PerfFixes(g) : null;
+  const phoneHigh = params.get("phonehigh") !== "0" ? new PhoneHigh(g) : null;
   const look = params.get("look") !== "0" ? new Look(g) : null;
   const sea = params.get("sea") !== "0" ? new Sea(g) : null;
   const touch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
@@ -131,7 +133,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, phoneHigh, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
