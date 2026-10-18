@@ -190,17 +190,26 @@ def _flat_fill_polys(bgr: np.ndarray, polys: list[list[list[float]]], color_bgr:
     return out
 
 
-def _flat_fill_outside_poly(
-    bgr: np.ndarray, keep_poly: list[list[float]], color_bgr: tuple[int, int, int]
+def _feather_wall_outside_poly(
+    bgr: np.ndarray,
+    keep_poly: list[list[float]],
+    color_bgr: tuple[int, int, int],
+    feather_px: int,
 ) -> np.ndarray:
-    """Paint every pixel outside keep_poly with a flat wall colour."""
+    """Blend non-art pixels to wall colour with a soft edge (no hard crop)."""
     h, w = bgr.shape[:2]
     keep = np.zeros((h, w), dtype=np.uint8)
     pts = np.array([[int(x * w), int(y * h)] for x, y in keep_poly], dtype=np.int32)
     cv2.fillPoly(keep, [pts], 255)
-    out = bgr.copy()
-    out[keep == 0] = color_bgr
-    return out
+    f = max(3, int(feather_px))
+    if f % 2 == 0:
+        f += 1
+    alpha = cv2.GaussianBlur(keep.astype(np.float32), (f, f), 0) / 255.0
+    wall = np.array(color_bgr, dtype=np.float32)
+    out = bgr.astype(np.float32)
+    for c in range(3):
+        out[:, :, c] = out[:, :, c] * alpha + wall[c] * (1.0 - alpha)
+    return np.clip(out, 0, 255).astype(np.uint8)
 
 
 def _scrub_blue_outside_mask(
@@ -538,11 +547,25 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     if art_keep:
         wall = _sample_wall_bgr(warped, cfg.get("wall_sample_rect") or [0.55, 0.22, 0.72, 0.38])
         h, w = warped.shape[:2]
+        feather_px = int(cfg.get("art_keep_feather_px", 0))
+        if feather_px <= 0:
+            feather_px = int(min(h, w) * float(cfg.get("art_keep_feather", 0.028)))
+        warped = _feather_wall_outside_poly(warped, art_keep, wall, feather_px)
         keep = np.zeros((h, w), dtype=np.uint8)
         pts = np.array([[int(x * w), int(y * h)] for x, y in art_keep], dtype=np.int32)
         cv2.fillPoly(keep, [pts], 255)
-        warped = _flat_fill_outside_poly(warped, art_keep, wall)
         warped = _scrub_blue_outside_mask(warped, keep, wall)
+        top_h = max(8, int(h * float(cfg.get("roof_blue_scrub_row", 0.2))))
+        top = warped[:top_h]
+        hsv = cv2.cvtColor(top, cv2.COLOR_BGR2HSV)
+        blue = (
+            (hsv[:, :, 0] >= 84)
+            & (hsv[:, :, 0] <= 128)
+            & (hsv[:, :, 1] >= 42)
+            & (hsv[:, :, 2] >= 95)
+        )
+        top[blue] = wall
+        warped[:top_h] = top
 
     if cfg.get("color_grade"):
         warped = apply_color_grade(warped, cfg["color_grade"])

@@ -99,7 +99,7 @@ async function main() {
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
   const muralPreload: string[] = [];
-  if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
+  // sn_mural atlas loads lazily in SnMurals (and unloads when far) to avoid soak texture growth.
   if (params.get("snfair") !== "0") muralPreload.push("textures/sn_fair_atlas.jpg");
   if (params.get("snlater") !== "0") muralPreload.push("textures/sn_later_atlas.jpg");
   if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");

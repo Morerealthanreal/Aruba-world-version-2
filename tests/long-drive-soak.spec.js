@@ -8,8 +8,7 @@ const MEASURE_CYCLES = Number(process.env.SOAK_MEASURE_CYCLES || 2);
 const TOTAL_CYCLES = WARMUP_CYCLES + MEASURE_CYCLES;
 const HEAP_GROWTH_LIMIT = Number(process.env.SOAK_HEAP_GROWTH_MB || 24) * 1024 * 1024;
 const GEOMETRY_GROWTH_LIMIT = Number(process.env.SOAK_GEOMETRY_GROWTH || 12);
-// Island loop streams San Nicolas mural atlases; renderer.info can tick +1–2 mid-soak.
-const TEXTURE_GROWTH_LIMIT = Number(process.env.SOAK_TEXTURE_GROWTH || 6);
+const TEXTURE_GROWTH_LIMIT = Number(process.env.SOAK_TEXTURE_GROWTH || 4);
 const SCENE_GEOMETRY_GROWTH_LIMIT = Number(
   process.env.SOAK_SCENE_GEOMETRY_GROWTH || 100,
 );

@@ -3,6 +3,7 @@ import type { WebGLRenderer } from "three";
 
 const pending = new Map<string, Promise<THREE.Texture>>();
 const ready = new Map<string, THREE.Texture>();
+const refs = new Map<string, number>();
 
 /** Canonical key so preload and mural JSON paths share one cache entry. */
 export function muralAtlasKey(path: string): string {
@@ -14,7 +15,10 @@ export function muralAtlasKey(path: string): string {
 export function loadMuralAtlas(path: string, renderer: WebGLRenderer): Promise<THREE.Texture> {
   const key = muralAtlasKey(path);
   const hit = ready.get(key);
-  if (hit) return Promise.resolve(hit);
+  if (hit) {
+    refs.set(key, (refs.get(key) ?? 0) + 1);
+    return Promise.resolve(hit);
+  }
   let job = pending.get(key);
   if (!job) {
     job = new THREE.TextureLoader().loadAsync(key).then((tex) => {
@@ -30,7 +34,27 @@ export function loadMuralAtlas(path: string, renderer: WebGLRenderer): Promise<T
     });
     pending.set(key, job);
   }
-  return job;
+  return job.then((tex) => {
+    refs.set(key, (refs.get(key) ?? 0) + 1);
+    return tex;
+  });
+}
+
+/** Drop GPU atlas when a mural system unloads (e.g. left San Nicolas during soak). */
+export function releaseMuralAtlas(path: string): void {
+  const key = muralAtlasKey(path);
+  const n = (refs.get(key) ?? 0) - 1;
+  if (n > 0) {
+    refs.set(key, n);
+    return;
+  }
+  refs.delete(key);
+  const tex = ready.get(key);
+  if (tex) {
+    tex.dispose();
+    ready.delete(key);
+  }
+  pending.delete(key);
 }
 
 /** Upload once and sync renderer state so mobile pre-upload does not count again. */
