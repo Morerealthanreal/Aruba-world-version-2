@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Perspective-rectify verified mural photos → flat artwork textures.
-
-Pipeline per refs/murals/<id>/rectify.json:
-  4-point homography → optional inpaint (obstructions / windows) → mild colour balance.
-No blur, posterize, or grain.
-"""
+"""Perspective-rectify verified mural photos → flat artwork textures."""
 from __future__ import annotations
 
 import json
@@ -28,12 +23,84 @@ RECTIFIED_MURAL_IDS = frozenset({
 DEFAULT_TARGET_H = 512
 
 
-def _norm_pts(poly: list[list[float]], w: int, h: int) -> np.ndarray:
-    return np.array([[int(x * w), int(y * h)] for x, y in poly], dtype=np.int32)
+def _quad_size(quad: np.ndarray) -> tuple[float, float]:
+    tl, tr, br, bl = quad
+    w = 0.5 * (np.linalg.norm(tr - tl) + np.linalg.norm(br - bl))
+    h = 0.5 * (np.linalg.norm(bl - tl) + np.linalg.norm(br - tr))
+    return float(w), float(h)
+
+
+def _warp_quad(bgr: np.ndarray, src_quad: list, out_w: int, out_h: int) -> np.ndarray:
+    src = np.float32(src_quad)
+    dst = np.float32([[0, 0], [out_w - 1, 0], [out_w - 1, out_h - 1], [0, out_h - 1]])
+    m = cv2.getPerspectiveTransform(src, dst)
+    return cv2.warpPerspective(bgr, m, (out_w, out_h), flags=cv2.INTER_LANCZOS4)
+
+
+def _polys_to_mask(
+    polys: list[list[list[float]]], w: int, h: int, rects: list[list[float]] | None = None
+) -> np.ndarray:
+    mask = np.zeros((h, w), dtype=np.uint8)
+    for poly in polys:
+        if len(poly) < 3:
+            continue
+        pts = np.array([[int(x * w), int(y * h)] for x, y in poly], dtype=np.int32)
+        cv2.fillPoly(mask, [pts], 255)
+    for rect in rects or []:
+        x0, y0, x1, y1 = rect
+        cv2.rectangle(mask, (int(x0 * w), int(y0 * h)), (int(x1 * w), int(y1 * h)), 255, -1)
+    return mask
+
+
+def _inpaint(bgr: np.ndarray, mask: np.ndarray, radius: int = 8) -> np.ndarray:
+    if not mask.any():
+        return bgr
+    out = cv2.inpaint(bgr, mask, inpaintRadius=radius, flags=cv2.INPAINT_NS)
+    out = cv2.inpaint(out, mask, inpaintRadius=max(3, radius // 2), flags=cv2.INPAINT_TELEA)
+    return out
+
+
+def _apply_patches(bgr: np.ndarray, patches: list[dict], w: int, h: int) -> np.ndarray:
+    out = bgr.copy()
+    for p in patches:
+        dx0, dy0, dx1, dy1 = p["dst"]
+        sx0, sy0, sx1, sy1 = p["src"]
+        dw, dh = int((dx1 - dx0) * w), int((dy1 - dy0) * h)
+        sw, sh = int((sx1 - sx0) * w), int((sy1 - sy0) * h)
+        if dw < 2 or dh < 2 or sw < 2 or sh < 2:
+            continue
+        patch = out[
+            int(sy0 * h) : int(sy1 * h),
+            int(sx0 * w) : int(sx1 * w),
+        ]
+        if patch.size == 0:
+            continue
+        patch = cv2.resize(patch, (dw, dh), interpolation=cv2.INTER_LINEAR)
+        out[int(dy0 * h) : int(dy0 * h) + dh, int(dx0 * w) : int(dx0 * w) + dw] = patch
+    return out
+
+
+def _crop_to_art(bgr: np.ndarray, art_poly: list[list[float]] | None) -> np.ndarray:
+    if not art_poly:
+        return bgr
+    h, w = bgr.shape[:2]
+    keep = np.zeros((h, w), dtype=np.uint8)
+    pts = np.array([[int(x * w), int(y * h)] for x, y in art_poly], dtype=np.int32)
+    cv2.fillPoly(keep, [pts], 255)
+    ys, xs = np.where(keep > 0)
+    if len(xs) == 0:
+        return bgr
+    x0, x1 = int(xs.min()), int(xs.max()) + 1
+    y0, y1 = int(ys.min()), int(ys.max()) + 1
+    crop = bgr[y0:y1, x0:x1].copy()
+    ckeep = keep[y0:y1, x0:x1]
+    drop = cv2.bitwise_not(ckeep)
+    if drop.any():
+        crop = _inpaint(crop, drop, radius=3)
+    return crop
 
 
 def mild_color_balance(rgb: np.ndarray) -> np.ndarray:
-    """Light gray-world on the outer 3% border only."""
     f = rgb.astype(np.float32)
     bh = max(2, int(f.shape[0] * 0.03))
     bw = max(2, int(f.shape[1] * 0.03))
@@ -48,72 +115,116 @@ def mild_color_balance(rgb: np.ndarray) -> np.ndarray:
     )
     means = strips.mean(axis=0)
     target = float(means.mean())
-    scale = target / np.maximum(means, 1.0)
-    # Pull only 35% toward balanced so we do not wash the mural out.
-    scale = 1.0 + 0.35 * (scale - 1.0)
-    out = np.clip(f * scale, 0, 255).astype(np.uint8)
-    return out
+    scale = 1.0 + 0.25 * (target / np.maximum(means, 1.0) - 1.0)
+    return np.clip(f * scale, 0, 255).astype(np.uint8)
 
 
-def _fill_mask(mask: np.ndarray, polys: list[list[list[float]]], w: int, h: int, value: int = 255) -> None:
-    for poly in polys:
-        if len(poly) < 3:
-            continue
-        cv2.fillPoly(mask, [_norm_pts(poly, w, h)], value)
+def _process_face(
+    bgr: np.ndarray,
+    face: dict[str, Any],
+    target_h: int,
+) -> np.ndarray:
+    quad = np.float32(face["src_quad"])
+    qw, qh = _quad_size(quad)
+    if face.get("square"):
+        side = target_h
+        out_w, out_h = side, side
+    else:
+        scale = target_h / max(qh, 1.0)
+        out_w = max(4, int(round(qw * scale)))
+        out_h = target_h
+
+    warped = _warp_quad(bgr, face["src_quad"], out_w, out_h)
+
+    mask = _polys_to_mask(
+        face.get("inpaint_polys") or [],
+        out_w,
+        out_h,
+        face.get("inpaint_rects"),
+    )
+    rad = int(face.get("inpaint_radius", 10))
+    passes = int(face.get("inpaint_passes", 2 if mask.any() else 1))
+    for _ in range(passes):
+        warped = _inpaint(warped, mask, radius=rad)
+    if face.get("patch_rects"):
+        h0, w0 = warped.shape[:2]
+        warped = _apply_patches(warped, face.get("patch_rects") or [], w0, h0)
+        # Blend patch seams
+        warped = _inpaint(warped, mask, radius=max(5, rad // 2))
+    warped = _crop_to_art(warped, face.get("art_poly"))
+    return warped
+
+
+def _stitch_horizontal(faces: list[np.ndarray], gap: int = 0) -> np.ndarray:
+    if len(faces) == 1:
+        return faces[0]
+    h = max(im.shape[0] for im in faces)
+    parts = []
+    for im in faces:
+        if im.shape[0] != h:
+            nw = int(im.shape[1] * h / im.shape[0])
+            im = cv2.resize(im, (nw, h), interpolation=cv2.INTER_LANCZOS4)
+        parts.append(im)
+        if gap:
+            parts.append(np.full((h, gap, 3), 20, dtype=np.uint8))
+    return np.concatenate(parts, axis=1)
 
 
 def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     ref_dir = REF_ROOT / mural_id
-    photo = ref_dir / "street-photo.jpg"
     cfg_path = ref_dir / "rectify.json"
+    cfg: dict[str, Any] = json.loads(cfg_path.read_text())
+    photo = ref_dir / str(cfg.get("photo", "street-photo.jpg"))
     if not photo.is_file():
         raise FileNotFoundError(photo)
-    cfg: dict[str, Any] = json.loads(cfg_path.read_text())
-    aspect = float(cfg.get("aspect") or cfg.get("pw_ph") or 1.0)
-    out_w = max(4, int(round(target_h * aspect)))
-    out_h = target_h
-
     bgr = cv2.imread(str(photo))
     if bgr is None:
         raise RuntimeError(f"cv2 could not read {photo}")
-    src = np.float32(cfg["src_quad"])
-    dst = np.float32([[0, 0], [out_w - 1, 0], [out_w - 1, out_h - 1], [0, out_h - 1]])
-    m = cv2.getPerspectiveTransform(src, dst)
-    warped = cv2.warpPerspective(bgr, m, (out_w, out_h), flags=cv2.INTER_LANCZOS4)
 
-    mask = np.zeros((out_h, out_w), dtype=np.uint8)
-    _fill_mask(mask, cfg.get("inpaint_polys") or [], out_w, out_h)
-    for rect in cfg.get("inpaint_rects") or []:
-        x0, y0, x1, y1 = rect
-        cv2.rectangle(
-            mask,
-            (int(x0 * out_w), int(y0 * out_h)),
-            (int(x1 * out_w), int(y1 * out_h)),
-            255,
-            -1,
-        )
-    _fill_mask(mask, cfg.get("exclude_polys") or [], out_w, out_h)
+    for poly in cfg.get("src_inpaint_polys") or []:
+        sm = np.zeros(bgr.shape[:2], dtype=np.uint8)
+        pts = np.array(poly, dtype=np.int32)
+        cv2.fillPoly(sm, [pts], 255)
+        bgr = _inpaint(bgr, sm, radius=int(cfg.get("src_inpaint_radius", 18)))
 
-    for rect in cfg.get("fill_rects") or []:
-        x0, y0, x1, y1 = rect["rect"]
-        color = tuple(rect.get("color", [0, 0, 0]))
-        cv2.rectangle(
-            warped,
-            (int(x0 * out_w), int(y0 * out_h)),
-            (int(x1 * out_w), int(y1 * out_h)),
-            color,
-            -1,
-        )
+    th = int(cfg.get("target_h", target_h))
+    if cfg.get("faces"):
+        warped_faces = [_process_face(bgr, f, th) for f in cfg["faces"]]
+        warped = _stitch_horizontal(warped_faces, gap=int(cfg.get("stitch_gap", 0)))
+    else:
+        face = {
+            "src_quad": cfg["src_quad"],
+            "square": cfg.get("square"),
+            "inpaint_polys": cfg.get("inpaint_polys"),
+            "inpaint_rects": cfg.get("inpaint_rects"),
+            "patch_rects": cfg.get("patch_rects"),
+            "inpaint_radius": cfg.get("inpaint_radius", 10),
+            "art_poly": cfg.get("art_poly"),
+        }
+        warped = _process_face(bgr, face, th)
 
-    if mask.any():
-        warped = cv2.inpaint(warped, mask, inpaintRadius=4, flags=cv2.INPAINT_TELEA)
+    # Global inpaint on stitched result (person, pole, etc.)
+    h, w = warped.shape[:2]
+    gmask = _polys_to_mask(
+        cfg.get("global_inpaint_polys") or [],
+        w,
+        h,
+        cfg.get("global_inpaint_rects"),
+    )
+    gr = int(cfg.get("global_inpaint_radius", 12))
+    for _ in range(int(cfg.get("global_inpaint_passes", 2))):
+        warped = _inpaint(warped, gmask, radius=gr)
 
-    if cfg.get("art_poly"):
-        keep = np.zeros((out_h, out_w), dtype=np.uint8)
-        _fill_mask(keep, [cfg["art_poly"]], out_w, out_h, 255)
-        drop = cv2.bitwise_not(keep)
-        if drop.any():
-            warped = cv2.inpaint(warped, drop, inpaintRadius=5, flags=cv2.INPAINT_TELEA)
+    if cfg.get("global_art_poly"):
+        warped = _crop_to_art(warped, cfg["global_art_poly"])
+
+    margin = cfg.get("crop_margin") or {}
+    t = int(margin.get("top", 0) * h)
+    b = int(margin.get("bottom", 0) * h)
+    l = int(margin.get("left", 0) * w)
+    r = int(margin.get("right", 0) * w)
+    if t or b or l or r:
+        warped = warped[t : h - b if b else h, l : w - r if r else w]
 
     rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)
     if cfg.get("color_balance", True):
@@ -121,7 +232,7 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUT_DIR / f"{mural_id}.jpg"
-    cv2.imwrite(str(out_path), cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), [int(cv2.IMWRITE_JPEG_QUALITY), 82])
+    cv2.imwrite(str(out_path), cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), [int(cv2.IMWRITE_JPEG_QUALITY), 85])
     return out_path
 
 
@@ -138,7 +249,12 @@ def build_all(ids: list[str] | None = None) -> None:
     ids = ids or sorted(RECTIFIED_MURAL_IDS)
     for mid in ids:
         p = rectify_one(mid)
-        print("rectified", mid, "→", p)
+        print("rectified", mid, "→", p, _size(p))
+
+
+def _size(p: Path) -> tuple[int, int]:
+    im = cv2.imread(str(p))
+    return (im.shape[1], im.shape[0]) if im is not None else (0, 0)
 
 
 if __name__ == "__main__":
