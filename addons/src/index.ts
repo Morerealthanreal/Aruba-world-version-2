@@ -35,6 +35,7 @@ import { HiLook } from "./hiLook";
 import { Emergency } from "./emergency";
 import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
+import { ChaseCam } from "./chaseCam";
 import { Turbo } from "./turbo";
 import { Fly } from "./fly";
 import { SnFairMurals } from "./snFairMurals";
@@ -93,6 +94,7 @@ async function main() {
   const emerg = params.get("emerg") !== "0" ? new Emergency(g) : null;
   const crash = params.get("crash") !== "0" ? new Crash(g, emerg) : null;
   const gv = motoEnabled ? new GvMoto(g) : null;
+  const chase = new ChaseCam(g); // task 4: chase-camera smoothing + held-Space reverse (after gvMoto: chains its camera hook)
   const fly = params.get("fly") !== "0" ? new Fly(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
@@ -131,7 +133,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { chase, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
