@@ -174,20 +174,14 @@ async function driveLeg(page, stop, leg) {
 // new chunk and road geometries while the previous copy was never drawn, so the GPU
 // count climbs even though the live scene does not. Draw the current geometries once,
 // with a map-less material and LOD selection paused, so the count matches the scene.
-// Hidden groups (unbuilt / culled regions, interiors, LOD and hero switches) must be
-// shown too: about 89% of scene meshes sit under an invisible ancestor, so showing only
-// the meshes left them undrawn and uncounted until the route happened to reveal them,
-// which read as renderer growth on slow runners although nothing leaked.
 async function uploadSceneGeometries(page) {
   await page.evaluate(() => {
     const game = window.game;
     const saved = [];
     const lods = [];
     let blank = null;
-    const groups = [];
     game.scene.traverse((object) => {
       if (object.isLOD) lods.push(object);
-      if (!object.geometry) groups.push({ object, visible: object.visible });
       if (!object.geometry || !(object.isMesh || object.isPoints || object.isLine)) return;
       if (!blank && object.material && !Array.isArray(object.material) && object.material.clone) {
         blank = object.material.clone();
@@ -214,7 +208,6 @@ async function uploadSceneGeometries(page) {
         lod.userData.awUpdate = lod.update;
         lod.update = nop;
       }
-      for (const group of groups) group.object.visible = true;
       for (const item of saved) {
         item.object.visible = true;
         item.object.frustumCulled = false;
@@ -232,7 +225,6 @@ async function uploadSceneGeometries(page) {
         item.object.onBeforeRender = item.onBeforeRender;
       }
       for (const lod of lods) lod.update = lod.userData.awUpdate;
-      for (const group of groups) group.object.visible = group.visible;
     }
   });
 }
