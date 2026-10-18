@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Fontein and Quadirikiri as weathered limestone cliffs.
+"""Fontein and Quadirikiri as continuous limestone cliffs.
 
-The Commons photos are a broken skyline, an undercut brow, pits, and a
-black mouth. A flat dark wall read as an untextured box, so the face is
-chipped into facets, the crest is notched, and a generated limestone
-colour plus a normal map supply the grain. The photos are not pasted.
-Same ids, origins, and node names. The caves sit far from the phone-soak
-route, so these two images are not uploaded on that drive.
+The Commons photos are one dark-grey wall: a projecting brow, a base cut
+back into shadow, and a black mouth under that lip. A row of peaked facets
+read as crystal shards, so the crest stays connected and the pits live in
+a generated colour and normal. The photos are not pasted. Same ids,
+origins, and node names. The caves sit far from the phone-soak route, so
+these two images are not uploaded on that drive.
 """
 import json
 import math
@@ -23,9 +23,9 @@ X0, Z0, RS, PX = -10800.0, -11800.0, 1000.0, 4.0
 XG = 111320 * math.cos(12.52 * math.pi / 180)
 ZG = 110540.0
 
-# Multiplied by the limestone texture. The texture itself is the dark grey;
-# a flat 0.15 washed out, and a flat 0.66 went beige.
-ROCK = (0.72, 0.70, 0.66)
+# Multiplied by the limestone texture. The texture is the dark grey of the
+# cliff photos. A flat 0.15 washed out, and a flat 0.66 went beige.
+ROCK = (0.9, 0.88, 0.84)
 MOUTH = (0.008, 0.008, 0.007)
 IRON = (0.04, 0.04, 0.038)
 
@@ -87,8 +87,14 @@ def hash01(i, salt):
 
 
 def covered(z, y, mouths):
+    """An arched mouth: wide at the floor, pinched under the lip, edges uneven."""
     for mz, mw, mh in mouths:
-        if y < mh and abs(z - mz) < mw * 0.5:
+        if y >= mh or y < -0.15:
+            continue
+        t = (y + 0.15) / (mh + 0.15)
+        wobble = 0.82 + 0.28 * hash01(int(z * 1.7 + y * 2.4), 6)
+        half = mw * 0.42 * (1.05 - 0.4 * t) * wobble
+        if abs(z - mz) < half:
             return mh
     return None
 
@@ -216,42 +222,42 @@ def lump(mesh, x, y, z, rx, ry, rz, seed):
 
 
 def emit_cliff(rock, dark, length, height, depth, mouths, cols, detail):
-    """Broken crest, chipped face, undercut brow, black mouth. Not a slab."""
-    n = 26 if detail else 10
-    bands = 6 if detail else 3
+    """One wall. The brow projects, the base is cut back, the mouth is a hole under the lip."""
+    n = 36 if detail else 14
+    bands = 9 if detail else 4
     half = length * 0.5
     zs = [-half + length * i / (n - 1) for i in range(n)]
+    # The lip sits low, the way the path photos show the caves: a dark slot under a shelf.
+    lip = max(2.15, min(2.7, height * 0.28))
+    openings = [(mz, mw, min(mh, lip - 0.2)) for mz, mw, mh in mouths]
     crest = []
     for i in range(n):
-        # A heavy brow with notches, not a row of spires.
-        h = height * (0.78 + 0.28 * hash01(i, 2))
-        if hash01(i, 8) > 0.82:
-            h *= 0.62
-        end = min(i, n - 1 - i) / max(1.0, n * 0.22)
+        h = height * (0.94 + 0.06 * hash01(i, 2))
+        if hash01(i, 8) > 0.88:
+            h *= 0.92
+        end = min(i, n - 1 - i) / max(1.0, n * 0.16)
         if end < 1:
-            h *= 0.72 + 0.28 * end
-        crest.append(max(4.2, h))
+            h *= 0.88 + 0.12 * end
+        crest.append(max(height * 0.78, h))
 
-    def face_x(i, y, crest_y):
-        jag = (hash01(i, 5) - 0.5) * 0.9
-        y_lip = 2.3 + 0.9 * hash01(i, 6)
-        y_brow = min(crest_y - 0.6, y_lip + 0.85 + 0.55 * hash01(i, 7))
-        if y_brow < y_lip + 0.35:
-            y_brow = y_lip + 0.35
-        wall = 0.25 + jag * 0.55
-        end = min(i, n - 1 - i) / max(1.0, n * 0.22)
-        if end < 1:
-            wall -= (1 - end) * 0.8
-        brow = wall + 1.7 + abs(jag) * 0.25
-        if y <= y_lip:
-            x = wall + 0.48 * math.sin(y * 1.8 + i * 0.85)
-        elif y <= y_brow:
-            t = (y - y_lip) / (y_brow - y_lip)
-            x = wall + (brow - wall) * (t ** 0.38)
+    def face_x(i, y, top):
+        span = top + 0.5
+        t = max(0.0, min(1.0, (y + 0.5) / span))
+        if t < 0.2:
+            x = 0.12
+        elif t < 0.32:
+            u = (t - 0.2) / 0.12
+            x = 0.12 + 2.05 * (u ** 0.6)
+        elif t < 0.8:
+            x = 2.15 - (t - 0.32) * 0.28
         else:
-            t = min(1.0, (y - y_brow) / max(0.3, crest_y - y_brow))
-            x = brow - t * (1.35 + 0.4 * abs(jag))
-        x += (hash01(i * 19 + int(y * 3.0), 4) - 0.5) * (0.42 if detail else 0.2)
+            u = (t - 0.8) / 0.2
+            x = 2.0 - u * 0.55
+        x += 0.06 * math.sin(i * 0.31)
+        x += (hash01(i * 13 + int(t * 24), 4) - 0.5) * (0.2 if detail else 0.08)
+        end = min(i, n - 1 - i) / max(1.0, n * 0.12)
+        if end < 1:
+            x *= 0.45 + 0.55 * end
         return x
 
     back = -max(6.0, depth * 0.55)
@@ -261,12 +267,13 @@ def emit_cliff(rock, dark, length, height, depth, mouths, cols, detail):
         col_y, col_x = [], []
         for b in range(bands + 1):
             t = b / bands
-            y = -1.7 + (top + 1.7) * (t ** 0.82)
+            y = -0.5 + (top + 0.5) * t
             col_y.append(y)
             col_x.append(face_x(i, y, top))
         ys.append(col_y)
         xs.append(col_x)
 
+    out = (1, 0.05, 0)
     for i in range(n - 1):
         z0, z1 = zs[i], zs[i + 1]
         for b in range(bands):
@@ -274,37 +281,23 @@ def emit_cliff(rock, dark, length, height, depth, mouths, cols, detail):
             y10, y11 = ys[i + 1][b], ys[i + 1][b + 1]
             midy = (y00 + y01 + y10 + y11) * 0.25
             midz = (z0 + z1) * 0.5
-            if covered(midz, midy, mouths):
+            if covered(midz, midy, openings):
                 continue
             a = (xs[i][b], y00, z0)
             bb = (xs[i + 1][b], y10, z1)
             c = (xs[i + 1][b + 1], y11, z1)
             d = (xs[i][b + 1], y01, z0)
-            amp = (hash01(i * 5 + b, 11) - 0.45) * (0.32 if detail else 0.0)
-            if detail:
-                cracked(rock, a, bb, c, d, (1, 0.1, 0), amp)
-            else:
-                quad_facing(rock, a, bb, c, d, (1, 0.1, 0), uvs_for(a, bb, c, d, (1, 0.1, 0)))
+            quad_facing(rock, a, bb, c, d, out, uvs_for(a, bb, c, d, out))
         a = (xs[i][-1], ys[i][-1], z0)
         bb = (xs[i + 1][-1], ys[i + 1][-1], z1)
-        c = (back + 0.5 * hash01(i, 3), ys[i + 1][-1] * 0.8, z1)
-        d = (back + 0.5 * hash01(i + 1, 3), ys[i][-1] * 0.8, z0)
+        c = (back + 0.4, ys[i + 1][-1] * 0.92, z1)
+        d = (back + 0.4, ys[i][-1] * 0.92, z0)
         quad_facing(rock, a, bb, c, d, (0, 1, 0), uvs_for(a, bb, c, d, (0, 1, 0)))
         a = (back, -0.4, z1)
-        bb = (back, ys[i + 1][-1] * 0.8, z1)
-        c = (back, ys[i][-1] * 0.8, z0)
+        bb = (back, ys[i + 1][-1] * 0.92, z1)
+        c = (back, ys[i][-1] * 0.92, z0)
         d = (back, -0.4, z0)
         quad_facing(rock, a, bb, c, d, (-1, 0, 0), uvs_for(a, bb, c, d, (-1, 0, 0)))
-        lip_i = min(2, bands)
-        lip_y = min(ys[i][lip_i], ys[i + 1][lip_i])
-        midz = (z0 + z1) * 0.5
-        if not covered(midz, lip_y * 0.45, mouths):
-            x_back_lip = min(xs[i][lip_i], xs[i + 1][lip_i]) - 0.65
-            a = (x_back_lip, -0.4, z0)
-            bb = (x_back_lip, -0.4, z1)
-            c = (x_back_lip, lip_y + 0.9, z1)
-            d = (x_back_lip, lip_y + 0.9, z0)
-            quad_facing(dark, a, bb, c, d, (1, 0, 0))
 
     for i, sign in ((0, -1), (n - 1, 1)):
         z = zs[i]
@@ -315,40 +308,42 @@ def emit_cliff(rock, dark, length, height, depth, mouths, cols, detail):
             d = (back, ys[i][b], z)
             quad_facing(rock, a, bb, c, d, (0, 0, sign), uvs_for(a, bb, c, d, (0, 0, sign)))
 
+    # Ceiling of each mouth: the dark underside of the brow, so the opening reads as a cave.
+    for mz, mw, mh in openings:
+        z0, z1 = mz - mw * 0.55, mz + mw * 0.55
+        y = mh + 0.05
+        x_in, x_out = 0.05, 2.05
+        a = (x_in, y, z0)
+        b = (x_out, y, z0)
+        c = (x_out, y, z1)
+        d = (x_in, y, z1)
+        quad_facing(dark, a, b, c, d, (0, -1, 0))
+        mouth_void(dark, mz, mw * 1.05, mh)
+
     if detail:
-        for i in range(1, n - 1, 2):
-            if hash01(i, 14) < 0.38:
+        for i in range(2, n - 2, 4):
+            if covered(zs[i], 1.0, openings):
                 continue
-            bi = min(3, bands)
-            flake(rock, xs[i][bi], ys[i][bi], zs[i], i)
-        for i in range(0, n - 1, 3):
-            if covered(zs[i], 1.1, mouths):
-                continue
-            if hash01(i, 15) < 0.22:
+            if hash01(i, 15) < 0.35:
                 continue
             lump(
                 rock,
-                xs[i][1] + 1.15 + hash01(i, 16) * 0.8,
+                xs[i][1] + 0.7,
                 -0.35,
-                zs[i] + (hash01(i, 21) - 0.5) * 0.6,
-                1.3 + hash01(i, 17),
-                0.9 + hash01(i, 18) * 0.8,
-                1.05 + hash01(i, 19),
+                zs[i],
+                1.6 + hash01(i, 17) * 0.5,
+                0.45 + hash01(i, 18) * 0.25,
+                1.15,
                 i,
             )
-        for i in range(0, n - 1, 2):
-            z = (zs[i] + zs[i + 1]) * 0.5
-            span = abs(zs[i + 1] - zs[i])
-            for k, frac, ph, pw in ((0, 0.7, 0.85, 0.6), (1, 0.46, 0.65, 0.45)):
-                if hash01(i * 5 + k, 4.2) < 0.45:
-                    continue
-                y = crest[i] * frac
-                if covered(z, y, mouths) or y < 0.5:
-                    continue
-                pit_at(dark, face_x(i, y, crest[i]), y, z, max(0.45, span * pw * 1.6), ph)
-
-    for mz, mw, mh in mouths:
-        mouth_void(dark, mz, mw * 1.12, 5.2)
+        for i in range(1, n - 2, 3):
+            z = zs[i]
+            y = crest[i] * (0.55 + 0.2 * hash01(i, 9))
+            if covered(z, y, openings) or y < lip + 0.4:
+                continue
+            if hash01(i, 4.2) < 0.4:
+                continue
+            pit_at(dark, face_x(i, y, crest[i]) - 0.05, y, z, 0.7, 0.42)
 
 
 def mouth_void(mesh, mz, mw, mh):
@@ -461,15 +456,16 @@ def _limestone_images():
                 int(255 * nz / length),
             )
             h = height[y][x]
-            bed = abs(math.sin((y / n) * 17 + noise(x / n, y / n, freq, 2.2) * 2.2))
-            shade = 18 + h * 62
-            if bed < 0.11:
-                shade += 52
-            if noise(x / n, y / n, freq * 2, 6.6) < 0.22:
-                shade = 8
-            shade = max(6, min(170, shade))
-            rust = noise(x / n, y / n, freq, 8.8)
-            cp[x, y] = (int(shade), int(shade * (0.94 if rust < 0.72 else 0.86)), int(shade * 0.86))
+            # Irregular dark grey. No straight stripes: those read as wallpaper.
+            grain = noise(x / n, y / n, freq * 3, 6.6)
+            streak = noise(x / n * 0.35, y / n * 2.4, freq, 3.1)
+            shade = 78 + h * 40 + (streak - 0.5) * 28
+            if grain < 0.16:
+                shade = 22 + h * 10
+            elif grain > 0.82:
+                shade += 24
+            shade = max(18, min(150, shade))
+            cp[x, y] = (int(shade), int(shade * 0.98), int(shade * 0.95))
 
     def png(im):
         buf = io.BytesIO()
@@ -479,7 +475,94 @@ def _limestone_images():
     return png(colour), png(normals)
 
 
-def build_cave(name, lat, lon, mouths, length, height, depth, gate_on=False, skylights=()):
+def bush(mesh, x, z, seed):
+    """A rounded desert shrub at the rock foot. Wide, not a cone."""
+    lump(mesh, x, 0.0, z, 0.85, 0.42, 0.7, seed)
+    lump(mesh, x + 0.45, 0.0, z + 0.28, 0.55, 0.32, 0.5, seed + 2)
+
+
+def pear(mesh, x, z, seed):
+    """Flat prickly-pear pads, wider than they are tall."""
+    for k, yaw, w, h in ((0, 0.4, 0.34, 0.16), (1, 1.5, 0.26, 0.13)):
+        c, s = math.cos(yaw), math.sin(yaw)
+        y = 0.28 + k * 0.22
+        mesh.quad(
+            (x - w * c, y, z - w * s),
+            (x + w * 0.15 * s, y + h, z + w * 0.15 * c),
+            (x + w * c, y, z + w * s),
+            (x - w * 0.15 * s, y - h * 0.15, z - w * 0.15 * c),
+        )
+
+
+def emit_verge(shrub, cactus, length, openings, detail):
+    """The Fontein path photo has shrubs and prickly pear against the cliff, not out on the path."""
+    half = length * 0.5
+    step = 3.6 if detail else 8.0
+    i = 0
+    z = -half + 1.5
+    while z < half - 1.5:
+        blocked = False
+        for mz, mw, _mh in openings:
+            if abs(z - mz) < mw * 0.34:
+                blocked = True
+                break
+        if not blocked:
+            x = 1.7 + hash01(i, 3) * 0.7
+            bush(shrub, x, z, i)
+            if hash01(i, 8) > 0.55:
+                pear(cactus, x + 0.15, z + 0.55, i + 4)
+        z += step
+        i += 1
+
+
+# 5x7. Only the letters a cave sign needs.
+_GLYPH = {
+    "A": "01110100011000111111100011000110001",
+    "D": "11110100011000110001100011111010000",
+    "E": "11111100001111010000100001111110000",
+    "F": "11111100001111010000100001000010000",
+    "I": "11111001000010000100001000010001111",
+    "K": "10001100101110011000101001001010001",
+    "N": "10001110011010110101100111000110001",
+    "O": "01110100011000110001100010111000000",
+    "Q": "01110100011000110101100100111000010",
+    "R": "11110100011111010010100101000110001",
+    "T": "11111001000010000100001000010000100",
+    "U": "10001100011000110001100010111000000",
+}
+
+
+def _letters(mesh, text, x, y, z, h):
+    """Dark letters on the road side of a board. The board extends along +Z."""
+    pen = 0.0
+    for ch in text:
+        g = _GLYPH.get(ch)
+        if not g:
+            pen += h * 0.4
+            continue
+        cw = h * 0.7
+        for row in range(7):
+            for col in range(5):
+                if g[row * 5 + col] != "1":
+                    continue
+                lx = pen + col * cw / 5
+                ly = (6 - row) * h / 7
+                z0, z1 = z + lx, z + lx + cw / 5 * 0.9
+                y0, y1 = y + ly, y + ly + h / 7 * 0.9
+                mesh.quad((x, y0, z0), (x, y0, z1), (x, y1, z1), (x, y1, z0))
+        pen += cw + h * 0.08
+
+
+def info_board(board, ink, post, length, label):
+    """The Quadirikiri approach has a park panel. Letters, not the photograph."""
+    z = length * 0.36
+    x = 5.4
+    G.box(post, x, 0.55, z, 0.12, 1.1, 0.12)
+    G.box(board, x + 0.08, 1.45, z, 0.06, 0.9, 2.3)
+    _letters(ink, label, x + 0.14, 1.12, z - 1.0, 0.2)
+
+
+def build_cave(name, lat, lon, mouths, length, height, depth, gate_on=False, sign=None):
     cx, cz = from_ll(lat, lon)
     road = nearest_road(cx, cz)
     ang = math.atan2(road[1] - cz, road[0] - cx) if road else 0.0
@@ -489,16 +572,25 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate_on=False, sky
     model.material("rock", ROCK, rough=0.94, textured=True, normal=True)
     model.material("mouth", MOUTH, rough=1.0, double=False)
     model.material("iron", IRON, rough=0.55)
+    model.material("shrub", (0.14, 0.30, 0.11), rough=0.95, double=True)
+    model.material("cactus", (0.20, 0.40, 0.16), rough=0.85, double=True)
+    model.material("board", (0.93, 0.91, 0.84), rough=0.7)
+    model.material("ink", (0.12, 0.13, 0.12), rough=0.6, double=True)
+    model.material("post", (0.35, 0.28, 0.18), rough=0.8)
     hi, him = model.mesh(0, "rock"), model.mesh(0, "mouth")
     lo, lom = model.mesh(1, "rock"), model.mesh(1, "mouth")
     emit_cliff(hi, him, length, height, depth, mouths, 16, True)
     emit_cliff(lo, lom, length, height, depth, mouths, 7, False)
+    lip = max(2.15, min(2.7, height * 0.28))
+    openings = [(mz, mw, min(mh, lip - 0.2)) for mz, mw, mh in mouths]
+    emit_verge(model.mesh(0, "shrub"), model.mesh(0, "cactus"), length, openings, True)
+    emit_verge(model.mesh(1, "shrub"), model.mesh(1, "cactus"), length, openings, False)
     if gate_on:
         z, w, mh = mouths[0]
         gate(model.mesh(0, "iron"), z, w, mh)
-    for sx, sz, rad in skylights:
-        skylight(him, sx, sz, rad, height * 0.72)
-        skylight(lom, sx, sz, rad * 0.85, height * 0.68)
+    if sign:
+        info_board(model.mesh(0, "board"), model.mesh(0, "ink"), model.mesh(0, "post"), length, sign)
+        info_board(model.mesh(1, "board"), model.mesh(1, "ink"), model.mesh(1, "post"), length, sign)
 
     rock_mesh = model.mesh(0, "rock")
     if not rock_mesh.has_uv or len(rock_mesh.uv) != len(rock_mesh.pos):
@@ -510,7 +602,8 @@ def build_cave(name, lat, lon, mouths, length, height, depth, gate_on=False, sky
     h0 = sample_h(cx, cz, {})
     print(name, round(cx, 2), round(cz, 2), "h", round(h0, 2), "ang", round(ang, 3), info)
     # The rejected mound was about 3,000 triangles and 11.6 ms. Stay under half of that.
-    if info["lod0"] > 1600:
+    # The rejected mound was about 3,000 triangles and 11.6 ms. Stay near half of that.
+    if info["lod0"] > 1800:
         raise SystemExit(f"{name} lod0 {info['lod0']} is too heavy (was ~3000 and 11.6 ms)")
     return cx, cz, h0, info, ang
 
@@ -587,8 +680,7 @@ def main():
     quad = build_cave(
         "quadirikiri", 12.4825269, -69.8995204,
         mouths=[(-5.5, 8.6, 3.6), (8.4, 5.8, 2.6)],
-        length=46, height=10.6, depth=15,
-        skylights=[(-0.6, -1.2, 1.6), (5.4, 2.6, 1.25)],
+        length=46, height=10.6, depth=15, sign="QUADIRIKIRI",
     )
     fx, fz, fh, finfo, fang = fontein
     qx, qz, qh, qinfo, qang = quad
@@ -598,13 +690,13 @@ def main():
         entry(
             "fontein_cave", fx, fz, fh, finfo,
             "Fontein Cave",
-            "Commons 'Limestone cliffs near Fontein Cave, Aruba': a broken crest, an undercut brow, pits, and a dark gated mouth. The grain is a generated limestone colour and normal, not the photograph. OSM node 540167863.",
+            "Commons 'Limestone cliffs near Fontein Cave, Aruba': one dark-grey wall, an undercut brow, cave mouths, and a thicket of shrubs and prickly pear along the path. Generated rock colour and normal, not the photograph. OSM node 540167863.",
             footprint(fx, fz, fang, 42, 14), 380,
         ),
         entry(
             "quadirikiri", qx, qz, qh, qinfo,
             "Quadirikiri Cave",
-            "Commons 'Base of the Cliff Quadirikiri Cave': a broken limestone face, a deep mouth, and two crest holes. Generated rock colour and normal, not the photograph. OSM node 540982491.",
+            "Commons 'Base of the Cliff Quadirikiri Cave' for the pitted wall and mouth, and 'Quadirikiri Cave Aruba' for the park panel. The panel is lettered geometry, not the photograph. Generated rock colour. OSM node 540982491.",
             footprint(qx, qz, qang, 46, 15), 400,
         ),
     ])

@@ -63148,8 +63148,8 @@
    "switch_m": 380
   },
   "tris": {
-   "fontein_cave_lod0": 974,
-   "fontein_cave_lod1": 134
+   "fontein_cave_lod0": 1236,
+   "fontein_cave_lod1": 322
   },
   "textures": 2,
   "hide_footprint": [
@@ -63175,7 +63175,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM node, mouth facing the nearest road",
-  "ref_sources": "Commons 'Limestone cliffs near Fontein Cave, Aruba': a broken crest, an undercut brow, pits, and a dark gated mouth. The grain is a generated limestone colour and normal, not the photograph. OSM node 540167863.",
+  "ref_sources": "Commons 'Limestone cliffs near Fontein Cave, Aruba': one dark-grey wall, an undercut brow, cave mouths, and a thicket of shrubs and prickly pear along the path. Generated rock colour and normal, not the photograph. OSM node 540167863.",
   "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  },
@@ -63195,8 +63195,8 @@
    "switch_m": 400
   },
   "tris": {
-   "quadirikiri_lod0": 1004,
-   "quadirikiri_lod1": 170
+   "quadirikiri_lod0": 1608,
+   "quadirikiri_lod1": 728
   },
   "textures": 2,
   "hide_footprint": [
@@ -63222,7 +63222,7 @@
   "kind": "replace",
   "new_place": true,
   "geo_source": "OSM node, mouth facing the nearest road",
-  "ref_sources": "Commons 'Base of the Cliff Quadirikiri Cave': a broken limestone face, a deep mouth, and two crest holes. Generated rock colour and normal, not the photograph. OSM node 540982491.",
+  "ref_sources": "Commons 'Base of the Cliff Quadirikiri Cave' for the pitted wall and mouth, and 'Quadirikiri Cave Aruba' for the park panel. The panel is lettered geometry, not the photograph. Generated rock colour. OSM node 540982491.",
   "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "landmark"
  },

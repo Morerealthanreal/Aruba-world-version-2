@@ -14,6 +14,17 @@
    "shows": "Pitted dark-grey limestone at the base of the Quadirikiri cliff, with a deep recess under the brow"
   },
   {
+   "file": "park-panel.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Quadirikiri_Cave_Aruba_(cropped).jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Oogstweg",
+   "lat": 12.482527,
+   "lon": -69.89952,
+   "heading": null,
+   "date": null,
+   "shows": "The park panel at Quadirikiri: a white board with an orange QUADIRIKIRI CAVE title. The in-game panel is letters on a board, not this photograph"
+  },
+  {
    "file": "comparison.jpg",
    "source_url": null,
    "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
@@ -22,7 +33,7 @@
    "lon": null,
    "heading": null,
    "date": null,
-   "shows": "Same cliff face: the Commons Quadirikiri limestone on the left, the in-game pitted face and dark mouth on the right"
+   "shows": "Same cliff approach: the Commons pitted face on the left, the in-game wall, dark mouth, foot shrubs, and park panel on the right"
   }
  ]
 }
