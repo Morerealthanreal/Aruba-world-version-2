@@ -1,0 +1,39 @@
+{
+ "label": "bugaloe",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "beach",
+   "calls": 738,
+   "tris": 985631,
+   "ms": 6.7
+  },
+  {
+   "shot": "street",
+   "calls": 203,
+   "tris": 904813,
+   "ms": 3.7
+  },
+  {
+   "shot": "aerial",
+   "calls": 294,
+   "tris": 1037198,
+   "ms": 4.3
+  }
+ ],
+ "fps": {
+  "fps": 0.64,
+  "p95ms": 12216.3,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "m_bugaloe",
+   "loaded": true,
+   "hi": false
+  }
+ ]
+}
