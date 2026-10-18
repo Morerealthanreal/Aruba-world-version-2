@@ -6,7 +6,7 @@ import { FILTERS, PhotoRig } from "./rig";
 
 type PauseFn = (paused: boolean) => void;
 
-const HUD = ["hud", "modes", "minimapwrap", "keyhelp", "keyhelpsv", "joyzone", "steerbtns", "actions", "attrib", "osmtoggle", "svdash"];
+const KEEP = new Set(["c", "loading", "awPhoto"]);
 
 const FILTER_CSS: Record<(typeof FILTERS)[number], string> = {
   none: "",
@@ -28,7 +28,7 @@ export class PhotoHook {
   private dragging = false;
   private savedExposure = 1;
   private savedFilter = "";
-  private readonly hudDisplay = new Map<string, string>();
+  private readonly hidden: HTMLElement[] = [];
 
   constructor(g: AGame, setPaused: PauseFn) {
     this.g = g;
@@ -82,6 +82,9 @@ export class PhotoHook {
       cam.rotation.order = "YXZ";
       cam.rotation.set(-this.rig.pitch, this.rig.yaw, 0);
       cam.updateMatrixWorld();
+      // Applied here so a game pass that resets exposure earlier in the frame cannot win.
+      g.renderer.toneMappingExposure = this.rig.exposure;
+      g.renderer.domElement.style.filter = FILTER_CSS[FILTERS[this.rig.filter]];
     };
   }
 
@@ -105,10 +108,11 @@ export class PhotoHook {
     this.savedFilter = canvas.style.filter;
     this.active = true;
     this.setPaused(true);
-    for (const id of HUD) {
-      const node = document.getElementById(id);
-      if (!node) continue;
-      this.hudDisplay.set(id, node.style.display);
+    for (const node of Array.from(document.body.children)) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (KEEP.has(node.id) || node === this.panel || node.tagName === "SCRIPT" || node.tagName === "CANVAS") continue;
+      this.hidden.push(node);
+      node.dataset.awPhotoDisplay = node.style.display;
       node.style.display = "none";
     }
     const walker = (this.g as AGame & { walker?: { visible: boolean } }).walker;
@@ -121,11 +125,11 @@ export class PhotoHook {
     this.setPaused(false);
     this.g.renderer.toneMappingExposure = this.savedExposure;
     this.g.renderer.domElement.style.filter = this.savedFilter;
-    for (const [id, display] of this.hudDisplay) {
-      const node = document.getElementById(id);
-      if (node) node.style.display = display;
+    for (const node of this.hidden) {
+      node.style.display = node.dataset.awPhotoDisplay || "";
+      delete node.dataset.awPhotoDisplay;
     }
-    this.hudDisplay.clear();
+    this.hidden.length = 0;
     const walker = (this.g as AGame & { walker?: { visible: boolean } }).walker;
     if (walker) walker.visible = true;
     this.panel.style.display = "none";
