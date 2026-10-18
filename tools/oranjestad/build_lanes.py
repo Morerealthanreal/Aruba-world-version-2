@@ -6,6 +6,10 @@ Klipstraat, get a row of small shops: a colour, an awning, and a sign
 for each bay. The harbour camera, standing on the water side, sees the
 Royal Plaza west front and the low shops in front of it.
 
+Schelpstraat and Klipstraat stay on their own heroes. Weststraat,
+Steenweg, Oranjestraat, and the harbour skin share one hero so the
+phone soak does not pick up a new geometry for every street.
+
 Exteriors only. Reference photos are not used as textures.
 """
 from __future__ import annotations
@@ -381,7 +385,13 @@ def street_lines():
 def select(main_road, lines, names):
     buildings = load_buildings()
     blockers = hero_blockers()
-    retire = set(STREET_IDS.values()) | {"ora_side", "ora_side0", "ora_side1", "ora_harbor"}
+    retire = set(STREET_IDS.values()) | {
+        "ora_side",
+        "ora_side0",
+        "ora_side1",
+        "ora_harbor",
+        "ora_lanes",
+    }
     blockers = (
         [p for p in blockers[0] if p[2] not in retire],
         [p for p in blockers[1] if p[1] not in retire],
@@ -434,8 +444,8 @@ def select(main_road, lines, names):
     return picked
 
 
-def build_street(group, names):
-    atlas = Atlas(size=1024)
+def build_street(group, names, atlas=None):
+    atlas = atlas or Atlas(size=1024)
     ox = sum(b["c"][0] for b in group) / len(group)
     oz = sum(b["c"][1] for b in group) / len(group)
     h0 = height_at(ox, oz)
@@ -501,7 +511,7 @@ def west_edges(poly):
     return out
 
 
-def build_harbor(names, dressed):
+def build_harbor(names, dressed, atlas=None):
     """West faces seen from the harbour. Royal Plaza carries the pink gables;
     the low blocks in front of it carry the small shops."""
     manifest = json.loads(MANIFEST.read_text())
@@ -516,7 +526,7 @@ def build_harbor(names, dressed):
     h0 = height_at(ox, oz)
     origin = (ox, oz)
     paint, glass, signs = Prim(), Prim(), Prim()
-    atlas = Atlas(size=1024)
+    atlas = atlas or Atlas(size=1024)
     ground = max(height_at(a[0], a[1]), height_at(b[0], b[1]), height_at(mx, mz))
     # Sit just outside the existing mall mesh.
     eave = ground + 9.4
@@ -611,6 +621,37 @@ def entry_for(gid, name, origin, tris, hide, switch):
     return entry
 
 
+def shift(prim, src, dst):
+    """Move a prim from one hero origin onto another, keeping world position."""
+    sx, sz, sh = src
+    ox, oz, dh = dst
+    dx, dy, dz = sx - ox, sh - dh, sz - oz
+    moved = Prim()
+    moved.P = [(p[0] + dx, p[1] + dy, p[2] + dz) for p in prim.P]
+    moved.N = list(prim.N)
+    moved.U = list(prim.U)
+    moved.C = list(prim.C)
+    moved.I = list(prim.I)
+    return moved
+
+
+def absorb(dst, src):
+    if src.tris == 0:
+        return
+    base = len(dst.P)
+    dst.P.extend(src.P)
+    dst.N.extend(src.N)
+    dst.U.extend(src.U)
+    dst.C.extend(src.C)
+    dst.I.extend(i + base for i in src.I)
+
+
+# These streets are new on this branch. One glb, one atlas, so the phone
+# soak unloads a few geometries instead of a set per street.
+FOLD = ("Weststraat", "Steenweg", "Oranjestraat")
+RETIRED = ("ora_west", "ora_steen", "ora_oranje", "ora_harbor")
+
+
 def main():
     ped, _smith = load_roads()
     main_road = flatten(ped)
@@ -624,6 +665,8 @@ def main():
     keep = {"Havenstraat", "Wilhelminastraat"}
     entries = []
     dressed = set()
+    folded = []
+    shared = Atlas(size=2048)
     for street in ORDER:
         if street in keep:
             print(f"  {street}: left as the pastel row already on main")
@@ -632,12 +675,17 @@ def main():
         if len(group) < 2:
             print(f"  {street}: {len(group)} buildings, skipped")
             continue
-        paint, glass, signs, atlas, lod, origin, bays = build_street(group, names)
-        gid = STREET_IDS[street]
-        tris = pack(gid, paint, glass, signs, atlas, lod)
+        atlas = shared if street in FOLD else None
+        paint, glass, signs, atlas, lod, origin, bays = build_street(group, names, atlas)
         hide = [b["c"] for b in group]
         for b in group:
             dressed.add((round(b["c"][0], 1), round(b["c"][1], 1)))
+        if street in FOLD:
+            folded.append((paint, glass, signs, lod, origin, hide, bays, street))
+            print(f"  {street} bays {bays} folded from {origin[0]:.0f},{origin[1]:.0f}")
+            continue
+        gid = STREET_IDS[street]
+        tris = pack(gid, paint, glass, signs, atlas, lod)
         print(f"  {gid} bays {bays} origin {origin[0]:.0f},{origin[1]:.0f}")
         entries.append(
             entry_for(
@@ -649,20 +697,41 @@ def main():
                 420,
             )
         )
-    paint, glass, signs, atlas, lod, origin, near = build_harbor(names, dressed)
-    tris = pack("ora_harbor", paint, glass, signs, atlas, lod)
-    # The mall and the low blocks stay. This hero is a skin on their water face.
+    paint, glass, signs, _atlas, lod, origin, near = build_harbor(names, dressed, shared)
+    folded.append((paint, glass, signs, lod, origin, [], 0, "harbour"))
+    print(f"  harbour shops {len(near)} folded from {origin[0]:.0f},{origin[1]:.0f}")
+    ox = sum(part[4][0] for part in folded) / len(folded)
+    oz = sum(part[4][1] for part in folded) / len(folded)
+    dst = (ox, oz, height_at(ox, oz))
+    paint, glass, signs, lod = Prim(), Prim(), Prim(), Prim()
+    hide = []
+    reach = 0.0
+    for part in folded:
+        absorb(paint, shift(part[0], part[4], dst))
+        absorb(glass, shift(part[1], part[4], dst))
+        absorb(signs, shift(part[2], part[4], dst))
+        absorb(lod, shift(part[3], part[4], dst))
+        hide.extend(part[5])
+        reach = max(reach, hypot(part[4][0] - ox, part[4][1] - oz))
+    # Stay on the detailed mesh anywhere the dressed streets are still in view.
+    switch = int(reach + 380)
+    tris = pack("ora_lanes", paint, glass, signs, shared, lod)
+    print(f"  ora_lanes origin {ox:.0f},{oz:.0f} reach {reach:.0f} switch {switch} verts {len(paint.P)}")
     entries.append(
         entry_for(
-            "ora_harbor",
-            "Oranjestad harbour front seen from the water",
-            origin,
+            "ora_lanes",
+            "Weststraat, Steenweg, Oranjestraat, and the harbour front",
+            (ox, oz),
             tris,
-            [],
-            460,
+            hide,
+            switch,
         )
     )
-    save_manifest(entries)
+    for old in RETIRED:
+        path = HERO / f"{old}.glb"
+        if path.exists():
+            path.unlink()
+    save_manifest(entries, retire=RETIRED)
     print(f"manifest updated {len(entries)} heroes")
 
 
