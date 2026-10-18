@@ -28,7 +28,8 @@
 //     Meshes that were built and then hidden never reached the GPU, so the next drive
 //     uploaded them and the count climbed after the scene itself had settled. A few of
 //     those are drawn once, off to the side of the real frame, so both measure cycles
-//     already include them.
+//     already include them. Hero images near the car that decode after that first
+//     draw are uploaded on a later pass, instead of waiting until the next visit.
 import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -64,7 +65,13 @@ type Real = {
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
 type Post = { ao?: { enabled: boolean }; composer?: unknown; render(): void };
-type GpuTex = { isTexture?: boolean; isDataArrayTexture?: boolean; dispose(): void; __awGone?: number };
+type GpuTex = {
+  isTexture?: boolean;
+  isDataArrayTexture?: boolean;
+  dispose(): void;
+  __awGone?: number;
+  image?: { complete?: boolean; width?: number } | null;
+};
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
@@ -89,6 +96,8 @@ export class PerfFixes {
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
   private primeIdle = 0;
+  private mapCursor = 0;
+  private mapIdle = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -342,14 +351,73 @@ export class PerfFixes {
     };
   }
 
+  /** An Image that is still decoding must not be uploaded: Three skips it and the GPU
+   *  count would move when a later frame finally draws it. */
+  private imageReady(tex: GpuTex) {
+    const image = tex.image;
+    if (!image) return false;
+    if (image.complete === false) return false;
+    return image.width === undefined || image.width > 0;
+  }
+
   /** Count a texture before a sample or a dispose. A second call does not allocate again. */
   private uploadNow(tex: GpuTex | null | undefined) {
     if (!tex || !tex.isTexture || tex.isDataArrayTexture || tex.__awGone) return;
+    if (!this.imageReady(tex)) return;
     const renderer = this.gpu();
     if (!renderer.initTexture || !renderer.properties) return;
     const props = renderer.properties.get(tex);
     if (!props || props.__webglInit !== undefined) return;
     try { renderer.initTexture(tex); } catch { /* image not ready */ }
+  }
+
+  /** Hero images often decode after the mesh was first drawn. Upload the ready ones
+   *  near the car, a few per pass, so the phone soak counts them during warmup.
+   *  Distant heroes stay untouched: decoding the whole island during a measured lap
+   *  pushed the forced-GC heap over its cap. */
+  private uploadPendingMaps(x: number, z: number) {
+    if (this.mapIdle > 0) { this.mapIdle--; return; }
+    const meshes: Obj[] = [];
+    const list = this.real.hero?.list;
+    if (list) {
+      for (let h = 0; h < list.length; h++) {
+        const n = list[h];
+        if (!n._g) continue;
+        if (Math.hypot(n.x - x, n.z - z) > 1000) continue;
+        const stack: Obj[] = [n._g];
+        while (stack.length) {
+          const o = stack.pop()!;
+          if (o.geometry && o.material) meshes.push(o);
+          for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
+        }
+      }
+    }
+    const n = meshes.length;
+    if (!n) return;
+    let budget = 24;
+    let i = this.mapCursor % n;
+    const start = i;
+    do {
+      if (budget <= 0) break;
+      const mat = meshes[i].material;
+      const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
+      for (const one of mats) {
+        const rec = one as unknown as Record<string, GpuTex | null | undefined>;
+        for (const key of MAP_KEYS) {
+          if (budget <= 0) break;
+          const tex = rec[key];
+          if (!tex?.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
+          if (!this.imageReady(tex)) continue;
+          const props = this.gpu().properties?.get(tex);
+          if (props?.__webglInit !== undefined) continue;
+          this.uploadNow(tex);
+          budget--;
+        }
+      }
+      i = (i + 1) % n;
+    } while (i !== start);
+    this.mapCursor = i;
+    if (budget === 24) this.mapIdle = 2;
   }
 
   /** BatchedMesh.dispose frees the merged geometry and the matrices/indirect textures.
@@ -572,6 +640,7 @@ export class PerfFixes {
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
         this.primeUnseenGeometries();
+        this.uploadPendingMaps(a[0] as number, a[2] as number);
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
