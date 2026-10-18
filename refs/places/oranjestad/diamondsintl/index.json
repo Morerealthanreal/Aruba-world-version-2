@@ -1,0 +1,66 @@
+{
+ "place": "diamondsintl",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "diamondsintl_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=954772496097769",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.521275,
+   "lon": -70.040553,
+   "heading": 255.4,
+   "date": "2024-04-03",
+   "shows": "street-level view toward diamondsintl (~98 m away)",
+   "original_path": "/workspace/landmarks/mly/diamondsintl_0.jpg"
+  },
+  {
+   "file": "diamondsintl_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=958619829302645",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.521082,
+   "lon": -70.040645,
+   "heading": 319.7,
+   "date": "2024-04-03",
+   "shows": "street-level view toward diamondsintl (~74 m away)",
+   "original_path": "/workspace/landmarks/mly/diamondsintl_1.jpg"
+  },
+  {
+   "file": "diamondsintl_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=454458067072871",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.521367,
+   "lon": -70.040559,
+   "heading": 263.8,
+   "date": "2024-04-03",
+   "shows": "street-level view toward diamondsintl (~107 m away)",
+   "original_path": "/workspace/landmarks/mly/diamondsintl_2.jpg"
+  },
+  {
+   "file": "diamondsintl_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=939985400825857",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.521369,
+   "lon": -70.0409,
+   "heading": 109.5,
+   "date": "2024-01-06",
+   "shows": "street-level view toward diamondsintl (~97 m away)",
+   "original_path": "/workspace/landmarks/mly/diamondsintl_3.jpg"
+  },
+  {
+   "file": "diamondsintl_5.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1300444821356319",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.521396,
+   "lon": -70.040802,
+   "heading": 112.1,
+   "date": "2024-01-06",
+   "shows": "street-level view toward diamondsintl (~101 m away)",
+   "original_path": "/workspace/landmarks/mly/diamondsintl_5.jpg"
+  }
+ ]
+}

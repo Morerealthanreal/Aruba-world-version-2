@@ -1,0 +1,114 @@
+{
+ "place": "konghing-sm",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "konghing_sm_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1072830790626196",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520696,
+   "lon": -70.038292,
+   "heading": 154.1,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~35 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_0.jpg"
+  },
+  {
+   "file": "konghing_sm_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1508302339712936",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520727,
+   "lon": -70.038311,
+   "heading": 147.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~39 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_1.jpg"
+  },
+  {
+   "file": "konghing_sm_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=291299833937935",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520661,
+   "lon": -70.038264,
+   "heading": 141.5,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~30 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_2.jpg"
+  },
+  {
+   "file": "konghing_sm_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1104916300516269",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520768,
+   "lon": -70.038334,
+   "heading": 156.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~44 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_3.jpg"
+  },
+  {
+   "file": "konghing_sm_4.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=346008194870319",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520767,
+   "lon": -70.038326,
+   "heading": 159.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~44 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_4.jpg"
+  },
+  {
+   "file": "konghing_sm_5.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=7533658449978252",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520624,
+   "lon": -70.038225,
+   "heading": 130.5,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~24 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_5.jpg"
+  },
+  {
+   "file": "konghing_sm_6.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=259412063837532",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520767,
+   "lon": -70.038325,
+   "heading": 138.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~43 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_6.jpg"
+  },
+  {
+   "file": "konghing_sm_7.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=692146516363480",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520607,
+   "lon": -70.038199,
+   "heading": 132.1,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~22 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_7.jpg"
+  },
+  {
+   "file": "konghing_sm_8.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=375441205186251",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520764,
+   "lon": -70.038336,
+   "heading": 136.6,
+   "date": "2024-01-06",
+   "shows": "street-level view toward konghing_sm (~44 m away)",
+   "original_path": "/workspace/landmarks/mly/konghing_sm_8.jpg"
+  }
+ ]
+}
