@@ -6,7 +6,7 @@
 //    cloud bases;
 //  - light: sun / sky light and fog dim a little under cloud and rain (multiplied after DayNight
 //    has written them each frame, so nothing accumulates);
-//  - rain: ONE LineSegments draw call of wind-slanted streaks (900 HIGH / 360 LOW) that follow
+//  - rain: ONE LineSegments draw call of wind-slanted streaks (1000 HIGH / 480 LOW) that follow
 //    the camera in the vertex shader. It is hidden (0 draws) whenever it is not raining.
 // Schedule is a deterministic function of game day + clock, so a given date always plays the same.
 //   ?rain=1 force a shower now   ?cover=0.4..0.7 fixed cloud threshold (lower = cloudier)
@@ -31,7 +31,7 @@ export class Weather {
   constructor(private g: AGame, private dn: DayNight) {
     const d = solar.date ? Date.parse(solar.date) / 864e5 : 0;
     this.days = Math.floor(d) % 10000;
-    const low = g.real?.q?.name === "low", n = low ? 360 : 900, R = 34, H = 26;
+    const low = g.real?.q?.name === "low", n = low ? 480 : 1000, R = 34, H = 26;
     const pos: number[] = [], seed: number[] = [];
     for (let i = 0; i < n; i++) {
       const x = (hash(i, 1) * 2 - 1) * R, z = (hash(i, 2) * 2 - 1) * R, ph = hash(i, 3) * H, len = 0.7 + hash(i, 4) * 0.6;
@@ -55,7 +55,7 @@ export class Weather {
         }`,
       fragmentShader: /* glsl */ `
         uniform float uRain; varying float vA;
-        void main() { gl_FragColor = vec4(vec3(0.62, 0.68, 0.76) * 0.32 * uRain * vA, 1.0); }`,
+        void main() { gl_FragColor = vec4(vec3(0.62, 0.68, 0.76) * 0.6 * uRain * vA, 1.0); }`,
     });
     this.rainMesh = new LineSegments(geo, mat);
     this.rainMesh.frustumCulled = false; this.rainMesh.visible = false; this.rainMesh.name = "aw:rain"; this.rainMesh.renderOrder = 5;
@@ -80,7 +80,7 @@ export class Weather {
       spell = Math.max(spell, bell(h, c, w * 3.5));
     }
     if (this.forceRain) { rain = 1; spell = 1; }
-    const cover = this.fixedCover ?? (0.62 + 0.03 * Math.sin(h * 0.9 + k) - 0.16 * spell);
+    const cover = this.fixedCover ?? (0.62 + 0.03 * Math.sin(h * 0.9 + k) - 0.16 * spell - 0.1 * rain);
     this.stats.cover = cover; this.stats.rain = rain; this.stats.day = k;
 
     const u = this.dn.sky.u, sky = this.g.real!.sky;
@@ -89,6 +89,9 @@ export class Weather {
     if (shade > 0.001) {
       u.uCShade.value.lerp(RAIN_GREY, rain * 0.5).multiplyScalar(1 - 0.3 * shade);
       u.uCLit.value.multiplyScalar(1 - 0.35 * shade);
+      // grey the blue sky toward an overcast shower sky
+      u.uZen.value.lerp(RAIN_GREY, rain * 0.6).multiplyScalar(1 - 0.25 * rain);
+      u.uHorS.value.lerp(RAIN_GREY, rain * 0.5); u.uHorA.value.lerp(RAIN_GREY, rain * 0.5);
       sky.sun.intensity *= 1 - 0.5 * shade;
       this.g.scene.environmentIntensity *= 1 - 0.25 * shade;
       sky.fog.color.lerp(RAIN_GREY, rain * 0.25);

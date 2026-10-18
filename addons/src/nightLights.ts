@@ -93,6 +93,8 @@ export class NightLights {
   // hero GLB signs (material names signglow / neon* / bulb*): ramp emissive with night
   private heroGlow = new Map<StdMat, number>();
   private heroN = -1;
+  // A's own shop / landmark sign panels (canvas texture as map + emissiveMap at a flat 0.35): glow at night
+  private signMats = new Set<StdMat & { emissiveMap?: unknown; map?: unknown }>();
   private bump: Material[] = []; // three sometimes skips the first version bump on already-compiled hero mats; bump again next frame
   private poolT = 0;
 
@@ -177,6 +179,7 @@ export class NightLights {
     });
     for (const im of this.lampMeshes) if (!im.parent) this.lampMeshes.delete(im);
     this.scanHero();
+    if (this.waterT % 4 === 1) this.scanSigns();
   }
 
   private scanHero() {
@@ -196,6 +199,18 @@ export class NightLights {
         else if (nm === "sign") this.heroGlow.set(m, -(m.emissiveIntensity || 1)); // plain signs: gentler ramp
         else if (/^(facade|ground)(_\d+)?$/.test(nm)) { patchHeroWindows(m); this.bump.push(m); }
         else if (nm === "glass") { m.emissive.setHex(0xffc985); m.emissiveIntensity = 0; this.heroGlow.set(m, 0); } // hero windows: warm glow at night
+      }
+    });
+  }
+
+  /** A's sign panels stream in with regions; a scene walk every ~8 s finds new ones (no per-frame cost). */
+  private scanSigns() {
+    this.g.scene.traverse((o) => {
+      const m = (o as InstancedMesh).material as StdMat & { emissiveMap?: unknown; map?: unknown };
+      if (!(o as InstancedMesh).isMesh || !m) return;
+      for (const x of Array.isArray(m) ? m : [m]) {
+        if (!x || !x.emissive || this.signMats.has(x) || !x.emissiveMap || x.emissiveMap !== x.map) continue;
+        if (Math.abs(x.emissiveIntensity - 0.35) < 1e-3 && x.emissive.getHex() === 0xffffff) this.signMats.add(x);
       }
     });
   }
@@ -225,6 +240,9 @@ export class NightLights {
     if (this.bump.length) { for (const m of this.bump) m.needsUpdate = true; this.bump.length = 0; }
     // hero signs: dim by day (reads as paint), bright at night
     for (const m of this.heroGlow.keys()) { const i0 = this.heroGlow.get(m)!; m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 0.95) : i0 < 0 ? -i0 * (1 + k * 0.55) : k * 0.16; } // r202 1.8 / 1.2 / 0.3
+
+    // A's shop signs: 0.35 by day (as A set it) -> backlit glow after dusk
+    if (this.signMats.size) { const si = 0.35 + k * 0.85; for (const m of this.signMats) m.emissiveIntensity = si; }
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
