@@ -115,8 +115,8 @@ SPECS = [
         "lat": 12.4357777, "lng": -69.9113945,
         "address": "Bernhardstraat 144, west wall of Korps Politie Aruba",
         "bld": 4074, "wall": 0,
-        # The game wall is red (#d8553f). The owl sits on a cream field that
-        # runs to the corners, so it reads as paint on the wall.
+        # OSM wall is red; the real facade is white where the SAC photo was taken.
+        "wall_face": "#f5f3ef",
         "fill": True,
         "sharp": True,
         "wm": 15.6, "hm": 6.8,
@@ -1105,6 +1105,8 @@ def main():
             mural["lift"] = float(spec.get("lift", 0.05))
         if face and face.get("holes"):
             mural["holes"] = face["holes"]
+        if spec.get("wall_face"):
+            mural["wall_face"] = spec["wall_face"]
         return mural
 
     for rec, (px, py, pw, ph) in zip(placed, boxes):

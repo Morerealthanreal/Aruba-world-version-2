@@ -25,16 +25,6 @@ await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForFunction(() => window.game && window.game.ready, null, { timeout: 180000 });
 await page.waitForSelector("#loading", { state: "hidden", timeout: 180000 });
 
-await page.waitForFunction(
-  () => {
-    const g = window.game;
-    const m = g.scene && g.scene.getObjectByName("aw:sn-murals");
-    return m && m.visible && m.geometry && m.geometry.attributes.position;
-  },
-  null,
-  { timeout: 180000 },
-);
-
 async function settleAtSite() {
   await page.evaluate((MURAL) => {
     const g = window.game;
@@ -71,10 +61,29 @@ async function settleAtSite() {
     MURAL,
     { timeout: 180000 },
   );
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(2000);
+  await page.evaluate(() => {
+    const sn = window.__aw && window.__aw.sn;
+    if (sn && typeof sn.tryGround === "function") sn.tryGround();
+  });
+  await page.waitForTimeout(2500);
 }
 
 await settleAtSite();
+
+await page.waitForFunction(
+  () => {
+    const g = window.game;
+    const m = g.scene && g.scene.getObjectByName("aw:sn-murals");
+    const w = g.scene && g.scene.getObjectByName("aw:sn-mural-walls");
+    const posCount = (geo) => geo && geo.attributes.position && geo.attributes.position.count;
+    const muralOk = m && m.visible && posCount(m.geometry) > 8;
+    const wallOk = !w || (w.visible && posCount(w.geometry) >= 4);
+    return muralOk && wallOk;
+  },
+  null,
+  { timeout: 180000 },
+);
 
 async function shot(name, distM) {
   const payload = await page.evaluate(

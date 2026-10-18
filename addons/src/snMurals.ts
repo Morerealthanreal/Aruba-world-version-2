@@ -46,6 +46,7 @@ export class SnMurals {
   private hidden: THREE.Object3D[] = [];
   private heroScan = true;
   private unloaded = false;
+  private wasNear = false;
   private readonly tmp = new THREE.Vector3();
 
   constructor(private g: AGame) {
@@ -82,7 +83,12 @@ export class SnMurals {
       this.mesh.material = mat;
     }
     if (!this.wallMesh) {
-      const wallMat = new THREE.MeshLambertMaterial({ color: 0xf5f3ef });
+      const wallMat = new THREE.MeshLambertMaterial({
+        color: 0xf5f3ef,
+        polygonOffset: true,
+        polygonOffsetFactor: -6,
+        polygonOffsetUnits: -4,
+      });
       const wallMesh = new THREE.Mesh(new THREE.BufferGeometry(), wallMat);
       wallMesh.name = "aw:sn-mural-walls";
       wallMesh.frustumCulled = false;
@@ -153,13 +159,15 @@ export class SnMurals {
       const half = (m.wall_len ?? span) * 0.5;
       const nx = m.normal?.[0] ?? -uz;
       const nz = m.normal?.[1] ?? ux;
-      const inset = 0.06;
+      const inset = 0.14;
       const ox = -nx * inset;
       const oz = -nz * inset;
-      const lx = cx - ux * half + ox;
-      const lz = cz - uz * half + oz;
-      const rx = cx + ux * half + ox;
-      const rz = cz + uz * half + oz;
+      const pad = 0.04;
+      const halfPad = half + pad;
+      const lx = cx - ux * halfPad + ox;
+      const lz = cz - uz * halfPad + oz;
+      const rx = cx + ux * halfPad + ox;
+      const rz = cz + uz * halfPad + oz;
       const yBot = ground + 0.04;
       const yTop = ground + Math.max(m.bld_h - 0.08, m.height);
       const base = pos.length / 3;
@@ -317,7 +325,8 @@ export class SnMurals {
   update() {
     if ((this.k & 63) === 0 && this.doc) {
       const d = this.nearestDist();
-      if (d > UNLOAD_M && !this.unloaded) this.unloadAtlas();
+      if (d < RELOAD_M) this.wasNear = true;
+      if (this.wasNear && d > UNLOAD_M && !this.unloaded) this.unloadAtlas();
       else if (d < RELOAD_M && this.unloaded) void this.load();
     }
     if (!this.mesh) return;
