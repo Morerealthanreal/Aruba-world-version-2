@@ -58,8 +58,8 @@ from build_downtown import (
     yaw_quat,
 )
 
-BRICK = (0.73, 0.45, 0.37)
-BRICK2 = (0.64, 0.39, 0.33)
+BRICK = (0.34, 0.14, 0.08)
+BRICK2 = (0.28, 0.11, 0.06)
 CONCRETE = (0.80, 0.78, 0.74)
 SAND = (0.90, 0.83, 0.64)
 LEAF = (0.18, 0.46, 0.20)
@@ -373,14 +373,63 @@ def column_proto():
 
 def shelter_proto():
     prim = Prim()
-    box(prim, 0, 2.32, 0, 1.55, 0.1, 3.5, WHITE)
-    box(prim, 0, 2.22, 0, 1.65, 0.06, 3.6, ORANGE)
-    for sx in (-0.62, 0.62):
-        for sz in (-1.45, 1.45):
-            box(prim, sx, 1.1, sz, 0.1, 2.2, 0.1, GREEN)
-    box(prim, 0, 0.46, 0, 0.42, 0.08, 1.7, WOOD)
-    box(prim, 0, 0.22, 0, 0.08, 0.44, 1.5, WOOD)
+    box(prim, 0, 2.72, 0, 2.4, 0.14, 6.2, WHITE)
+    box(prim, 0, 2.56, 0, 2.6, 0.10, 6.4, (0.10, 0.42, 0.24))
+    box(prim, 0, 2.40, 0, 2.6, 0.08, 6.4, (0.86, 0.42, 0.12))
+    for sx in (-1.0, 1.0):
+        for sz in (-2.6, 2.6):
+            box(prim, sx, 1.28, sz, 0.12, 2.55, 0.12, (0.12, 0.32, 0.62))
+    box(prim, 0, 0.48, 0, 0.5, 0.08, 2.4, WOOD)
+    box(prim, 0, 0.24, 0, 0.08, 0.48, 2.2, WOOD)
     return prim
+
+
+STEEL = (0.32, 0.34, 0.36)
+
+
+def densify(points, step=16.0):
+    """Insert points so no span is long enough for lay_rails to reject it."""
+    if len(points) < 2:
+        return list(points)
+    out = [points[0]]
+    for b in points[1:]:
+        a = out[-1]
+        dist = hypot(b[0] - a[0], b[1] - a[1])
+        n = max(1, int(math.ceil(dist / step)))
+        for k in range(1, n + 1):
+            t = k / n
+            out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+    return out
+
+
+def lay_rails(paint, points, origin):
+    """Two steel lines just above the paving, metre-ish gauge."""
+    gauge = 0.52
+    half = 0.13
+    lift = 0.30
+    for i in range(len(points) - 1):
+        ax, az = points[i]
+        bx, bz = points[i + 1]
+        dx, dz = bx - ax, bz - az
+        length = hypot(dx, dz)
+        if length < 1.2 or length > 80:
+            continue
+        px, pz = -dz / length, dx / length
+        for side in (-gauge, gauge):
+            a = (ax + px * side, az + pz * side)
+            b = (bx + px * side, bz + pz * side)
+            ha = height_at(*a) + lift
+            hb = height_at(*b) + lift
+            ribbon(
+                paint,
+                (a[0] + px * half, ha, a[1] + pz * half),
+                (b[0] + px * half, hb, b[1] + pz * half),
+                (b[0] - px * half, hb + 0.04, b[1] - pz * half),
+                (a[0] - px * half, ha + 0.04, a[1] - pz * half),
+                STEEL,
+                origin,
+                (0, 1, 0),
+            )
 
 
 def umbrella_proto():
@@ -518,18 +567,31 @@ def build_quay(samples, polys):
                 origin,
                 (s0["nx"], 0, s0["nz"]),
             )
-            # Two white rails.
-            for lift in (0.42, 0.78):
-                ribbon(
+            # White lattice on the water edge. These boards are vertical, so the
+            # plan-width check in ribbon() would drop them. Face both ways.
+            def fence_sheet(y_lo0, y_lo1, y_hi0, y_hi1, push, sign):
+                pts = [
+                    (o0[0] + s0["nx"] * push, y_lo0, o0[1] + s0["nz"] * push),
+                    (o1[0] + s1["nx"] * push, y_lo1, o1[1] + s1["nz"] * push),
+                    (o1[0] + s1["nx"] * push, y_hi1, o1[1] + s1["nz"] * push),
+                    (o0[0] + s0["nx"] * push, y_hi0, o0[1] + s0["nz"] * push),
+                ]
+                emit_quad(
                     paint,
-                    (o0[0], s0["hout"] + lift, o0[1]),
-                    (o1[0], s1["hout"] + lift, o1[1]),
-                    (o1[0] + s1["nx"] * 0.06, s1["hout"] + lift + 0.08, o1[1] + s1["nz"] * 0.06),
-                    (o0[0] + s0["nx"] * 0.06, s0["hout"] + lift + 0.08, o0[1] + s0["nz"] * 0.06),
+                    [loc(p, origin) for p in pts],
                     WHITE,
-                    origin,
-                    (s0["nx"], 0.2, s0["nz"]),
+                    (sign * s0["nx"], 0.0, sign * s0["nz"]),
                 )
+
+            h0a, h0b = s0["hout"], s1["hout"]
+            for push, sign in ((0.0, -1.0), (0.08, 1.0)):
+                fence_sheet(h0a + 0.42, h0b + 0.42, h0a + 0.58, h0b + 0.58, push, sign)
+                fence_sheet(h0a + 0.96, h0b + 0.96, h0a + 1.12, h0b + 1.12, push, sign)
+                # X between the rails, offset so the two diagonals do not occupy one plane.
+                brace = push + 0.03
+                fence_sheet(h0a + 0.46, h0b + 0.90, h0a + 0.60, h0b + 1.04, brace, sign)
+                fence_sheet(h0a + 0.90, h0b + 0.46, h0a + 1.04, h0b + 0.60, brace, sign)
+            posts.append(xform((o0[0] + o1[0]) / 2, (h0a + h0b) / 2, (o0[1] + o1[1]) / 2, origin))
         # Far lod: one coarse deck quad.
         if i % 4 == 0 and i + 4 < len(keep):
             c = keep[i + 4]
@@ -576,7 +638,7 @@ def build_quay(samples, polys):
     glb.add_instances(planter_proto(), "paint", planters)
     # Posts are a slim white box in the prototype, base at y=0.
     post = Prim()
-    box(post, 0, 0.46, 0, 0.1, 0.92, 0.1, WHITE)
+    box(post, 0, 0.58, 0, 0.12, 1.16, 0.12, WHITE)
     glb.add_instances(post, "paint", posts)
     glb.lod1_prim = lod if lod.tris else None
     print(
@@ -1137,6 +1199,8 @@ def build_tram(samples, main_road, polys):
         if left[1] > 0:
             left = (-left[0], -left[1])
         stops.append((q[0] + left[0] * 3.8, q[1] + left[1] * 3.8, math.atan2(tx, tz)))
+    # South of the rails, in the view from the Main Street sidewalk camera.
+    stops.append((-7268.0, -6.5, math.atan2(1.0, 0.2)))
     origin_x = sum(s[0] for s in stops) / len(stops)
     origin_z = sum(s[1] for s in stops) / len(stops)
     origin = (origin_x, origin_z, height_at(origin_x, origin_z))
@@ -1155,12 +1219,49 @@ def build_tram(samples, main_road, polys):
             print(f"  cam tram-main stand {x + 18:.0f},{z + 6:.0f} look {x:.0f},{z:.0f}")
     if len(xforms) < 2:
         return None
+    paint, signs = Prim(), Prim()
+    # Downtown pedestrian centreline, plus the port approach the shipped
+    # track already follows (Welcome Plaza side, then onto Main Street).
+    track = [p for p in main_road if -7360 < p[0] < -6640 and -30 < p[1] < 80]
+    track = sorted(track, key=lambda p: p[0])
+    track = [p for i, p in enumerate(track) if i == 0 or hypot(p[0] - track[i - 1][0], p[1] - track[i - 1][1]) > 2]
+    west = [(-7610.0, -108.0), (-7510.0, -96.0), (-7425.0, -74.0), (-7340.0, -40.0)]
+    if track:
+        west.append(track[0])
+    lay_rails(paint, densify(west + track, 14.0), origin)
+    atlas = Atlas(size=512)
+    uv = banner(atlas, "TRAM", (8, 8, 496, 160), (16, 92, 64), (255, 255, 255))
+    u0, v0, u1, v1 = uv
+    for x, z, yaw in stops:
+        if poly_hit(polys, x, z) or height_at(x, z) < 1.2:
+            continue
+        h = height_at(x, z)
+        # Face across the track. yaw is the track heading.
+        fx, fz = math.sin(yaw), math.cos(yaw)
+        y0, y1 = h + 2.15, h + 2.85
+        hw = 0.85
+        s0 = (x - fx * hw, y0, z - fz * hw)
+        s1 = (x + fx * hw, y0, z + fz * hw)
+        s2 = (x + fx * hw, y1, z + fz * hw)
+        s3 = (x - fx * hw, y1, z - fz * hw)
+        before = len(signs.U)
+        wrote = emit_quad(signs, [loc(p, origin) for p in (s0, s1, s2, s3)], WHITE, (fz, 0, -fx))
+        if wrote:
+            nrm = Prim._n(loc(s0, origin), loc(s1, origin), loc(s2, origin))
+            stamp_uv(signs, before, (u0, v0, u1, v1), bool(nrm and nrm[0] * fz + nrm[2] * -fx >= 0))
     lod = Prim()
     box(lod, 0, 1.2, 0, 1.4, 2.2, 3.2, WHITE)
     glb = Glb("ora_tramstop")
     glb.mat("paint", rough=0.8)
+    if paint.tris:
+        glb.add(paint, "paint")
+    glb.images.append((atlas.png(), "image/png"))
+    glb.mat("sign", rough=0.5, tex=0, double=True)
+    if signs.tris:
+        glb.add(signs, "sign")
     glb.add_instances(shelter_proto(), "paint", xforms)
     glb.lod1_prim = lod
+    print(f"tram rails segments {max(0, len(west) + len(track) - 1)}")
     return glb, origin
 
 
@@ -1302,6 +1403,198 @@ def build_surfside(chain):
         if 1360 < z < 1460 and -6500 < x < -6380 and 0.6 < h < 2.4:
             print(f"  cam surfside stand {x + 6:.0f},{z:.0f} look {x - 18:.0f},{z + 12:.0f} h={h:.2f}")
             break
+    return glb, origin
+
+
+def absorb_prim(dst, src):
+    if src.tris == 0:
+        return
+    base = len(dst.P)
+    dst.P.extend(src.P)
+    dst.N.extend(src.N)
+    dst.U.extend(src.U)
+    dst.C.extend(src.C)
+    dst.I.extend(i + base for i in src.I)
+
+
+VILLAGE = [
+    (0.62, 0.40, 0.18),  # ochre, held down so the sun does not bleach it
+    (0.70, 0.50, 0.26),  # warm cream
+    (0.66, 0.44, 0.16),  # deep butter
+    (0.58, 0.34, 0.18),  # peach
+]
+BUS_YELLOW = (0.90, 0.68, 0.08)
+BUS_BLUE = (0.10, 0.28, 0.58)
+
+
+def build_village(chain):
+    """Warm shop fronts on the Seaport Village row beside Royal Plaza.
+
+    The kit leaves these as flat blue boxes. The harbour photos show ochre
+    and warm-cream walls, white trim, and terracotta roofs.
+    """
+    road = [(s["x"], s["z"]) for s in chain] if chain and isinstance(chain[0], dict) else chain
+    if len(road) < 4:
+        return None
+    buildings = load_buildings()
+    blockers = hero_blockers()
+    blockers = (
+        [p for p in blockers[0] if p[2] not in ("ora_seaport",)],
+        [p for p in blockers[1] if p[1] not in ("ora_seaport",)],
+    )
+    landmarks = json.loads(LANDMARKS.read_text())
+    picked = []
+    for b in buildings:
+        c = b["c"]
+        if not (-7765 < c[0] < -7510 and -125 < c[1] < -40):
+            continue
+        if b["area"] < 22 or b["area"] > 700:
+            continue
+        if b.get("k") in ("hotel", "church", "ind"):
+            continue
+        if height_at(*c) < 1.0:
+            continue
+        if blocked(b, *blockers):
+            continue
+        if min_dist_to_poly(c, road) > 52:
+            continue
+        edge = street_edge(b["poly"], road)
+        if edge is None or edge[4] < 3.0 or edge[6] > 55:
+            continue
+        row = dict(b)
+        row["color"] = VILLAGE[int(hash01(b.get("i") or 1, 5) * len(VILLAGE)) % len(VILLAGE)]
+        row["edge"] = edge
+        row["sign_name"] = shop_name(b, landmarks)
+        row["along"] = closest_on_line(c, road)[0]
+        picked.append(row)
+    if len(picked) < 4:
+        print("village: too few", len(picked))
+        return None
+    picked.sort(key=lambda b: b["along"])
+    for i, b in enumerate(picked):
+        b["gable"] = i % 3
+    ox = sum(b["c"][0] for b in picked) / len(picked)
+    oz = sum(b["c"][1] for b in picked) / len(picked)
+    h0 = height_at(ox, oz)
+    origin = (ox, oz, h0)
+    atlas = Atlas(size=1024)
+    paint, signs, glass, lod = Prim(), Prim(), Prim(), Prim()
+    windows = []
+    for b in picked:
+        label = (b["sign_name"] or "SEAPORT").strip()
+        uv = atlas.add_shop(label[:22])
+        info = build_facade(paint, glass, b, b["edge"], (ox, oz), h0, uv, b["gable"])
+        if info:
+            s0, s1, s2, s3, u0, u1, u2, u3, face_out, _g, _o, _a, _bb, _L = info
+            if face_out:
+                signs.quad(s0, s1, s2, s3, WHITE, (u0, u1, u2, u3))
+            else:
+                signs.quad(s1, s0, s3, s2, WHITE, (u1, u0, u3, u2))
+        _s, _i, a, bb, _length, _outward, _d = b["edge"]
+        ground = height_at(*b["c"])
+        windows.extend(facade_windows(b["poly"], a, bb, ground, origin))
+        y1 = ground + 7.0
+        ccw = poly_area(b["poly"]) > 0
+        for i in range(len(b["poly"])):
+            p, q = b["poly"][i], b["poly"][(i + 1) % len(b["poly"])]
+            if hypot(p[0] - q[0], p[1] - q[1]) < 0.4:
+                continue
+            A = (p[0] - ox, ground - h0, p[1] - oz)
+            B = (q[0] - ox, ground - h0, q[1] - oz)
+            C = (q[0] - ox, y1 - h0, q[1] - oz)
+            D = (p[0] - ox, y1 - h0, p[1] - oz)
+            if ccw:
+                lod.quad(B, A, D, C, b["color"])
+            else:
+                lod.quad(A, B, C, D, b["color"])
+        print(f"  village {b['sign_name'] or '(facade)'} ({b['c'][0]:.0f},{b['c'][1]:.0f})")
+    # Glass panes stay in the paint prim. A separate glass mesh, instanced
+    # frames, and a lod mesh would each be another geometry the phone soak
+    # keeps after this hero unloads.
+    absorb_prim(paint, glass)
+    glb = Glb("ora_seaport")
+    glb.mat("paint", rough=0.86)
+    glb.images.append((atlas.png(), "image/png"))
+    glb.add(paint, "paint")
+    glb.mat("sign", rough=0.55, tex=0, double=True)
+    glb.add(signs, "sign")
+    glb.lod1_prim = None
+    print(f"village facades {len(picked)}")
+    return glb, origin, [b["c"] for b in picked]
+
+
+def build_bus(polys):
+    """Central bus station apron: canopy, ARUBUS board, yellow buses.
+
+    Sits on the open lot in front of Seaport Village, next to Royal Plaza.
+    """
+    # Prefer a pad whose corners are not inside a building.
+    # In the boulevard view the apron sits just south of the village row.
+    # The boulevard camera stands just north of this apron. A pad further
+    # south is hidden behind the village row.
+    candidates = [(-7596.0, -94.0), (-7592.0, -96.0), (-7600.0, -96.0), (-7588.0, -93.0)]
+    center = None
+    for cx, cz in candidates:
+        corners = [(cx + dx, cz + dz) for dx in (-9.5, 9.5) for dz in (-2.4, 2.4)]
+        if any(poly_hit(polys, x, z) for x, z in corners):
+            continue
+        if any(height_at(x, z) < 1.2 for x, z in corners):
+            continue
+        center = (cx, cz)
+        break
+    if center is None:
+        print("bus: no open pad")
+        return None
+    cx, cz = center
+    h = height_at(cx, cz)
+    origin = (cx, cz, h)
+    paint = Prim()
+    # Canopy along east-west. Local +x is world +x.
+    deck_y = 4.05
+    box(paint, 0, deck_y, 0, 14, 0.16, 5.0, WHITE)
+    box(paint, 0, deck_y - 0.14, 0, 14.4, 0.08, 5.4, BUS_BLUE)
+    for x in (-5.6, -1.8, 1.8, 5.6):
+        for z in (-2.0, 2.0):
+            box(paint, x, deck_y / 2, z, 0.22, deck_y, 0.22, WHITE)
+    # Ticket booth at the west end, so the east approach (the camera) sees the coaches.
+    box(paint, -8.2, 1.7, 0, 3.2, 3.4, 4.2, (0.72, 0.52, 0.28))
+    box(paint, -8.2, 3.5, 0, 3.6, 0.22, 4.6, TERRACOTTA)
+    # Two yellow Arubus coaches under the roof, on the north side of the pad.
+    for i, x in enumerate((-2.6, 3.6)):
+        z = -0.55
+        box(paint, x, 1.45, z, 6.2, 2.55, 2.3, BUS_YELLOW)
+        box(paint, x, 2.05, z, 6.3, 0.26, 2.35, BUS_BLUE)
+        box(paint, x, 1.7, z - 1.12, 4.0, 0.85, 0.06, (0.12, 0.16, 0.2))
+        box(paint, x, 0.38, z, 5.8, 0.32, 2.35, (0.16, 0.16, 0.17))
+    # Coloured concrete benches along the south edge of the pad.
+    for i, x in enumerate((-5.5, -1.5, 2.5)):
+        col = ((0.85, 0.25, 0.22), (0.20, 0.45, 0.72), (0.90, 0.72, 0.18))[i % 3]
+        box(paint, x, 0.42, 1.7, 1.4, 0.42, 0.46, col)
+    atlas = Atlas(size=512)
+    uv = banner(atlas, "ARUBUS", (8, 8, 496, 150), (14, 58, 130), (255, 255, 255))
+    u0, v0, u1, v1 = uv
+    signs = Prim()
+    y0, y1 = deck_y - 0.95, deck_y - 0.15
+    # Face south (+z), toward the boulevard approach.
+    s0 = (-3.2, y0, 2.35)
+    s1 = (3.2, y0, 2.35)
+    s2 = (3.2, y1, 2.35)
+    s3 = (-3.2, y1, 2.35)
+    signs.quad(s0, s1, s2, s3, WHITE, ((u0, v0), (u1, v0), (u1, v1), (u0, v1)))
+    signs.quad(s1, s0, s3, s2, WHITE, ((u1, v0), (u0, v0), (u0, v1), (u1, v1)))
+    lod = Prim()
+    box(lod, 0, 2.2, 0, 30, 0.4, 6, BUS_YELLOW)
+    glb = Glb("ora_busstation")
+    glb.mat("paint", rough=0.78)
+    glb.add(paint, "paint")
+    glb.images.append((atlas.png(), "image/png"))
+    glb.mat("sign", rough=0.5, tex=0, double=True)
+    glb.add(signs, "sign")
+    # The canopy is small. Leaving lod off keeps the soak to the two meshes
+    # a walker actually sees.
+    glb.lod1_prim = None
+    print(f"bus station at {cx:.0f},{cz:.0f}")
+    print(f"  cam bus stand {cx + 8:.0f},{cz + 22:.0f} look {cx:.0f},{cz - 6:.0f}")
     return glb, origin
 
 
@@ -1506,12 +1799,47 @@ def main():
                         1,
                     )
                 )
+    if want("village"):
+        built = build_village(smith)
+        if built and not dry:
+            glb, origin, hide = built
+            entries.append(
+                save_hero(
+                    glb,
+                    "ora_seaport",
+                    "Seaport Village shopfronts",
+                    origin,
+                    None,
+                    hide,
+                    280,
+                    1,
+                )
+            )
+    if want("bus"):
+        built = build_bus(polys)
+        if built and not dry:
+            glb, origin = built
+            entries.append(
+                save_hero(
+                    glb,
+                    "ora_busstation",
+                    "Oranjestad Central Bus Station",
+                    origin,
+                    None,
+                    [],
+                    240,
+                    1,
+                )
+            )
     if want("tram"):
         built = build_tram(samples, main_road, polys)
         if built and not dry:
             glb, origin = built
             entries.append(
-                save_hero(glb, "ora_tramstop", "Oranjestad tram shelters", origin, None, [], 220, 0)
+                # Rails run the length of Main Street. switch_m is distance from the
+                # hero origin, so it has to clear the far end or the tracks drop to the
+                # shelter lod while you are still standing on them.
+                save_hero(glb, "ora_tramstop", "Oranjestad tram shelters", origin, None, [], 800, 1)
             )
     if want("surf"):
         built = build_surfside(samples)
@@ -1533,17 +1861,19 @@ def main():
         print("dry run, nothing written")
         return
     if entries:
-        save_manifest(entries, retire=("ora_side0", "ora_side1", "ora_side"))
-        kept = {e["id"] for e in entries}
-        for old in ("ora_side0", "ora_side1", "ora_side"):
-            if old in kept:
-                continue
-            path = HERO / f"{old}.glb"
-            if path.exists():
-                path.unlink()
-                print(f"removed {path.name}")
-        cleared = clear_side_signs(side_buildings)
-        print(f"manifest +{len(entries)}, side-street billboards cleared {cleared}")
+        save_manifest(entries, retire=("ora_side0", "ora_side1", "ora_side") if want("sides") else ())
+        if want("sides"):
+            kept = {e["id"] for e in entries}
+            for old in ("ora_side0", "ora_side1", "ora_side"):
+                if old in kept:
+                    continue
+                path = HERO / f"{old}.glb"
+                if path.exists():
+                    path.unlink()
+                    print(f"removed {path.name}")
+            cleared = clear_side_signs(side_buildings)
+            print(f"side-street billboards cleared {cleared}")
+        print(f"manifest +{len(entries)}")
 
 
 if __name__ == "__main__":
