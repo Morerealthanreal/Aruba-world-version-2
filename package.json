@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm --prefix addons run build",
     "typecheck": "npm --prefix addons run typecheck",
+    "build": "npm --prefix addons run build",
     "test": "npm run test:e2e",
     "test:e2e": "npm run build && playwright test",
     "test:e2e:headed": "npm run build && playwright test --headed"

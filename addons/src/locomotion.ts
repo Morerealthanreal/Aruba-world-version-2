@@ -3,7 +3,7 @@
 // (see game/models/locomotion.glb and CREDITS.md). Every visible person has
 // their own mixer so they stay out of step; the clip data is loaded once.
 import {
-  AnimationMixer, LoopRepeat, Euler, Quaternion,
+  AnimationMixer, LoopRepeat, Euler, Quaternion, Vector3,
   type AnimationAction, type AnimationClip, type Object3D, type WebGLRenderer,
 } from "three";
 import { characterLoader } from "./characters";
@@ -133,6 +133,52 @@ export function stepLoco(loco: Loco, speed: number, dt: number, bodyScale = 1) {
   loco.walk.timeScale = rate(walkMs, w.walk);
   loco.run.timeScale = rate(runMs, w.run);
   if (dt > 0) loco.mixer.update(dt);
+}
+
+const _armAxis = new Vector3(1, 0, 0);
+const _armQuat = new Quaternion();
+
+/**
+ * Maya's arms are short, so the shared clip parks her hands on her hips.
+ * Extra shoulder swing, opposite left to right, is applied only on the
+ * female pedestrians. The player keeps the clip as authored.
+ */
+export function swingFemaleArms(root: Object3D, loco: Loco) {
+  const walk = loco.weights.walk;
+  const run = loco.weights.run;
+  const moving = walk + run;
+  if (moving < 0.12) return;
+  const running = run > walk;
+  const action = running ? loco.run : loco.walk;
+  const duration = action.getClip().duration || 1;
+  const phase = ((action.time % duration) / duration) * Math.PI * 2;
+  const amp = (running ? 0.22 : 0.28) * Math.min(1, moving / 0.5);
+  const swing = -Math.cos(phase) * amp;
+  const turn = (name: string, angle: number) => {
+    const bone = root.getObjectByName(name);
+    if (!bone) return;
+    _armQuat.setFromAxisAngle(_armAxis, angle);
+    bone.quaternion.multiply(_armQuat);
+  };
+  turn("upperarm_l", swing);
+  turn("upperarm_r", -swing);
+  turn("lowerarm_l", -swing * 0.16);
+  turn("lowerarm_r", swing * 0.16);
+}
+
+/**
+ * The shared walk pitches Maya's short spine forward, so the dress reads as a
+ * hunch. A local counter-rotation on the lower spine stands her up. The clip
+ * and the player are unchanged. Negative local X tips this rig backward.
+ */
+export function straightenDress(root: Object3D, loco: Loco) {
+  const moving = loco.weights.walk + loco.weights.run;
+  if (moving < 0.12) return;
+  const running = loco.weights.run > loco.weights.walk;
+  const lift = (running ? -0.1 : -0.18) * Math.min(1, moving / 0.5);
+  _armQuat.setFromAxisAngle(_armAxis, lift);
+  const spine = root.getObjectByName("spine_01");
+  if (spine) spine.quaternion.multiply(_armQuat);
 }
 
 /** Turn toward a heading without snapping. Radians. */

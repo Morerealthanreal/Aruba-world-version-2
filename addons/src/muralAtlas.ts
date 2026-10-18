@@ -48,7 +48,7 @@ export function bakeMuralAtlas(tex: THREE.Texture, renderer: WebGLRenderer): voi
     return;
   }
   try {
-    const props = r.properties?.get(tex);
+    const props = r.properties?.get(tex) as { __version?: number } | undefined;
     if (props) props.__version = tex.version;
   } catch {
     /* disposed */
