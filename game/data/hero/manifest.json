@@ -60127,8 +60127,8 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_north_lod0": 13126,
-   "eb_north_lod1": 6204
+   "eb_north_lod0": 21766,
+   "eb_north_lod1": 6924
   },
   "textures": 1,
   "hide_footprint": [],
@@ -60156,8 +60156,8 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_south_lod0": 4972,
-   "eb_south_lod1": 2286
+   "eb_south_lod0": 8104,
+   "eb_south_lod1": 2547
   },
   "textures": 1,
   "hide_footprint": [],
@@ -60185,8 +60185,8 @@
    "switch_m": 180
   },
   "tris": {
-   "eb_mid_lod0": 6118,
-   "eb_mid_lod1": 2778
+   "eb_mid_lod0": 9898,
+   "eb_mid_lod1": 3093
   },
   "textures": 1,
   "hide_footprint": [],
