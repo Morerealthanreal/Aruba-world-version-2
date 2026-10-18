@@ -1,0 +1,17 @@
+{
+ "place": "watty-vos-airport",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "directional-signs.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Directional_signs_on_Watty_Vos_Boulevard,_Aruba.jpeg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Caribiana",
+   "lat": 12.50795,
+   "lon": -70.009147,
+   "heading": null,
+   "date": null,
+   "shows": "Airport-end Watty Vos at 12.50795,-70.00915. The sign points to Palm Beach; the photo is the boulevard itself"
+  }
+ ]
+}

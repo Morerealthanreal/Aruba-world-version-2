@@ -63133,19 +63133,19 @@
   "k": "watty_lane_dashes",
   "name": "",
   "status": "accuracy-highway",
-  "x": -4579.28,
-  "z": 744.9,
-  "y": 17.8,
+  "x": -4573.03,
+  "z": 597.75,
+  "y": 22.18,
   "rotation": 0,
   "glb": "models/hero/watty_lane_dashes.glb",
   "lod": {
    "hi": "watty_lane_dashes_lod0",
    "lo": "watty_lane_dashes_lod1",
-   "switch_m": 120
+   "switch_m": 280
   },
   "tris": {
-   "watty_lane_dashes_lod0": 1272,
-   "watty_lane_dashes_lod1": 432
+   "watty_lane_dashes_lod0": 666,
+   "watty_lane_dashes_lod1": 336
   },
   "textures": 0,
   "hide_footprint": null,
@@ -63153,9 +63153,9 @@
   "sign": false,
   "kind": "replace",
   "new_place": false,
-  "geo_source": "Centreline of the owned Avenida Edgar J. (Watty) Vos carriageway (964 m, 106 dashes)",
-  "ref_sources": "Airport-end Watty Vos is a one-way class-4 road about 7.6 m wide, two lanes. The asphalt shader already paints the edge lines and withholds the broken line on one-way roads. These dashes are the lane line between the two lanes, on the stretch inside -5600<x<-4000 and -300<z<2000. Noord and the hotel strip are outside that box. The asphalt shader was not edited.",
-  "frame": "glb origin = dash-run centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "geo_source": "Midline between the paired owned Watty Vos carriageways (1562 m of median, 24 centre lights)",
+  "ref_sources": "Commons 'Directional signs on Watty Vos Boulevard, Aruba' is at 12.50795, -70.00915, which is inside the owned airport end (about x=-4254, z=1332), not the hotel strip. The sign points toward Palm Beach; the photo itself is the divided boulevard: a median between the two one-way carriageways and streetlights down the centre. The asphalt shader was not edited and ow was not changed. Nothing was added outside -5600<x<-4000, -300<z<2000.",
+  "frame": "glb origin = median centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
   "cat": "road"
  }
 ]
