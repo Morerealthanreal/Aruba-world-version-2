@@ -1,0 +1,73 @@
+{
+  "night_watcher": {
+    "sac_marker": 13073,
+    "page": "https://streetartcities.com/markers/13073"
+  },
+  "lionfish": {
+    "sac_marker": 13093,
+    "page": "https://streetartcities.com/markers/13093",
+    "wikimedia": "Mural Lionfish Caya Dick Cooper.jpg"
+  },
+  "turtles": {
+    "sac_marker": 13083,
+    "page": "https://streetartcities.com/markers/13083",
+    "wikimedia": "San Nicolas murals (Aruba) 23 00 09 183000.jpeg"
+  },
+  "flamingos": {
+    "sac_marker": 13091,
+    "page": "https://streetartcities.com/markers/13091"
+  },
+  "iguana": {
+    "sac_marker": 13085,
+    "page": "https://streetartcities.com/markers/13085"
+  },
+  "prikichi": {
+    "sac_marker": 13080,
+    "page": "https://streetartcities.com/markers/13080"
+  },
+  "pelican": {
+    "sac_marker": 13079,
+    "page": "https://streetartcities.com/markers/13079"
+  },
+  "alice": {
+    "sac_marker": 13092,
+    "page": "https://streetartcities.com/markers/13092"
+  },
+  "nothing_to_declare": {
+    "sac_marker": 13075,
+    "page": "https://streetartcities.com/markers/13075",
+    "wikimedia": "Mural Harina Pan.jpg"
+  },
+  "melting_pot": {
+    "wikimedia": "San Nicolas Murals.jpeg",
+    "page": "https://commons.wikimedia.org/wiki/File:San_Nicolas_Murals.jpeg"
+  },
+  "crazy": {
+    "sac_marker": 13072,
+    "page": "https://streetartcities.com/markers/13072"
+  },
+  "bargestraat": {
+    "sac_marker": 13077,
+    "page": "https://streetartcities.com/markers/13077"
+  },
+  "stuyvesant": {
+    "sac_marker": 13084,
+    "page": "https://streetartcities.com/markers/13084"
+  },
+  "emporium": {
+    "sac_marker": 13087,
+    "page": "https://streetartcities.com/markers/13087"
+  },
+  "mo": {
+    "sac_marker": 13090,
+    "page": "https://streetartcities.com/markers/13090"
+  },
+  "saffron": {
+    "skip": true,
+    "note": "No SAC/Wikimedia wall photo located yet for Cursed Saffron (Emmastraat); stays in MURAL_SKIP until sourced."
+  },
+  "holambra": {
+    "skip": true,
+    "note": "No verifiable single-wall photo in SAC/Wikimedia; hold until a sourced ref is found."
+  }
+}
