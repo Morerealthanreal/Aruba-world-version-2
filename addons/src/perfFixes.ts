@@ -31,9 +31,8 @@
 //     does not lower the count and the next draw raises it. Those geometries are
 //     registered once, off the canvas, with a material that does not draw and does not
 //     upload images. Hero images, including the sign, that decode after the first draw
-//     are uploaded on a later pass for any hero already loaded within 1500 m, and any
-//     other image already referenced by the scene is uploaded the same way, instead of
-//     waiting until a later visit.
+//     are uploaded on a later pass for any hero already loaded within 1500 m, instead
+//     of waiting until the next visit.
 import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderTarget, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -643,10 +642,12 @@ export class PerfFixes {
       }
     }
     if (!batch.length) {
-      if (scanScene) this.primeQuiet = 4;
+      if (scanScene) this.primeQuiet = 8;
       return;
     }
-    this.primeQuiet = 0;
+    // The scene walk finished without filling the batch, so back off. A full
+    // batch means more geometries are waiting; keep scanning next call.
+    if (scanScene && batch.length < limit) this.primeQuiet = 8;
     if (!this.primeScene || !this.primeMat || !this.primeTarget || !this.primeCam) {
       this.primeScene = new Scene();
       this.primeMat = new MeshBasicMaterial();
@@ -720,25 +721,6 @@ export class PerfFixes {
     for (const g of batch) this.primedGeo.add(g);
   }
 
-  /** Images already on a live mesh, decoded, and not yet on the GPU. Uploading
-   *  them here means a later sample does not count the first upload. Data and
-   *  render-target textures are left alone. */
-  private uploadStrayTextures() {
-    const gpu = this.gpu();
-    if (!gpu.properties || !gpu.initTexture) return;
-    let budget = 8;
-    for (const tex of this.referencedTextures()) {
-      if (budget <= 0) break;
-      if (!tex.isTexture || tex.isDataArrayTexture || tex.__awGone) continue;
-      if ((tex as { isDataTexture?: boolean }).isDataTexture) continue;
-      if (!this.imageReady(tex)) continue;
-      const props = gpu.properties.get(tex) as { __webglInit?: unknown; __webglTexture?: unknown } | undefined;
-      if (!props || props.__webglInit !== undefined || props.__webglTexture) continue;
-      this.uploadNow(tex);
-      budget--;
-    }
-  }
-
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
@@ -752,10 +734,7 @@ export class PerfFixes {
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       this.primeUnseenGeometries();
-      if ((this.watchTick++ & 3) === 0) {
-        this.noteSwaps();
-        this.uploadStrayTextures();
-      }
+      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
