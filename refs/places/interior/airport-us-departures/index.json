@@ -1,0 +1,28 @@
+{
+ "place": "airport-us-departures",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "us-departures.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Aruba_Airport_US_departures_terminal_17_28_42_691000.jpeg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Caribiana",
+   "lat": 12.504383,
+   "lon": -70.008644,
+   "heading": null,
+   "date": "2021-07",
+   "shows": "USA Departures curb: yellow-cream walls, teal pitched gables, white columns, yellow airline boards, a foreground palm, and the USA Departures sign"
+  },
+  {
+   "file": "comparison.jpg",
+   "source_url": null,
+   "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
+   "credit": "Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Same curb approach: Commons USA Departures on the left; the yellow hall, teal gables, white columns, yellow boards, lettered USA DEPARTURES, and the curb palm on the right"
+  }
+ ]
+}
