@@ -1,0 +1,41 @@
+{
+ "label": "church",
+ "port": "8823",
+ "q": "high",
+ "errors": [
+  "TIMEOUT waiting for region/heroes"
+ ],
+ "bench": [
+  {
+   "shot": "street",
+   "calls": 548,
+   "tris": 773830,
+   "ms": 3.6
+  },
+  {
+   "shot": "beach",
+   "calls": 685,
+   "tris": 1066239,
+   "ms": 4.8
+  },
+  {
+   "shot": "aerial",
+   "calls": 684,
+   "tris": 1412598,
+   "ms": 4.9
+  }
+ ],
+ "fps": {
+  "fps": 20.41,
+  "p95ms": 66.7,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "santaanna_kerk",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
