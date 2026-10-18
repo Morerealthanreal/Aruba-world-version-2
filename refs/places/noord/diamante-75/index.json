@@ -1,0 +1,42 @@
+{
+ "place": "diamante-75",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "front.jpg",
+   "source_url": "https://remaxaruba.com/property/details/gold-coast-diamante-75",
+   "license": "unknown - reference only",
+   "credit": "RE/MAX Aruba listing, Gold Coast Diamante 75",
+   "lat": 12.599858,
+   "lon": -70.043234,
+   "heading": null,
+   "date": null,
+   "shows": "Diamante 75 street facade: strong yellow walls, white arched door surround, curved wrought-iron balcony, white pediment with a round medallion, orange planters along the paver drive. The door is numbered 75.",
+   "original_path": "/opt/cursor/artifacts/costa-bravo-west/diamante75-01.jpg"
+  },
+  {
+   "file": "aerial.jpg",
+   "source_url": "https://remaxaruba.com/property/details/gold-coast-diamante-75",
+   "license": "unknown - reference only",
+   "credit": "RE/MAX Aruba listing, Gold Coast Diamante 75",
+   "lat": 12.599858,
+   "lon": -70.043234,
+   "heading": null,
+   "date": null,
+   "shows": "Aerial of the Gold Coast rows: yellow street facades, terracotta roofs, curved balconies, paver parking, with the California lighthouse on the horizon",
+   "original_path": "/opt/cursor/artifacts/costa-bravo-west/diamante75-02.jpg"
+  },
+  {
+   "file": "satellite.jpg",
+   "source_url": "https://www.google.com/maps/@12.599858,-70.043234,131m/data=!3m1!1e3",
+   "license": "unknown - reference only",
+   "credit": "Google Maps satellite",
+   "lat": 12.599858,
+   "lon": -70.043234,
+   "heading": null,
+   "date": null,
+   "shows": "Costa Bravo north row at the Diamante 75 pin: repeating red-tile roofs and parking bays facing the street",
+   "original_path": "/opt/cursor/artifacts/costa-bravo-west/ref/sat.jpg"
+  }
+ ]
+}
