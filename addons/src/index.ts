@@ -49,6 +49,7 @@ import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
+import { SaveManager } from "./save";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { NorthInland } from "./northInland";
@@ -131,7 +132,25 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  // SuperGrok save/pause overlay (Esc). Experimental: only with ?save=1. A has no sim pause hook,
+  // so "pause" only shows the overlay and stops autosave; the world keeps running underneath.
+  type Pos = { x: number; y: number; z: number };
+  const savem = params.get("save") === "1" ? new SaveManager({
+    getState: () => {
+      const S = g.S as unknown as { mode: string } & Record<string, Pos>;
+      const w = (g as unknown as { walker?: { position: Pos } }).walker;
+      const p = S.mode === "walk" && w ? w.position : (S[S.mode] || { x: 0, y: 0, z: 0 });
+      return { position: { x: p.x, y: p.y, z: p.z }, vehicle: (S.mode as "walk"), timeOfDay: 0, quality: "medium", volume: 1, invertY: false };
+    },
+    applyState: (st) => {
+      const S = g.S as unknown as { mode: string } & Record<string, Pos>;
+      const v = S[S.mode];
+      if (S.mode !== "walk" && v) { v.x = st.position.x; v.z = st.position.z; }
+    },
+    setPaused: () => { /* no pause hook in A */ },
+    resetPosition: () => { /* no spawn API in A */ },
+  }) : null;
+  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, savem, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -150,6 +169,7 @@ async function main() {
     if (crash) crash.update(Math.min(dt, 0.1));
     if (gv) gv.update(Math.min(dt, 0.1));
     if (fly) fly.update(Math.min(dt, 0.1));
+    if (savem) savem.update(Math.min(dt, 0.1));
     if (turbo) turbo.update(Math.min(dt, 0.1));
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
