@@ -1,0 +1,66 @@
+{
+ "place": "barcelo",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "barcelo_entrance.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel entrance",
+   "original_path": "/workspace/landmarks/refs/web/barcelo_entrance.jpg"
+  },
+  {
+   "file": "yt_RbMXi8X8ZpE_2.jpg",
+   "source_url": "https://www.youtube.com/watch?v=RbMXi8X8ZpE",
+   "license": "unknown - reference only",
+   "credit": "video still, Ljpromo Hotels Reviews; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "drone from the beach side: peach balcony wings, red-tile roof skirts, pier",
+   "original_path": null
+  },
+  {
+   "file": "yt_RbMXi8X8ZpE_3.jpg",
+   "source_url": "https://www.youtube.com/watch?v=RbMXi8X8ZpE",
+   "license": "unknown - reference only",
+   "credit": "video still, Ljpromo Hotels Reviews; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "drone over the pool, wing with red caps",
+   "original_path": null
+  },
+  {
+   "file": "yt_RbMXi8X8ZpE_10.jpg",
+   "source_url": "https://www.youtube.com/watch?v=RbMXi8X8ZpE",
+   "license": "unknown - reference only",
+   "credit": "video still, Ljpromo Hotels Reviews; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "street entrance arch, tower with Barcelo Aruba panel",
+   "original_path": null
+  },
+  {
+   "file": "yt_RbMXi8X8ZpE_11.jpg",
+   "source_url": "https://www.youtube.com/watch?v=RbMXi8X8ZpE",
+   "license": "unknown - reference only",
+   "credit": "video still, Ljpromo Hotels Reviews; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "pool and balcony wing",
+   "original_path": null
+  }
+ ]
+}
