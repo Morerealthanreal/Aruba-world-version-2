@@ -2,7 +2,7 @@
 // and an auto FPS guard, running on top of A's live build without editing its
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
 // Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0,
-// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap).
+// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap). Photo mode is off unless ?photo=1.
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
@@ -55,6 +55,7 @@ import { MiniMap } from "./minimap";
 import { Navigator } from "./nav/navigator";
 import { NorthInland } from "./northInland";
 import { Interiors } from "./interiors";
+import { PhotoHook } from "./photo";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -171,12 +172,17 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  let photoHold = false;
+  // Photo mode (?photo=1): P freezes the add-on sim and flies the camera. Nothing is built when the flag is off.
+  const photo = params.get("photo") === "1" ? new PhotoHook(g, (paused) => { photoHold = paused; clock.setFrozen(paused); }) : null;
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, photo, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
     const dt = Math.max(0, Math.min(2, (now - last) / 1000)); // rAF timestamps can predate performance.now() at setup
     last = now;
+    if (photo) photo.frame(Math.min(dt, 0.1));
+    if (photoHold) { requestAnimationFrame(loop); return; }
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);
