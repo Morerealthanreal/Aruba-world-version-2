@@ -103,13 +103,14 @@ async function main() {
   if (params.get("snfair") !== "0") muralPreload.push("textures/sn_fair_atlas.jpg");
   if (params.get("snlater") !== "0") muralPreload.push("textures/sn_later_atlas.jpg");
   if (params.get("snfamous") !== "0") muralPreload.push("textures/sn_famous_atlas.jpg");
-  if (params.get("snsacrecent") !== "0") muralPreload.push("textures/sn_sac_recent_atlas.jpg");
+  // SAC recent murals (#115) are placeholder art; off by default until rebuilt from real photos (?snsacrecent=1 to preview).
+  if (params.get("snsacrecent") === "1") muralPreload.push("textures/sn_sac_recent_atlas.jpg");
   await Promise.all(muralPreload.map((p) => loadMuralAtlas(muralAtlasKey(p), g.renderer)));
   const sn = params.get("snmurals") !== "0" ? new SnMurals(g) : null;
   const snfair = params.get("snfair") !== "0" ? new SnFairMurals(g) : null;
   const snlater = params.get("snlater") !== "0" ? new SnLaterMurals(g) : null;
   const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
-  const snsacrecent = params.get("snsacrecent") !== "0" ? new SnSacRecentMurals(g) : null;
+  const snsacrecent = params.get("snsacrecent") === "1" ? new SnSacRecentMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
