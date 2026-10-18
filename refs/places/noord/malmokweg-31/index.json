@@ -25,6 +25,17 @@
    "date": null,
    "shows": "Roof plan of the Malmokweg block around house 31, north of the carriageway",
    "original_path": "/opt/cursor/artifacts/malmokweg-east/sat.jpg"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "Top: July 2022 street photo of Malmokweg 31. Bottom: in-game view from the same camera on the carriageway.",
+   "lat": 12.600613,
+   "lon": -70.044891,
+   "heading": 350,
+   "date": "2022-07",
+   "shows": "Same viewpoint: beige hip behind an iron-topped wall and pedestrian gate, white two-storey with a balcony to the west, palms to the east"
   }
  ]
 }

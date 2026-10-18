@@ -295,6 +295,251 @@ def add_kadushi(b, x, z):
     b.cyl(1, "cact", x, g, z, 0.16, g + 2.2, 0.11, 5)
 
 
+def lot_role(bld):
+    """The July 2022 street photo at 12.60061, -70.04489 frames two lots."""
+    cx, cz = bld["cx"], bld["cz"]
+    if math.hypot(cx + 8147.2, cz + 8936.6) < 6.0:
+        return "h31"
+    if math.hypot(cx + 8161.5, cz + 8941.6) < 8.0:
+        return "two"
+    return None
+
+
+def street_frame(bld, weg):
+    """Street edge, east-pointing along-axis, and the normal into the lot."""
+    poly = bld["p"]
+    best = None
+    for i in range(len(poly)):
+        a, c = poly[i], poly[(i + 1) % len(poly)]
+        mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+        d = closest(weg, mx, mz)
+        if d and (best is None or d[0] < best[0]):
+            best = (d[0], a, c)
+    a, c = best[1], best[2]
+    dx, dz = c[0] - a[0], c[1] - a[1]
+    span = math.hypot(dx, dz) or 1.0
+    ux, uz = dx / span, dz / span
+    if ux < 0:
+        ux, uz = -ux, -uz
+        a, c = c, a
+    nx, nz = -uz, ux
+    cx, cz = bld["cx"], bld["cz"]
+    mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+    if (cx - mx) * nx + (cz - mz) * nz < 0:
+        nx, nz = -nx, -nz
+    return a, (ux, uz), (nx, nz), span
+
+
+def add_bars(b, a, c, wall_h, spacing):
+    dx, dz = c[0] - a[0], c[1] - a[1]
+    length = math.hypot(dx, dz)
+    if length < 0.8:
+        return
+    g = coast.mesh_height((a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5)
+    y0 = g + wall_h - 0.02
+    y1 = y0 + 0.78
+    b.beam(0, "iron", (a[0], y1, a[1]), (c[0], y1, c[1]), 0.02, 0.016)
+    b.beam(0, "iron", (a[0], y0 + 0.08, a[1]), (c[0], y0 + 0.08, c[1]), 0.016, 0.014)
+    n = max(2, int(length / spacing))
+    for i in range(n + 1):
+        t = i / n
+        x = a[0] + dx * t
+        z = a[1] + dz * t
+        b.box(0, "iron", x - 0.02, y0, z - 0.02, x + 0.02, y1, z + 0.02)
+
+
+def add_iron_gate(b, x, z, along, g, half):
+    ax, az = along
+    for t in (-half - 0.08, half + 0.08):
+        px, pz = x + ax * t, z + az * t
+        b.box(0, "tan", px - 0.09, g, pz - 0.09, px + 0.09, g + 1.85, pz + 0.09)
+    steps = max(3, int(half / 0.16))
+    for i in range(-steps, steps + 1):
+        t = half * i / steps
+        px, pz = x + ax * t, z + az * t
+        b.box(0, "iron", px - 0.018, g + 0.06, pz - 0.018, px + 0.018, g + 1.7, pz + 0.018)
+    b.beam(
+        0, "iron",
+        (x - ax * half, g + 1.68, z - az * half),
+        (x + ax * half, g + 1.68, z + az * half),
+        0.02, 0.016,
+    )
+    b.beam(
+        0, "iron",
+        (x - ax * half, g + 0.12, z - az * half),
+        (x + ax * half, g + 0.12, z + az * half),
+        0.016, 0.014,
+    )
+
+
+def add_shrub(b, x, z, h=0.85):
+    g = coast.mesh_height(x, z)
+    b.box(0, "shrub", x - 0.42, g, z - 0.32, x + 0.42, g + h * 0.7, z + 0.32)
+    b.box(0, "palm", x - 0.28, g + h * 0.35, z - 0.22, x + 0.28, g + h, z + 0.22)
+
+
+def add_parked(b, x, z, along, mat, length, tall):
+    ax, az = along
+    yaw = math.atan2(az, ax)
+    g = coast.mesh_height(x, z) + 0.02
+    b.box_yaw(0, mat, x, g + 0.28, z, length * 0.5, tall * 0.55, 0.82, yaw)
+    b.box_yaw(0, "glass", x + ax * length * 0.08, g + tall * 0.55, z + az * length * 0.08, length * 0.18, tall * 0.32, 0.72, yaw)
+    for t in (-0.32, 0.32):
+        for side in (-0.78, 0.78):
+            wx = x + ax * length * t - az * side
+            wz = z + az * length * t + ax * side
+            b.box_yaw(0, "iron", wx, g, wz, 0.11, 0.32, 0.2, yaw)
+
+
+def add_gravel(b, west, east, ux, uz, nx, nz):
+    """Pale shoulder between the wall and the carriageway. Vertex colour, no photo."""
+    sx, sz = -nx, -nz
+    y = coast.mesh_height((west[0] + east[0]) * 0.5, (west[1] + east[1]) * 0.5) + 0.04
+    near = 0.3
+    far = 2.2
+    pts = [
+        (west[0] + sx * near, y, west[1] + sz * near),
+        (east[0] + sx * near, y, east[1] + sz * near),
+        (east[0] + sx * far, y, east[1] + sz * far),
+        (west[0] + sx * far, y, west[1] + sz * far),
+    ]
+    b.quad(0, "gravel", pts, (0, 1, 0))
+    b.quad(1, "gravel", pts, (0, 1, 0))
+    # ux/uz kept so a later caller can extend the strip without recomputing the edge.
+    _ = (ux, uz)
+
+
+def build_street_match(b, bld, role, weg):
+    """House 31 and the white two-storey on its west side, from the street photo."""
+    a, (ux, uz), (nx, nz), span = street_frame(bld, weg)
+    if role == "h31":
+        # The OSM footprint is only the inner cottage. The wall in the photo
+        # runs on east of the two-storey, about sixteen metres.
+        west = (a[0] + ux * 0.4 + nx * 0.15, a[1] + uz * 0.4 + nz * 0.15)
+        east = (west[0] + ux * 15.6, west[1] + uz * 15.6)
+        gate_t, gate_half = 0.46, 0.72
+        house_w, house_d, inset = 11.2, 8.0, 4.8
+        paint = "tan"
+        storeys = 1
+    else:
+        west = (a[0] + nx * 0.2, a[1] + nz * 0.2)
+        east = (west[0] + ux * span, west[1] + uz * span)
+        gate_t, gate_half = 0.24, 1.85
+        house_w, house_d, inset = min(14.5, span * 0.72), 9.5, 5.6
+        paint = "white"
+        storeys = 2
+    # The photo is taken from the carriageway. The OSM edge is the cottage, not
+    # the boundary wall, so the wall sits forward on the verge.
+    pull = 7.4
+    west = (west[0] - nx * pull, west[1] - nz * pull)
+    east = (east[0] - nx * pull, east[1] - nz * pull)
+    dx, dz = east[0] - west[0], east[1] - west[1]
+    length = math.hypot(dx, dz) or 1.0
+    wall_h = 1.72
+    gap0 = max(0.04, gate_t - gate_half / length)
+    gap1 = min(0.96, gate_t + gate_half / length)
+    for seg in ((0.0, gap0), (gap1, 1.0)):
+        a1 = (west[0] + dx * seg[0], west[1] + dz * seg[0])
+        a2 = (west[0] + dx * seg[1], west[1] + dz * seg[1])
+        wall_run(b, a1, a2, "tan", 0.16, wall_h)
+        add_bars(b, a1, a2, wall_h, 0.36)
+    gx = west[0] + dx * gate_t
+    gz = west[1] + dz * gate_t
+    add_iron_gate(b, gx, gz, (ux, uz), coast.mesh_height(gx, gz), gate_half)
+    add_gravel(b, west, east, ux, uz, nx, nz)
+
+    mid = (west[0] + dx * 0.55, west[1] + dz * 0.55)
+    hx = mid[0] + nx * inset
+    hz = mid[1] + nz * inset
+    half = house_w * 0.5
+    p0 = (hx - ux * half, hz - uz * half)
+    p1 = (hx + ux * half, hz + uz * half)
+    p2 = (p1[0] + nx * house_d, p1[1] + nz * house_d)
+    p3 = (p0[0] + nx * house_d, p0[1] + nz * house_d)
+    mass = [p0, p1, p2, p3]
+    gnd = coast.mesh_height(hx, hz)
+    wall = 5.35 if storeys == 2 else 3.15
+    b.extrude(0, "coral", mass, gnd - 0.2, gnd + 0.35, top=False)
+    b.extrude(0, paint, mass, gnd + 0.35, gnd + wall, top=True)
+    b.extrude(1, paint, mass, gnd - 0.1, gnd + wall, top=True)
+    roof = outset_rect(mass, 0.45, ux, uz, nx, nz)
+    y_eave = gnd + wall
+    hip_roof(b, 0, "tile", roof, y_eave, roof_rise(mass))
+    hip_roof(b, 1, "tile", mass, y_eave, roof_rise(mass) * 0.85, inner_k=0.28)
+    for i in range(4):
+        s, t = roof[i], roof[(i + 1) % 4]
+        b.beam(0, "fascia", (s[0], y_eave - 0.02, s[1]), (t[0], y_eave - 0.02, t[1]), 0.06, 0.08)
+    upper = gnd + 3.35 if storeys == 2 else None
+    openings_on(b, p0, p1, gnd, door=True, upper=upper)
+    if storeys == 2:
+        # Balcony the street photo shows on the upper floor, behind the wall.
+        depth = 1.05
+        yb = gnd + 3.2
+        outer0 = (p0[0] - nx * depth, p0[1] - nz * depth)
+        outer1 = (p1[0] - nx * depth, p1[1] - nz * depth)
+        slab = [
+            (p0[0], yb, p0[1]),
+            (p1[0], yb, p1[1]),
+            (outer1[0], yb, outer1[1]),
+            (outer0[0], yb, outer0[1]),
+        ]
+        b.quad(0, "white", slab, (0, 1, 0))
+        b.quad(0, "white", list(reversed(slab)), (0, -1, 0))
+        b.beam(0, "fascia", (outer0[0], yb, outer0[1]), (outer1[0], yb, outer1[1]), 0.05, 0.08)
+        npost = 11
+        for i in range(npost + 1):
+            t = i / npost
+            px = outer0[0] + (outer1[0] - outer0[0]) * t
+            pz = outer0[1] + (outer1[1] - outer0[1]) * t
+            b.box(0, "white", px - 0.045, yb, pz - 0.045, px + 0.045, yb + 0.92, pz + 0.045)
+        b.beam(
+            0, "white",
+            (outer0[0], yb + 0.9, outer0[1]),
+            (outer1[0], yb + 0.9, outer1[1]),
+            0.04, 0.04,
+        )
+        # Pool in the back yard. The satellite of this block shows them.
+        px = hx + nx * (house_d + 4.2)
+        pz = hz + nz * (house_d + 4.2)
+        if coast.inside(bld["p"], px, pz):
+            gy = coast.mesh_height(px, pz)
+            b.box(0, "pool", px - 1.6, gy + 0.05, pz - 3.1, px + 1.6, gy + 0.18, pz + 3.1)
+            b.box(1, "pool", px - 1.6, gy + 0.05, pz - 3.1, px + 1.6, gy + 0.16, pz + 3.1)
+    else:
+        # Narrow entry cover over the door, not a full-width porch.
+        door = ((p0[0] + p1[0]) * 0.5, (p0[1] + p1[1]) * 0.5)
+        cover = 1.35
+        c0 = (door[0] - ux * 1.5 - nx * 0.05, door[1] - uz * 1.5 - nz * 0.05)
+        c1 = (door[0] + ux * 1.5 - nx * 0.05, door[1] + uz * 1.5 - nz * 0.05)
+        f0 = (c0[0] - nx * cover, c0[1] - nz * cover)
+        f1 = (c1[0] - nx * cover, c1[1] - nz * cover)
+        yb = gnd + 2.55
+        slab = [(c0[0], yb, c0[1]), (c1[0], yb, c1[1]), (f1[0], yb - 0.08, f1[1]), (f0[0], yb - 0.08, f0[1])]
+        b.quad(0, "white", slab, (0, 1, 0))
+        for pxz in (f0, f1):
+            b.box(0, "white", pxz[0] - 0.08, gnd, pxz[1] - 0.08, pxz[0] + 0.08, gnd + 2.48, pxz[1] + 0.08)
+        # Condenser on the street wall, right of the pedestrian gate.
+        ax = gx + ux * 1.7 - nx * 0.22
+        az = gz + uz * 1.7 - nz * 0.22
+        gy = coast.mesh_height(ax, az)
+        b.box(0, "frame", ax - 0.28, gy + 0.55, az - 0.16, ax + 0.28, gy + 1.05, az + 0.16)
+        # Dark plate where the photo shows the house number.
+        b.box(0, "iron", gx + ux * 0.95, gy + 1.15, gz + uz * 0.95, gx + ux * 1.25, gy + 1.38, gz + uz * 1.25)
+
+    # Shrubs just inside the bars, and the palms the photo puts on the right.
+    for t in (0.12, 0.28, 0.62, 0.78, 0.9):
+        sx = west[0] + dx * t + nx * 0.85
+        sz = west[1] + dz * t + nz * 0.85
+        add_shrub(b, sx, sz, 0.95 if role == "h31" else 0.8)
+    if role == "h31":
+        add_palm(b, p1[0] + ux * 1.6 - nx * 0.4, p1[1] + uz * 1.6 - nz * 0.4)
+        add_palm(b, p1[0] + ux * 3.4 - nx * 1.6, p1[1] + uz * 3.4 - nz * 1.6)
+        # SUV shows through the pedestrian gate. The pickup sits at the right end, cab above the verge.
+        add_parked(b, gx + nx * 2.4, gz + nz * 2.4, (ux, uz), "suv", 4.3, 1.55)
+        add_parked(b, east[0] - ux * 1.6 + nx * 2.2, east[1] - uz * 1.6 + nz * 2.2, (ux, uz), "truck", 4.6, 2.25)
+    return mass, (nx, nz)
+
+
 def load_named(names):
     roads = []
     real = coast.REAL
@@ -334,7 +579,7 @@ def build():
     for bld in coast.load_buildings():
         if (bld.get("h") or 0) >= 8:
             continue
-        if bld["k"] not in ("house", "yes", "residential", "detached"):
+        if bld["k"] not in ("house", "yes", "residential", "detached", "apt", "small"):
             continue
         cx, cz = bld["cx"], bld["cz"]
         if not (X_WEST <= cx <= X_EAST):
@@ -395,6 +640,12 @@ def build():
     for i, rgb in enumerate(stucco):
         b.mat(f"w{i}", rgb, 0.84)
     b.mat("stucco", stucco[0], 0.84)
+    b.mat("tan", (0.89, 0.70, 0.46), 0.86)
+    b.mat("suv", (0.10, 0.10, 0.11), 0.55)
+    b.mat("truck", (0.86, 0.86, 0.84), 0.6)
+    b.mat("pool", (0.22, 0.62, 0.78), 0.25)
+    b.mat("gravel", (0.74, 0.70, 0.60), 0.95)
+    b.mat("shrub", (0.22, 0.42, 0.18), 0.85)
 
     hides = []
     houses = []
@@ -421,6 +672,12 @@ def build():
             mass = shrink_poly(poly, 0.08)
             ux = uz = nx = nz = None
             width = depth = 0.0
+        role = lot_role(bld)
+        if role:
+            mass, inward = build_street_match(b, bld, role, weg)
+            houses.append((bld, mass, inward))
+            hides.append([round(pt[0], 1), round(pt[1], 1)])
+            continue
         gnd = coast.mesh_height(sum(p[0] for p in mass) / len(mass), sum(p[1] for p in mass) / len(mass))
         two = (bld.get("h") or 0) >= 6.0
         wall_h = 5.35 if two else 3.05
@@ -566,7 +823,9 @@ def entry(ox, oz, y0, tris, hides):
             "(https://www.google.com/maps/@12.6006127,-70.0448912,3a,75y,350h,90t/data=!3m6!1e1!3m4!1sCIHM0ogKEICAgIDOq-GThgE!2e0!7i16384!8i8192) "
             "and the satellite of this block "
             "(https://www.google.com/maps/@12.60055,-70.0449,131m/data=!3m1!1e3): "
-            "warm stucco, red hip tile, a wall with an iron gate, palms. "
+            "warm stucco, red hip tile, a tall wall with iron bars, a pedestrian gate, "
+            "a white two-storey with a balcony and a vehicle gate on the west, "
+            "palms, shrubs, a pool, and cars in the courts. "
             "Malmokweg 25 and 27 sit in the slice "
             "(https://remaxaruba.com/property/details/malmokweg-25). "
             "Original geometry, no photos in the mesh."
