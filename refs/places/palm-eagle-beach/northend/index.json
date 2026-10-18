@@ -1,0 +1,42 @@
+{
+ "place": "northend",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "northend_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=324661105994633",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.574639,
+   "lon": -70.044256,
+   "heading": 20.4,
+   "date": "2016-04-04",
+   "shows": "street-level view toward northend (~45 m away)",
+   "original_path": "/workspace/landmarks/mly/northend_0.jpg"
+  },
+  {
+   "file": "northend_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=349800921398682",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.574927,
+   "lon": -70.043968,
+   "heading": 328.2,
+   "date": "2024-04-03",
+   "shows": "street-level view toward northend (~16 m away)",
+   "original_path": "/workspace/landmarks/mly/northend_1.jpg"
+  },
+  {
+   "file": "northend_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=303349064573051",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.574733,
+   "lon": -70.044157,
+   "heading": 38.1,
+   "date": "2016-04-04",
+   "shows": "street-level view toward northend (~31 m away)",
+   "original_path": "/workspace/landmarks/mly/northend_2.jpg"
+  }
+ ]
+}

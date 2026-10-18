@@ -1,6 +1,7 @@
 #!/bin/sh
 # Rebuild and redeploy Aruba World to the permanent Surge URL (non-interactive).
 set -e
+if [ "$ALLOW_MANUAL_DEPLOY" != 1 ]; then echo "redeploy.sh is RETIRED: production deploys run in GitHub Actions on push to main (.github/workflows/deploy.yml). Set ALLOW_MANUAL_DEPLOY=1 only for an emergency." >&2; exit 3; fi
 (set -o pipefail) 2>/dev/null && set -o pipefail
 cd "$(dirname "$0")"
 CREDS=/workspace/.hosting_creds

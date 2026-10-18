@@ -1,0 +1,18 @@
+{
+ "place": "marriott",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "marriott.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "hotel",
+   "original_path": "/workspace/landmarks/refs/marriott.jpg"
+  }
+ ]
+}

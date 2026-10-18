@@ -1,0 +1,18 @@
+{
+ "place": "water-tower",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "otank_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1402297360401489",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / amaiman",
+   "lat": 12.52308,
+   "lon": -70.043779,
+   "heading": 217.6,
+   "date": "2024-04-03",
+   "shows": "street-level view toward otank (~42 m away)",
+   "original_path": "/workspace/landmarks/mly/otank_0.jpg"
+  }
+ ]
+}

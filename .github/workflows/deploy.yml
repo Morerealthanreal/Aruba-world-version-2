@@ -1,0 +1,71 @@
+name: Build & deploy (surge)
+# Push to main deploys to production (aruba-world-justin.surge.sh), but ONLY if the manifest checks pass.
+# Push to deploy/preview deploys to aruba-world-justin-preview.surge.sh.
+# This is the only production deploy path; ship.sh/redeploy.sh are retired (see README.md).
+on:
+  # Pushing any commit to the deploy/preview branch deploys it to the preview domain
+  # (manual dispatch needs an Actions:write token; this branch works with just push rights).
+  push:
+    branches: [main, deploy/preview]
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Surge domain to deploy to"
+        default: "aruba-world-justin-preview.surge.sh"
+        required: true
+      run_tests:
+        description: "Run Playwright e2e/screenshot tests (slow, non-blocking)"
+        type: boolean
+        default: false
+concurrency:
+  group: surge-${{ github.event.inputs.domain || (github.ref == 'refs/heads/deploy/preview' && 'aruba-world-justin-preview.surge.sh') || 'aruba-world-justin.surge.sh' }}
+  cancel-in-progress: false
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DOMAIN: ${{ github.event.inputs.domain || (github.ref == 'refs/heads/deploy/preview' && 'aruba-world-justin-preview.surge.sh') || 'aruba-world-justin.surge.sh' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install add-on deps
+        run: npm ci --prefix addons
+      - name: Build deploy/
+        run: sh make-deploy.sh && echo "$DOMAIN" > deploy/CNAME
+      - name: Manifest check (built vs previous commit)
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then REF=$BEFORE; else REF=HEAD~1; fi
+          echo "comparing against $REF"
+          if git show $REF:game/data/hero/manifest.json > /tmp/prev.json 2>/dev/null; then
+            python3 tools/check_manifest.py /tmp/prev.json deploy/data/hero/manifest.json
+          else echo "no previous manifest; skipping"; fi
+      - name: Manifest check (built vs currently live; blocking for production)
+        continue-on-error: ${{ env.DOMAIN != 'aruba-world-justin.surge.sh' }}
+        run: |
+          curl -fsS --max-time 60 "https://aruba-world-justin.surge.sh/data/hero/manifest.json?nc=$(date +%s)" -o /tmp/live.json
+          python3 tools/check_manifest.py /tmp/live.json deploy/data/hero/manifest.json
+      - name: Playwright tests (non-blocking)
+        if: ${{ github.event.inputs.run_tests == 'true' }}
+        continue-on-error: true
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          CI=1 npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: test-artifacts, path: tests/artifacts, if-no-files-found: ignore }
+      - name: Deploy to surge
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+          SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+        run: npx --yes surge@latest ./deploy "$DOMAIN"
+      - name: Verify
+        run: |
+          sleep 5
+          curl -fsS --max-time 60 -o /dev/null -w "index: %{http_code}\n" "https://$DOMAIN/?q=low"
+          curl -fsS --max-time 60 "https://$DOMAIN/data/hero/manifest.json?nc=$(date +%s)" -o /tmp/dep.json
+          python3 tools/check_manifest.py deploy/data/hero/manifest.json /tmp/dep.json
