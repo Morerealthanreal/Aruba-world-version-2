@@ -402,6 +402,31 @@ def add_shrub(b, x, z, h=0.85):
     b.box(0, "palm", x - 0.28, g + h * 0.35, z - 0.22, x + 0.28, g + h, z + 0.22)
 
 
+def add_photo_truck(b, x, z, along):
+    """White pickup behind the east bars, nose toward the house.
+
+    Cab, lower bed, short hood, and four wheels. The stucco covers the bottom
+    of each tire; the rest of the wheel sits in the iron so the street sees it.
+    """
+    ax, az = along
+    yaw = math.atan2(az, ax)
+    g = coast.mesh_height(x, z) + 0.02
+    # Nose west. Wheels sit at the ends, in the bays, so the body does not hide them.
+    for t in (-2.85, 2.20):
+        for side in (-0.48, 0.48):
+            wx = x + ax * t - az * side
+            wz = z + az * t + ax * side
+            b.box_yaw(0, "black", wx, g + 1.02, wz, 0.30, 0.92, 0.16, yaw)
+    b.box_yaw(0, "truck", x - ax * 2.00, g + 1.20, z - az * 2.00, 0.36, 0.42, 0.60, yaw)
+    b.box_yaw(0, "truck", x - ax * 0.40, g + 1.20, z - az * 0.40, 0.62, 1.15, 0.64, yaw)
+    b.box_yaw(0, "truck", x + ax * 1.30, g + 1.20, z + az * 1.30, 0.58, 0.50, 0.62, yaw)
+    b.box_yaw(0, "truck", x + ax * 1.30, g + 1.64, z + az * 1.30, 0.54, 0.12, 0.68, yaw)
+    b.box_yaw(0, "shadow", x + ax * 1.30, g + 1.68, z + az * 1.30, 0.40, 0.05, 0.46, yaw)
+    sx, sz = -az, ax
+    b.box_yaw(0, "shadow", x - ax * 0.40 + sx * 0.62, g + 1.88, z - az * 0.40 + sz * 0.62, 0.28, 0.28, 0.04, yaw)
+    b.box_yaw(0, "shadow", x - ax * 1.00, g + 1.78, z - az * 1.00, 0.04, 0.36, 0.44, yaw)
+
+
 def add_parked(b, x, z, along, mat, length, tall):
     ax, az = along
     yaw = math.atan2(az, ax)
@@ -753,18 +778,18 @@ def build_street_match(b, bld, role, weg):
     sx, sz = spot(basis, 3.3, 1.6)
     add_parked(b, sx, sz, (ux, uz), "suv", 4.2, 1.55)
     # Short drooping palms in a dark mass that crowns the east fence.
-    for along_m, north_m in ((11.4, 0.85), (12.7, 0.7), (14.1, 0.95)):
+    for along_m, north_m in ((11.4, 2.05), (12.7, 1.95), (14.1, 2.15)):
         px, pz = spot(basis, along_m, north_m)
         add_photo_palm(b, px, pz)
     for along_m, north_m, y0, h, hx, hz, mat in (
-        (10.7, 0.4, 2.00, 0.85, 0.40, 0.30, "hedge"),
-        (11.5, 0.55, 2.15, 1.05, 0.36, 0.28, "bush"),
-        (12.3, 0.35, 1.95, 0.75, 0.34, 0.26, "hedge"),
-        (13.1, 0.6, 2.20, 0.95, 0.38, 0.28, "bush"),
-        (13.9, 0.4, 2.05, 0.80, 0.32, 0.24, "hedge"),
-        (14.7, 0.65, 2.25, 0.90, 0.34, 0.26, "bush"),
-        (15.5, 0.45, 1.95, 0.70, 0.30, 0.24, "hedge"),
-        (11.0, 1.05, 2.45, 0.55, 0.28, 0.22, "bush"),
+        (10.7, 1.55, 2.15, 0.75, 0.34, 0.26, "hedge"),
+        (11.5, 1.65, 2.25, 0.85, 0.32, 0.24, "bush"),
+        (12.3, 1.85, 2.15, 0.75, 0.34, 0.26, "hedge"),
+        (13.1, 1.35, 2.30, 0.85, 0.34, 0.26, "bush"),
+        (13.9, 1.45, 2.25, 0.75, 0.30, 0.24, "hedge"),
+        (14.7, 1.40, 2.35, 0.80, 0.32, 0.24, "bush"),
+        (15.5, 1.25, 2.20, 0.65, 0.28, 0.22, "hedge"),
+        (11.0, 2.15, 2.45, 0.55, 0.28, 0.22, "bush"),
         (12.6, 1.1, 2.55, 0.60, 0.30, 0.22, "hedge"),
         (14.2, 1.15, 2.40, 0.65, 0.28, 0.22, "bush"),
         (15.2, 0.95, 2.30, 0.50, 0.26, 0.20, "hedge"),
@@ -772,6 +797,8 @@ def build_street_match(b, bld, role, weg):
         px, pz = spot(basis, along_m, north_m)
         hg = coast.mesh_height(px, pz)
         b.box(0, mat, px - hx, hg + y0, pz - hz, px + hx, hg + y0 + h, pz + hz)
+    tx, tz = spot(basis, 11.70, 1.45)
+    add_photo_truck(b, tx, tz, (ux, uz))
     return mass, (nx, nz)
 
 
@@ -887,7 +914,7 @@ def build():
     b.mat("tan", (0.86, 0.67, 0.46), 0.86)
     b.mat("black", (0.07, 0.07, 0.08), 0.45)
     b.mat("suv", (0.10, 0.10, 0.11), 0.55)
-    b.mat("truck", (0.86, 0.86, 0.84), 0.6)
+    b.mat("truck", (0.93, 0.93, 0.91), 0.55)
     b.mat("pool", (0.22, 0.62, 0.78), 0.25)
     b.mat("gravel", (0.74, 0.70, 0.60), 0.95)
     b.mat("shrub", (0.22, 0.42, 0.18), 0.85)
