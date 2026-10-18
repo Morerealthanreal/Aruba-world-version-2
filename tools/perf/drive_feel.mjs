@@ -24,7 +24,20 @@ await page.waitForTimeout(1500);
 // --- highway: re-teleport, hold gas, log every frame
 await page.evaluate(() => { const g = window.game, c = g.S.car; const p = g.fromLL(12.5040, -70.0110), r = g.nearestRoad(p.x, p.z); g.teleport("car", r.x, r.z, r.h); if (g.S.mode !== "car" && g.S.mode !== "moto") g.setMode("car");
   const A = g.real, cam = g.camera, log = window.__log = [];
-  const f = () => { const c = g.S.car; log.push([c.x, c.y, c.z, c.h, c.s, A.heightAt(c.x, c.z), cam.position.x, cam.position.y, cam.position.z, cam.quaternion.x, cam.quaternion.y, cam.quaternion.z, cam.quaternion.w, g.nearestRoad(c.x, c.z)?.d ?? -1]); if (log.length < 900) requestAnimationFrame(f); };
+  // road rail: nudge heading toward the nearest road point 25 m ahead (<= 1.2 deg per step), same for every run
+  const rail = () => { const c = g.S.car, ax = c.x - Math.sin(c.h) * 25, az = c.z - Math.cos(c.h) * 25, r = g.nearestRoad(ax, az); if (!r) return;
+    const want = Math.atan2(-(r.x - c.x), -(r.z - c.z)); let d = Math.atan2(Math.sin(want - c.h), Math.cos(want - c.h)); d = Math.max(-0.02, Math.min(0.02, d)); c.h += d; };
+  // road surface height under the car: asphalt/dirt triangles of the current region meshes
+  const roadY = (x, z) => { let best = null; g.scene.traverse((o) => { if (best !== null || !o.isMesh || (o.material !== A.roads.asphalt && o.material !== A.roads.dirt)) return;
+    const gm = o.geometry, pa = gm.attributes.position.array, ix = gm.index ? gm.index.array : null, n = ix ? ix.length : pa.length / 3, e = o.matrixWorld.elements;
+    const W = (i) => { const X = pa[i * 3], Y = pa[i * 3 + 1], Z = pa[i * 3 + 2]; return [e[0] * X + e[4] * Y + e[8] * Z + e[12], e[1] * X + e[5] * Y + e[9] * Z + e[13], e[2] * X + e[6] * Y + e[10] * Z + e[14]]; };
+    for (let t = 0; t < n; t += 3) { const a = W(ix ? ix[t] : t), b = W(ix ? ix[t + 1] : t + 1), c = W(ix ? ix[t + 2] : t + 2);
+      if (Math.max(a[0], b[0], c[0]) < x || Math.min(a[0], b[0], c[0]) > x || Math.max(a[2], b[2], c[2]) < z || Math.min(a[2], b[2], c[2]) > z) continue;
+      const d = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2]); if (Math.abs(d) < 1e-9) continue;
+      const l1 = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / d, l2 = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / d, l3 = 1 - l1 - l2;
+      if (l1 >= 0 && l2 >= 0 && l3 >= 0) { best = l1 * a[1] + l2 * b[1] + l3 * c[1]; return; } } }); return best; };
+  window.__roadY = roadY;
+  const f = () => { const c = g.S.car; rail(); log.push([c.x, c.y, c.z, c.h, c.s, A.heightAt(c.x, c.z), cam.position.x, cam.position.y, cam.position.z, cam.quaternion.x, cam.quaternion.y, cam.quaternion.z, cam.quaternion.w, (log.length % 30 === 0 ? (roadY(c.x, c.z) ?? NaN) : NaN)]); if (log.length < 900) requestAnimationFrame(f); };
   requestAnimationFrame(f); });
 await page.keyboard.down("w");
 await page.waitForFunction(() => window.__log.length >= 900, undefined, { timeout: 900000, polling: 2000 });
@@ -42,7 +55,11 @@ let wj = []; for (let i = 0; i + 3 < log.length; i++) if (Math.abs(log[i][4]) * 
 const gap = log.map(r => r[1] - r[5]);
 const spd = log.map(r => r[4] * 3.6);
 const out = { label, q, vehicle, keys, rev, maxKmh: Math.max(...spd), framesOver80: hi.length, camRelJerkRms_all: rms(jerk), camRelJerkRms_hi: rms(hi), camWorldJerkRms_hi: rms(wj), camRelJerkMax_hi: hi.length ? Math.max(...hi) : null,
-  rideHeight: { min: Math.min(...gap), max: Math.max(...gap), mean: gap.reduce((a, b) => a + b, 0) / gap.length }, distLat: log.map(r=>r[13]).filter(x=>x>=0).reduce((a,b)=>Math.max(a,b),0), errs };
+  rideHeight: { min: Math.min(...gap), max: Math.max(...gap), mean: gap.reduce((a, b) => a + b, 0) / gap.length }, roadMinusCar: (() => { const v = log.filter(r => Number.isFinite(r[13])).map(r => r[13] - r[1]); return v.length ? { n: v.length, max: Math.max(...v), mean: v.reduce((a, b) => a + b, 0) / v.length, min: Math.min(...v) } : null; })(),
+  camYAccRms_hi: (() => { const a = []; for (let i = 1; i + 1 < log.length; i++) if (Math.abs(log[i][4]) * 3.6 > 80) a.push(log[i + 1][7] - 2 * log[i][7] + log[i - 1][7]); return rms(a); })(),
+  carYAccRms_hi: (() => { const a = []; for (let i = 1; i + 1 < log.length; i++) if (Math.abs(log[i][4]) * 3.6 > 80) a.push(log[i + 1][1] - 2 * log[i][1] + log[i - 1][1]); return rms(a); })(),
+  camDistRange_hi: (() => { const d = log.filter(r => Math.abs(r[4]) * 3.6 > 80).map(r => Math.hypot(r[6] - r[0], r[7] - r[1] - 1.5, r[8] - r[2])); return d.length ? [Math.min(...d), Math.max(...d)] : null; })(),
+  camDistJerkRms_hi: (() => { const d = log.map(r => Math.hypot(r[6] - r[0], r[7] - r[1] - 1.5, r[8] - r[2])), a = []; for (let i = 1; i + 1 < d.length; i++) if (Math.abs(log[i][4]) * 3.6 > 80) a.push(d[i + 1] - 2 * d[i] + d[i - 1]); return rms(a); })(), errs };
 fs.writeFileSync(`${label}.json`, JSON.stringify({ ...out, log }, null, 0));
 console.log(JSON.stringify(out));
 await browser.close();
