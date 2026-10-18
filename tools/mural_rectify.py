@@ -190,6 +190,39 @@ def _flat_fill_polys(bgr: np.ndarray, polys: list[list[list[float]]], color_bgr:
     return out
 
 
+def _flat_fill_outside_poly(
+    bgr: np.ndarray, keep_poly: list[list[float]], color_bgr: tuple[int, int, int]
+) -> np.ndarray:
+    """Paint every pixel outside keep_poly with a flat wall colour."""
+    h, w = bgr.shape[:2]
+    keep = np.zeros((h, w), dtype=np.uint8)
+    pts = np.array([[int(x * w), int(y * h)] for x, y in keep_poly], dtype=np.int32)
+    cv2.fillPoly(keep, [pts], 255)
+    out = bgr.copy()
+    out[keep == 0] = color_bgr
+    return out
+
+
+def _scrub_blue_outside_mask(
+    bgr: np.ndarray, keep_mask: np.ndarray, color_bgr: tuple[int, int, int]
+) -> np.ndarray:
+    """Replace roof-blue pixels outside the keep mask (after fills/inpaint)."""
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    blue = (
+        (hsv[:, :, 0] >= 86)
+        & (hsv[:, :, 0] <= 126)
+        & (hsv[:, :, 1] >= 48)
+        & (hsv[:, :, 2] >= 100)
+    )
+    outside = keep_mask == 0
+    hit = blue & outside
+    if not hit.any():
+        return bgr
+    out = bgr.copy()
+    out[hit] = color_bgr
+    return out
+
+
 def _flat_fill_rects(bgr: np.ndarray, rects: list[list[float]], color_bgr: tuple[int, int, int]) -> np.ndarray:
     out = bgr.copy()
     h, w = out.shape[:2]
@@ -457,14 +490,14 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
     if t or b or l or r:
         warped = warped[t : h - b if b else h, l : w - r if r else w]
 
-    fill_polys = cfg.get("flat_fill_polys")
+    fill_polys = list(cfg.get("flat_fill_polys") or [])
     if cfg.get("auto_roof_fill"):
         auto_poly = _auto_roof_fill_poly(warped, float(cfg.get("auto_roof_max_row", 0.11)))
         if auto_poly:
-            fill_polys = [auto_poly]
+            fill_polys = [auto_poly] + fill_polys
     if fill_polys:
         roof = cfg.get("roof_line")
-        if cfg.get("auto_roof_fill"):
+        if cfg.get("auto_roof_fill") and fill_polys:
             wall = _sample_wall_along_roof_edge(warped, fill_polys[0])
         elif roof and len(roof) >= 2:
             xs = cfg.get("wall_sample_xs") or [0.12, 0.22, 0.38, 0.52, 0.68]
@@ -494,6 +527,22 @@ def rectify_one(mural_id: str, target_h: int = DEFAULT_TARGET_H) -> Path:
         sample = cfg.get("wall_sample_rect") or [0.03, 0.03, 0.10, 0.10]
         wall = _sample_wall_bgr(warped, sample)
         warped = _flat_fill_rects(warped, fill_rects, wall)
+
+    for item in cfg.get("flat_fill_rect_samples") or []:
+        rect = item["rect"]
+        sample = item.get("sample") or cfg.get("wall_sample_rect") or [0.03, 0.03, 0.10, 0.10]
+        wall = _sample_wall_bgr(warped, sample)
+        warped = _flat_fill_rects(warped, [rect], wall)
+
+    art_keep = cfg.get("art_keep_poly")
+    if art_keep:
+        wall = _sample_wall_bgr(warped, cfg.get("wall_sample_rect") or [0.55, 0.22, 0.72, 0.38])
+        h, w = warped.shape[:2]
+        keep = np.zeros((h, w), dtype=np.uint8)
+        pts = np.array([[int(x * w), int(y * h)] for x, y in art_keep], dtype=np.int32)
+        cv2.fillPoly(keep, [pts], 255)
+        warped = _flat_fill_outside_poly(warped, art_keep, wall)
+        warped = _scrub_blue_outside_mask(warped, keep, wall)
 
     if cfg.get("color_grade"):
         warped = apply_color_grade(warped, cfg["color_grade"])
