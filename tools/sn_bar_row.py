@@ -33,14 +33,25 @@ ID = "snmain_bars"
 ROAD = "Van de Veen Zeppenfeldstraat"
 NAMES = ["Nano's", "Shirley's", "Hoolo! Beauty Salon", "Bongo Bar"]
 # Each front is its own colour and sign. The shared awning kit was the rejection.
-# Colours are the painted-concrete range on this street (Charlie's white-over-black,
-# Fan Bar cream, the peach and pink bars on the side street). Signs are drawn text.
+# Roof colours are the median pixels inside each footprint on the Esri z18 aerial.
+# Wall colours are the painted-concrete range on this street (Charlie's white-over-black,
+# Fan Bar cream, the peach bar on the side street). No front-on photo of these four
+# doors was found, so the walls are not copied from a picture of that shop.
+# Signs are the OSM names.
 SPECS = {
     "Nano's": {"wall": (0.93, 0.92, 0.88), "base": (0.16, 0.12, 0.10), "sign": "NANO'S", "awning": False, "door": (0.32, 0.18, 0.10)},
     "Shirley's": {"wall": (0.55, 0.72, 0.74), "base": (0.86, 0.84, 0.78), "sign": "SHIRLEY'S", "awning": True, "door": (0.85, 0.85, 0.82)},
     "Hoolo! Beauty Salon": {"wall": (0.93, 0.72, 0.62), "base": (0.93, 0.72, 0.62), "sign": "HOOLO!", "awning": False, "door": (0.20, 0.32, 0.38)},
     "Bongo Bar": {"wall": (0.62, 0.16, 0.16), "base": (0.12, 0.18, 0.36), "sign": "BONGO", "awning": False, "door": (0.10, 0.10, 0.10)},
 }
+# Median roof pixel on the aerial, pulled down so the sun does not blow it white.
+ROOFS = {
+    "Nano's": (0.40, 0.38, 0.34),
+    "Shirley's": (0.46, 0.36, 0.28),
+    "Hoolo! Beauty Salon": (0.48, 0.37, 0.32),
+    "Bongo Bar": (0.46, 0.32, 0.24),
+}
+EXTRA_ROOFS = ((0.55, 0.44, 0.34), (0.50, 0.40, 0.30))
 
 
 def build(roads, buildings):
@@ -80,6 +91,8 @@ def build(roads, buildings):
 
     heroes = json.loads(MANIFEST.read_text())
     for e in heroes:
+        if e.get("id") == ID:
+            continue
         hp = e.get("hide_footprint") or []
         if len(hp) < 3:
             continue
@@ -91,7 +104,11 @@ def build(roads, buildings):
     M = Model(ID)
     trim = M.material("trim", WHITE, 0.75)
     glass = M.material("glass", GLASS, 0.3, double=True)
-    roof = M.material("roof", (0.42, 0.40, 0.38), 0.7)
+    roof_mats = {}
+    for name, col in ROOFS.items():
+        roof_mats[name] = M.material("r_" + name.split()[0].lower().replace("'", ""), col, 0.7)
+    for i, col in enumerate(EXTRA_ROOFS):
+        roof_mats[f"extra{i}"] = M.material(f"r_extra{i}", col, 0.7)
     signmat = M.material("sign", (0.12, 0.12, 0.12), 0.55, textured=True, emissive=0.4)
     wall_mats = {}
     door_mats = {}
@@ -155,10 +172,12 @@ def build(roads, buildings):
             if spec:
                 wall = wall_mats[name]
                 base_c = spec["base"]
+                roofm = roof_mats[name]
             else:
                 wall = extra_walls[i % 2]
                 base_c = None
-            Wm, Rm = M.mesh(lod, wall), M.mesh(lod, roof)
+                roofm = roof_mats[f"extra{i % 2}"]
+            Wm, Rm = M.mesh(lod, wall), M.mesh(lod, roofm)
             h = 6.2 if (b.get("h") or 0) >= 6 else 3.7
             wall_ring(Wm, ring, 0.05, h)
             fan(Rm, ring, h + 0.08, up=True)
@@ -250,10 +269,11 @@ def append_manifest(info, ox, oz, y, hide):
         "new_place": False,
         "geo_source": "OSM footprints on Zeppenfeldstraat: Nano's, Shirley's, Hoolo! Beauty Salon, Bongo Bar, and the two unnamed lots between Nano's and Shirley's",
         "ref_sources": (
-            "Zeppenfeldstraat east of Charlie's. Each OSM shop has its own front and a drawn sign: "
-            "Nano's (white over a dark base), Shirley's (blue-green, awning), Hoolo! (peach), "
-            "Bongo Bar (red over blue). The two unnamed lots stay two-storey. "
-            "Charlie's, Fan Bar, and the sn_* mural set are unchanged. Signs are drawn text, not a photo."
+            "Zeppenfeldstraat east of Charlie's. Roofs follow the Esri aerial of each footprint "
+            "(Nano's greyer, the two-storey lots lighter tan, Bongo a little redder). "
+            "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
+            "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
+            "The two unnamed lots stay two-storey. Charlie's, Fan Bar, and the sn_* mural set are unchanged."
         ),
         "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
         "cat": "store",
@@ -269,10 +289,35 @@ def append_manifest(info, ox, oz, y, hide):
     print("manifest appended", ID)
 
 
+def upsert(info, ox, oz, y, hide):
+    data = json.loads(MANIFEST.read_text())
+    found = False
+    for item in data:
+        if item.get("id") != ID:
+            continue
+        found = True
+        item["y"] = round(y, 2) or 0.05
+        item["x"] = round(ox, 2)
+        item["z"] = round(oz, 2)
+        item["tris"] = {f"{ID}_lod0": info["lod0"], f"{ID}_lod1": info["lod1"]}
+        item["textures"] = 1
+        item["ref_sources"] = (
+            "Zeppenfeldstraat east of Charlie's. Roofs follow the Esri aerial of each footprint "
+            "(Nano's greyer, the two-storey lots lighter tan, Bongo a little redder). "
+            "Each OSM shop has its own drawn sign: NANO'S, SHIRLEY'S, HOOLO!, BONGO. "
+            "Wall colours are the painted range of this street; no front-on photo of these four doors was found. "
+            "The two unnamed lots stay two-storey. Charlie's, Fan Bar, and the sn_* mural set are unchanged."
+        )
+    if not found:
+        raise SystemExit(f"{ID} missing from manifest")
+    MANIFEST.write_text(json.dumps(data, indent=1) + "\n")
+    print("manifest updated", ID)
+
+
 def main():
     roads, buildings = load_regions()
     info, ox, oz, y, hide = build(roads, buildings)
-    append_manifest(info, ox, oz, y, hide)
+    upsert(info, ox, oz, y, hide)
 
 
 if __name__ == "__main__":
