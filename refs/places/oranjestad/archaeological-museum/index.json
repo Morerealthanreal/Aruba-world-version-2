@@ -1,0 +1,66 @@
+{
+ "place": "archaeological-museum",
+ "area": "oranjestad",
+ "photos": [
+  {
+   "file": "am2_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=3258671607766215",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520776,
+   "lon": -70.038352,
+   "heading": 35.1,
+   "date": "2024-01-06",
+   "shows": "street-level view toward am2 (~44 m away)",
+   "original_path": "/workspace/landmarks/mly/am2_0.jpg"
+  },
+  {
+   "file": "am2_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1066966354730117",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520777,
+   "lon": -70.038345,
+   "heading": 46.2,
+   "date": "2024-01-06",
+   "shows": "street-level view toward am2 (~43 m away)",
+   "original_path": "/workspace/landmarks/mly/am2_1.jpg"
+  },
+  {
+   "file": "am2_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1092023181983780",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520792,
+   "lon": -70.038348,
+   "heading": 3.1,
+   "date": "2024-01-06",
+   "shows": "street-level view toward am2 (~42 m away)",
+   "original_path": "/workspace/landmarks/mly/am2_2.jpg"
+  },
+  {
+   "file": "am2_3.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1304684436880357",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.52082,
+   "lon": -70.038369,
+   "heading": 3.5,
+   "date": "2024-01-06",
+   "shows": "street-level view toward am2 (~41 m away)",
+   "original_path": "/workspace/landmarks/mly/am2_3.jpg"
+  },
+  {
+   "file": "am2_4.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1320540535291091",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / qungo",
+   "lat": 12.520847,
+   "lon": -70.038399,
+   "heading": 8.5,
+   "date": "2024-01-06",
+   "shows": "street-level view toward am2 (~41 m away)",
+   "original_path": "/workspace/landmarks/mly/am2_4.jpg"
+  }
+ ]
+}

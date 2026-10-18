@@ -1,0 +1,30 @@
+{
+ "place": "dunkin-pb",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "dunkin_pb_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=1147520622338126",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.572579,
+   "lon": -70.04458,
+   "heading": 354.1,
+   "date": "2016-04-04",
+   "shows": "street-level view toward dunkin_pb (~20 m away)",
+   "original_path": "/workspace/landmarks/mly/dunkin_pb_1.jpg"
+  },
+  {
+   "file": "dunkin_pb_2.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=738947563445820",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.571939,
+   "lon": -70.044653,
+   "heading": 3.3,
+   "date": "2016-04-04",
+   "shows": "street-level view toward dunkin_pb (~91 m away)",
+   "original_path": "/workspace/landmarks/mly/dunkin_pb_2.jpg"
+  }
+ ]
+}
