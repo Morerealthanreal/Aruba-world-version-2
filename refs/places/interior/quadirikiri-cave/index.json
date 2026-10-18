@@ -1,0 +1,61 @@
+{
+ "place": "quadirikiri-cave",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "cliff-base.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Base_of_the_Cliff_Quadirikiri_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Pitted grey limestone at the Quadirikiri cliff, pale drip-rock, and a deep recess under the brow"
+  },
+  {
+   "file": "quad-cliff-brow.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Base_of_the_cliff_Quadirikiri_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "The Quadirikiri approach: pitted grey walls, dark cave mouths with depth, and the stone path between them"
+  },
+  {
+   "file": "quad-chambers.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Chambers_Quadirikiri_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Inside a Quadirikiri chamber: the mouth has real depth and the walls stay rough limestone. Not used as a texture"
+  },
+  {
+   "file": "park-panel.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Quadirikiri_Cave_Aruba_(cropped).jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "Oogstweg",
+   "lat": 12.482527,
+   "lon": -69.89952,
+   "heading": null,
+   "date": null,
+   "shows": "The park panel at Quadirikiri. The in-game panel is letters on a board, not this photograph"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": null,
+   "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
+   "credit": "Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Under the brow: the Commons pitted wall and drip-rock on the left; the in-game layered beds, dark recess, hanging drip-rock, and scrub on the right. Free camera, HUD and car hidden"
+  }
+ ]
+}

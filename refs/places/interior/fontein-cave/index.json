@@ -1,0 +1,39 @@
+{
+ "place": "fontein-cave",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "limestone-cliffs.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Limestone_cliffs_near_Fontein_Cave,_Aruba.jpg",
+   "license": "CC BY 4.0",
+   "credit": "Ginelly.Q",
+   "lat": 12.493273,
+   "lon": -69.90741,
+   "heading": null,
+   "date": null,
+   "shows": "Layered grey limestone at Fontein, a deep overhang, dark cave mouths, hanging drip-rock, dense green scrub, and the pale stone path"
+  },
+  {
+   "file": "fontein-drips.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Formation_Stalagmites_and_Stalactites_by_Slow_Dripping_Water_Fontein_Cave_Arikok_National_Park_Santa_Cruz_Aruba.jpg",
+   "license": "CC BY-SA 4.0",
+   "credit": "EgorovaSvetlana",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Pale drip-rock hanging from the Fontein cave ceiling. The in-game drips are geometry under the brow, not this photograph"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": null,
+   "license": "in-game screenshot beside the Commons photo in this folder; the photo keeps its own license",
+   "credit": "Aruba World",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Same path approach: the Commons cliff on the left; the in-game horizontal limestone beds, deep brow, knobby drip-rock, dark mouth, scrub, and stone path on the right. Free camera at eye height, HUD and car hidden. The geotag is too far for this face, so the eye sits on the path"
+  }
+ ]
+}

@@ -63133,6 +63133,100 @@
   "cat": "landmark"
  },
  {
+  "id": "fontein_cave",
+  "k": "fontein_cave",
+  "name": "Fontein Cave",
+  "status": "accuracy-caves",
+  "x": 6810.15,
+  "z": 2992.52,
+  "y": 24.98,
+  "rotation": 0,
+  "glb": "models/hero/fontein_cave.glb",
+  "lod": {
+   "hi": "fontein_cave_lod0",
+   "lo": "fontein_cave_lod1",
+   "switch_m": 380
+  },
+  "tris": {
+   "fontein_cave_lod0": 2240,
+   "fontein_cave_lod1": 536
+  },
+  "textures": 2,
+  "hide_footprint": [
+   [
+    6796.6,
+    2974.1
+   ],
+   [
+    6829.2,
+    3005.1
+   ],
+   [
+    6815.8,
+    3019.2
+   ],
+   [
+    6783.2,
+    2988.3
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM node, mouth facing the nearest road",
+  "ref_sources": "Commons 'Limestone cliffs near Fontein Cave, Aruba': layered grey limestone, a deep overhang with hanging drip-rock, cave mouths, dense green scrub, and the pale stone path. Generated rock colour and normal, not the photograph. OSM node 540167863.",
+  "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "landmark"
+ },
+ {
+  "id": "quadirikiri",
+  "k": "quadirikiri",
+  "name": "Quadirikiri Cave",
+  "status": "accuracy-caves",
+  "x": 7659.22,
+  "z": 4142.28,
+  "y": 33.38,
+  "rotation": 0,
+  "glb": "models/hero/quadirikiri.glb",
+  "lod": {
+   "hi": "quadirikiri_lod0",
+   "lo": "quadirikiri_lod1",
+   "switch_m": 400
+  },
+  "tris": {
+   "quadirikiri_lod0": 2684,
+   "quadirikiri_lod1": 972
+  },
+  "textures": 2,
+  "hide_footprint": [
+   [
+    7638.4,
+    4128.8
+   ],
+   [
+    7683.3,
+    4148.4
+   ],
+   [
+    7675.1,
+    4167.2
+   ],
+   [
+    7630.2,
+    4147.6
+   ]
+  ],
+  "hide": [],
+  "sign": false,
+  "kind": "replace",
+  "new_place": true,
+  "geo_source": "OSM node, mouth facing the nearest road",
+  "ref_sources": "Commons 'Base of the Cliff Quadirikiri Cave': pitted layered limestone, pale drip-rock under a deep brow, and a dark recess. 'Quadirikiri Cave Aruba' is the park panel, lettered rather than pasted. Generated rock colour. OSM node 540982491.",
+  "frame": "glb origin = cave mouth centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+  "cat": "landmark"
+ },
+ {
   "id": "watty_lane_dashes",
   "k": "watty_lane_dashes",
   "name": "",
