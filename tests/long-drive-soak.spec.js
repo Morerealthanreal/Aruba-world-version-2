@@ -170,10 +170,136 @@ async function driveLeg(page, stop, leg) {
   return Math.hypot(finish.x - start.x, finish.z - start.z);
 }
 
-// Renderer.info only counts geometries that have been drawn. Region rebuilds swap in
-// new chunk and road geometries while the previous copy was never drawn, so the GPU
-// count climbs even though the live scene does not. Draw the current geometries once,
-// with a map-less material and LOD selection paused, so the count matches the scene.
+// Renderer.info only counts geometries that have been drawn, and it keeps a geometry
+// after a region chunk, road, or batch mesh has swapped in a replacement. The phone
+// soak then sees the GPU count climb while the live scene does not. Reap those
+// orphans on the same cadence as a streaming rebuild, and draw a few never-drawn
+// region meshes each pass so the count settles during warmup. Texture uploads are
+// left to the game; this pass uses a map-less material.
+async function installRegionGeometryReap(page) {
+  await page.evaluate(() => {
+    const game = window.game;
+    const real = game.real;
+    if (!real || real.__awGeoReap) return;
+    real.__awGeoReap = true;
+    const meshGeo = new WeakMap();
+    const swapped = new Set();
+    const primed = new WeakSet();
+    let liveRegionGeo = new Set();
+    let tick = 0;
+    let primeIdle = 0;
+    let blank = null;
+    const stats = { reaped: 0, primed: 0 };
+    window.__awGeoReapStats = stats;
+
+    const blankMaterial = (material) => {
+      if (blank) return blank;
+      const src = Array.isArray(material) ? material[0] : material;
+      if (!src || !src.clone) return src || null;
+      blank = src.clone();
+      for (const key of [
+        "map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap",
+        "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap",
+      ]) blank[key] = null;
+      return blank;
+    };
+
+    const noteSwaps = () => {
+      const now = new Set();
+      const consider = (mesh) => {
+        const geo = mesh && mesh.geometry;
+        if (!mesh || !geo) return;
+        now.add(geo);
+        const prev = meshGeo.get(mesh);
+        if (prev && prev !== geo) swapped.add(prev);
+        meshGeo.set(mesh, geo);
+      };
+      for (const region of real.regions.values()) {
+        for (const chunk of region.chunks || []) consider(chunk && chunk.mesh);
+        if (region.__awTM) consider(region.__awTM.mesh);
+        if (region.roadMesh && region.roadMesh.traverse) {
+          region.roadMesh.traverse((object) => consider(object));
+        }
+        for (const batch of region.__awBB || []) consider(batch && batch.bm);
+      }
+      for (const geo of liveRegionGeo) if (!now.has(geo)) swapped.add(geo);
+      liveRegionGeo = now;
+      if (!swapped.size) return;
+      const live = new Set();
+      game.scene.traverse((object) => {
+        if (object.geometry) live.add(object.geometry);
+      });
+      for (const geo of swapped) {
+        if (live.has(geo)) continue;
+        try {
+          geo.dispose();
+          stats.reaped++;
+        } catch {
+          // Already released by the loader.
+        }
+      }
+      swapped.clear();
+    };
+
+    const primeUnseen = () => {
+      if (primeIdle > 0) {
+        primeIdle--;
+        return;
+      }
+      const renderer = game.renderer;
+      if (!renderer || !renderer.renderBufferDirect) return;
+      const camera = game.camera;
+      let budget = 16;
+      const draw = (mesh) => {
+        if (budget <= 0 || !mesh || !mesh.isMesh || mesh.isSkinnedMesh) return;
+        if (!mesh.geometry || !mesh.material || primed.has(mesh.geometry)) return;
+        const material = blankMaterial(mesh.material);
+        if (!material) return;
+        const savedCount = mesh.isInstancedMesh && mesh.count > 1 ? mesh.count : undefined;
+        if (savedCount !== undefined) mesh.count = 1;
+        try {
+          renderer.renderBufferDirect(camera, null, mesh.geometry, material, mesh, null);
+          primed.add(mesh.geometry);
+          stats.primed++;
+          budget--;
+        } catch {
+          primed.add(mesh.geometry);
+        } finally {
+          if (savedCount !== undefined) mesh.count = savedCount;
+        }
+      };
+      const walk = (root) => {
+        if (!root || budget <= 0) return;
+        const stack = [root];
+        while (stack.length && budget > 0) {
+          const object = stack.pop();
+          draw(object);
+          const children = object.children || [];
+          for (let i = 0; i < children.length; i++) stack.push(children[i]);
+        }
+      };
+      for (const region of real.regions.values()) {
+        if (budget <= 0) break;
+        if (region.state === "loading" || region.state === "failed") continue;
+        walk(region.group);
+        for (const batch of region.__awBB || []) draw(batch && batch.bm);
+      }
+      if (budget > 0 && real.hero) walk(real.hero.group);
+      if (budget === 16) primeIdle = 2;
+    };
+
+    const original = real.update.bind(real);
+    real.update = (...args) => {
+      const result = original(...args);
+      if ((tick++ & 3) === 0) {
+        noteSwaps();
+        primeUnseen();
+      }
+      return result;
+    };
+  });
+}
+
 async function uploadSceneGeometries(page) {
   await page.evaluate(() => {
     const game = window.game;
@@ -302,6 +428,7 @@ test("long phone drive keeps runtime resources flat", async ({
     { timeout: 120_000 },
   );
   await expect(page.locator("#loading")).toBeHidden();
+  await installRegionGeometryReap(page);
   await page.locator('#modes button[data-mode="car"]').click({ force: true });
 
   const samples = [];
