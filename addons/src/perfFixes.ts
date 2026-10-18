@@ -81,6 +81,7 @@ export class PerfFixes {
   private meshGeo = new WeakMap<Object3D, BufferGeometry>();
   private liveRegionGeo = new Set<BufferGeometry>();
   private swapped = new Set<BufferGeometry>();
+  private watchTick = 0;
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -509,7 +510,7 @@ export class PerfFixes {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
       this.warmRegionTextures();
-      this.noteSwaps();
+      if ((this.watchTick++ & 3) === 0) this.noteSwaps();
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
         this.inst.update(A.regions as never, a[0] as number, a[2] as number);
