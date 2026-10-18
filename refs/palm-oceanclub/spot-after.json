@@ -1,0 +1,1 @@
+{"label":"after","port":"8821","q":"high","errors":[],"bench":[{"shot":"pool","calls":314,"tris":928024.6666666667,"ms":3.8},{"shot":"beach","calls":571,"tris":1348518.6666666667,"ms":4.8},{"shot":"aerial","calls":359,"tris":1237958.6666666667,"ms":4.1}],"fps":{"fps":0.99,"p95ms":8849.6,"calls":1,"tris":1},"hero":[{"id":"m_marriottoceanclub","loaded":true,"hi":true}]}
