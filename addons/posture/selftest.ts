@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import {
   AnimationClip, AnimationMixer, Bone, BufferGeometry, Group, LoopRepeat,
-  MeshBasicMaterial, Object3D, QuaternionKeyframeTrack, Skeleton, SkinnedMesh,
+  MeshBasicMaterial, Object3D, Quaternion, QuaternionKeyframeTrack, Skeleton, SkinnedMesh,
   Vector3, VectorKeyframeTrack,
 } from "three";
 import { applyPosture, collectBones, createPostureState, smoothCameraY, type PostureBones } from "../src/posture/apply.ts";
@@ -130,7 +130,9 @@ function simulate(
   for (let t = 0; t < opts.seconds; t += dt) {
     yaw += (opts.yawRate ?? 0) * dt;
     holder.rotation.y = yaw;
+    // r186 getWorldDirection is the walker's +Z, out of the mesh's back.
     holder.getWorldDirection(fwd);
+    fwd.negate();
     holder.position.addScaledVector(fwd, opts.speed * dt);
     moved += opts.speed * dt;
     mixer.update(dt);
@@ -186,6 +188,8 @@ const idleW: W = { idle: 1, walk: 0, run: 0 };
 
 const walked = simulate(rig, rig.bones, { seconds: 3.2, speed: walkSpeed, weights: walkW, action: "walk" });
 const ran = simulate(rig, rig.bones, { seconds: 3.2, speed: runSpeed, weights: runW, action: "run" });
+const face = new Vector3(0, 0, 1).applyQuaternion(rig.bones.head.getWorldQuaternion(new Quaternion()));
+const faceUp = Math.asin(Math.max(-1, Math.min(1, face.y))) * 180 / Math.PI;
 const idled = simulate(rig, rig.bones, { seconds: 3.4, speed: 0, weights: idleW, action: "idle" });
 const banked = simulate(rig, rig.bones, { seconds: 2.2, speed: runSpeed, weights: runW, action: "run", yawRate: TUNE.bankYawRate });
 const slope = Math.tan(15 * Math.PI / 180);
@@ -220,6 +224,7 @@ check("run lean 10-12 deg from the ankles", runLean >= 9.5 && runLean <= 12.5, `
 check("idle upright", idleLean < 2, `${idleLean.toFixed(2)} deg`);
 check("run spine stays straight", runSpine < 6, `${runSpine.toFixed(2)} deg off the body axis`);
 check("run head does not crane", runHead < 8, `${runHead.toFixed(2)} deg off the spine`);
+check("run face stays level", Math.abs(faceUp) < 12, `${faceUp.toFixed(1)} deg from the horizon`);
 check("walk elbow soft", walkElbow > 12 && walkElbow < 35, `${walkElbow.toFixed(1)} deg`);
 check("run elbow about 90 deg", runElbow > 75 && runElbow < 105, `${runElbow.toFixed(1)} deg`);
 check("run knee lift reaches about 45 deg", runKnee > 38 && runKnee < 70, `peak ${runKnee.toFixed(1)} deg`);

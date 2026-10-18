@@ -277,7 +277,14 @@ function groundUnder(
   x: number,
   z: number,
 ) {
-  const sample = (px: number, pz: number) => real?.surfaceAt?.(px, pz) ?? real?.heightAt?.(px, pz) ?? fallbackY;
+  const sample = (px: number, pz: number) => {
+    const near = (y: number | undefined) => typeof y === "number" && Number.isFinite(y) && Math.abs(y - fallbackY) < 1.75;
+    const surface = real?.surfaceAt?.(px, pz);
+    if (near(surface)) return surface as number;
+    const height = real?.heightAt?.(px, pz);
+    if (near(height)) return height as number;
+    return fallbackY;
+  };
   const y = sample(x, z);
   const e = 0.45;
   const nx = (y - sample(x + e, z)) / e;

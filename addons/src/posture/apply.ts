@@ -269,6 +269,23 @@ function probeCurl(fingers: Object3D[]) {
   return best > 0.004 && axis ? axis.normalize() : null;
 }
 
+/** Face looks along local +Z. Level it with the horizon and keep local +Y on the spine. */
+function orientHead(head: Object3D, face: Vector3, up: Vector3) {
+  const z = _v.copy(face);
+  z.y = 0;
+  if (z.lengthSq() < 1e-6) return;
+  z.normalize();
+  const x = _v2.crossVectors(up, z);
+  if (x.lengthSq() < 1e-6) return;
+  x.normalize();
+  const y = _v3.crossVectors(z, x).normalize();
+  _m2.makeBasis(x, y, z);
+  _q.setFromRotationMatrix(_m2);
+  if (!head.parent) return;
+  head.parent.getWorldQuaternion(_pq);
+  head.quaternion.copy(_pq.invert().multiply(_q));
+}
+
 function orientFoot(
   bone: Object3D, soleLocal: Vector3, toeLocal: Vector3,
   normal: Vector3, forward: Vector3, pitch: number,
@@ -333,7 +350,8 @@ function applyBob(pelvis: Object3D, state: PostureState, phase: number, amp: num
   const k = 1 - Math.exp(-Math.max(0, dt) / 1.6);
   state.neutralY += (_p.y - state.neutralY) * k;
   // `amp` is peak-to-peak travel, so the cosine uses half of it.
-  const desired = state.neutralY + Math.cos(phase * Math.PI * 4) * amp * 0.5;
+  // Land on the low side of the bounce so the hip can still reach the sole.
+  const desired = state.neutralY - Math.cos(phase * Math.PI * 4) * amp * 0.5;
   const dy = desired - _p.y;
   if (!pelvis.parent || Math.abs(dy) < 1e-5) return;
   _p.y = desired;
@@ -346,8 +364,15 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
   const dt = input.dt;
   const phase = ((input.phase % 1) + 1) % 1;
   state.time += Math.max(0, dt);
-  _fwd.copy(input.forward);
+  // The rig is yawed 180° inside the walker, and Object3D.getWorldDirection
+  // is the walker's +Z, which points out of the character's back. Lean, arms
+  // and plants follow the mesh face instead.
+  bones.mesh.getWorldDirection(_fwd);
   _fwd.y = 0;
+  if (_fwd.lengthSq() < 1e-6) {
+    _fwd.copy(input.forward);
+    _fwd.y = 0;
+  }
   if (_fwd.lengthSq() < 1e-6) _fwd.set(0, 0, -1);
   _fwd.normalize();
   // Character right. A negative rotation about this axis leans the chest forward.
@@ -600,6 +625,8 @@ export function applyPosture(bones: PostureBones, state: PostureState, input: Po
   bones.neck.getWorldPosition(_v3);
   const headDir = _p.clone().sub(_v3).normalize();
   const headDeg = Math.abs(signedAngle(_spine, headDir, _right)) * 180 / Math.PI;
+  // The clip pitches the face up even when the skull joint sits on the spine.
+  orientHead(bones.head, _fwd, _body);
   const bankDeg = Math.asin(Math.max(-1, Math.min(1, _body.dot(_right)))) * 180 / Math.PI;
 
   state.prevYaw = input.yaw;

@@ -10,10 +10,11 @@ export const TUNE = {
   /** Steps per second at the nominal gait (a step is one footfall). */
   walkCadence: 1.9,
   runCadence: 3.15,
-  /** Speed bands for the player blend when the flag is on. Nominal walk ~1.25 m/s, run ~2.8 m/s. */
+  /** Speed bands for the player blend when the flag is on.
+   *  The real-island walk is 1.9 m/s and the run is 6.1 m/s. */
   idleCut: 0.22,
-  walkAt: 1.25,
-  runAt: 2.6,
+  walkAt: 2.2,
+  runAt: 5.4,
   /** Whole-body lean from the ankles. Spine, neck and head stay straight along this axis. */
   idleLean: deg(0),
   walkLean: deg(1.2),
@@ -60,8 +61,8 @@ export const TUNE = {
   accelBlend: 0.15,
   stopBlend: 0.2,
   /** Turn bank. Full bank (between these) at this yaw rate. */
-  bankMin: deg(5),
-  bankMax: deg(10),
+  bankMin: deg(4),
+  bankMax: deg(7.6),
   bankYawRate: 2.2,
   stopOvershoot: deg(5),
   /** Camera follow drops the step bob. Long enough that a 3 Hz bounce is nearly gone. */
