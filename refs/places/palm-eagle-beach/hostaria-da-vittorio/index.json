@@ -1,0 +1,138 @@
+{
+ "place": "hostaria-da-vittorio",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "hostario-da-vittorio_0.jpg",
+   "source_url": "https://aruba.bynder.com/asset/d958f51a-6581-4aa4-941c-20647ac55f52/mobile_square_retina/Willem-s-Dutch-Pancakes-2.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_0.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_1.jpg",
+   "source_url": "https://aruba.bynder.com/asset/da334244-aeaa-4745-8e2b-987963e1d517/mobile_square_retina/Aruba-Fairy-Tales-2.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_1.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_10.jpg",
+   "source_url": "https://aruba.bynder.com/m/2871e2a361540031/mobile_square_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_10.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_2.jpg",
+   "source_url": "https://aruba.bynder.com/m/02de14483bd1c7c3/mobile_square_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_2.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_3.jpg",
+   "source_url": "https://aruba.bynder.com/m/0391d26f6ecfd6cd/mobile_square_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_3.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_4.jpg",
+   "source_url": "https://aruba.bynder.com/m/056c678b23523658/mobile_horizontal_rectangle_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_4.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_5.jpg",
+   "source_url": "https://aruba.bynder.com/m/0aee38584a0faa20/mobile_square_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_5.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_6.jpg",
+   "source_url": "https://aruba.bynder.com/m/0ed59fee1e39cbf7/mobile_horizontal_rectangle_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_6.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_7.jpg",
+   "source_url": "https://aruba.bynder.com/m/139f089602804a3a/mobile_horizontal_rectangle_retina-Hostaria-da-Vittorio.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_7.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_8.jpg",
+   "source_url": "https://aruba.bynder.com/m/1ae9e2740ef2a3a0/mobile_horizontal_rectangle_retina-Hostario-da-Vittorio-hostaria-da-vittorio-1.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_8.jpg"
+  },
+  {
+   "file": "hostario-da-vittorio_9.jpg",
+   "source_url": "https://aruba.bynder.com/m/1b4b15cb43c007a4/mobile_square_retina-Sailaway-Tour.jpg",
+   "license": "unknown - reference only",
+   "credit": "aruba.com (Aruba Tourism Authority) media",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "restaurant exterior/interior",
+   "original_path": "/workspace/landmarks/ref/hostario-da-vittorio_9.jpg"
+  }
+ ]
+}

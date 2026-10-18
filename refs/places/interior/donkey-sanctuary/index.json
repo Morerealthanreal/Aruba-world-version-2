@@ -1,0 +1,30 @@
+{
+ "place": "donkey-sanctuary",
+ "area": "interior",
+ "photos": [
+  {
+   "file": "donkey_sanctuary_aruba_santa_lucia_aruba.jpg",
+   "source_url": null,
+   "license": "unknown (likely Wikimedia Commons) - verify",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Donkey Sanctuary, Santa Lucia",
+   "original_path": "/workspace/landmarks/refs/Donkey_Sanctuary_Aruba_Santa_Lucia_Aruba.jpg"
+  },
+  {
+   "file": "santa_cruz_aruba_donkey_sanctuary_aruba_santa_lucia.jpg",
+   "source_url": null,
+   "license": "unknown (likely Wikimedia Commons) - verify",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "Donkey Sanctuary, Santa Lucia",
+   "original_path": "/workspace/landmarks/refs/Santa_Cruz_Aruba_Donkey_Sanctuary_Aruba_Santa_Lucia.jpg"
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "place": "emergency",
+ "area": "_vehicles",
+ "photos": [
+  {
+   "file": "ambulance_pink.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/ambulance_pink.jpg"
+  },
+  {
+   "file": "ambulance_yellow.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/ambulance_yellow.jpg"
+  },
+  {
+   "file": "police_everest_front.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/police_everest_front.jpg"
+  },
+  {
+   "file": "police_fleet.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/police_fleet.jpg"
+  },
+  {
+   "file": "police_isuzu_side.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/police_isuzu_side.jpg"
+  },
+  {
+   "file": "police_side_decal.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "web photo found online; rights belong to original author",
+   "lat": null,
+   "lon": null,
+   "heading": null,
+   "date": null,
+   "shows": "police/ambulance vehicles (livery reference)",
+   "original_path": "/workspace/landmarks/refs/emergency/police_side_decal.jpg"
+  }
+ ]
+}

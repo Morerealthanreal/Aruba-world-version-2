@@ -1,0 +1,30 @@
+{
+ "place": "starbucks",
+ "area": "palm-eagle-beach",
+ "photos": [
+  {
+   "file": "starbucks2_0.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=302730101213880",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.572885,
+   "lon": -70.044563,
+   "heading": 352.3,
+   "date": "2016-04-04",
+   "shows": "street-level view toward starbucks2 (~76 m away)",
+   "original_path": "/workspace/landmarks/mly/starbucks2_0.jpg"
+  },
+  {
+   "file": "starbucks2_1.jpg",
+   "source_url": "https://www.mapillary.com/app/?pKey=778556652865862",
+   "license": "CC BY-SA 4.0 (Mapillary)",
+   "credit": "Mapillary / derfred",
+   "lat": 12.572776,
+   "lon": -70.044571,
+   "heading": 352.2,
+   "date": "2016-04-04",
+   "shows": "street-level view toward starbucks2 (~87 m away)",
+   "original_path": "/workspace/landmarks/mly/starbucks2_1.jpg"
+  }
+ ]
+}
