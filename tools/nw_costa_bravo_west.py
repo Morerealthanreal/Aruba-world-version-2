@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Townhouses on the north side of Costa Bravo, between Diamante and Sero Callejón.
 
-OSM footprints here are narrow hipped units, about five metres wide, with one
-wider two-storey unit at the east end. Listing pages for the Gold Coast row
-describe the same thing: low townhouses, a larger end unit, a small yard, and
-a front wall. Geometry is original. No photographs are stored.
+Satellite of this block shows a repeating row of red-tile townhouses with
+palms and parking in front. Gold Coast listings (Diamante 75 and the
+neighbouring units) put the bedrooms upstairs, each with a balcony. OSM
+stores most of these footprints as h=3.4, which is the default, not the
+two-storey mass. Geometry is original. No photographs are stored.
 
 The Malmokweg villa rows, the coast spur, Figaroa, Tierra del Sol, and the
 next Costa Bravo block east of Sero Callejón stay out of this slice.
@@ -104,6 +105,130 @@ def edge_len(a, c):
     return math.hypot(c[0] - a[0], c[1] - a[1])
 
 
+def street_edge(poly, roads):
+    best = None
+    for i in range(len(poly)):
+        a, c = poly[i], poly[(i + 1) % len(poly)]
+        mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+        d = closest(roads, mx, mz)
+        if d and (best is None or d[0] < best[0]):
+            best = (d[0], i, a, c, mx, mz)
+    return best
+
+
+def outward_of(a, c, roads):
+    dx, dz = c[0] - a[0], c[1] - a[1]
+    length = math.hypot(dx, dz) or 1.0
+    ox, oz = dz / length, -dx / length
+    mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+    if closest(roads, mx + ox, mz + oz)[0] > closest(roads, mx - ox, mz - oz)[0]:
+        ox, oz = -ox, -oz
+    return ox, oz, dx / length, dz / length
+
+
+def gable(b, lod, mat, wall, poly, street_i, y_eave, rise):
+    """Ridge from the street face to the back, so each narrow unit is its own bay."""
+    n = len(poly)
+    a, c = poly[street_i], poly[(street_i + 1) % n]
+    smx, smz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+    far = None
+    for i in range(n):
+        if i == street_i:
+            continue
+        p, q = poly[i], poly[(i + 1) % n]
+        mx, mz = (p[0] + q[0]) * 0.5, (p[1] + q[1]) * 0.5
+        dist = math.hypot(mx - smx, mz - smz)
+        if far is None or dist > far[0]:
+            far = (dist, p, q, mx, mz)
+    rf = (smx, y_eave + rise, smz)
+    rb = (far[3], y_eave + rise, far[4])
+    rx, rz = rb[0] - rf[0], rb[2] - rf[2]
+
+    def side(p):
+        return rx * (p[1] - rf[2]) - rz * (p[0] - rf[0])
+
+    left, right = [], []
+    for p in poly:
+        (left if side(p) >= 0 else right).append(p)
+
+    def slope(pts):
+        if len(pts) < 2:
+            return
+        pts = sorted(pts, key=lambda p: (p[0] - rf[0]) * rx + (p[1] - rf[2]) * rz)
+        e0 = (pts[0][0], y_eave, pts[0][1])
+        e1 = (pts[-1][0], y_eave, pts[-1][1])
+        b.quad(lod, mat, [e0, e1, (rb[0], rb[1], rb[2]), rf], (0, 1, 0))
+
+    slope(left)
+    slope(right)
+    for edge in ((a, c), (far[1], far[2])):
+        p0, p1 = edge
+        dx, dz = p1[0] - p0[0], p1[1] - p0[1]
+        length = math.hypot(dx, dz) or 1.0
+        ox, oz = dz / length, -dx / length
+        peak = ((p0[0] + p1[0]) * 0.5, y_eave + rise, (p0[1] + p1[1]) * 0.5)
+        b.tri(lod, wall, (p0[0], y_eave, p0[1]), (p1[0], y_eave, p1[1]), peak, (ox, 0, oz))
+
+
+def add_balcony(b, a, c, g, ox, oz, ux, uz):
+    length = edge_len(a, c)
+    if length < 3.2:
+        return
+    half = min(1.35, length * 0.28)
+    mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
+    depth = 1.15
+    y = g + 2.72
+    c0 = (mx - ux * half, y, mz - uz * half)
+    c1 = (mx + ux * half, y, mz + uz * half)
+    o0 = (c0[0] + ox * depth, y, c0[2] + oz * depth)
+    o1 = (c1[0] + ox * depth, y, c1[2] + oz * depth)
+    b.quad(0, "white", [c0, c1, o1, o0], (0, 1, 0))
+    b.quad(0, "white", [o0, o1, c1, c0], (0, -1, 0))
+    rail_y0, rail_y1 = y + 0.04, y + 0.92
+    b.beam(0, "iron", (o0[0], rail_y1, o0[2]), (o1[0], rail_y1, o1[2]), 0.02, 0.018)
+    steps = 5
+    for i in range(steps + 1):
+        t = i / steps
+        x = o0[0] + (o1[0] - o0[0]) * t
+        z = o0[2] + (o1[2] - o0[2]) * t
+        b.box(0, "iron", x - 0.02, rail_y0, z - 0.02, x + 0.02, rail_y1, z + 0.02)
+    # Side rails back to the wall.
+    for end in (o0, o1):
+        wall = (end[0] - ox * depth, rail_y1, end[2] - oz * depth)
+        b.beam(0, "iron", (end[0], rail_y1, end[2]), wall, 0.018, 0.016)
+    yaw = math.atan2(uz, ux)
+    coast.add_opening(b, mx + ox * 0.12, mz + oz * 0.12, g + 2.85, yaw)
+
+
+def add_palm(b, x, z):
+    g = coast.mesh_height(x, z)
+    cx, cz, y = x, z, g - 0.05
+    for i in range(4):
+        ny = y + 1.15
+        b.cyl(0, "trunk", cx, y, cz, 0.16 - i * 0.015, ny, 0.13 - i * 0.012, 6)
+        cx, cz, y = cx + 0.04, cz + 0.02, ny
+    b.cyl(1, "trunk", x, g, z, 0.12, g + 4.2, 0.07, 5)
+    for k in range(7):
+        ang = k * math.tau / 7.0
+        mid = (cx + math.cos(ang) * 0.9, y + 0.25, cz + math.sin(ang) * 0.9)
+        tip = (cx + math.cos(ang) * 2.1, y - 0.4, cz + math.sin(ang) * 2.1)
+        b.beam(0, "palm", (cx, y + 0.1, cz), mid, 0.09, 0.03)
+        b.beam(0, "palm", mid, tip, 0.05, 0.018)
+        if k % 2 == 0:
+            b.beam(1, "palm", (cx, y, cz), tip, 0.07, 0.03)
+
+
+def add_pad(b, mx, mz, ox, oz, ux, uz, g):
+    depth, half = 4.2, 1.35
+    y0, y1 = g - 0.02, g + 0.06
+    c0 = (mx - ux * half + ox * 1.3, mz - uz * half + oz * 1.3)
+    c1 = (mx + ux * half + ox * 1.3, mz + uz * half + oz * 1.3)
+    o0 = (c0[0] + ox * depth, c0[1] + oz * depth)
+    o1 = (c1[0] + ox * depth, c1[1] + oz * depth)
+    poly = [c0, c1, o1, o0]
+    b.extrude(0, "pad", poly, y0, y1, top=True)
+
+
 def build():
     bravo = load_named({"Costa Bravo"})
     side = load_named(SIDE_STREETS)
@@ -142,17 +267,19 @@ def build():
     if y0 == 0:
         y0 = 0.02
     b = coast.B(ox, oz, y0)
-    b.mat("coral", coast.CORAL, 0.92)
-    b.mat("terr", coast.TERR, 0.84)
+    b.mat("coral", coast.CORAL, 0.9)
+    b.mat("tile", (0.78, 0.32, 0.14), 0.76)
     b.mat("frame", coast.FRAME_C, 0.62)
     b.mat("glass", coast.GLASS, 0.12)
     b.mat("shut", coast.SHUTTER, 0.7)
-    b.mat("white", (0.93, 0.92, 0.88), 0.7)
-    b.mat("iron", (0.22, 0.23, 0.24), 0.55)
-    b.mat("lamp", (0.93, 0.86, 0.62), 0.45)
+    b.mat("white", (0.94, 0.93, 0.90), 0.7)
+    b.mat("wood", (0.42, 0.30, 0.20), 0.72)
+    b.mat("iron", (0.22, 0.23, 0.24), 0.5)
     b.mat("trunk", coast.TRUNK, 0.9)
-    b.mat("cact", coast.CACT, 0.8)
-    for i, rgb in enumerate(coast.WALLS):
+    b.mat("palm", (0.20, 0.40, 0.16), 0.8)
+    b.mat("pad", (0.72, 0.70, 0.66), 0.9)
+    stucco = ((0.94, 0.91, 0.86), (0.90, 0.84, 0.74), (0.86, 0.80, 0.70))
+    for i, rgb in enumerate(stucco):
         b.mat(f"w{i}", rgb, 0.82)
 
     polys = []
@@ -164,52 +291,40 @@ def build():
             area += a[0] * c[1] - c[0] * a[1]
         if area < 0:
             poly = list(reversed(poly))
-        polys.append(shrink(poly, 0.06))
+        polys.append(shrink(poly, 0.08))
 
     hides = []
-    for idx, ((bld, pt, hit), poly) in enumerate(zip(chosen, polys)):
-        gnd = coast.mesh_height(pt[0], pt[1])
-        raw_h = float(bld.get("h") or 3.4)
-        two = raw_h >= 5.0
-        wall_h = 5.15 if two else 2.85
-        rise = 1.2 if two else 0.95
-        paint = f"w{idx % len(coast.WALLS)}"
-        b.extrude(0, "coral", poly, gnd - 0.35, gnd + 0.42, top=False)
-        b.extrude(0, paint, poly, gnd + 0.42, gnd + wall_h, top=True)
-        b.extrude(1, paint, poly, gnd - 0.15, gnd + wall_h, top=True)
-        b.hip(0, "terr", poly, gnd + wall_h, rise)
-        add_openings(b, poly, polys, idx, gnd, two)
-        add_front_wall(b, poly, bravo, gnd)
-        hides.append([round(pt[0], 1), round(pt[1], 1)])
-
     plants = lamps = 0
-    for idx, (bld, pt, _hit) in enumerate(chosen):
-        poly = polys[idx]
-        north_z = min(p[1] for p in poly) - 1.5
-        px, pz = pt[0], north_z
-        if on_any(polys, px, pz):
-            continue
-        if closest(bravo, px, pz)[0] < 3.0:
-            continue
-        if idx == len(chosen) - 1:
-            # Side yard of the wider end unit, off the cross street.
-            ex = max(p[0] for p in poly) + 2.2
-            ez = pt[1]
-            if not on_any(polys, ex, ez) and closest(bravo, ex, ez)[0] > 4.0:
-                coast.add_divi(b, ex, ez, lean=1.2, h=2.6, yaw=0.4)
+    for idx, ((bld, pt, _hit), poly) in enumerate(zip(chosen, polys)):
+        gnd = coast.mesh_height(pt[0], pt[1])
+        wide = edge_len(*street_edge(poly, bravo)[2:4]) >= 8.0 if street_edge(poly, bravo) else False
+        wall_h = 5.2
+        paint = f"w{idx % 3}"
+        b.extrude(0, "coral", poly, gnd - 0.3, gnd + 0.4, top=False)
+        b.extrude(0, paint, poly, gnd + 0.4, gnd + wall_h, top=True)
+        b.extrude(1, paint, poly, gnd - 0.1, gnd + wall_h, top=True)
+        edge = street_edge(poly, bravo)
+        if edge:
+            _dist, si, a, c, mx, mz = edge
+            out_x, out_z, ux, uz = outward_of(a, c, bravo)
+            if wide:
+                hip_like(b, 0, "tile", poly, gnd + wall_h, 1.7)
+                hip_like(b, 1, "tile", poly, gnd + wall_h, 1.3)
+            else:
+                gable(b, 0, "tile", paint, poly, si, gnd + wall_h, 1.45)
+                gable(b, 1, "tile", paint, poly, si, gnd + wall_h, 1.1)
+            add_balcony(b, a, c, gnd, out_x, out_z, ux, uz)
+            yaw = math.atan2(uz, ux)
+            coast.add_opening(b, mx + out_x * 0.1, mz + out_z * 0.1, gnd + 0.15, yaw)
+            add_openings(b, poly, polys, idx, gnd, street_i=si)
+            far_pad = closest(bravo, mx + out_x * 5.5, mz + out_z * 5.5)
+            if far_pad and far_pad[0] > 3.4:
+                add_pad(b, mx, mz, out_x, out_z, ux, uz, gnd)
+            px, pz = mx + out_x * 6.2, mz + out_z * 6.2
+            if closest(bravo, px, pz)[0] > 3.6 and not on_any(polys, px, pz) and idx % 2 == 0:
+                add_palm(b, px, pz)
                 plants += 1
-        elif idx % 2 == 0:
-            coast.add_cactus(b, px, pz, h=1.35, arms=2)
-            plants += 1
-        if lamps < 3 and idx % 3 == 0:
-            south_z = max(p[1] for p in poly) + 2.4
-            lx, lz = pt[0], south_z
-            if closest(bravo, lx, lz)[0] > 2.6 and not on_any(polys, lx, lz):
-                g = coast.mesh_height(lx, lz)
-                b.cyl(0, "iron", lx, g, lz, 0.045, g + 2.7, 0.035, 6)
-                b.box(0, "lamp", lx - 0.18, g + 2.55, lz - 0.08, lx + 0.18, g + 2.7, lz + 0.08)
-                b.cyl(1, "iron", lx, g, lz, 0.06, g + 2.5, 0.045, 5)
-                lamps += 1
+        hides.append([round(pt[0], 1), round(pt[1], 1)])
 
     far = 0.0
     for (_lod, _mat), prim in b.prim.items():
@@ -229,29 +344,52 @@ def build():
     return ox, oz, y0, tris, hides
 
 
-def add_openings(b, poly, polys, idx, gnd, two):
+def hip_like(b, lod, mat, poly, y_eave, rise):
+    n = len(poly)
+    cx = sum(p[0] for p in poly) / n
+    cz = sum(p[1] for p in poly) / n
+    inner = [(cx + (p[0] - cx) * 0.22, cz + (p[1] - cz) * 0.22) for p in poly]
+    yt = y_eave + rise
+    for i in range(n):
+        j = (i + 1) % n
+        b.quad(
+            lod,
+            mat,
+            [
+                (poly[i][0], y_eave, poly[i][1]),
+                (poly[j][0], y_eave, poly[j][1]),
+                (inner[j][0], yt, inner[j][1]),
+                (inner[i][0], yt, inner[i][1]),
+            ],
+            (0, 1, 0),
+        )
+    for i in range(n):
+        j = (i + 1) % n
+        b.tri(lod, mat, (cx, yt, cz), (inner[i][0], yt, inner[i][1]), (inner[j][0], yt, inner[j][1]), (0, 1, 0))
+
+
+def add_openings(b, poly, polys, idx, gnd, street_i):
+    """Windows on the back face. Party walls and the balcony face stay closed."""
     others = [p for i, p in enumerate(polys) if i != idx]
     n = len(poly)
     for i in range(n):
+        if i == street_i:
+            continue
         a, c = poly[i], poly[(i + 1) % n]
         length = edge_len(a, c)
         if length < 3.2:
             continue
         dx, dz = c[0] - a[0], c[1] - a[1]
-        L = length
-        oxn, ozn = dz / L, -dx / L
+        oxn, ozn = dz / length, -dx / length
         mx, mz = (a[0] + c[0]) * 0.5, (a[1] + c[1]) * 0.5
-        if party(mx + oxn * 0.4, mz + ozn * 0.4, others):
+        if party(mx + oxn * 0.45, mz + ozn * 0.45, others) or party(mx - oxn * 0.45, mz - ozn * 0.45, others):
             continue
         yaw = math.atan2(dz, dx)
         count = 2 if length >= 8 else 1
-        levels = (1.05, 3.35) if two else (1.02,)
-        for level in levels:
+        for level in (1.15, 3.45):
             for k in range(count):
                 t = (k + 1) / (count + 1)
-                coast.add_opening(
-                    b, a[0] + dx * t, a[1] + dz * t, gnd + level, yaw
-                )
+                coast.add_opening(b, a[0] + dx * t, a[1] + dz * t, gnd + level, yaw)
 
 
 def party(x, z, others):
@@ -322,42 +460,50 @@ def entry(ox, oz, y0, tris, hides):
         "geo_source": "OSM Costa Bravo centreline and footprints, Aruba DEM",
         "ref_sources": (
             "North side of Costa Bravo between Diamante and Sero Callejón. "
-            "Gold Coast listing pages show a row of low townhouses with a larger "
-            "end unit, cream walls, a pitched roof, and a small front wall. "
-            "Malmokweg, the coast road, Figaroa, the golf course, and the next "
-            "block east of Sero Callejón stay out of this slice. Original geometry, no photos."
+            "Satellite of this block (https://www.google.com/maps/@12.599858,-70.043234,131m/data=!3m1!1e3) "
+            "shows repeating red-tile townhouse bays, palms, and parking. "
+            "Gold Coast Diamante 75 (https://remaxaruba.com/property/details/gold-coast-diamante-75) "
+            "is a two-storey corner unit on this row: upstairs bedrooms with balconies. "
+            "Original geometry, no photos in the mesh."
         ),
         "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up; generated by tools/nw_costa_bravo_west.py",
         "cat": "landmark",
     }
 
 
-def splice(obj):
+def rewrite_entry(obj):
     text = open(MANIFEST).read()
-    data = json.loads(text)
-    ids = [o.get("id") for o in data]
-    if HERO_ID in ids:
-        raise SystemExit(f"{HERO_ID} already in the manifest; restore it before regenerating")
-    formatted = json.dumps(obj, indent=1)
-    formatted = "\n".join(" " + line if line else line for line in formatted.split("\n"))
-    body = text.rstrip()
-    if not body.endswith("]"):
-        raise SystemExit("manifest does not end with ]")
-    body = body[:-1].rstrip()
-    if not body.endswith("}"):
-        raise SystemExit("manifest tail is not an object")
-    new = body + ",\n" + formatted + "\n]\n"
+    key = f'"id": "{HERO_ID}"'
+    at = text.find(key)
+    if at < 0:
+        raise SystemExit(f"{HERO_ID} missing from manifest")
+    start = text.rfind("{", 0, at)
+    depth = 0
+    end = None
+    for j in range(start, len(text)):
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+            if depth == 0:
+                end = j + 1
+                break
+    if end is None:
+        raise SystemExit("unterminated hero object")
+    lines = json.dumps(obj, indent=1).split("\n")
+    formatted = lines[0] + "\n" + "\n".join((" " + ln) if ln else ln for ln in lines[1:])
+    new = text[:start] + formatted + text[end:]
     check = json.loads(new)
-    new_ids = [o.get("id") for o in check]
-    if new_ids[:-1] != ids or new_ids[-1] != HERO_ID:
-        raise SystemExit("splice changed existing ids")
+    ids = [o.get("id") for o in check]
+    if ids.count(HERO_ID) != 1 or [o.get("id") for o in json.loads(text)] != ids:
+        raise SystemExit("rewrite changed the hero list")
     open(MANIFEST, "w").write(new)
-    print(f"spliced {HERO_ID}")
+    print(f"updated {HERO_ID}")
 
 
 def main():
     ox, oz, y0, tris, hides = build()
-    splice(entry(ox, oz, y0, tris, hides))
+    rewrite_entry(entry(ox, oz, y0, tris, hides))
 
 
 if __name__ == "__main__":
