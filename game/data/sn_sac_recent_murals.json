@@ -1,0 +1,140 @@
+{
+ "atlas": "textures/sn_sac_recent_atlas.jpg",
+ "atlas_px": [
+  2048,
+  412
+ ],
+ "note": "Newer SAC-listed San Nicolas murals. Original paintings. Public photos were visual reference only.",
+ "hide_heroes": [],
+ "murals": [
+  {
+   "id": "sarah_quitta",
+   "name": "Sarah Quitta",
+   "artist": "Mr Dheo",
+   "year": 2024,
+   "address": "Stuyvesantstraat, San Nicolas",
+   "lat": 12.4349439,
+   "lng": -69.9107193,
+   "bld": 11600,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 3,
+   "wall_len": 11.41,
+   "center": [
+    6443.8,
+    9403.98
+   ],
+   "p0": [
+    6444.89,
+    9398.44
+   ],
+   "p1": [
+    6442.71,
+    9409.52
+   ],
+   "normal": [
+    -0.9812,
+    -0.1927
+   ],
+   "width": 11.29,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.0,
+    0.367676,
+    0.485437
+   ],
+   "sources": [
+    "Street Art Cities marker 76469056-7946-4a7e-8ba8-c6afe18f11ff (12.4349439, -69.9107193), created for Aruba Art Week"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "walker_woman",
+   "name": "Dreamer (David Walker style)",
+   "artist": "David Walker",
+   "year": 2016,
+   "address": "Piet Heinstraat face, San Nicolas",
+   "lat": 12.43605,
+   "lng": -69.91235,
+   "bld": 9085,
+   "bld_name": "",
+   "bld_h": 6.9,
+   "wall_i": 3,
+   "wall_len": 19.06,
+   "center": [
+    6256.55,
+    9269.16
+   ],
+   "p0": [
+    6255.31,
+    9278.55
+   ],
+   "p1": [
+    6257.79,
+    9259.77
+   ],
+   "normal": [
+    0.9914,
+    0.1311
+   ],
+   "width": 18.94,
+   "height": 3.0,
+   "uv": [
+    0.0,
+    0.490291,
+    0.647461,
+    1.0
+   ],
+   "sources": [
+    "Aruba Art Fair / Art Week portrait walls on Piet Heinstraat (tour maps; visual reference only). SAC marker 13097 is mis-tagged to Belgium and was not used for placement."
+   ],
+   "base": "ground",
+   "lift": 0.08
+  },
+  {
+   "id": "belted_kingfisher",
+   "name": "Belted kingfisher",
+   "artist": "Faunagraphic",
+   "year": 2024,
+   "address": "South coast approach (Aruba Art Week)",
+   "lat": 12.4227616,
+   "lng": -69.8776091,
+   "bld": 8719,
+   "bld_name": "",
+   "bld_h": 3.4,
+   "wall_i": 9,
+   "wall_len": 9.08,
+   "center": [
+    10087.4,
+    11020.53
+   ],
+   "p0": [
+    10088.29,
+    11016.14
+   ],
+   "p1": [
+    10086.51,
+    11024.92
+   ],
+   "normal": [
+    -0.9802,
+    -0.1982
+   ],
+   "width": 8.96,
+   "height": 3.0,
+   "uv": [
+    0.648438,
+    0.563107,
+    0.911133,
+    1.0
+   ],
+   "sources": [
+    "Street Art Cities marker 72034e21-e8c1-4b18-a386-d088b79b827b (12.4227616, -69.8776091), Aruba Art Week"
+   ],
+   "base": "ground",
+   "lift": 0.08
+  }
+ ]
+}

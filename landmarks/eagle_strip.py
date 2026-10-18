@@ -351,6 +351,25 @@ def area(poly):
 def centroid(poly):
     return sum(p[0] for p in poly) / len(poly), sum(p[1] for p in poly) / len(poly)
 
+def edge_dist(x, z, poly):
+    """Metres to the ring. Zero when the sample is inside."""
+    if pip(x, z, poly):
+        return 0.0
+    best = 1e9
+    for i in range(len(poly)):
+        ax, az = poly[i]
+        bx, bz = poly[(i + 1) % len(poly)]
+        dx, dz = bx - ax, bz - az
+        L2 = dx * dx + dz * dz
+        if L2 < 1e-8:
+            d = hypot(x - ax, z - az)
+        else:
+            t = max(0.0, min(1.0, ((x - ax) * dx + (z - az) * dz) / L2))
+            d = hypot(x - (ax + dx * t), z - (az + dz * t))
+        if d < best:
+            best = d
+    return best
+
 def pip(x, z, poly):
     c = False
     j = len(poly) - 1
@@ -386,6 +405,28 @@ def flat_roof(mesh, poly, y):
         a = mesh.v(x1, y, z1, 0, 1, 0, 0, 0)
         b = mesh.v(x2, y, z2, 0, 1, 0, 1, 0)
         mesh.tri(c, a, b)
+
+def clipped_roof(mesh, poly, y, keep=None):
+    """Ear-clip the footprint. A centroid fan on Costa Linda covers the courts.
+
+    `keep(x, z)` is in the same space as `poly` and drops a triangle whose
+    centroid is open sand rather than roof.
+    """
+    tris = triangulate(poly)
+    if not tris:
+        return False
+    for ia, ib, ic in tris:
+        a, b, c = poly[ia], poly[ib], poly[ic]
+        if keep is not None:
+            mx = (a[0] + b[0] + c[0]) / 3
+            mz = (a[1] + b[1] + c[1]) / 3
+            if not keep(mx, mz):
+                continue
+        i0 = mesh.v(a[0], y, a[1], 0, 1, 0, 0, 0)
+        i1 = mesh.v(b[0], y, b[1], 0, 1, 0, 1, 0)
+        i2 = mesh.v(c[0], y, c[1], 0, 1, 0, 0, 1)
+        mesh.tri(i0, i1, i2)
+    return True
 
 def gable_roof(mesh, poly, y, rise):
     """Quad gable. Returns the two peak points (xyz) of the short ends, or None."""
@@ -652,11 +693,88 @@ def build_tree(lod):
         ico(leaf, -1.9, 2.05, 0, 1.2, 0.32, 0.75)
     return bark, leaf
 
+def _board(mesh, x0, y0, z0, x1, y1, z1, half_w):
+    """Flat rafter from the hub out to the rim. Double-sided material shows the underside."""
+    dx, dz = x1 - x0, z1 - z0
+    sl = math.sqrt(dx * dx + dz * dz) or 1.0
+    sx, sz = -dz / sl * half_w, dx / sl * half_w
+    a = mesh.v(x0 - sx, y0, z0 - sz, 0, 1, 0, 0, 0)
+    b = mesh.v(x0 + sx, y0, z0 + sz, 0, 1, 0, 1, 0)
+    c = mesh.v(x1 + sx, y1, z1 + sz, 0, 1, 0, 1, 1)
+    d = mesh.v(x1 - sx, y1, z1 - sz, 0, 1, 0, 0, 1)
+    mesh.quad(a, b, c, d)
+
+def _thatch_rings(mesh, layers, sides):
+    rings = []
+    for li, (y, r) in enumerate(layers):
+        ring = []
+        v = li / max(1, len(layers) - 1)
+        for i in range(sides):
+            a = i / sides * math.tau
+            ca, sa = math.cos(a), math.sin(a)
+            nx, ny, nz = ca * 0.72, 0.58, sa * 0.72
+            L = math.sqrt(nx * nx + ny * ny + nz * nz)
+            ring.append(mesh.v(ca * r, y, sa * r, nx / L, ny / L, nz / L, i / sides, v))
+        rings.append(ring)
+    for li in range(len(rings) - 1):
+        for i in range(sides):
+            j = (i + 1) % sides
+            mesh.quad(rings[li][i], rings[li][j], rings[li + 1][j], rings[li + 1][i])
+    return rings
+
+def _fringe(mesh, y, r, sides, lengths, flare):
+    """Hanging straw strips. Lengths alternate so the hem is ragged, not a second cone."""
+    for i in range(sides):
+        a0 = i / sides * math.tau
+        a1 = (i + 1) / sides * math.tau
+        drop = lengths[i % len(lengths)]
+        ca0, sa0 = math.cos(a0), math.sin(a0)
+        ca1, sa1 = math.cos(a1), math.sin(a1)
+        nx, nz = ca0 + ca1, sa0 + sa1
+        L = math.sqrt(nx * nx + nz * nz) or 1.0
+        nx, nz = nx / L, nz / L
+        b0 = mesh.v(ca0 * r, y, sa0 * r, nx, 0.15, nz, 0, 0)
+        b1 = mesh.v(ca1 * r, y, sa1 * r, nx, 0.15, nz, 1, 0)
+        t0 = mesh.v(ca0 * (r + flare), y - drop, sa0 * (r + flare), nx, -0.25, nz, 0, 1)
+        t1 = mesh.v(ca1 * (r + flare), y - drop, sa1 * (r + flare), nx, -0.25, nz, 1, 1)
+        mesh.quad(b0, b1, t1, t0)
+
+def _finial(mesh, y0, y1):
+    tip = mesh.v(0, y1, 0, 0, 1, 0, 0.5, 1)
+    ring = []
+    for i in range(4):
+        a = (i + 0.5) / 4 * math.tau
+        ca, sa = math.cos(a), math.sin(a)
+        ring.append(mesh.v(ca * 0.04, y0, sa * 0.04, ca, 0.35, sa, 0, 0))
+    for i in range(4):
+        mesh.tri(tip, ring[i], ring[(i + 1) % 4])
+
 def build_palapa(lod):
+    """Eagle Beach palapa: one post, radial rafters, a layered straw cap,
+    a long ragged fringe and a wooden finial. Not a bare cone."""
     wood, thatch = M(), M()
-    sides = 8 if lod == 0 else 5
-    pole(wood, 2.15, 0.075, 5 if lod == 0 else 4)
-    cone(thatch, 2.05, 2.72, 1.65 if lod == 0 else 1.5, sides, 0.42 if lod == 0 else 0.2)
+    if lod == 0:
+        pole(wood, 2.12, 0.072, 6)
+        sides = 10
+        _thatch_rings(thatch, [(2.64, 0.16), (2.46, 0.62), (2.20, 1.12), (1.94, 1.58)], sides)
+        # close the peak so the finial sits in straw, not a hole
+        top = thatch.v(0, 2.72, 0, 0, 1, 0, 0.5, 0)
+        for i in range(sides):
+            a = i / sides * math.tau
+            b = thatch.v(math.cos(a) * 0.16, 2.64, math.sin(a) * 0.16, 0, 1, 0, i / sides, 0.15)
+            c = thatch.v(math.cos((i + 1) / sides * math.tau) * 0.16, 2.64, math.sin((i + 1) / sides * math.tau) * 0.16, 0, 1, 0, (i + 1) / sides, 0.15)
+            thatch.tri(top, b, c)
+        _fringe(thatch, 2.20, 1.12, sides, (0.26, 0.40, 0.32, 0.46, 0.28, 0.38, 0.34, 0.44, 0.30, 0.42), 0.06)
+        _fringe(thatch, 1.94, 1.58, sides, (0.78, 0.50, 0.92, 0.56, 0.84, 0.48, 0.96, 0.60, 0.72, 0.54), 0.16)
+        for i in range(8):
+            a = (i + 0.5) / 8 * math.tau
+            _board(wood, 0.0, 2.16, 0.0, math.cos(a) * 1.45, 1.96, math.sin(a) * 1.45, 0.032)
+        _finial(wood, 2.55, 2.98)
+    else:
+        pole(wood, 2.08, 0.07, 4)
+        sides = 6
+        _thatch_rings(thatch, [(2.52, 0.28), (2.00, 1.48)], sides)
+        _fringe(thatch, 2.00, 1.48, sides, (0.55, 0.38, 0.62, 0.42, 0.58, 0.40), 0.12)
     return wood, thatch
 
 def build_brolly(lod):
@@ -870,7 +988,14 @@ def build_resort(resort, buildings):
         else:
             wall(parts[fac], poly, y0, y1)
         if flat or len(poly) != 4:
-            flat_roof(parts[roof], poly, y1 + 0.25)
+            # Costa Linda's outline is concave. A fan from the centroid
+            # lays a sand-coloured slab across the courts and the grey roofs.
+            if resort["id"] == "costalinda":
+                def keep_roof(x, z, ox=ox, oz=oz):
+                    return not _costa_court(x + ox, z + oz)
+                clipped_roof(parts[roof], poly, y1 + 0.25, keep_roof)
+            else:
+                flat_roof(parts[roof], poly, y1 + 0.25)
             # low parapet
             wall(parts[trim], poly, y1, y1 + 0.7)
         else:
@@ -922,7 +1047,12 @@ def build_resort(resort, buildings):
         # lod1 box of the footprint bbox
         xs = [p[0] for p in poly]; zs = [p[1] for p in poly]
         solid_box(lo, min(xs), y0, min(zs), max(xs), y1, max(zs))
-        flat_roof(lo_roof, [(min(xs), min(zs)), (max(xs), min(zs)), (max(xs), max(zs)), (min(xs), max(zs))], y1 + 0.4)
+        if resort["id"] == "costalinda":
+            def keep_lo(x, z, ox=ox, oz=oz):
+                return not _costa_court(x + ox, z + oz)
+            clipped_roof(lo_roof, poly, y1 + 0.4, keep_lo)
+        else:
+            flat_roof(lo_roof, [(min(xs), min(zs)), (max(xs), min(zs)), (max(xs), max(zs)), (min(xs), max(zs))], y1 + 0.4)
     if biggest is None:
         return None
     # sign on the side nearest the road (east-ish): furthest vertex toward +x of the biggest building, nudged out
@@ -1708,8 +1838,10 @@ def select_pools(buildings):
         hs.append(h_c)
         hs.sort()
         # The game already lays pool water on the lowest ring sample.
-        # A roof pixel at the centroid must not lift the deck onto that roof.
-        if hs[-1] - hs[0] > 8.0:
+        # Costa Linda's ring climbs from the court onto the roof (about 5 m).
+        # A span that wide is a roof outline, not a pool, so it grows neither
+        # a deck nor a reason to keep the water.
+        if hs[-1] - hs[0] > 3.0:
             continue
         h = hs[0]
         if not (-1.0 < h < 14.0):
@@ -1784,7 +1916,9 @@ def add_pool_detail(manifest):
                 x, z = x1 + dx * L * t + nx * 2.3, z1 + dz * L * t + nz * 2.3
                 if pip(x, z, poly) or abs(height_at(x, z) - p["h"]) > 1.3:
                     continue
-                if any(b["area"] < 5000 and pip(x, z, b["poly"]) for b in buildings):
+                # Stay off the roof. The Bucuti deck used to bridge a 2 m gap
+                # onto the yellow house; a lounger on that edge would too.
+                if any(b["area"] < 6000 and abs(b["cx"] - x) < 40 and abs(b["cz"] - z) < 40 and edge_dist(x, z, b["poly"]) < 1.45 for b in buildings):
                     continue
                 chairs.append((x, z, p["h"], dx, dz))
                 placed += 1
@@ -1857,16 +1991,18 @@ def add_pool_detail(manifest):
         cush, wood, thatch, cloth = M(), M(), M(), M()
         lo = M()
         def deck_outside(x, z, ox=ox, oz=oz):
-            # World point. Small footprints only: a resort outline can wrap
-            # a courtyard, and the pool centroid test already rejected rings
-            # whose centre sits inside a house.
+            # World point. A resort outline can wrap a courtyard, so only
+            # footprints under 6000 m² clip the deck. Inside the footprint
+            # is not enough: the Bucuti pool sits 2.2 m from the yellow
+            # house and the 2.35 m deck still landed on that roof.
             wx, wz = x + ox, z + oz
             for b in buildings:
-                if b["area"] >= 5000:
+                if b["area"] >= 6000:
                     continue
-                if abs(b["cx"] - wx) > 50 or abs(b["cz"] - wz) > 50:
+                if abs(b["cx"] - wx) > 60 or abs(b["cz"] - wz) > 60:
                     continue
-                if pip(wx, wz, b["poly"]):
+                # 1.6 m is the gap that keeps the slab off that wall.
+                if edge_dist(wx, wz, b["poly"]) < 1.6:
                     return False
             return True
         for p in bag["pools"]:
@@ -2113,10 +2249,144 @@ def main():
     open(MANIFEST, "w").write(json.dumps(manifest, indent=1) + "\n")
     print("manifest entries", len(manifest))
 
+def _costa_court(x, z):
+    """True when the aerial at this point is open sand, not a pale roof."""
+    c = aerial_rgb(x, z)
+    if not c:
+        return False
+    r, g, b = c
+    return r > 145 and r > b + 28 and g > 110 and r < 235
+
+def retile_costa():
+    """Drop Costa Linda roof triangles that lie on the sandy courts.
+
+    Walls, trim and the sign stay byte for byte. A full resort rebuild
+    would redraw the sign, so only the tile roofs are rewritten.
+    """
+    path = os.path.join(HERO, "costalinda.glb")
+    data = open(path, "rb").read()
+    off = 12
+    js = bin_ = None
+    while off < len(data):
+        clen, ctype = struct.unpack_from("<I4s", data, off)
+        chunk = data[off + 8:off + 8 + clen]
+        if ctype == b"JSON":
+            js = json.loads(chunk)
+        elif ctype == b"BIN\x00":
+            bin_ = bytearray(chunk)
+        off += 8 + clen
+    man = json.loads(open(MANIFEST).read())
+    entry = next(e for e in man if e.get("id") == "costalinda")
+    ox, oz = entry["x"], entry["z"]
+
+    def read_acc(acc_i, fmt, size):
+        acc = js["accessors"][acc_i]
+        bv = js["bufferViews"][acc["bufferView"]]
+        start = bv.get("byteOffset", 0) + (acc.get("byteOffset") or 0)
+        stride = bv.get("byteStride") or size
+        return [struct.unpack_from(fmt, bin_, start + i * stride) for i in range(acc["count"])]
+
+    def keep_tris(pos, idx):
+        kept = []
+        for i in range(0, len(idx), 3):
+            a, b, c = pos[idx[i]], pos[idx[i + 1]], pos[idx[i + 2]]
+            mx = (a[0] + b[0] + c[0]) / 3 + ox
+            mz = (a[2] + b[2] + c[2]) / 3 + oz
+            if _costa_court(mx, mz):
+                continue
+            kept.append((idx[i], idx[i + 1], idx[i + 2]))
+        return kept
+
+    def pack_roof(pos, idx):
+        kept = keep_tris(pos, idx)
+        used = []
+        remap = {}
+        new_idx = []
+        for tri in kept:
+            for v in tri:
+                if v not in remap:
+                    remap[v] = len(used)
+                    used.append(v)
+                new_idx.append(remap[v])
+        p = b"".join(struct.pack("<fff", *pos[v][:3]) for v in used)
+        n = b"".join(struct.pack("<fff", 0.0, 1.0, 0.0) for _ in used)
+        u = b"".join(struct.pack("<ff", 0.0, 0.0) for _ in used)
+        ib = b"".join(struct.pack("<H", i) for i in new_idx)
+        xs = [pos[v][0] for v in used]
+        ys = [pos[v][1] for v in used]
+        zs = [pos[v][2] for v in used]
+        bounds = ([min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)])
+        return p, n, u, ib, len(used), len(new_idx), bounds
+
+    # lod0 tile is primitive 2, lod1 roof is primitive 1 of mesh 1.
+    # Accessors: lod0 pos/nrm/uv/idx = 8..11, lod1 = 24..27.
+    roofs = []
+    for mesh_i, prim_i, acc0 in ((0, 2, 8), (1, 1, 24)):
+        pos = read_acc(acc0, "<fff", 12)
+        idx = [t[0] for t in read_acc(acc0 + 3, "<H", 2)]
+        packed = pack_roof(pos, idx)
+        roofs.append((acc0, packed))
+        print("roof", mesh_i, "tris", len(idx) // 3, "->", packed[5] // 3)
+
+    views = []
+    for bv in js["bufferViews"]:
+        s = bv.get("byteOffset", 0)
+        views.append(bytearray(bin_[s:s + bv["byteLength"]]))
+    for acc0, (p, nrm, uv, ib, nv, ni, bounds) in roofs:
+        # buffer views follow accessor order for these four
+        base = js["accessors"][acc0]["bufferView"]
+        views[base] = bytearray(p)
+        views[base + 1] = bytearray(nrm)
+        views[base + 2] = bytearray(uv)
+        views[base + 3] = bytearray(ib)
+        for k, count in ((0, nv), (1, nv), (2, nv), (3, ni)):
+            js["accessors"][acc0 + k]["count"] = count
+        js["accessors"][acc0]["min"] = bounds[0]
+        js["accessors"][acc0]["max"] = bounds[1]
+
+    blob = bytearray()
+    for i, view in enumerate(views):
+        while len(blob) % 4:
+            blob.append(0)
+        js["bufferViews"][i]["byteOffset"] = len(blob)
+        js["bufferViews"][i]["byteLength"] = len(view)
+        blob += view
+    while len(blob) % 4:
+        blob.append(0)
+    js["buffers"][0]["byteLength"] = len(blob)
+    payload = json.dumps(js, separators=(",", ":")).encode()
+    while len(payload) % 4:
+        payload += b" "
+    out = bytearray()
+    out += b"glTF" + struct.pack("<II", 2, 12 + 8 + len(payload) + 8 + len(blob))
+    out += struct.pack("<I", len(payload)) + b"JSON" + payload
+    out += struct.pack("<I", len(blob)) + b"BIN\x00" + blob
+    open(path, "wb").write(out)
+    # tris: facade 312 + trim 352 + sign 4 + signback 14 + new roof
+    # lod1: lwall 24 + new roof
+    hi = roofs[0][1][5] // 3
+    lo = roofs[1][1][5] // 3
+    print("wrote", path, "roof tris", hi, lo, "bytes", len(out))
+    return 312 + 352 + hi + 4 + 14, 24 + lo
+
 if __name__ == "__main__":
     # Pools are additive. EAGLE_POOLS_ONLY writes just those heroes so a
     # re-run does not rebuild the resort meshes already on main.
-    if os.environ.get("EAGLE_POOLS_ONLY"):
+    if os.environ.get("EAGLE_COSTA_ROOF") == "1":
+        hi, lo = retile_costa()
+        raw = open(MANIFEST).read()
+        raw2 = raw.replace('"costalinda_lod0": 834', '"costalinda_lod0": %d' % hi, 1)
+        raw2 = raw2.replace('"costalinda_lod1": 176', '"costalinda_lod1": %d' % lo, 1)
+        if raw2 == raw:
+            raise SystemExit("costa tris not found")
+        old = {e["id"]: e for e in json.loads(raw)}
+        new = {e["id"]: e for e in json.loads(raw2)}
+        bad = [i for i in old if i != "costalinda" and old[i] != new[i]]
+        if bad:
+            raise SystemExit("refusing to rewrite " + ",".join(bad[:6]))
+        open(MANIFEST, "w").write(raw2)
+        print("manifest", new["costalinda"]["tris"])
+    elif os.environ.get("EAGLE_POOLS_ONLY"):
         manifest = json.loads(open(MANIFEST).read())
         manifest = add_pool_detail(manifest)
         # Same bytes as the rest of the file: indent 1, no extra trailing newline.
