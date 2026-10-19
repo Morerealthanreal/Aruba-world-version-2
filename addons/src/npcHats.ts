@@ -66,18 +66,26 @@ function capGeometry() {
 
 function glassGeometry() {
   if (glassGeo) return glassGeo;
-  // Eye line is y 0.15. Hair bangs reach z 0.11, so the lenses sit just past that.
-  const left = new BoxGeometry(0.058, 0.034, 0.008);
-  left.translate(-0.036, 0.152, 0.122);
-  const right = new BoxGeometry(0.058, 0.034, 0.008);
-  right.translate(0.036, 0.152, 0.122);
-  const bridge = new BoxGeometry(0.018, 0.008, 0.006);
-  bridge.translate(0, 0.156, 0.118);
-  const merged = mergeGeometries([left, right, bridge], false);
-  left.dispose();
-  right.dispose();
-  if (merged) bridge.dispose();
-  glassGeo = paint(merged ?? bridge, LENS);
+  // The eye line on this rig is below the old forehead bar. A flattened
+  // lens sits on the eyes, with a bridge and short arms so it reads as glasses.
+  const left = new SphereGeometry(0.036, 10, 8);
+  left.scale(1.2, 0.68, 0.22);
+  left.translate(-0.04, 0.112, 0.12);
+  const right = new SphereGeometry(0.036, 10, 8);
+  right.scale(1.2, 0.68, 0.22);
+  right.translate(0.04, 0.112, 0.12);
+  const bridge = new BoxGeometry(0.02, 0.006, 0.006);
+  bridge.translate(0, 0.118, 0.114);
+  const armL = new BoxGeometry(0.008, 0.006, 0.055);
+  armL.translate(-0.074, 0.116, 0.086);
+  const armR = new BoxGeometry(0.008, 0.006, 0.055);
+  armR.translate(0.074, 0.116, 0.086);
+  const parts = [left, right, bridge, armL, armR];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  glassGeo = paint(merged ?? left, LENS);
   return glassGeo;
 }
 
@@ -94,15 +102,15 @@ function faceFor(skin: number) {
   const found = faceCache.get(skin);
   if (found) return found;
   const tone = new Color(skin);
-  const nose = paint(new BoxGeometry(0.016, 0.032, 0.016).translate(0, 0.112, 0.108), tone.getHex());
-  const brow = tone.clone().multiplyScalar(0.45).getHex();
-  const browL = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(-0.032, 0.176, 0.108), brow);
-  const browR = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(0.032, 0.176, 0.108), brow);
-  const lip = paint(new BoxGeometry(0.036, 0.01, 0.008).translate(0, 0.078, 0.104), tone.clone().multiplyScalar(0.55).getHex());
-  const eyeL = paint(new SphereGeometry(0.014, 8, 6).translate(-0.032, 0.15, 0.1), EYE);
-  const eyeR = paint(new SphereGeometry(0.014, 8, 6).translate(0.032, 0.15, 0.1), EYE);
-  const pupilL = paint(new SphereGeometry(0.007, 6, 5).translate(-0.032, 0.15, 0.112), PUPIL);
-  const pupilR = paint(new SphereGeometry(0.007, 6, 5).translate(0.032, 0.15, 0.112), PUPIL);
+  const nose = paint(new BoxGeometry(0.014, 0.028, 0.016).translate(0, 0.086, 0.112), tone.getHex());
+  const brow = tone.clone().multiplyScalar(0.32).getHex();
+  const browL = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(-0.036, 0.148, 0.124), brow);
+  const browR = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(0.036, 0.148, 0.124), brow);
+  const lip = paint(new BoxGeometry(0.052, 0.016, 0.014).translate(0, 0.062, 0.13), 0xb85a58);
+  const eyeL = paint(new SphereGeometry(0.016, 8, 6).translate(-0.034, 0.108, 0.104), EYE);
+  const eyeR = paint(new SphereGeometry(0.016, 8, 6).translate(0.034, 0.108, 0.104), EYE);
+  const pupilL = paint(new SphereGeometry(0.008, 6, 5).translate(-0.034, 0.108, 0.116), PUPIL);
+  const pupilR = paint(new SphereGeometry(0.008, 6, 5).translate(0.034, 0.108, 0.116), PUPIL);
   const parts = [nose, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
