@@ -116,31 +116,33 @@ def _rnd(n):
 
 def thatch_shag(mesh_a, mesh_b, F, u0, u1, v_edge, y0, rise):
     """One straw strip from the ridge to a ragged hem. No horizontal courses,
-    which read as planks from the side."""
+    which read as planks from the side. Strips are wide enough to cover the
+    hip, and there is one of them per step: a second overlapping strip only
+    added vertices, and the phone soak was still uploading geometries on the
+    measured lap."""
     s = 1 if v_edge >= 0 else -1
     V = abs(v_edge)
     u, k = u0, 1
     while u < u1 - 0.1:
-        w = 0.22 + 0.16 * _rnd(k)
-        for t in range(2):
-            r0, r1, r2 = _rnd(k + t * 5), _rnd(k + t + 2), _rnd(k + t * 3 + 7)
-            f_top = 0.72 + 0.26 * r0
-            v_top = s * V * (1 - f_top)
-            y_top = y0 + rise * f_top + 0.06
-            droop = 0.25 + 0.85 * r1
-            out = 0.55 + 0.95 * r2
-            v_bot = s * (V + 0.15 + 0.35 * r2)
-            y_bot = y0 - droop
-            skew = (r0 - 0.5) * 0.18
-            A = F.p(u + skew, v_top, y_top)
-            B = F.p(u + w + skew, v_top + s * 0.04, y_top - 0.03)
-            C = F.p(u + w * (0.55 + 0.3 * r1), v_bot + s * out, y_bot)
-            D = F.p(u + w * 0.08, v_bot + s * out * 0.65, y_bot - 0.2 * r0)
-            cen = F.p(u + w / 2, 0, y_top)
-            m = mesh_a if r2 > 0.42 else mesh_b
-            tri_out(m, A, B, C, cen)
-            tri_out(m, A, C, D, cen)
-        u += 0.24 + 0.1 * _rnd(k + 6)
+        r0, r1, r2 = _rnd(k * 5), _rnd(k + 2), _rnd(k * 3 + 7)
+        w = 0.55 + 0.22 * r0
+        f_top = 0.72 + 0.26 * r0
+        v_top = s * V * (1 - f_top)
+        y_top = y0 + rise * f_top + 0.06
+        droop = 0.25 + 0.85 * r1
+        out = 0.55 + 0.95 * r2
+        v_bot = s * (V + 0.15 + 0.35 * r2)
+        y_bot = y0 - droop
+        skew = (r0 - 0.5) * 0.18
+        A = F.p(u + skew, v_top, y_top)
+        B = F.p(u + w + skew, v_top + s * 0.04, y_top - 0.03)
+        C = F.p(u + w * (0.55 + 0.3 * r1), v_bot + s * out, y_bot)
+        D = F.p(u + w * 0.08, v_bot + s * out * 0.65, y_bot - 0.2 * r0)
+        cen = F.p(u + w / 2, 0, y_top)
+        m = mesh_a if r2 > 0.42 else mesh_b
+        tri_out(m, A, B, C, cen)
+        tri_out(m, A, C, D, cen)
+        u += w * 0.82
         k += 1
 
 
@@ -274,11 +276,10 @@ def person(M, F, u, v, y, shirt, shorts, skin="skin"):
 
 
 def chair(M, F, u, v, y, color, face=1):
-    """Wooden chair with a back, chunky enough for the drone."""
+    """Seat and back, chunky enough for the drone. Legs were four extra boxes
+    per chair and did not read at the board camera."""
     obox(M.mesh(0, color), F, u - 0.22, u + 0.22, v - 0.22, v + 0.22, y + 0.38, y + 0.48)
     obox(M.mesh(0, color), F, u - 0.2, u + 0.2, v + face * 0.12, v + face * 0.22, y + 0.46, y + 0.98)
-    obox(M.mesh(0, "wood"), F, u - 0.18, u - 0.1, v - 0.16, v - 0.08, y, y + 0.4)
-    obox(M.mesh(0, "wood"), F, u + 0.1, u + 0.18, v + 0.08, v + 0.16, y, y + 0.4)
 
 
 def seated(M, F, u, v, y, shirt, skin="skin"):
@@ -427,22 +428,21 @@ def build():
     # String lights under the hem, and lanterns in the open side. The night drone
     # looks into the south opening and sees the amber ceiling through it.
     for u0, u1, eave, _rise in roofs:
-        uu = u0 + 0.6
-        while uu < u1 - 0.4:
+        uu = u0 + 0.8
+        while uu < u1 - 0.6:
             for s in (-1, 1):
-                obox(M.mesh(0, "bulb"), F, uu - 0.11, uu + 0.11, s * (V + 0.35) - 0.11, s * (V + 0.35) + 0.11, eave - 0.72, eave - 0.28)
-                hquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.22), s * (V + 0.55), eave - 0.7)
-            uu += 1.7
+                # A face the side camera sees, plus a cap. A box was ten triangles
+                # for the same amber pixel, and that vertex load kept the phone
+                # uploading geometries on the measured soak lap.
+                vquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.48), eave - 0.95, eave - 0.42, s)
+                hquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.22), s * (V + 0.5), eave - 0.4)
+            uu += 2.4
         for s in (-1, 1):
             # Warm band just under the eave, above the furniture, facing the opening.
             vquad(M.mesh(0, "bulb"), F, u0 + 0.4, u1 - 0.4, s * (hv - 0.15), eave - 1.05, eave - 0.12, s)
         # Ceiling, plus the south opening itself, which is what the drone looks into.
         hquad(M.mesh(0, "bulb"), F, u0 + 0.8, u1 - 0.8, -2.4, 2.4, eave + 0.55, up=-1)
         vquad(M.mesh(0, "bulb"), F, u0 + 0.6, u1 - 0.6, -3.15, deck_y + 0.85, eave - 0.55, -1)
-        uu = u0 + 1.4
-        while uu < u1 - 1.0:
-            obox(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, -4.55, -4.15, eave - 1.45, eave - 0.55)
-            uu += 3.1
     # king posts and a light-blue plank ceiling under each hip
     for u0, u1, eave, rise in roofs:
         u = u0 + 4.2
@@ -457,7 +457,7 @@ def build():
     # Shag on the slope, and a short ragged hem. The hem must not close the open side.
     for u0, u1, eave, rise in roofs:
         for s in (V, -V):
-            fringe(M.mesh(0, "fringe"), F, u0 + 0.1, u1 - 0.1, s, eave, drop=0.72, out=1.45, step=0.58)
+            fringe(M.mesh(0, "fringe"), F, u0 + 0.1, u1 - 0.1, s, eave, drop=0.72, out=1.45, step=1.05)
             thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, u0 + 0.15, u1 - 0.1, s, eave, rise)
         fringe_end(M, F, u0 + 0.05, eave, V, rise)
         fringe_end(M, F, u1 - 0.05, eave, V, rise)
@@ -573,8 +573,8 @@ def build():
     info = write_glb(M, HERO / "bugaloe.glb", images=[png_bytes(png)])
     paint_bulb(HERO / "bugaloe.glb")
     check_glb(HERO / "bugaloe.glb")
-    if not (2500 <= info["lod0"] <= 14000):
-        print("WARN lod0", info["lod0"])
+    if not (2500 <= info["lod0"] <= 5600):
+        raise SystemExit(f"lod0 {info['lod0']} outside the phone budget")
     if info["lod1"] >= 600:
         raise SystemExit(f"lod1 {info['lod1']}")
     patch(info)
@@ -599,7 +599,7 @@ def patch(info):
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
     block = re.sub(r'"status": "[^"]*"',
-                    '"status": "v10-grokbot (ridge-to-hem shag, deck tables, hanging letters)"', block, count=1)
+                    '"status": "v11-grokbot (ridge-to-hem shag, one mesh, phone triangle budget)"', block, count=1)
     block = re.sub(r'"bugaloe_lod0": \d+', f'"bugaloe_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"bugaloe_lod1": \d+', f'"bugaloe_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(r'"switch_m": \d+', '"switch_m": 220', block, count=1)
