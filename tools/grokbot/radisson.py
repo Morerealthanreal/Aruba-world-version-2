@@ -28,13 +28,19 @@ O = (-7830.95, -6156.4)
 
 WHITE = (0.93, 0.93, 0.92)
 CREAM = (0.90, 0.86, 0.78)
+TAN = (0.78, 0.64, 0.46)
 GLASS = (0.55, 0.78, 0.90)
+PANE = (0.22, 0.28, 0.34)
+MULLION = (0.12, 0.13, 0.15)
+PAVER = (0.84, 0.82, 0.76)
 RAIL = (0.96, 0.97, 0.98)
 POOL = (0.20, 0.62, 0.82)
 DECK = (0.78, 0.74, 0.68)
 LAWN = (0.30, 0.58, 0.26)
 HEDGE = (0.14, 0.40, 0.18)
 FLOWER = (0.82, 0.28, 0.22)
+BLOOM = (0.95, 0.72, 0.18)
+PINK = (0.86, 0.42, 0.55)
 RED = (0.78, 0.16, 0.12)
 TRUNK = (0.40, 0.26, 0.14)
 FROND = (0.12, 0.40, 0.16)
@@ -89,8 +95,11 @@ def build():
         ("slab", WHITE, .6), ("rail", RAIL, .4), ("glass", GLASS, .15),
         ("fin", WHITE, .6), ("cream", CREAM, .75), ("pool", POOL, .2),
         ("deck", DECK, .85), ("lawn", LAWN, .9), ("hedge", HEDGE, .88),
-        ("flower", FLOWER, .8), ("red", RED, .6), ("trunk", TRUNK, .85),
+        ("flower", FLOWER, .8), ("bloom", BLOOM, .7), ("pink", PINK, .7),
+        ("red", RED, .6), ("trunk", TRUNK, .85),
         ("frond", FROND, .8), ("blue", BLUE, .4), ("sand", SAND, .9),
+        ("tan", TAN, .72), ("pane", PANE, .25), ("mullion", MULLION, .5),
+        ("paver", PAVER, .9),
     ):
         M.material(n, lin(c), rough=r)
     M.material("sign", (1, 1, 1), rough=.4, textured=True, emissive=.18)
@@ -114,25 +123,52 @@ def build():
     vquad(M.mesh(1, "sign"), BF, L * 0.36, L * 0.64, -hv - 0.12, top + 1.7, top + 4.0, -1,
           uvs=((1, 1), (0, 1), (0, 0), (1, 0)))
 
-    # Three-storey entrance, east of the tower, flat canopy, roof garden.
-    eu0, eu1 = L * 0.22, L * 0.78
-    ev0, ev1 = -hv - 28, -hv - 14
-    etop = GF + 3 * 3.4
+    # Two-storey glass entrance. Dark mullions, a deep tan canopy on columns,
+    # roof planters. Not the white slabs with blue bands.
+    eu0, eu1 = L * 0.18, L * 0.82
+    ev0, ev1 = -hv - 26, -hv - 12
+    etop = GF + 2 * 3.6
     for lod in (0, 1):
-        obox(M.mesh(lod, "cream"), BF, eu0, eu1, ev0, ev1, GF, etop)
-        obox(M.mesh(lod, "cream"), BF, eu0 - 2, eu1 + 2, ev0 - 6, ev0 + 1.2, etop - 0.4, etop + 0.35)
+        obox(M.mesh(lod, "tan"), BF, eu0, eu1, ev0, ev1, GF, etop)
+        # deep canopy, tan, projecting toward the drive. Thick enough that the
+        # fascia and the soffit read, the way the entrance photo does.
+        obox(M.mesh(lod, "tan"), BF, eu0 + 2, eu1 - 2, ev0 - 9.5, ev0 + 0.4, etop - 2.15, etop - 0.28)
+        obox(M.mesh(lod, "cream"), BF, eu0 - 0.4, eu1 + 0.4, ev0 - 0.3, ev1 + 0.3, etop - 0.15, etop + 0.45)
+    # window grid: dark panes with mullions, two floors, both sides of the canopy
     for f in range(2):
-        y0 = GF + 0.8 + f * 3.4
-        vquad(M.mesh(0, "glass"), BF, eu0 + 2, eu1 - 2, ev0 - 0.08, y0, y0 + 1.7, -1)
-    for i in range(5):
-        u = eu0 + 4 + i * (eu1 - eu0 - 8) / 4
-        obox(M.mesh(0, "cream"), BF, u - 0.35, u + 0.35, ev0 - 6, ev0, GF, etop)
-    for u, side in ((eu0 + 1, 1), (eu1 - 7, 1), (L * 0.4, -1), (L * 0.6, -1)):
-        obox(M.mesh(0, "hedge"), BF, u, u + 6, ev1 + side * 0.4, ev1 + side * 2.2, etop + 0.3, etop + 1.1)
-        obox(M.mesh(0, "red"), BF, u + 1.2, u + 4.2, ev1 + side * 0.8, ev1 + side * 1.8, etop + 1.0, etop + 1.35)
+        y0 = GF + 0.7 + f * 3.5
+        for u0, u1 in ((eu0 + 0.8, (eu0 + eu1) / 2 - 4.2), ((eu0 + eu1) / 2 + 4.2, eu1 - 0.8)):
+            vquad(M.mesh(0, "pane"), BF, u0, u1, ev0 - 0.06, y0, y0 + 1.85, -1)
+            vquad(M.mesh(0, "mullion"), BF, u0 - 0.12, u0, ev0 - 0.1, y0 - 0.08, y0 + 1.95, -1)
+            vquad(M.mesh(0, "mullion"), BF, u1, u1 + 0.12, ev0 - 0.1, y0 - 0.08, y0 + 1.95, -1)
+            vquad(M.mesh(0, "mullion"), BF, u0, u1, ev0 - 0.1, y0 - 0.1, y0 + 0.06, -1)
+            vquad(M.mesh(0, "mullion"), BF, u0, u1, ev0 - 0.1, y0 + 1.78, y0 + 1.95, -1)
+            cols = 4
+            for k in range(1, cols):
+                uu = u0 + (u1 - u0) * k / cols
+                vquad(M.mesh(0, "mullion"), BF, uu - 0.05, uu + 0.05, ev0 - 0.12, y0, y0 + 1.85, -1)
+            vquad(M.mesh(0, "mullion"), BF, u0, u1, ev0 - 0.12, y0 + 0.88, y0 + 0.98, -1)
+    for i, u in enumerate((
+        (eu0 + eu1) / 2 - 3.4, (eu0 + eu1) / 2 - 1.1, (eu0 + eu1) / 2 + 1.1, (eu0 + eu1) / 2 + 3.4,
+    )):
+        obox(M.mesh(0, "slab"), BF, u - 0.42, u + 0.42, ev0 - 9.4, ev0 - 8.2, GF, etop - 2.15)
+        obox(M.mesh(0, "tan"), BF, u - 0.42, u + 0.42, ev0 - 9.4, ev0 - 8.3, GF, GF + 0.7)
+    # roof garden: planters and red umbrellas
+    for u, side in ((eu0 + 0.6, 1), (eu1 - 8.5, 1)):
+        obox(M.mesh(0, "hedge"), BF, u, u + 7.2, ev1 - 1.6, ev1 + 0.3, etop + 0.4, etop + 1.15)
+        obox(M.mesh(0, "flower"), BF, u + 0.4, u + 6.6, ev1 - 1.3, ev1 - 0.2, etop + 1.05, etop + 1.4)
+        obox(M.mesh(0, "red"), BF, u + 2.2, u + 4.6, ev1 - 2.4, ev1 - 0.4, etop + 1.35, etop + 1.55)
+        obox(M.mesh(0, "red"), BF, u + 2.6, u + 4.2, ev1 - 2.2, ev1 - 0.6, etop + 1.55, etop + 2.5)
+    # low planter wall across the front, full of flowers
+    wall_v0, wall_v1 = ev0 - 14.5, ev0 - 13.1
+    obox(M.mesh(0, "cream"), BF, eu0 - 1, eu1 + 1, wall_v0, wall_v1, 0.2, 0.85)
+    blooms = ("flower", "bloom", "pink", "red", "bloom", "flower")
+    span = (eu1 - eu0) / len(blooms)
+    for i, name in enumerate(blooms):
+        obox(M.mesh(0, name), BF, eu0 + i * span, eu0 + (i + 1) * span - 0.15, wall_v0 - 0.15, wall_v1 + 0.15, 0.8, 1.25)
 
     # Glass sphere on a round fountain, in the drive.
-    fu, fv = (eu0 + eu1) / 2, ev0 - 12
+    fu, fv = (eu0 + eu1) / 2, ev0 - 22
     obox(M.mesh(0, "cream"), BF, fu - 4.5, fu + 4.5, fv - 1.6, fv + 1.6, 0.15, 0.7)
     obox(M.mesh(0, "pool"), BF, fu - 3.2, fu + 3.2, fv - 1.1, fv + 1.1, 0.7, 0.95)
     sphere = M.mesh(0, "glass")
@@ -152,8 +188,8 @@ def build():
             p10 = (c[0] + math.cos(t0) * rad1, y1, c[2] + math.sin(t0) * rad1)
             tri_out(sphere, p00, p01, p11, c)
             tri_out(sphere, p00, p11, p10, c)
-    hquad(M.mesh(0, "sand"), BF, eu0 - 8, eu1 + 8, ev0 - 20, ev0 - 4, 0.1)
-    hquad(M.mesh(1, "sand"), BF, eu0 - 4, eu1 + 4, ev0 - 18, ev0 - 6, 0.1)
+    for lod in (0, 1):
+        obox(M.mesh(lod, "paver"), BF, eu0 - 22, eu1 + 22, ev0 - 78, ev0 - 1.2, 0.0, 0.28)
 
     # Curved pool on the garden side of the tower.
     hquad(M.mesh(0, "deck"), BF, 6, L - 6, -hv - 16, -hv - 1, 0.12)
@@ -202,10 +238,11 @@ def patch(info):
     i = text.find('"id": "radisson"')
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
-    block = block.replace(
-        '"status": "v3-procedural (OSM footprint, photo/brand refs)"',
-        '"status": "v4-grokbot (white balcony tower, canopy entrance, pool)"',
-        1,
+    block = re.sub(
+        r'"status": "[^"]*"',
+        '"status": "v5-grokbot (dark-mullion entrance, tan canopy, pale pavers)"',
+        block,
+        count=1,
     )
     block = re.sub(r'"radisson_lod0": \d+', f'"radisson_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"radisson_lod1": \d+', f'"radisson_lod1": {info["lod1"]}', block, count=1)

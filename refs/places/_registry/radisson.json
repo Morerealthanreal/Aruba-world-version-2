@@ -3,7 +3,7 @@
  "id": "radisson",
  "k": "radisson",
  "name": "Radisson Blu Aruba",
- "status": "v4-grokbot (white balcony tower, canopy entrance, pool)",
+ "status": "v5-grokbot (dark-mullion entrance, tan canopy, pale pavers)",
  "x": -7830.95,
  "z": -6156.4,
  "y": 0,
@@ -15,8 +15,8 @@
   "switch_m": 300
  },
  "tris": {
-  "radisson_lod0": 2198,
-  "radisson_lod1": 152
+  "radisson_lod0": 2384,
+  "radisson_lod1": 170
  },
  "textures": 1,
  "hide_footprint": [
