@@ -2,6 +2,13 @@
 // this layer adds yielding/car-following/player avoidance, a denser quality-scaled
 // pool, and renders regular cars in batches instead of seven draws per car.
 // ?traffic=0 (or ?life=0) leaves A's original traffic untouched.
+// Lanes and roundabouts (task 5, off with ?lanes=0): A picks a random direction for every
+// car, so half the cars on one-way streets and roundabouts drove the wrong way (Aruba
+// drives on the right; OSM one-way / roundabout polylines run in the legal direction and
+// every roundabout ring in the data winds counter-clockwise). One-way roads now always
+// run forward. At the end of its road a car continues onto a connected road (legal
+// direction only) instead of vanishing, so cars enter, circulate and leave roundabouts.
+// The entry yield waits for a gap in ring traffic (and the player) instead of a fixed pause.
 import {
   Color, DynamicDrawUsage, InstancedMesh, Matrix4, Mesh, PlaneGeometry,
   type BufferGeometry, type Material, type Object3D,
@@ -55,11 +62,14 @@ const PAINT = [
 const WHITE = new Color(0xfff1d6);
 const RED = new Color(0xff2010);
 const IS_ROUNDABOUT = (r: Road) => !!r.rb;
+// same filter A uses for car spawns: drivable class, not unpaved
+const CAR_ROAD = (r: Road) => r.c >= 1 && !r.u;
 
 export class TrafficSystem {
   stats = {
     pooled: 0, visible: 0, yielding: 0, avoiding: 0,
     batches: 0, beamDraws: 0, quality: "",
+    wrongWayFixed: 0, chained: 0, rbEntered: 0, rbExited: 0, rbWaits: 0,
   };
   private amb: Amb | null = null;
   private states: CarState[] = [];
@@ -72,7 +82,64 @@ export class TrafficSystem {
   private beamMat = decalMaterial(0xfff0d0, this.beamI, true);
   private beams: InstancedMesh | null = null;
 
+  private noChain = new WeakSet<Car>();
+  private lanes = new URLSearchParams(location.search).get("lanes") !== "0";
+
   constructor(private g: AGame) {}
+
+  /** A one-way road (incl. every roundabout ring) only runs along its polyline. */
+  private legalize(car: Car) {
+    if (car.rd && car.rd.ow && car.dir < 0) { car.dir = 1; this.stats.wrongWayFixed++; }
+  }
+
+  /** Near the end of its road, hand the car to a connected road (legal direction only). */
+  private chain(car: Car, state: CarState): boolean {
+    const rd = car.rd, p = rd?.p;
+    // A parks a car it wants respawned at s = -1 (or it ran off the end): leave those to A
+    if (!rd || !p || p.length < 2 || !Number.isFinite(car.s) || !(car.L > 0) || car.s < 0 || car.s > car.L) return false;
+    const end = car.dir > 0 ? p[p.length - 1] : p[0];
+    const left = car.dir > 0 ? car.L - car.s : car.s;
+    if (left > 2 || this.noChain.has(car)) return false;
+    const opts: Array<{ r: Road; dir: number; at0: boolean }> = [];
+    for (const r of this.amb!.pick(end[0], end[1], CAR_ROAD, 14)) {
+      if (r === rd || r.p.length < 2) continue;
+      const a = r.p[0], b = r.p[r.p.length - 1];
+      if (Math.hypot(a[0] - end[0], a[1] - end[1]) < 4) opts.push({ r, dir: 1, at0: true });
+      else if (!r.ow && Math.hypot(b[0] - end[0], b[1] - end[1]) < 4) opts.push({ r, dir: -1, at0: false });
+    }
+    if (!opts.length) { this.noChain.add(car); return false; } // dead end: let A respawn it
+    // on a ring: keep circulating ~60 % of the time, otherwise take an exit; elsewhere prefer
+    // not to turn onto a ring segment that only leads back
+    const ring = opts.filter((o) => o.r.rb), off = opts.filter((o) => !o.r.rb);
+    const pickFrom = (list: typeof opts) => {
+      const k = (state.batchIndex * 7 + Math.floor(car.s * 13)) | 0; // never negative/NaN index
+      return list[((k % list.length) + list.length) % list.length];
+    };
+    let o: (typeof opts)[number];
+    if (rd.rb) o = ring.length && (!off.length || ((state.batchIndex + this.stats.chained) % 5) < 3) ? pickFrom(ring) : pickFrom(off);
+    else o = pickFrom(opts);
+    if (!o) { this.noChain.add(car); return false; } // nothing usable: old behaviour
+    const L = (this.amb as unknown as { len(r: Road): number }).len(o.r);
+    if (!(L > 0.6)) { this.noChain.add(car); return false; }
+    if (rd.rb && !o.r.rb) this.stats.rbExited++;
+    if (!rd.rb && o.r.rb) this.stats.rbEntered++;
+    car.rd = o.r; car.L = L; car.dir = o.dir; car.s = o.at0 ? 0.3 : L - 0.3;
+    this.stats.chained++;
+    return true;
+  }
+
+  /** Ring traffic (or the player) within reach of a roundabout entry point. */
+  private ringBusy(x: number, z: number, self: Car): boolean {
+    const cars = this.amb!.cars;
+    for (let j = 0; j < cars.length; j++) {
+      const o = cars[j];
+      if (o === self || !o.rd || !o.rd.rb || !o.g.visible) continue;
+      const dx = o.g.position.x - x, dz = o.g.position.z - z;
+      if (dx * dx + dz * dz < 16 * 16) return true;
+    }
+    const S = this.g.S, me = S.mode === "walk" ? S.walk : S.car;
+    return S.mode !== "plane" && Math.hypot(me.x - x, me.z - z) < 14;
+  }
 
   private start(): boolean {
     const amb = (this.g.real as unknown as { amb?: Amb }).amb;
@@ -181,6 +248,10 @@ export class TrafficSystem {
       const car = amb.cars[i];
       const state = this.stateByCar.get(car);
       if (!state) continue;
+      if (this.lanes && car.rd) {
+        if (car.rd !== state.rd) { this.noChain.delete(car); this.legalize(car); }
+        else if (this.chain(car, state)) this.legalize(car);
+      }
       if (car.rd !== state.rd) this.routeChanged(state);
       if (!car.rd) continue;
 
@@ -195,7 +266,13 @@ export class TrafficSystem {
         }
         if (state.yieldPhase === 1) {
           target = 0;
-          if (car.sp < 0.7 && (state.yieldTime -= dt) <= 0) state.yieldPhase = 2;
+          if (this.lanes) {
+            // give way to ring traffic: go once the ring is clear (min pause yieldTime, max 6 s)
+            const p = car.rd.p, end = car.dir > 0 ? p[p.length - 1] : p[0];
+            state.yieldTime -= dt;
+            if (car.sp < 0.7 && state.yieldTime <= 0 && (!this.ringBusy(end[0], end[1], car) || state.yieldTime < -6)) state.yieldPhase = 2;
+            else if (state.yieldTime <= 0) this.stats.rbWaits++;
+          } else if (car.sp < 0.7 && (state.yieldTime -= dt) <= 0) state.yieldPhase = 2;
         }
         yielding++;
       }
