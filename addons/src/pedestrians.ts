@@ -11,6 +11,7 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { AGame } from "./env";
 import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
+import { attachBeachWear } from "./npcHats";
 import { setOilSun } from "./npcOil";
 
 type Slot = {
@@ -182,6 +183,7 @@ export class PedestrianCrowds {
         idle.setEffectiveWeight(1);
         idle.time = (i * 0.37) % source.idle.duration;
         walk.time = (i * 0.37) % source.walk.duration;
+        attachBeachWear(root, i, source.skin, source.hair, source.female);
         this.g.scene.add(root);
         this.rigs.push({
           root, mixer, idle, walk,

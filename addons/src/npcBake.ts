@@ -19,7 +19,7 @@ export type BeachOutfit = {
 
 // Six different bodies. Skin tones are distinct on purpose.
 export const BEACH_OUTFITS: readonly BeachOutfit[] = [
-  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x3a2418, top: 0xf7f4ee, bottom: 0xe07a5f, shoe: 0xc4a574 },
+  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x8a3a22, top: 0xf7f4ee, bottom: 0x2f5d96, shoe: 0xc4a574 },
   { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x1a1412, top: 0x7eb6d9, bottom: 0xe6d2a8, shoe: 0x8a6244 },
   { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x4a3020, top: 0xf3efe4, bottom: 0x3d6f8f, shoe: 0xc4a574 },
   { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0xf7f3ea, bottom: 0xf2c14e, shoe: 0xb08968 },
@@ -35,6 +35,9 @@ export type BakedPerson = {
   idle: AnimationClip;
   walk: AnimationClip;
   triangles: number;
+  skin: number;
+  hair: number;
+  female: boolean;
 };
 
 function materialName(mesh: Mesh): string {
@@ -131,5 +134,13 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     mesh.geometry.dispose();
   }
   gl.scene.add(skin);
-  return { proto: gl.scene, idle: clip("Idle"), walk: clip("Walk"), triangles };
+  return {
+    proto: gl.scene,
+    idle: clip("Idle"),
+    walk: clip("Walk"),
+    triangles,
+    skin: outfit.skin,
+    hair: outfit.hair,
+    female: outfit.file.includes("/w-"),
+  };
 }
