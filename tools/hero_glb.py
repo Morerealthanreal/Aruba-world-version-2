@@ -25,6 +25,7 @@ class Mesh:
         self.nrm = []
         self.uv = []
         self.idx = []
+        self.col = []
         self.has_uv = False
 
     def tri(self, a, b, c, uvs=None):
@@ -168,7 +169,14 @@ def write_glb(model: Model, path, images=None):
     accessors = []
     materials = []
     mat_index = {}
+    used = set()
+    for lod in (0, 1):
+        for mat, mesh in model.lod[lod].items():
+            if mesh.tris:
+                used.add(mat)
     for name, (rgba, rough, double, emissive, textured) in model.mats.items():
+        if name not in used:
+            continue
         m = {
             "name": name,
             "pbrMetallicRoughness": {
@@ -212,6 +220,18 @@ def write_glb(model: Model, path, images=None):
             accessors.append({"bufferView": pv, "componentType": 5126, "count": len(mesh.pos), "type": "VEC3", "min": mn, "max": mx})
             accessors.append({"bufferView": nv, "componentType": 5126, "count": len(mesh.nrm), "type": "VEC3"})
             prim = {"attributes": {"POSITION": ip + 1, "NORMAL": ip + 2}, "indices": ip, "material": mat_index[mat], "mode": 4}
+            if mesh.col:
+                if len(mesh.col) != len(mesh.pos):
+                    raise SystemExit(f"{model.name} lod{lod} {mat} colors {len(mesh.col)} != verts {len(mesh.pos)}")
+                cb = b"".join(struct.pack("<3f", *c) for c in mesh.col)
+                cv = add_view(cb, 34962, 12)
+                cmn = [min(c[k] for c in mesh.col) for k in range(3)]
+                cmx = [max(c[k] for c in mesh.col) for k in range(3)]
+                accessors.append({
+                    "bufferView": cv, "componentType": 5126, "count": len(mesh.col),
+                    "type": "VEC3", "min": cmn, "max": cmx,
+                })
+                prim["attributes"]["COLOR_0"] = len(accessors) - 1
             if mesh.has_uv:
                 ub = b"".join(struct.pack("<2f", *u) for u in mesh.uv)
                 uv = add_view(ub, 34962, 8)
@@ -248,6 +268,41 @@ def write_glb(model: Model, path, images=None):
     body = body[:8] + struct.pack("<I", len(body)) + body[12:]
     Path(path).write_bytes(body)
     return {"lod0": model.tri_count(0), "lod1": model.tri_count(1), "bytes": len(body)}
+
+
+def fold_body(model, keep=()):
+    """Collapse every material not in `keep` into one vertex-coloured mesh per LOD.
+
+    Glass, signs and bulbs stay on their own materials so night lighting can
+    still find them by name. Triangle counts do not change; the phone soak
+    counts geometries, and a hero made of one mesh per colour uploads a
+    geometry for each.
+    """
+    keep = set(keep)
+    if "body" not in model.mats:
+        model.material("body", (1, 1, 1), rough=0.82)
+    for lod in (0, 1):
+        body = model.mesh(lod, "body")
+        if body.tris:
+            raise SystemExit(f"{model.name} lod{lod} body must start empty")
+        for name, mesh in list(model.lod[lod].items()):
+            if name in keep or name == "body" or mesh.tris == 0:
+                continue
+            if mesh.has_uv:
+                raise SystemExit(f"{model.name} lod{lod} {name} is textured; keep it out of the fold")
+            rgb = tuple(model.mats[name][0][:3])
+            base = len(body.pos)
+            body.pos.extend(mesh.pos)
+            body.nrm.extend(mesh.nrm)
+            body.col.extend([rgb] * len(mesh.pos))
+            body.idx.extend(i + base for i in mesh.idx)
+            mesh.pos.clear()
+            mesh.nrm.clear()
+            mesh.uv.clear()
+            mesh.idx.clear()
+            mesh.has_uv = False
+        if body.col and len(body.col) != len(body.pos):
+            raise SystemExit(f"{model.name} lod{lod} color mismatch")
 
 
 def check_glb(path):
