@@ -230,7 +230,7 @@ function buildSlots(): Slot[] {
   // A few metres east of each pool centroid so they stand on the deck, not in the water.
   const hotels: Array<[number, number]> = [
     [-8410, -5339], // Hilton pool deck
-    [-8280, -5328], // Hilton entrance
+    [-8208, -5328], // Hilton entrance, inland of the tower
     [-8468, -5192], // Riu Palace pool deck
     [-8436, -5174], // Riu Palace entrance
     [-8305, -5579], // Barceló pool deck
@@ -502,15 +502,20 @@ export class PedestrianCrowds {
 
   private plant(slot: Slot) {
     if (slot.anchorX != null) {
-      // A pool centroid can sample the hotel roof. Step toward the water
-      // until the ground is a deck or the sand in front of the entrance.
+      // A pool centroid can sample the hotel roof. Step toward the water,
+      // then inland, until the ground is a deck or the sand by the door.
+      const fit = (x: number) => {
+        const y = this.height(x, slot.z);
+        return y != null && y >= 0.3 && y <= 3.2 ? y : null;
+      };
       let x = slot.anchorX;
-      let y = this.height(x, slot.z);
-      for (let n = 0; n < 20 && (y == null || y < 0.3 || y > 3.2); n++) {
-        x -= 4;
-        y = this.height(x, slot.z);
+      let y = fit(x);
+      for (let n = 0; y == null && n < 28; n++) y = fit(x -= 4);
+      if (y == null) {
+        x = slot.anchorX;
+        for (let n = 0; y == null && n < 16; n++) y = fit(x += 4);
       }
-      if (y == null || y < 0.25 || y > 3.2) return;
+      if (y == null) return;
       slot.x = x;
       slot.y = y;
       slot.placed = true;
