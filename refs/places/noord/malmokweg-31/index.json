@@ -1,0 +1,41 @@
+{
+ "place": "malmokweg-31",
+ "area": "noord",
+ "photos": [
+  {
+   "file": "front.jpg",
+   "source_url": "https://www.google.com/maps/@12.6006127,-70.0448912,3a,75y,350h,90t/data=!3m6!1e1!3m4!1sCIHM0ogKEICAgIDOq-GThgE!2e0!7i16384!8i8192",
+   "license": "unknown - reference only",
+   "credit": "Google Maps contributor photo, July 2022 (pano CIHM0ogKEICAgIDOq-GThgE)",
+   "lat": 12.600613,
+   "lon": -70.044891,
+   "heading": 350,
+   "date": "2022-07",
+   "shows": "Malmokweg house 31 from the street: beige single-storey hip villa, tall perimeter wall, black vertical-bar fence and double gate, palms, white pickup behind the east bars",
+   "original_path": "/tmp/fac-left.jpg"
+  },
+  {
+   "file": "satellite.jpg",
+   "source_url": "https://www.google.com/maps/@12.60055,-70.0449,131m/data=!3m1!1e3",
+   "license": "unknown - reference only",
+   "credit": "Google Maps satellite",
+   "lat": 12.60055,
+   "lon": -70.0449,
+   "heading": null,
+   "date": null,
+   "shows": "Roof plan of the Malmokweg block around house 31, north of the carriageway",
+   "original_path": "/opt/cursor/artifacts/malmokweg-east/sat.jpg"
+  },
+  {
+   "file": "compare.jpg",
+   "source_url": null,
+   "license": "unknown - reference only",
+   "credit": "Top: July 2022 street photo of Malmokweg 31. Bottom: in-game view from 1.6 m eye height, 9 m south of the wall, 60 degree vertical field of view, horizon horizontal, wall in the lower third.",
+   "lat": 12.600613,
+   "lon": -70.044891,
+   "heading": 350,
+   "date": "2022-07",
+   "shows": "Close street frame: 1.2 m stucco wall with 1 m iron bays and square pillars, tall black double gate at 31, dark solid sliding gate on the left, beige and white hips in dark red-brown tile courses, white two-storey open balcony bays with columns, drooping palms and a dark bush mass to the east, and a white pickup (cab, bed, wheels) behind the east bars"
+  }
+ ]
+}
