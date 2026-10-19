@@ -33,6 +33,10 @@ type Slot = {
   placed: boolean;
   /** Hotel deck or door. Stays on this x instead of walking inland from the coast. */
   anchorX: number | null;
+  /** Sand height used until the Noord heightfield streams in. */
+  fallbackY: number | null;
+  /** Standing on fallbackY, still waiting for a real ground sample. */
+  provisional: boolean;
 };
 
 type SitBone = { bone: Object3D; rest: Quaternion };
@@ -224,11 +228,13 @@ function buildSlots(): Slot[] {
       yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
       x: 0, y: 0, placed: false,
       anchorX: null,
+      fallbackY: null,
+      provisional: false,
     });
   };
   // Deck rims and doors. Read from the hotel heroes; this file does not move them.
   // A few metres east of each pool centroid so they stand on the deck, not in the water.
-  const hotels: Array<[number, number]> = [
+  const hotels: Array<[number, number, number?]> = [
     [-8410, -5339], // Hilton pool deck
     [-8208, -5328], // Hilton entrance, inland of the tower
     [-8468, -5192], // Riu Palace pool deck
@@ -242,16 +248,18 @@ function buildSlots(): Slot[] {
     [-8146, -6209], // Holiday Inn pool deck
     [-8110, -6229], // Holiday Inn entrance
     [-7998, -6567], // Marriott pool deck (Noord end of the strip)
-    [-7984, -6711], // Marriott entrance
+    [-8100, -6711, 2.3], // Marriott entrance, sand west of the tower
     [-7920, -6441], // Marriott Surf Club
   ];
-  hotels.forEach(([x, z], i) => {
+  hotels.forEach(([x, z, fallbackY], i) => {
     slots.push({
       z0: z, z, inland: 0, mode: 1, phase: (i * 0.29) % 1, pinned: true,
       dir: 1,
       yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
-      x, y: 0, placed: false,
+      x, y: fallbackY ?? 0, placed: false,
       anchorX: x,
+      fallbackY: fallbackY ?? null,
+      provisional: false,
     });
   });
   // Dense group on the sand at the Palm Beach photo spot, so a standing
@@ -515,10 +523,19 @@ export class PedestrianCrowds {
         x = slot.anchorX;
         for (let n = 0; y == null && n < 16; n++) y = fit(x += 4);
       }
-      if (y == null) return;
+      if (y == null) {
+        // Noord is not streamed yet. Stand on the measured sand instead of y 0.
+        if (slot.fallbackY == null) return;
+        slot.x = slot.anchorX;
+        slot.y = slot.fallbackY;
+        slot.placed = true;
+        slot.provisional = true;
+        return;
+      }
       slot.x = x;
       slot.y = y;
       slot.placed = true;
+      slot.provisional = false;
       return;
     }
     let inland = slot.inland;
@@ -593,7 +610,7 @@ export class PedestrianCrowds {
         // Slots the car is nowhere near stay where they were planted.
         if (!slot.placed || Math.abs(slot.z - before) > 8) slot.placed = false;
       }
-      if (!slot.placed) this.plant(slot);
+      if (!slot.placed || slot.provisional) this.plant(slot);
     }
 
     const near: number[] = [];
