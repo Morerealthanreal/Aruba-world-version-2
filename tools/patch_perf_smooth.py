@@ -88,7 +88,8 @@ if 'for(let t of[...this.regions.values()])' in s:
         "regionsSpread")
 
 # A hero that replaces a landmark used to detach the sign mesh and leave its geometry
-# registered on the GPU. dispose() drops it. Shared sign textures stay on the landmark.
+# registered on the GPU. dispose() drops it. The canvas is released below; shared
+# post, base, and canopy materials are not.
 if "o.geometry&&o.geometry.dispose()" not in s:
     rep(
         "r.hero=t,r._g&&(e.group.remove(r._g),r._g=null)",
@@ -98,6 +99,35 @@ if "o.geometry&&o.geometry.dispose()" not in s:
         "a._g&&=(i.group.remove(a._g),null)",
         "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)",
         "heroSignUpdate")
+
+# Geometry-only dispose left the landmark canvas uploaded. The brand list then
+# built a replacement sign at the hero's height, so the measured lap counted
+# the old texture and the new one. Release the canvas once. Shared post, base,
+# and canopy materials are skipped. __awGone stops a second face of the same
+# board from disposing that texture again.
+SIGN_TEX = (
+    "o.material&&[].concat(o.material).forEach(t=>{"
+    "if(t===POST||t===BASE||t===GAS)return;let x=t.map;"
+    "if(x&&x.dispose&&!x.__awGone){x.__awGone=1;t.emissiveMap===x&&(t.emissiveMap=null);x.dispose();x.image=null;t.map=null}})"
+)
+def sign_tex(shared):
+    return SIGN_TEX.replace("POST", shared[0]).replace("BASE", shared[1]).replace("GAS", shared[2])
+OLD_UPDATE = "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)"
+NEW_UPDATE = (
+    "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
+    + sign_tex(("i.post", "i.base", "i.gasW"))
+    + ")}),a._tex=null,null)"
+)
+OLD_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)"
+NEW_INIT = (
+    "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
+    + sign_tex(("e.post", "e.base", "e.gasW"))
+    + ")}),r._tex=null,r._g=null)"
+)
+if OLD_UPDATE in s:
+    rep(OLD_UPDATE, NEW_UPDATE, "heroSignTexUpdate")
+if OLD_INIT in s:
+    rep(OLD_INIT, NEW_INIT, "heroSignTexInit")
 
 if 'x.__awGone' not in s:
     rep(
