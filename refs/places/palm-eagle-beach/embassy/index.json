@@ -1,0 +1,30 @@
+{
+  "place": "embassy",
+  "area": "palm-eagle-beach",
+  "photos": [
+    {
+      "file": "exterior-1.jpg",
+      "source_url": "https://stories.hilton.com/releases/embassy-suites-by-hilton-debuts-in-aruba",
+      "image_url": "https://stories.hilton.com/uploads/2023/01/Embassy-Suites-by-Hilton-Aruba-Resort-Exterior-1.jpg",
+      "license": "Hilton / stories.hilton.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Hilton Stories, Embassy Suites by Hilton Aruba Resort Exterior-1",
+      "lat": 12.5754,
+      "lon": -70.0456,
+      "heading": "along the beach face, palms in front",
+      "date": "2023-01",
+      "shows": "white curved balcony slab, glass rails, two brown picture-frame stacks, palms"
+    },
+    {
+      "file": "exterior-2.jpg",
+      "source_url": "https://stories.hilton.com/releases/embassy-suites-by-hilton-debuts-in-aruba",
+      "image_url": "https://stories.hilton.com/uploads/2023/01/Embassy-Suites-by-Hilton-Aruba-Resort-Exterior-2.jpg",
+      "license": "Hilton / stories.hilton.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Hilton Stories, Embassy Suites by Hilton Aruba Resort Exterior-2",
+      "lat": 12.5754,
+      "lon": -70.0456,
+      "heading": "up the facade from the garden side",
+      "date": "2023-01",
+      "shows": "white overhangs, glass balcony rails, brown frames stacked at different heights"
+    }
+  ]
+}
