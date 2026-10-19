@@ -116,9 +116,9 @@ async function main() {
   const snsacrecent = params.get("snsacrecent") === "1" ? new SnSacRecentMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
-  // Route from a minimap tap. Off unless ?nav=sg. Nothing is built when the flag is absent.
+  // Route from a minimap tap. On by default; ?nav=0 disables it. Nothing is built when disabled.
   let nav: Navigator | null = null;
-  if (params.get("nav") === "sg") {
+  if (params.get("nav") !== "0") {
     const data = (g as unknown as { DATA?: { roads?: Array<{ p?: number[][]; n?: string } | number[][]> } }).DATA;
     const roads = (data?.roads || []).map((r) => {
       const pts = (Array.isArray(r) ? r : r.p || []) as number[][];
@@ -130,7 +130,7 @@ async function main() {
       const canvas = document.getElementById("minimap") as HTMLCanvasElement | null;
       const host = window as unknown as { __awMiniMap?: (x: number, z: number, h: number, ...rest: never[]) => void };
       const prev = host.__awMiniMap;
-      // The current minimap has no overlay hook. Draw the route after its own pass, still only when ?nav=sg.
+      // The current minimap has no overlay hook. Draw the route after its own pass, unless ?nav=0.
       host.__awMiniMap = (x, z, h, ...rest) => {
         prev?.(x, z, h, ...rest);
         if (!canvas) return;
