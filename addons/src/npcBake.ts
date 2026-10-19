@@ -60,16 +60,26 @@ function materialName(mesh: Mesh): string {
   return mat?.name || "";
 }
 
-function paint(geo: BufferGeometry, hex: number) {
+function paint(geo: BufferGeometry, hex: number, kind: number) {
   const color = new Color(hex);
   const n = geo.getAttribute("position").count;
   const data = new Float32Array(n * 3);
+  const kinds = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     data[i * 3] = color.r;
     data[i * 3 + 1] = color.g;
     data[i * 3 + 2] = color.b;
+    kinds[i] = kind;
   }
   geo.setAttribute("color", new Float32BufferAttribute(data, 3));
+  geo.setAttribute("awKind", new Float32BufferAttribute(kinds, 1));
+}
+
+function surfaceKind(name: string): number {
+  if (name === "Skin" || name === "Skin_Darker") return 1;
+  if (HAIR.has(name)) return 3;
+  if (EYES.has(name)) return 5;
+  return 2;
 }
 
 function yRange(geo: BufferGeometry) {
@@ -111,10 +121,10 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     const hex = clothColor(outfit, name, range.min, range.max);
     if (hex == null) return;
     const geo = src.clone();
-    paint(geo, hex);
+    paint(geo, hex, surfaceKind(name));
     if (!geo.getAttribute("skinIndex") || !geo.getAttribute("skinWeight") || !geo.getIndex()) return;
     for (const key of Object.keys(geo.attributes)) {
-      if (key !== "position" && key !== "normal" && key !== "uv" && key !== "skinIndex" && key !== "skinWeight" && key !== "color") {
+      if (key !== "position" && key !== "normal" && key !== "uv" && key !== "skinIndex" && key !== "skinWeight" && key !== "color" && key !== "awKind") {
         geo.deleteAttribute(key);
       }
     }
