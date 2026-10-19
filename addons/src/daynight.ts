@@ -1,7 +1,7 @@
 // Day/night cycle for A's scene, driven by the solar model in day.ts.
 //  - sky: the procedural dome (sky.ts) is the backdrop all day; A's HDR stays loaded as the
 //    image-based light only, rotated so its bright side follows the sun's bearing;
-//  - sun: real bearing/elevation, colour and strength from air mass (deep orange and weak at
+//  - sun: real bearing/elevation for the calendar date (day.ts setSolarDate), colour and strength from air mass (deep orange and weak at
 //    the horizon, A's own white-gold above ~40 deg); the key light is floored at 4 deg so
 //    shadows never stretch across the whole shadow map;
 //  - dusk: the sun light fades out before it hands over to the moon (both are ~0 at the
@@ -11,7 +11,8 @@
 // Everything is a continuous function of sun elevation and nothing allocates per frame.
 import { AmbientLight, Color, Vector3 } from "three";
 import type { AGame } from "./env";
-import { makeSample, sampleDay, smooth, type DaySample } from "./day";
+import { params } from "./env";
+import { makeSample, sampleDay, setSolarDate, smooth, solarDateFromParams, type DaySample } from "./day";
 import { makeSky, type Sky } from "./sky";
 import { uNight, uStars, uTime } from "./uniforms";
 
@@ -57,6 +58,7 @@ export class DayNight {
 
   constructor(g: AGame, sunDisc = true) {
     this.g = g;
+    setSolarDate(solarDateFromParams(params.get("date"))); // real sun path for today (or ?date=)
     const sky = g.real!.sky;
     const sd = sky.sunDir.clone().normalize();
     this.base = {

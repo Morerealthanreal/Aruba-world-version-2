@@ -6,6 +6,7 @@
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
+import { Weather } from "./weather";
 import { NightLights } from "./nightLights";
 import { FpsGuard } from "./fpsGuard";
 import { Preload } from "./preload";
@@ -90,6 +91,7 @@ async function main() {
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
   const dn = useDN ? new DayNight(g, params.get("sun") !== "0") : null;
+  const weather = dn && params.get("weather") !== "0" ? new Weather(g, dn) : null;
   const lights = useDN ? new NightLights(g) : null;
   const lamps = useDN ? new LampGlow(g) : null;
   const traffic = useLife && params.get("traffic") !== "0" ? new TrafficSystem(g) : null;
@@ -173,7 +175,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { blockDedupe, clock, dn, weather, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -182,6 +184,7 @@ async function main() {
     uTime.value += dt;
     clock.step(Math.min(dt, 0.1));
     if (dn) dn.apply(clock.t);
+    if (weather) weather.update(clock.t);
     if (lights) lights.update(dt);
     if (lamps) lamps.update(dt);
     if (traffic) traffic.update(dt);
