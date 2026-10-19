@@ -643,10 +643,11 @@ export class PerfFixes {
       for (const g of lods) add(g);
     };
     const world = this.real as unknown as { ovBlocks?: Obj[] };
-    for (const block of world.ovBlocks || []) {
-      add(block.geometry);
-      lodsOf(block);
-    }
+    // Only the geometry currently on the block. Dormant LOD buffers are never
+    // disposed, and registering them raised Boutique Low to 130.5 renderer
+    // geometries against an allowance of 12. The live one is registered
+    // before a swap disposes it.
+    for (const block of world.ovBlocks || []) add(block.geometry);
     for (const r of this.real.regions.values()) {
       if (batch.length >= limit) break;
       const extra = r as Reg & { chunks?: { mesh?: Obj | null }[]; roadMesh?: Obj };
