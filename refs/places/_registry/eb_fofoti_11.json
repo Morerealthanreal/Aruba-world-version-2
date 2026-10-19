@@ -1,5 +1,6 @@
 {
  "_ord": 1036,
+ "rev": "h202610201800",
  "id": "eb_fofoti_11",
  "k": "eb_fofoti_11",
  "name": "Fofoti (divi) trees along Eagle Beach parking/sand",
@@ -15,7 +16,7 @@
   "switch_m": 400
  },
  "tris": {
-  "eb_fofoti_11_lod0": 248,
+  "eb_fofoti_11_lod0": 312,
   "eb_fofoti_11_lod1": 36
  },
  "textures": 0,

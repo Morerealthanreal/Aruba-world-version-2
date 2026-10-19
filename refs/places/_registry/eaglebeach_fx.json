@@ -1,5 +1,6 @@
 {
  "_ord": 196,
+ "rev": "h202610201800",
  "id": "eaglebeach_fx",
  "k": "eaglebeach_fx",
  "name": "Fofoti Trees & Palapas (Eagle Beach)",
@@ -15,7 +16,7 @@
   "switch_m": 394
  },
  "tris": {
-  "eaglebeach_fx_lod0": 1352,
+  "eaglebeach_fx_lod0": 1592,
   "eaglebeach_fx_lod1": 265
  },
  "textures": 0,

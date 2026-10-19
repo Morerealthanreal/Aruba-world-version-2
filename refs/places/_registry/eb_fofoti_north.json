@@ -1,5 +1,6 @@
 {
  "_ord": 1361,
+ "rev": "h202610201800",
  "id": "eb_fofoti_north",
  "k": "eb_fofoti_north",
  "name": "Divi-divi on the sand north of the Eagle Beach fofoti",
@@ -15,7 +16,7 @@
   "switch_m": 220
  },
  "tris": {
-  "eb_fofoti_north_lod0": 248,
+  "eb_fofoti_north_lod0": 312,
   "eb_fofoti_north_lod1": 36
  },
  "textures": 0,

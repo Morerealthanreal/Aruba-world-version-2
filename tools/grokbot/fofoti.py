@@ -19,9 +19,9 @@ ROOT = Path(__file__).resolve().parents[2]
 HERO = ROOT / "game" / "models" / "hero"
 MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 
-BARK = (0.42, 0.40, 0.38)
-ROOT = (0.32, 0.30, 0.28)
-LEAF = (0.20, 0.46, 0.18)
+BARK = (0.70, 0.68, 0.64)
+ROOT = (0.55, 0.53, 0.50)
+LEAF = (0.16, 0.36, 0.12)
 SAND = (0.93, 0.88, 0.76)
 THATCH = (0.72, 0.55, 0.28)
 THATCH_D = (0.55, 0.40, 0.18)
@@ -86,36 +86,38 @@ def tree(M, ox, oz, scale=1.0, spin=0.0, detail=True):
         return [yaw((x * scale, y * scale, z * scale), spin, origin) for x, y, z in path]
 
     trunk = [
-        (0.55, 0.15, 0.15), (0.15, 0.9, -0.05), (-0.7, 1.7, 0.1),
-        (-2.1, 2.35, -0.08), (-3.8, 2.6, 0.05), (-5.6, 2.5, -0.04), (-6.8, 2.35, 0.02),
+        (0.35, 0.25, 0.05), (0.05, 1.25, 0.0), (-1.1, 1.9, 0.08),
+        (-3.2, 2.05, -0.06), (-5.6, 1.85, 0.05), (-8.0, 1.65, -0.04), (-10.2, 1.5, 0.02),
     ]
-    sides = 6 if detail else 4
-    tube(M.mesh(0, "bark"), P(trunk), 0.48 * scale, 0.10 * scale, sides)
-    tube(M.mesh(1, "bark"), P(trunk[::2]), 0.42 * scale, 0.12 * scale, 4)
+    sides = 7 if detail else 4
+    tube(M.mesh(0, "bark"), P(trunk), 0.95 * scale, 0.32 * scale, sides)
+    tube(M.mesh(1, "bark"), P(trunk[::2]), 0.85 * scale, 0.36 * scale, 4)
     if detail:
         roots = [
-            [(0.4, 0.2, 0.1), (1.3, 0.12, 0.7), (2.4, 0.06, 1.3)],
-            [(0.45, 0.18, 0.0), (1.5, 0.08, -0.5), (2.6, 0.05, -1.1)],
-            [(0.3, 0.22, 0.2), (0.2, 0.08, 1.2), (-0.2, 0.04, 2.1)],
-            [(0.5, 0.16, -0.1), (1.1, 0.06, -1.3), (1.6, 0.04, -2.2)],
-            [(0.2, 0.25, 0.05), (-0.4, 0.1, 0.8), (-1.1, 0.05, 1.4)],
+            [(0.7, 0.35, 0.15), (1.8, 0.16, 1.1), (3.2, 0.06, 2.0)],
+            [(0.75, 0.3, -0.1), (2.0, 0.12, -0.9), (3.4, 0.05, -1.8)],
+            [(0.4, 0.32, 0.3), (0.1, 0.1, 1.6), (-0.6, 0.05, 2.8)],
+            [(0.6, 0.28, -0.2), (1.4, 0.1, -1.7), (2.1, 0.05, -2.9)],
+            [(0.2, 0.4, 0.05), (-0.8, 0.14, 1.1), (-1.8, 0.05, 2.0)],
+            [(0.5, 0.22, 0.4), (1.6, 0.08, 0.2), (2.8, 0.04, 0.15)],
         ]
         for path in roots:
-            tube(M.mesh(0, "root"), P(path), 0.16 * scale, 0.04 * scale, 4)
+            tube(M.mesh(0, "root"), P(path), 0.36 * scale, 0.1 * scale, 5)
         clumps = [
-            (-2.4, 2.85, 0.15, 2.2, 0.7, 1.6),
-            (-4.0, 2.75, -0.1, 2.6, 0.65, 1.8),
-            (-5.6, 2.6, 0.1, 2.4, 0.55, 1.5),
-            (-6.6, 2.45, -0.05, 1.6, 0.4, 1.1),
-            (-3.2, 3.05, -0.7, 1.4, 0.45, 1.0),
+            (-3.0, 2.35, 0.0, 3.6, 0.55, 3.0),
+            (-6.2, 2.1, 0.1, 4.4, 0.5, 3.4),
+            (-9.0, 1.9, -0.05, 3.4, 0.42, 2.8),
+            (-5.2, 2.45, 1.8, 2.6, 0.38, 1.6),
+            (-5.6, 2.4, -1.8, 2.8, 0.38, 1.7),
+            (-8.2, 2.15, 1.5, 2.2, 0.32, 1.5),
         ]
         leaf = M.mesh(0, "leaf")
         for x, y, z, rx, ry, rz in clumps:
             px, py, pz = yaw((x * scale, y * scale, z * scale), spin, origin)
             box(leaf, px, py, pz, rx * scale, ry * scale, rz * scale)
     leaf1 = M.mesh(1, "leaf")
-    px, py, pz = yaw((-4.6 * scale, 2.7 * scale, 0), spin, origin)
-    box(leaf1, px, py, pz, 5.2 * scale, 0.7 * scale, 2.2 * scale)
+    px, py, pz = yaw((-6.4 * scale, 2.05 * scale, 0), spin, origin)
+    box(leaf1, px, py, pz, 9.2 * scale, 0.7 * scale, 4.4 * scale)
 
 
 def rock(M, x, z, s=0.7):
@@ -123,8 +125,9 @@ def rock(M, x, z, s=0.7):
 
 
 def chair(M, x, z):
-    box(M.mesh(0, "chair"), x, 0.42, z, 0.55, 0.12, 0.55)
-    box(M.mesh(0, "chair"), x + 0.22, 0.7, z, 0.08, 0.5, 0.5)
+    # Beach chair, long enough to read next to a person-height hut.
+    box(M.mesh(0, "chair"), x, 0.42, z, 0.72, 0.1, 1.7)
+    box(M.mesh(0, "chair"), x, 0.78, z + 0.72, 0.72, 0.62, 0.1)
 
 
 def flag(M, x, z):
@@ -136,9 +139,9 @@ def flag(M, x, z):
 
 def gazebo(M, x, z):
     """Open wooden hut from the 2019 beach photo: four posts and a hip roof."""
-    for dx, dz in ((-1.3, -1.3), (1.3, -1.3), (1.3, 1.3), (-1.3, 1.3)):
-        box(M.mesh(0, "wood"), x + dx, 1.15, z + dz, 0.12, 2.3, 0.12)
-        box(M.mesh(1, "wood"), x + dx, 1.15, z + dz, 0.16, 2.3, 0.16)
+    for dx, dz in ((-1.6, -1.6), (1.6, -1.6), (1.6, 1.6), (-1.6, 1.6)):
+        box(M.mesh(0, "wood"), x + dx, 1.35, z + dz, 0.22, 2.7, 0.22)
+        box(M.mesh(1, "wood"), x + dx, 1.35, z + dz, 0.28, 2.7, 0.28)
     wood = M.mesh(0, "wood")
     y0, peak = 2.25, 3.15
     corners = [(x - 1.6, y0, z - 1.6), (x + 1.6, y0, z - 1.6), (x + 1.6, y0, z + 1.6), (x - 1.6, y0, z + 1.6)]
@@ -152,15 +155,15 @@ def gazebo(M, x, z):
 def palapa(M, x, z, detail=True):
     """Round thatch hut: posts, layered cap, ragged fringe, a bench."""
     post = M.mesh(0 if detail else 1, "wood")
-    for dx, dz in ((-0.7, -0.7), (0.7, -0.7), (0.7, 0.7), (-0.7, 0.7)):
-        box(post, x + dx, 1.15, z + dz, 0.1, 2.3, 0.1)
+    for dx, dz in ((-1.15, -1.15), (1.15, -1.15), (1.15, 1.15), (-1.15, 1.15)):
+        box(post, x + dx, 1.35, z + dz, 0.22, 2.7, 0.22)
     if not detail:
-        box(M.mesh(1, "thatch"), x, 2.5, z, 3.2, 0.45, 3.2)
+        box(M.mesh(1, "thatch"), x, 2.9, z, 5.2, 0.55, 5.2)
         return
     thatch = M.mesh(0, "thatch")
     dark = M.mesh(0, "thatchd")
     sides = 8
-    layers = [(2.15, 1.7), (2.45, 1.25), (2.75, 0.7), (2.95, 0.2)]
+    layers = [(2.45, 2.55), (2.8, 1.9), (3.15, 1.15), (3.4, 0.35)]
     rings = []
     for y, r in layers:
         ring = []
@@ -174,11 +177,11 @@ def palapa(M, x, z, detail=True):
             (thatch if i % 2 == 0 else dark).quad(
                 rings[i][k], rings[i][j], rings[i + 1][j], rings[i + 1][k],
             )
-    top = (x, 3.15, z)
+    top = (x, 3.65, z)
     for k in range(sides):
         thatch.tri(top, rings[-1][k], rings[-1][(k + 1) % sides])
     # ragged hem
-    y, r = 2.15, 1.7
+    y, r = 2.45, 2.55
     for i in range(sides):
         a0 = i / sides * math.tau
         a1 = (i + 0.7) / sides * math.tau
@@ -189,8 +192,8 @@ def palapa(M, x, z, detail=True):
         t1 = (x + math.cos(a1) * (r + 0.15), y - drop, z + math.sin(a1) * (r + 0.15))
         dark.quad(b0, b1, t1, t0)
     box(M.mesh(0, "wood"), x, 0.42, z, 1.3, 0.08, 0.45)
-    box(M.mesh(1, "thatch"), x, 2.5, z, 3.2, 0.4, 3.2)
-    box(M.mesh(1, "wood"), x, 1.15, z, 0.16, 2.3, 0.16)
+    box(M.mesh(1, "thatch"), x, 2.9, z, 5.2, 0.55, 5.2)
+    box(M.mesh(1, "wood"), x, 1.35, z, 0.24, 2.7, 0.24)
 
 
 def sand(M, x0, x1, z0, z1, lod=0):
@@ -218,8 +221,10 @@ def build_scene():
     rock(M, 4.2, -5.2, 0.9)
     rock(M, 3.4, -7.4, 0.55)
     rock(M, 1.2, 5.5, 0.6)
-    chair(M, -2.2, -5.5)
-    chair(M, -2.4, -4.6)
+    chair(M, -1.2, -7.2)
+    chair(M, -1.4, -5.2)
+    chair(M, 0.6, -8.4)
+    chair(M, 5.5, 2.5)
     gazebo(M, 8.0, -2.0)
     flag(M, 6.2, 1.5)
     flag(M, 9.4, 2.2)
