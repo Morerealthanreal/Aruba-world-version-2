@@ -4,8 +4,10 @@
 Same hero id and origin. The 2015 street photo
 (refs/places/palm-eagle-beach/riu/riu_palace_2015.jpg) shows a white slab
 with a deep balcony grid, red RIU letters on the roof corner, and a lower
-white podium with a red band. The letters are drawn. Nothing is a pasted
-photograph. Cars in the foreground are not part of the building.
+white podium. A small red CASINO sign sits on that podium. The street in
+front is asphalt, with parked cars, a bus shelter, and a row of palms.
+The letters are drawn. Nothing is a pasted photograph. Cars are boxes,
+not people.
 """
 import json
 import math
@@ -33,9 +35,15 @@ GLASS = (0.22, 0.30, 0.38)
 RED = (0.78, 0.10, 0.12)
 HEDGE = (0.16, 0.42, 0.18)
 LAWN = (0.32, 0.58, 0.24)
-PAVER = (0.62, 0.60, 0.56)
+PAVER = (0.72, 0.70, 0.66)
+ASPHALT = (0.22, 0.23, 0.24)
 TRUNK = (0.40, 0.26, 0.14)
 FROND = (0.12, 0.38, 0.16)
+BUS = (0.12, 0.32, 0.62)
+CAR_RED = (0.55, 0.10, 0.10)
+CAR_BLK = (0.08, 0.08, 0.09)
+CAR_WHT = (0.90, 0.90, 0.88)
+CAR_SIL = (0.62, 0.64, 0.66)
 
 GF = 0.4
 FH = 3.05
@@ -68,7 +76,7 @@ def palm(M, F, u, v, h=11.0, spin=0.0):
 
 
 def logo_png():
-    """Left: red RIU with a small crown. Right: CASINO on the podium."""
+    """Left: red RIU with a small crown. Right: the small red CASINO on the podium."""
     im = Image.new("RGBA", (1024, 256), (0, 0, 0, 0))
     dr = ImageDraw.Draw(im)
     dr.rectangle((0, 0, 512, 256), fill=(244, 244, 242, 255))
@@ -82,9 +90,9 @@ def logo_png():
     tw = font.getlength("RIU")
     dr.text(((512 - tw) / 2, 52), "RIU", font=font, fill=(198, 22, 28, 255))
     dr.rectangle((512, 0, 1024, 256), fill=(244, 244, 242, 255))
-    casino = ImageFont.truetype(FONT_SANS, 148)
+    casino = ImageFont.truetype(FONT_SANS, 92)
     cw = casino.getlength("CASINO")
-    dr.text((512 + (512 - cw) / 2, 48), "CASINO", font=casino, fill=(12, 12, 14, 255))
+    dr.text((512 + (512 - cw) / 2, 78), "CASINO", font=casino, fill=(176, 22, 28, 255))
     return im
 
 
@@ -94,7 +102,10 @@ def build():
         ("wall", WHITE, .65), ("recess", RECESS, .7), ("slab", WHITE, .55),
         ("rail", WHITE, .45), ("glass", GLASS, .18), ("fin", WHITE, .6),
         ("red", RED, .5), ("hedge", HEDGE, .88), ("lawn", LAWN, .9),
-        ("paver", PAVER, .85), ("trunk", TRUNK, .85), ("frond", FROND, .8),
+        ("paver", PAVER, .85), ("asphalt", ASPHALT, .92),
+        ("trunk", TRUNK, .85), ("frond", FROND, .8),
+        ("bus", BUS, .45), ("carred", CAR_RED, .4), ("carblk", CAR_BLK, .35),
+        ("carwht", CAR_WHT, .4), ("carsil", CAR_SIL, .35),
     ):
         M.material(n, lin(c), rough=r)
     M.material("sign", (1, 1, 1), rough=.45, textured=True, emissive=.08)
@@ -109,18 +120,11 @@ def build():
         {"wall": "wall", "recess": "recess", "slab": "slab", "rail": "rail", "glass": "glass", "fin": "fin"},
         depth=1.7, faces=(-1, 1),
     )
-    # solid base under the grid, the white podium the photo shows in front
+    # solid white base under the grid. The photo has no red stripe across it.
     for lod in (0, 1):
         obox(M.mesh(lod, "wall"), BF, -2, L + 2, -hv - 4, hv, GF, GF + 6.2)
-        obox(M.mesh(lod, "red"), BF, -2.1, L + 2.1, -hv - 4.15, -hv - 3.7, GF + 5.55, GF + 6.15)
     vquad(M.mesh(0, "glass"), BF, L * 0.15, L * 0.42, -hv - 4.2, GF + 0.6, GF + 3.2, -1)
     png = logo_png()
-    # right half of the sheet is 2:1; a wide short quad crushed the word
-    cu = L * 0.55
-    vquad(M.mesh(0, "sign"), BF, cu - 4, cu + 4, -hv - 4.25, GF + 1.4, GF + 5.4, -1,
-          uvs=((1, 1), (0.5, 1), (0.5, 0), (1, 0)))
-    vquad(M.mesh(1, "sign"), BF, cu - 4.2, cu + 4.2, -hv - 4.15, GF + 1.3, GF + 5.5, -1,
-          uvs=((1, 1), (0.5, 1), (0.5, 0), (1, 0)))
     # 2015 street view looks west: north is on the right, and RIU sits on that corner
     vquad(M.mesh(0, "sign"), BF, 16, 28, -hv - 0.25, top + 0.8, top + 4.6, -1,
           uvs=((0.5, 1), (0, 1), (0, 0), (0.5, 0)))
@@ -132,22 +136,55 @@ def build():
     # lower white block on the south end, the piece beside the tower in the photo
     for lod in (0, 1):
         obox(M.mesh(lod, "wall"), BF, L - 2, L + 28, -hv - 2, hv - 2, GF, GF + 8.5)
-        obox(M.mesh(lod, "red"), BF, L - 2, L + 28, -hv - 2.1, -hv - 1.6, GF + 7.6, GF + 8.2)
     for f in range(2):
         y0 = GF + 1.2 + f * 3.2
         vquad(M.mesh(0, "glass"), BF, L + 2, L + 24, -hv - 2.15, y0, y0 + 1.5, -1)
+    # Small red CASINO on the podium, the size of the sign in the street photo.
+    vquad(M.mesh(0, "sign"), BF, L + 3, L + 11, -hv - 2.2, GF + 4.4, GF + 6.2, -1,
+          uvs=((1, 1), (0.5, 1), (0.5, 0), (1, 0)))
+    vquad(M.mesh(1, "sign"), BF, L + 2.6, L + 11.4, -hv - 2.1, GF + 4.2, GF + 6.4, -1,
+          uvs=((1, 1), (0.5, 1), (0.5, 0), (1, 0)))
 
-    hquad(M.mesh(0, "lawn"), BF, -8, L + 34, -hv - 28, hv + 2, 0.08)
-    hquad(M.mesh(1, "lawn"), BF, -4, L + 28, -hv - 22, hv, 0.08)
-    hquad(M.mesh(0, "paver"), BF, -6, L + 32, -hv - 36, -hv - 26, 0.1)
-    for u in (4, 22, 40, L * 0.7, L + 8):
-        obox(M.mesh(0, "hedge"), BF, u, u + 8, -hv - 18, -hv - 16.4, 0.12, 1.0)
-    for u, v, h, spin in (
-        (2, -hv - 10, 12, 0.3), (16, -hv - 22, 13, 1.1), (28, -hv - 16, 11, 0.6),
-        (L * 0.55, -hv - 20, 12, 1.4), (L + 6, -hv - 14, 10, 0.2), (L + 18, -hv - 8, 11, 0.9),
-        (-4, -hv - 6, 13, 1.6), (L - 8, -hv - 24, 12, 0.4),
-    ):
+    # Thick pads. The street photo's foreground is asphalt, then a planted
+    # verge. A thin quad, or a pad shorter than the slope, still reads as sand.
+    road_y0, road_y1 = 0.2, 1.15
+    for lod in (0, 1):
+        obox(M.mesh(lod, "lawn"), BF, -12, L + 38, -hv - 40, hv + 6, 0.4, 2.6)
+        obox(M.mesh(lod, "paver"), BF, -8, L + 34, -hv - 34, -hv - 20, 1.55, 2.05)
+        obox(M.mesh(lod, "asphalt"), BF, -16, L + 44, -hv - 62, -hv - 28, road_y0, road_y1)
+    for u in (2, 18, 34, 50, L * 0.7, L + 4, L + 16):
+        obox(M.mesh(0, "hedge"), BF, u, u + 7, -hv - 30, -hv - 26, 2.6, 4.0)
+    obox(M.mesh(0, "hedge"), BF, 4, L + 8, -hv - 33, -hv - 30.2, 2.6, 3.7)
+    palms = (
+        (-2, -hv - 12, 14, 0.2), (8, -hv - 18, 13, 0.8), (18, -hv - 11, 15, 1.2),
+        (30, -hv - 19, 12, 0.4), (42, -hv - 13, 14, 1.5), (54, -hv - 20, 13, 0.6),
+        (L * 0.35, -hv - 16, 15, 1.1), (L * 0.7, -hv - 12, 13, 0.3),
+        (L + 2, -hv - 18, 14, 0.9), (L + 12, -hv - 11, 12, 1.4),
+        (L + 22, -hv - 17, 15, 0.5), (-6, -hv - 22, 13, 1.7),
+    )
+    for u, v, h, spin in palms:
         palm(M, BF, u, v, h, spin)
+
+    def car(u, v, body):
+        y = road_y1
+        obox(M.mesh(0, body), BF, u, u + 4.4, v, v + 1.75, y, y + 1.15)
+        obox(M.mesh(0, "glass"), BF, u + 1.3, u + 3.3, v + 0.18, v + 1.57, y + 1.05, y + 1.65)
+
+    for u, body in (
+        (4, "carred"), (12, "carblk"), (22, "carsil"), (34, "carwht"),
+        (48, "carblk"), (L + 6, "carwht"), (L + 16, "carred"),
+    ):
+        car(u, -hv - 40, body)
+        car(u + 1.5, -hv - 48, "carsil" if body != "carsil" else "carblk")
+
+    # Bus shelter on the street, in the same view as the tower and the cars.
+    bu, bv = L * 0.5, -hv - 34
+    obox(M.mesh(0, "bus"), BF, bu, bu + 6.5, bv, bv + 2.4, road_y1 + 2.3, road_y1 + 2.7)
+    for du in (0.2, 6.0):
+        for dv in (0.15, 2.1):
+            obox(M.mesh(0, "paver"), BF, bu + du, bu + du + 0.18, bv + dv, bv + dv + 0.18,
+                 road_y1, road_y1 + 2.35)
+    vquad(M.mesh(0, "bus"), BF, bu + 0.4, bu + 6.1, bv + 2.35, road_y1 + 0.9, road_y1 + 2.25, 1)
 
     fold_body(M, keep={"sign", "glass"})
     info = write_glb(M, HERO / "riupalace.glb", images=[png_bytes(png)])
@@ -172,7 +209,12 @@ def patch(info):
     block = text[i:k]
     block = block.replace(
         '"status": "v3-procedural (OSM footprint, photo/brand refs)"',
+        '"status": "v4-grokbot (white balcony grid, red RIU, street and palms)"',
+        1,
+    )
+    block = block.replace(
         '"status": "v4-grokbot (white balcony grid, red RIU, podium)"',
+        '"status": "v4-grokbot (white balcony grid, red RIU, street and palms)"',
         1,
     )
     block = re.sub(r'"riupalace_lod0": \d+', f'"riupalace_lod0": {info["lod0"]}', block, count=1)
@@ -180,7 +222,7 @@ def patch(info):
     block = block.replace('"textures": 2', '"textures": 1', 1)
     new = (
         '"ref_sources": "refs/places/palm-eagle-beach/riu/riu_palace_2015.jpg '
-        '(white balcony grid, red RIU on the roof corner, lower white podium with a red band). '
+        '(white balcony grid, red RIU on the roof corner, small red CASINO, asphalt, cars, bus shelter, palms). '
         'OSM footprint. Signs are drawn. Built by tools/grokbot/riupalace.py"'
     )
     block2, n = re.subn(r'"ref_sources": "[^"]*"', new, block, count=1)
