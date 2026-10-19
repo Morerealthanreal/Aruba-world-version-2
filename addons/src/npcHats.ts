@@ -179,6 +179,22 @@ function necklaceGeometry() {
 let crossGeo: BufferGeometry | null = null;
 let phoneGeo: BufferGeometry | null = null;
 let talkGeo: BufferGeometry | null = null;
+let towelGeo: BufferGeometry | null = null;
+
+function towelGeometry() {
+  if (towelGeo) return towelGeo;
+  // Wrist space. Local +Y runs from the wrist down past the hand.
+  const cloth = paint(new BoxGeometry(0.16, 0.38, 0.02).translate(0.02, 0.24, 0.05), 0xf7f4ee, 2);
+  const stripe = paint(new BoxGeometry(0.16, 0.048, 0.024).translate(0.02, 0.16, 0.05), 0x2f8f9a, 2);
+  const hem = paint(new BoxGeometry(0.16, 0.048, 0.024).translate(0.02, 0.34, 0.05), 0x2f8f9a, 2);
+  const parts = [cloth, stripe, hem];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  towelGeo = merged ?? cloth;
+  return towelGeo;
+}
 
 function talkMouthGeometry() {
   if (talkGeo) return talkGeo;
@@ -270,6 +286,8 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
   if (female && chest) wear(chest, crossGeometry(), "aw:cross");
   const wrist = root.getObjectByName("WristR");
   if (female && wrist && index % 2 === 0) wear(wrist, phoneGeometry(), "aw:phone");
+  const wristL = root.getObjectByName("WristL");
+  if (female && wristL && index % 2 === 1) wear(wristL, towelGeometry(), "aw:towel");
   if (hips) {
     wear(hips, beltGeometry(), "aw:belt");
     wear(hips, buckleGeometry(), "aw:buckle");
