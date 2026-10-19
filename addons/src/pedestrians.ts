@@ -49,6 +49,11 @@ type Rig = {
   slot: number;
   mode: number;
   sit: SitPose | null;
+  /** Standing women on even pool slots lift the left hand while they talk. */
+  talk: boolean;
+  upperL: Object3D | null;
+  lowerL: Object3D | null;
+  mouth: Object3D | null;
 };
 
 const sitY = new Vector3(0, 1, 0);
@@ -145,6 +150,17 @@ function poseSit(rig: Rig) {
   rig.root.updateMatrixWorld(true);
   plantFoot(sit.ll.bone, sit.fl, sit.ankleL, sit.footRelL);
   plantFoot(sit.lr.bone, sit.fr, sit.ankleR, sit.footRelR);
+}
+
+function poseTalk(rig: Rig, time: number, standing: boolean) {
+  if (rig.mouth) rig.mouth.visible = standing;
+  const upper = rig.upperL;
+  const lower = rig.lowerL;
+  if (!standing || !upper || !lower) return;
+  const wave = Math.sin(time * 2.6) * 0.07;
+  // The mixer just wrote the clip. Elbow out, hand at the lower chest.
+  upper.rotation.set(-1.8, -0.8, -1.2 + wave);
+  lower.rotation.set(-2, 0, 0);
 }
 
 // West edge of the land, sampled from the island outline. Inland is +X (east).
@@ -346,6 +362,10 @@ export class PedestrianCrowds {
           slot: -1,
           mode: -1,
           sit,
+          talk: source.female && i % 2 === 0,
+          upperL: root.getObjectByName("UpperArmL") ?? null,
+          lowerL: root.getObjectByName("LowerArmL") ?? null,
+          mouth: root.getObjectByName("aw:mouth") ?? null,
         });
       }
       this.prime();
@@ -482,6 +502,7 @@ export class PedestrianCrowds {
         const rightFoot = rig.sit.fr.bone.getWorldPosition(sitFootY).y;
         rig.root.position.y += slot.y + 0.06 - Math.min(leftFoot, rightFoot);
       }
+      if (rig.talk) poseTalk(rig, _time, slot.mode === 1);
       visible++;
       triangles += rig.triangles;
       if (slot.mode === 0) walking++;
