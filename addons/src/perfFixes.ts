@@ -424,12 +424,12 @@ export class PerfFixes {
   private uploadPendingMaps(x: number, z: number) {
     const list = this.real.hero?.list;
     if (!list || !list.length) return;
-    // The hotel strip is inside the soak drive even when a hero is past
-    // the Noord point. Eight maps a frame left sign meshes arriving on the
-    // measured lap (Boardwalk Low renderer geometries 71.5 against an
-    // allowance of 34.5). Low draws less, so it can finish that set during
-    // warmup. Other tiers stay at 8. The gates stay at 4 textures and 12
-    // geometries over the live scene.
+    // Noord has a few hundred loaded heroes. Eight maps a frame was still
+    // uploading signs on the measured lap after Surf Club joined that set
+    // (texture growth 5.5, limit 4). Surf Club adds no images; it is inside
+    // the 1500 m load, so the phone was still flushing other heroes' signs.
+    // Low draws less, so it can finish that set during warmup. Other tiers
+    // stay at 8.
     let budget = this.real.q.name === "low" ? 24 : 8;
     const n = list.length;
     let i = this.mapCursor % n;
