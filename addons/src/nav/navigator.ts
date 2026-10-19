@@ -141,23 +141,38 @@ export class Navigator {
     el.textContent = `${arrow} ${Math.round(dist)} m${nxt.name ? " · " + nxt.name : ""}`;
   }
 
-  /** Tap the game minimap to set an A* destination. sx/sy are canvas pixels from the centre. */
+  /** Long-press (~500 ms, within ~10 px) the game minimap to set an A* destination. A plain tap passes through to the game. */
   bindMinimap(canvas: HTMLCanvasElement, pixelsPerMetre: () => number): void {
-    const pick = (ev: PointerEvent) => {
-      ev.preventDefault();
-      ev.stopPropagation();
+    const HOLD_MS = 500, SLOP_PX = 10;
+    let timer = 0, sx0 = 0, sy0 = 0, pid = -1, swallow = false;
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = 0; } pid = -1; };
+    const pick = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      const sx = ((ev.clientX - rect.left) / rect.width - 0.5) * canvas.width;
-      const sy = ((ev.clientY - rect.top) / rect.height - 0.5) * canvas.height;
+      const sx = ((clientX - rect.left) / rect.width - 0.5) * canvas.width;
+      const sy = ((clientY - rect.top) / rect.height - 0.5) * canvas.height;
       const ppm = pixelsPerMetre();
       if (!(ppm > 0)) return;
       const world = minimapToWorld(this.px, this.pz, this.heading, sx, sy, ppm);
       this.setDestination(world.x, world.z);
       this.update(performance.now(), this.px, this.pz, this.heading);
     };
-    canvas.addEventListener("pointerdown", pick, true);
-    canvas.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); }, true);
+    canvas.addEventListener("pointerdown", (ev) => {
+      cancel(); swallow = false;
+      pid = ev.pointerId; sx0 = ev.clientX; sy0 = ev.clientY;
+      timer = window.setTimeout(() => { timer = 0; swallow = true; pick(sx0, sy0); }, HOLD_MS);
+    }, true);
+    canvas.addEventListener("pointermove", (ev) => {
+      if (ev.pointerId === pid && timer && Math.hypot(ev.clientX - sx0, ev.clientY - sy0) > SLOP_PX) cancel();
+    }, true);
+    canvas.addEventListener("pointerup", (ev) => { if (ev.pointerId === pid) cancel(); }, true);
+    canvas.addEventListener("pointercancel", cancel, true);
+    canvas.addEventListener("pointerleave", cancel, true);
+    canvas.addEventListener("click", (ev) => {
+      if (!swallow) return;
+      swallow = false;
+      ev.preventDefault(); ev.stopPropagation();
+    }, true);
   }
 
   /** FIX 4 hook: called from the game's minimap draw pass, ctx centred on (cx,cz) and rotated; ppm = canvas px per metre. */
