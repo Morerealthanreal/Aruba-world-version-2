@@ -87,6 +87,18 @@ if 'for(let t of[...this.regions.values()])' in s:
         "for(let t of this.regions.values()){",
         "regionsSpread")
 
+# A hero that replaces a landmark used to detach the sign mesh and leave its geometry
+# registered on the GPU. dispose() drops it. Shared sign textures stay on the landmark.
+if "o.geometry&&o.geometry.dispose()" not in s:
+    rep(
+        "r.hero=t,r._g&&(e.group.remove(r._g),r._g=null)",
+        "r.hero=t,r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)",
+        "heroSignInit")
+    rep(
+        "a._g&&=(i.group.remove(a._g),null)",
+        "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)",
+        "heroSignUpdate")
+
 if 'x.__awGone' not in s:
     rep(
         "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(e=>{e.geometry&&e.geometry.dispose()}));for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();e.hf?.dispose(),e.splat?.dispose(),e.mat?.dispose(),e.wmat?.dispose(),",
