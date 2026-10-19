@@ -502,9 +502,16 @@ export class PedestrianCrowds {
 
   private plant(slot: Slot) {
     if (slot.anchorX != null) {
-      const y = this.height(slot.anchorX, slot.z);
-      if (y == null || y < 0.2 || y > 8) return;
-      slot.x = slot.anchorX;
+      // A pool centroid can sample the hotel roof. Step toward the water
+      // until the ground is a deck or the sand in front of the entrance.
+      let x = slot.anchorX;
+      let y = this.height(x, slot.z);
+      for (let n = 0; n < 12 && (y == null || y < 0.3 || y > 3.2); n++) {
+        x -= 4;
+        y = this.height(x, slot.z);
+      }
+      if (y == null || y < 0.25 || y > 3.2) return;
+      slot.x = x;
       slot.y = y;
       slot.placed = true;
       return;
