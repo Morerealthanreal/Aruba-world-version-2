@@ -1,7 +1,6 @@
-// Beach crowd for Palm Beach, added beside the island-wide ambient pedestrians.
+// Beach crowds for Palm Beach and Noord, beside the island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
-// never grows geometries while it walks. The crowd stands on the sand west of
-// J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
+// never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
 // ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
   AnimationMixer, LoopRepeat, Object3D, Quaternion, Scene, Vector3,
@@ -23,8 +22,10 @@ type Slot = {
   phase: number;
   dir: number;
   yawJitter: number;
-  /** Stay in the Palm Beach foreground instead of leaving the frame. */
+  /** Stay in the foreground knot instead of leaving the frame. */
   pinned: boolean;
+  /** Shore x for a beach other than the Palm Beach coast. Null uses that coast. */
+  anchorX: number | null;
   x: number;
   y: number;
   placed: boolean;
@@ -176,9 +177,11 @@ function coastX(z: number): number {
 
 function buildSlots(): Slot[] {
   const slots: Slot[] = [];
-  const push = (z: number, inland: number, mode: 0 | 1 | 2, phase: number, pinned: boolean) => {
+  const push = (
+    z: number, inland: number, mode: 0 | 1 | 2, phase: number, pinned: boolean, anchorX: number | null,
+  ) => {
     slots.push({
-      z0: z, z, inland, mode, phase, pinned,
+      z0: z, z, inland, mode, phase, pinned, anchorX,
       dir: slots.length & 1 ? 1 : -1,
       yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
       x: 0, y: 0, placed: false,
@@ -199,13 +202,25 @@ function buildSlots(): Slot[] {
     [-5336, 13, 1],
     [-5344, 17, 0],
   ];
-  hero.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.37) % 1, true));
+  hero.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.37) % 1, true, null));
   for (let i = 0; i < 24; i++) {
     const z = -6000 + i * 42;
     if (z > -5400 && z < -5200) continue;
     const inland = 20 + (i % 5) * 16;
-    push(z, inland, (i % 2) as 0 | 1, (i * 0.21) % 1, false);
+    push(z, inland, (i % 2) as 0 | 1, (i * 0.21) % 1, false, null);
   }
+  // Noord beach, just north of the Palm strip. Same clothes and the same pool.
+  const noord: Array<[number, number, 0 | 1 | 2]> = [
+    [-6868, 8, 2],
+    [-6862, 16, 1],
+    [-6856, 12, 0],
+    [-6850, 20, 2],
+    [-6844, 10, 1],
+    [-6838, 18, 0],
+    [-6832, 14, 2],
+    [-6826, 22, 0],
+  ];
+  noord.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.41) % 1, true, -8136));
   return slots;
 }
 
@@ -366,12 +381,13 @@ export class PedestrianCrowds {
 
   private plant(slot: Slot) {
     let inland = slot.inland;
-    let x = coastX(slot.z) + inland;
+    const shore = slot.anchorX == null ? coastX(slot.z) : slot.anchorX;
+    let x = shore + inland;
     let y = this.height(x, slot.z);
     if (y == null) return;
     for (let n = 0; n < 8 && y < 0.35; n++) {
       inland += 10;
-      x = coastX(slot.z) + inland;
+      x = shore + inland;
       y = this.height(x, slot.z) ?? y;
     }
     if (y < 0.25 || y > 4.2) return;
@@ -382,6 +398,10 @@ export class PedestrianCrowds {
   }
 
   private yaw(slot: Slot): number {
+    if (slot.anchorX != null) {
+      if (slot.mode === 0) return (slot.dir > 0 ? 0 : Math.PI) + slot.yawJitter * 0.25;
+      return Math.PI / 2 + slot.yawJitter;
+    }
     const along = Math.atan2(coastX(slot.z + 3) - coastX(slot.z - 3), 6);
     if (slot.mode === 0) return (slot.dir > 0 ? along : along + Math.PI) + slot.yawJitter * 0.25;
     // Model forward is +Z. Water is west (−X), so yaw +π/2 looks out to sea.
