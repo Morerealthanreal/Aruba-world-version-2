@@ -12,6 +12,7 @@ the bar banner and the music board.
 import math
 import json
 import re
+import struct
 import sys
 from pathlib import Path
 
@@ -37,7 +38,7 @@ POST = (0.42, 0.26, 0.13)
 DECK = (0.74, 0.58, 0.36)
 DECK_D = (0.58, 0.42, 0.24)
 RAIL = (0.48, 0.34, 0.20)
-BULB = (1.0, 0.86, 0.45)
+BULB = (0.42, 0.20, 0.06)
 # Painted bar, from the interior and side photos.
 TEAL = (0.42, 0.78, 0.74)
 TEAL_D = (0.28, 0.55, 0.56)
@@ -108,52 +109,65 @@ def fringe(mesh, F, u0, u1, v_edge, y, drop=1.15, out=0.72, step=1.05):
         k += 1
 
 
-def thatch_shag(mesh_a, mesh_b, F, u0, u1, v_edge, y0, rise, courses=3, step=1.7):
-    """Short flaps up the slope. Irregular, so the hip reads as thatch from the side."""
+def _rnd(n):
+    x = math.sin(n * 12.9898) * 43758.5453
+    return x - math.floor(x)
+
+
+def thatch_shag(mesh_a, mesh_b, F, u0, u1, v_edge, y0, rise):
+    """One straw strip from the ridge to a ragged hem. No horizontal courses,
+    which read as planks from the side."""
     s = 1 if v_edge >= 0 else -1
     V = abs(v_edge)
-    for c in range(courses):
-        f = (c + 0.65) / (courses + 0.8)
-        v = s * V * (1 - f)
-        y = y0 + rise * f
-        u, k = u0, c
-        while u < u1 - 0.3:
-            w = min(step * (0.7 + 0.4 * ((k * 3) % 4) / 3), u1 - u)
-            hang = 0.42 + 0.38 * ((k + c) % 4) / 3
-            out = 0.28 + 0.22 * (k % 3) / 2
-            A = F.p(u, v, y + 0.05)
-            B = F.p(u + w, v, y + 0.04)
-            C = F.p(u + w * 0.8, v + s * out, y - hang)
-            D = F.p(u + w * 0.15, v + s * out * 0.85, y - hang * 0.75)
-            cen = F.p(u + w / 2, v - s * 2, y)
-            m = mesh_a if (k + c) % 2 == 0 else mesh_b
+    u, k = u0, 1
+    while u < u1 - 0.1:
+        w = 0.22 + 0.16 * _rnd(k)
+        for t in range(2):
+            r0, r1, r2 = _rnd(k + t * 5), _rnd(k + t + 2), _rnd(k + t * 3 + 7)
+            f_top = 0.72 + 0.26 * r0
+            v_top = s * V * (1 - f_top)
+            y_top = y0 + rise * f_top + 0.06
+            droop = 0.25 + 0.85 * r1
+            out = 0.55 + 0.95 * r2
+            v_bot = s * (V + 0.15 + 0.35 * r2)
+            y_bot = y0 - droop
+            skew = (r0 - 0.5) * 0.18
+            A = F.p(u + skew, v_top, y_top)
+            B = F.p(u + w + skew, v_top + s * 0.04, y_top - 0.03)
+            C = F.p(u + w * (0.55 + 0.3 * r1), v_bot + s * out, y_bot)
+            D = F.p(u + w * 0.08, v_bot + s * out * 0.65, y_bot - 0.2 * r0)
+            cen = F.p(u + w / 2, 0, y_top)
+            m = mesh_a if r2 > 0.42 else mesh_b
             tri_out(m, A, B, C, cen)
             tri_out(m, A, C, D, cen)
-            u += step * 0.9
-            k += 1
+        u += 0.24 + 0.1 * _rnd(k + 6)
+        k += 1
 
 
-def glyph(M, F, u, v, y, w, h, parts, color, depth=0.32):
-    """Block letter. parts are fractions (v0, v1, y0, y1) of the cell."""
-    for vf0, vf1, yf0, yf1 in parts:
+def glyph(M, F, u, v, y, w, h, parts, color, depth=0.72):
+    """3D block letter running along the pier. parts are (u0, u1, y0, y1) of the cell.
+    Thickness is along +v, so a camera south of the pier reads the south face."""
+    for uf0, uf1, yf0, yf1 in parts:
         obox(
             M.mesh(0, color), F,
-            u, u + depth,
-            v + w * vf0, v + w * vf1,
+            u + w * uf0, u + w * uf1,
+            v, v + depth,
             y + h * yf0, y + h * yf1,
         )
 
 
 # Front faces the shore, so a camera looking out to sea reads the word.
+# Counters stay open so the word reads from the south drone, not as colour blocks.
 GLYPHS = {
-    "B": ((0.00, 0.28, 0, 1), (0.22, 0.95, 0.76, 1), (0.22, 0.95, 0.40, 0.60),
-          (0.22, 1.00, 0, 0.22), (0.70, 1.00, 0.55, 0.80), (0.70, 1.00, 0.18, 0.42)),
-    "U": ((0.00, 0.26, 0.18, 1), (0.74, 1, 0.18, 1), (0.16, 0.84, 0, 0.24)),
-    "G": ((0.00, 0.26, 0, 1), (0.18, 1, 0.78, 1), (0.18, 1, 0, 0.22), (0.52, 1, 0.36, 0.54)),
-    "A": ((0.00, 0.26, 0, 0.84), (0.74, 1, 0, 0.84), (0.12, 0.88, 0.78, 1), (0.18, 0.82, 0.40, 0.56)),
-    "L": ((0.00, 0.28, 0, 1), (0.18, 1, 0, 0.22)),
-    "O": ((0.00, 0.24, 0.16, 0.84), (0.76, 1, 0.16, 0.84), (0.16, 0.84, 0.78, 1), (0.16, 0.84, 0, 0.22)),
-    "E": ((0.00, 0.28, 0, 1), (0.20, 1, 0.78, 1), (0.20, 0.82, 0.40, 0.58), (0.20, 1, 0, 0.22)),
+    "B": ((0.00, 0.22, 0, 1), (0.18, 0.86, 0.80, 1), (0.18, 0.72, 0.42, 0.56),
+          (0.18, 0.92, 0, 0.18), (0.70, 0.92, 0.54, 0.84), (0.76, 1, 0.16, 0.44)),
+    "U": ((0.00, 0.22, 0.16, 1), (0.78, 1, 0.16, 1), (0.16, 0.84, 0, 0.22)),
+    "G": ((0.00, 0.22, 0.12, 0.88), (0.16, 0.92, 0.80, 1), (0.16, 0.92, 0, 0.18),
+          (0.62, 1, 0.34, 0.50), (0.78, 1, 0.16, 0.52)),
+    "A": ((0.08, 0.28, 0, 0.78), (0.72, 0.92, 0, 0.78), (0.16, 0.84, 0.78, 1), (0.24, 0.76, 0.38, 0.52)),
+    "L": ((0.00, 0.24, 0, 1), (0.18, 1, 0, 0.18)),
+    "O": ((0.00, 0.22, 0.16, 0.84), (0.78, 1, 0.16, 0.84), (0.16, 0.84, 0.82, 1), (0.16, 0.84, 0, 0.18)),
+    "E": ((0.00, 0.24, 0, 1), (0.18, 1, 0.82, 1), (0.18, 0.78, 0.42, 0.56), (0.18, 1, 0, 0.18)),
 }
 
 
@@ -177,6 +191,43 @@ def hquad(mesh, F, u0, u1, v0, v1, y, up=1):
     cen = F.p((u0 + u1) / 2, (v0 + v1) / 2, y - up)
     tri_out(mesh, A, B, C, cen)
     tri_out(mesh, A, C, D, cen)
+
+
+def paint_bulb(path):
+    """The night pass brightens a material named bulb. Colour it amber, not grey."""
+    data = Path(path).read_bytes()
+    o = 12
+    js = blob = None
+    chunks = []
+    while o < len(data) - 8:
+        ln, ct = struct.unpack_from("<II", data, o)
+        o += 8
+        raw = data[o:o + ln]
+        o += ln
+        chunks.append((ct, raw))
+        if ct == 0x4E4F534A:
+            js = json.loads(raw)
+        elif ct == 0x004E4942:
+            blob = raw
+    hit = False
+    for mat in js["materials"]:
+        if mat.get("name") == "bulb":
+            mat["emissiveFactor"] = [1.0, 0.45, 0.08]
+            hit = True
+    if not hit:
+        raise SystemExit("bulb material missing")
+    js_bytes = json.dumps(js, separators=(",", ":")).encode()
+    pad = (4 - len(js_bytes) % 4) % 4
+    js_bytes += b" " * pad
+    out = [b"glTF", struct.pack("<II", 2, 0)]
+    body = b""
+    for ct, raw in chunks:
+        raw = js_bytes if ct == 0x4E4F534A else raw
+        body += struct.pack("<II", len(raw), ct) + raw
+    total = 12 + len(body)
+    Path(path).write_bytes(b"glTF" + struct.pack("<II", 2, total) + body)
+    if blob is None:
+        raise SystemExit("glb bin missing")
 
 
 def band_uv(y0, y1, H=ATLAS_H):
@@ -223,9 +274,11 @@ def person(M, F, u, v, y, shirt, shorts, skin="skin"):
 
 
 def chair(M, F, u, v, y, color, face=1):
-    """Seat and back. Two quads, so a full deck of them stays inside the budget."""
-    hquad(M.mesh(0, color), F, u - 0.2, u + 0.2, v - 0.2, v + 0.2, y + 0.42)
-    vquad(M.mesh(0, color), F, u - 0.18, u + 0.18, v + face * 0.16, y + 0.42, y + 0.92, face)
+    """Wooden chair with a back, chunky enough for the drone."""
+    obox(M.mesh(0, color), F, u - 0.22, u + 0.22, v - 0.22, v + 0.22, y + 0.38, y + 0.48)
+    obox(M.mesh(0, color), F, u - 0.2, u + 0.2, v + face * 0.12, v + face * 0.22, y + 0.46, y + 0.98)
+    obox(M.mesh(0, "wood"), F, u - 0.18, u - 0.1, v - 0.16, v - 0.08, y, y + 0.4)
+    obox(M.mesh(0, "wood"), F, u + 0.1, u + 0.18, v + 0.08, v + 0.16, y, y + 0.4)
 
 
 def seated(M, F, u, v, y, shirt, skin="skin"):
@@ -233,15 +286,15 @@ def seated(M, F, u, v, y, shirt, skin="skin"):
     obox(M.mesh(0, skin), F, u - 0.07, u + 0.07, v - 0.07, v + 0.07, y + 0.92, y + 1.14)
 
 
-def dining(M, F, u, v, y, chair_color, sitter=None):
-    hquad(M.mesh(0, "wood"), F, u - 0.48, u + 0.48, v - 0.36, v + 0.36, y + 0.7)
-    obox(M.mesh(0, "post"), F, u - 0.05, u + 0.05, v - 0.05, v + 0.05, y, y + 0.7)
+def dining(M, F, u, v, y, chair_color):
+    """Empty table and four chairs. People stay with agent A."""
+    obox(M.mesh(0, "wood"), F, u - 0.55, u + 0.55, v - 0.4, v + 0.4, y + 0.68, y + 0.78)
+    obox(M.mesh(0, "post"), F, u - 0.06, u + 0.06, v - 0.06, v + 0.06, y, y + 0.7)
     face = 1 if v >= 0 else -1
-    for su in (-0.28, 0.28):
-        chair(M, F, u + su, v - 0.15, y, chair_color, face)
-        chair(M, F, u + su, v + 0.15, y, "white" if chair_color == "red" else "red", -face)
-    if sitter:
-        seated(M, F, u, v - 0.05, y, sitter, "skin" if u % 2 < 1 else "skinb")
+    other = "white" if chair_color == "red" else "red"
+    for su in (-0.32, 0.32):
+        chair(M, F, u + su, v - 0.22, y, chair_color, face)
+        chair(M, F, u + su, v + 0.22, y, other, -face)
 
 
 def sign_atlas():
@@ -286,9 +339,11 @@ def build():
     overhang = 1.65
     V = hv + overhang
     # u0, u1, eave, rise. A gap between them so the side camera sees two peaks.
+    # Eaves sit high so the south side stays open under a short hem. The drone
+    # looks into that opening the way the daytime photo does.
     roofs = (
-        (-0.5, 16.4, 3.05, 3.2),
-        (19.0, L + 0.35, 3.50, 4.25),
+        (-0.5, 16.4, 3.9, 2.5),
+        (19.0, L + 0.35, 4.2, 3.05),
     )
 
     def eave_at(u):
@@ -300,7 +355,8 @@ def build():
     for lod in (0, 1):
         obox(M.mesh(lod, "deck"), F, -1.2, L + 1.0, -hv - 0.15, hv + 0.15, deck_y - 0.32, deck_y + 0.08)
         for u0, u1, eave, rise in roofs:
-            hip_roof(M.mesh(lod, "straw"), F, u0, u1, -V, V, eave, rise)
+            # Dark hip underneath. The straw tags cover it; gaps read as shadow, not boards.
+            hip_roof(M.mesh(lod, "strawd"), F, u0, u1, -V, V, eave, rise)
             inset = min(V, (u1 - u0) * 0.46)
             ru0, ru1 = u0 + inset, u1 - inset
             if ru1 < ru0:
@@ -356,26 +412,37 @@ def build():
             vquad(M.mesh(0, panels[i % len(panels)]), F, u - 0.09, u + 0.09, s * (hv - 0.28),
                   deck_y + 0.55, ev - 0.55, s)
             vv = s * (hv - 0.38)
-            vquad(M.mesh(0, "rail"), F, u - 2.15, u + 2.15, vv, deck_y + 0.84, deck_y + 0.98, s)
-            vquad(M.mesh(0, "rail"), F, u - 2.15, u + 2.15, vv, deck_y + 0.4, deck_y + 0.5, s)
+            # The hanging BUGALOE sits in this bay. A rail across it cuts the letters.
+            if u + 2.15 < 5.3 or u - 2.15 > 14.5:
+                vquad(M.mesh(0, "rail"), F, u - 2.15, u + 2.15, vv, deck_y + 0.84, deck_y + 0.98, s)
+                vquad(M.mesh(0, "rail"), F, u - 2.15, u + 2.15, vv, deck_y + 0.4, deck_y + 0.5, s)
         # Keep the cross-beam out of the letter bay so it does not cut the sign.
-        if not (24.2 < u < 31.5):
+        if not (5.5 < u < 15.2):
             obox(M.mesh(0, "teal"), F, u - 0.1, u + 0.1, -(hv - 0.55), hv - 0.55, ev - 0.22, ev - 0.02)
     for s in (-1, 1):
         vquad(M.mesh(1, "rail"), F, 1.0, L - 1.5, s * (hv - 0.35), deck_y + 0.7, deck_y + 0.95, s)
         for u0, u1, eave, _rise in roofs:
             vquad(M.mesh(1, "fringe"), F, u0 + 0.4, u1 - 0.3, s * (V + 0.3), eave - 0.85, eave + 0.05, s)
 
-    # warm string lights: a glow the night drone sees from above, and a face the side camera sees
+    # String lights under the hem, and lanterns in the open side. The night drone
+    # looks into the south opening and sees the amber ceiling through it.
     for u0, u1, eave, _rise in roofs:
-        uu = u0 + 1.2
-        while uu < u1 - 0.8:
+        uu = u0 + 0.6
+        while uu < u1 - 0.4:
             for s in (-1, 1):
-                # Outside the thatch lip, so a side camera and the night drone both see the run.
-                hquad(M.mesh(0, "bulb"), F, uu - 0.22, uu + 0.22, s * (V + 0.15) - 0.2, s * (V + 0.15) + 0.2, eave - 0.08)
-                vquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.35), eave - 0.7, eave - 0.22, s)
-            hquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, -0.16, 0.16, eave + 0.42)
-            uu += 2.6
+                obox(M.mesh(0, "bulb"), F, uu - 0.11, uu + 0.11, s * (V + 0.35) - 0.11, s * (V + 0.35) + 0.11, eave - 0.72, eave - 0.28)
+                hquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.22), s * (V + 0.55), eave - 0.7)
+            uu += 1.7
+        for s in (-1, 1):
+            # Warm band just under the eave, above the furniture, facing the opening.
+            vquad(M.mesh(0, "bulb"), F, u0 + 0.4, u1 - 0.4, s * (hv - 0.15), eave - 1.05, eave - 0.12, s)
+        # Ceiling, plus the south opening itself, which is what the drone looks into.
+        hquad(M.mesh(0, "bulb"), F, u0 + 0.8, u1 - 0.8, -2.4, 2.4, eave + 0.55, up=-1)
+        vquad(M.mesh(0, "bulb"), F, u0 + 0.6, u1 - 0.6, -3.15, deck_y + 0.85, eave - 0.55, -1)
+        uu = u0 + 1.4
+        while uu < u1 - 1.0:
+            obox(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, -4.55, -4.15, eave - 1.45, eave - 0.55)
+            uu += 3.1
     # king posts and a light-blue plank ceiling under each hip
     for u0, u1, eave, rise in roofs:
         u = u0 + 4.2
@@ -387,93 +454,76 @@ def build():
         # Plank ceiling sits above the banner. The ridge is higher, so this stays inside the hip.
         obox(M.mesh(0, "ceil"), F, u0 + 1.2, u1 - 1.2, -2.7, 2.7, eave + 1.65, eave + 1.8)
 
-    # shaggy eaves on both hips. Leave the letter bay open so BUGALOE is readable.
+    # Shag on the slope, and a short ragged hem. The hem must not close the open side.
     for u0, u1, eave, rise in roofs:
-        spans = [(u0 + 0.2, min(u1 - 0.15, 23.5)), (max(u0 + 0.2, 33.5), u1 - 0.15)]
-        for a, b in spans:
-            if b - a < 1.2:
-                continue
-            fringe(M.mesh(0, "fringe"), F, a, b, V, eave, drop=1.45, out=0.95, step=1.28)
-            fringe(M.mesh(0, "fringe"), F, a, b, -V, eave, drop=1.45, out=0.95, step=1.28)
-            thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, a, b, V, eave, rise, courses=3, step=1.7)
-            thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, a, b, -V, eave, rise, courses=3, step=1.7)
-        # Only the outer hip ends. Tags on the inner ends hang into the gap and cover the letters.
-        if u0 < 5:
-            fringe_end(M, F, u0 + 0.05, eave, V, rise)
-        if u1 > F.L - 2:
-            fringe_end(M, F, u1 - 0.05, eave, V, rise)
+        for s in (V, -V):
+            fringe(M.mesh(0, "fringe"), F, u0 + 0.1, u1 - 0.1, s, eave, drop=0.72, out=1.45, step=0.58)
+            thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, u0 + 0.15, u1 - 0.1, s, eave, rise)
+        fringe_end(M, F, u0 + 0.05, eave, V, rise)
+        fringe_end(M, F, u1 - 0.05, eave, V, rise)
 
-    # bar along the south side of the long hip, so an eye-level camera looking
-    # west has the counter on the left and the open water on the right
+    # Bar sits inboard so the south drone sees tables, not a blue wall.
+    obox(M.mesh(0, "blue"), F, 3.2, 12.2, -2.55, -1.35, deck_y, deck_y + 1.05)
+    obox(M.mesh(0, "wood"), F, 3.1, 12.4, -2.7, -1.2, deck_y + 1.02, deck_y + 1.14)
     bar0, bar1 = 22.0, 36.5
-    obox(M.mesh(0, "blue"), F, bar0, bar1, -4.55, -2.35, deck_y, deck_y + 1.02)
-    obox(M.mesh(0, "wood"), F, bar0 - 0.1, bar1 + 0.12, -4.7, -2.2, deck_y + 1.0, deck_y + 1.12)
-    obox(M.mesh(0, "wood"), F, bar0 + 0.8, bar1 - 0.8, -4.15, -3.55, deck_y + 1.12, deck_y + 2.05)
+    obox(M.mesh(0, "blue"), F, bar0, bar1, -2.7, -1.15, deck_y, deck_y + 1.02)
+    obox(M.mesh(0, "wood"), F, bar0 - 0.1, bar1 + 0.12, -2.85, -1.0, deck_y + 1.0, deck_y + 1.12)
+    obox(M.mesh(0, "wood"), F, bar0 + 0.8, bar1 - 0.8, -2.35, -1.7, deck_y + 1.12, deck_y + 2.05)
     bu = bar0 + 1.4
     for name in ("shirt2", "green", "yellow", "shirt", "orange", "white"):
-        obox(M.mesh(0, name), F, bu, bu + 0.14, -3.95, -3.75, deck_y + 2.05, deck_y + 2.4)
+        obox(M.mesh(0, name), F, bu, bu + 0.14, -2.15, -1.95, deck_y + 2.05, deck_y + 2.4)
         bu += 1.6
     u = bar0 + 1.2
     while u < bar1 - 0.8:
-        hquad(M.mesh(0, "white"), F, u - 0.16, u + 0.16, -2.15, -1.75, deck_y + 0.62)
-        vquad(M.mesh(0, "white"), F, u - 0.14, u + 0.14, -1.82, deck_y + 0.62, deck_y + 1.0, 1)
+        hquad(M.mesh(0, "white"), F, u - 0.16, u + 0.16, -0.95, -0.55, deck_y + 0.62)
+        vquad(M.mesh(0, "white"), F, u - 0.14, u + 0.14, -0.62, deck_y + 0.62, deck_y + 1.0, 1)
         u += 1.7
-    # red benches under the shore pavilion, the daytime side photo
-    for v0, v1, back in ((3.15, 4.15, 4.15), (-4.15, -3.15, -4.15)):
-        obox(M.mesh(0, "red"), F, 3.2, 13.5, v0, v1, deck_y, deck_y + 0.46)
-        obox(M.mesh(0, "red"), F, 3.2, 13.5, back - 0.16, back + 0.16, deck_y + 0.46, deck_y + 0.92)
+    # red bench on the north side of the shore pavilion. The south side is tables.
+    obox(M.mesh(0, "red"), F, 3.2, 13.5, 3.15, 4.15, deck_y, deck_y + 0.46)
+    obox(M.mesh(0, "red"), F, 3.2, 13.5, 3.99, 4.31, deck_y + 0.46, deck_y + 0.92)
     # deck planks as strips, not boxes
     u = 0.4
     while u < L - 0.3:
         hquad(M.mesh(0, "deckd"), F, u, u + 0.16, -hv + 0.55, hv - 0.55, deck_y + 0.09)
         u += 1.7
-    # tables, red and white chairs, seated guests down the open deck
-    sitters = ("shirt", "shirt2", "shirt3", "yellow", "shirt", "shirt2")
-    spec = (
-        (5.4, 1.2, "white", "shirt2"),
-        (5.8, -1.5, "red", "shirt"),
-        (10.6, 1.35, "red", "yellow"),
-        (11.2, -1.4, "white", "shirt3"),
-        (24.8, 2.4, "red", "shirt2"),
-        (25.2, -1.15, "white", "shirt"),
-        (32.0, 2.5, "white", "shirt3"),
-        (32.4, -2.25, "red", "yellow"),
-        (39.2, 2.35, "red", "shirt"),
-        (39.6, -2.3, "white", "shirt2"),
-        (46.4, 2.2, "white", "shirt3"),
-        (46.8, -2.15, "red", "shirt"),
-        (53.6, 2.4, "red", "yellow"),
-        (54.0, -2.2, "white", "shirt2"),
-        (61.0, 2.15, "white", "shirt"),
-        (61.4, -1.9, "red", "shirt3"),
-        (67.2, 1.5, "red", "shirt2"),
-    )
-    for i, (tu, tv, col, who) in enumerate(spec):
-        dining(M, F, tu, tv, deck_y, col, who)
-    person(M, F, bar1 + 0.8, -3.4, deck_y, "shirt", "shorts", "skin")
-    person(M, F, 27.0, -3.6, deck_y, "shirt", "shorts2", "skinb")
-    person(M, F, 44.0, 4.35, deck_y, "shirt2", "shorts", "skin")
+    # Empty tables and red/white chairs along the south opening, where the drone looks in.
+    for tu, tv, col in (
+        (4.2, -4.55, "red"), (7.8, -4.4, "white"), (11.2, -4.6, "red"),
+        (5.4, 2.3, "white"), (9.6, 2.5, "red"),
+        (24.0, -4.5, "white"), (30.0, -4.35, "red"), (36.5, -4.55, "white"),
+        (43.5, -4.4, "red"), (50.5, -4.5, "white"), (58.0, -4.3, "red"), (65.0, -4.4, "white"),
+        (27.5, 2.4, "red"), (40.5, 2.3, "white"), (52.5, 2.5, "red"),
+    ):
+        dining(M, F, tu, tv, deck_y, col)
+    # Narrow amber strips on the deck edge. The night drone sees them through the open side.
+    hquad(M.mesh(0, "bulb"), F, 1.5, 15.5, -5.05, -4.45, deck_y + 0.11)
+    hquad(M.mesh(0, "bulb"), F, 20.0, L - 1.0, -5.05, -4.45, deck_y + 0.11)
 
-    # multicolour BUGALOE letters in the open gap between the two hips, so a
-    # shore camera reads the word without looking through the thatch.
+    # 3D coloured BUGALOE under the shore pavilion, facing the south drone.
+    # +u is west, which is screen-left when that camera looks north, so B is the west letter.
     letter_cols = (("B", "red"), ("U", "pink"), ("G", "blue"), ("A", "yellow"),
                    ("L", "green"), ("O", "orange"), ("E", "green"))
-    lw, gap, lh = 0.78, 0.12, 1.35
-    v0 = -((len(letter_cols) * (lw + gap) - gap) / 2)
-    ly0 = deck_y + 1.35
+    lw, gap, lh = 1.32, 0.08, 1.32
+    step = lw + gap
+    u_left = 14.0
+    v_let = -4.35
+    ly0 = deck_y + 0.58
     for i, (ch, mat) in enumerate(letter_cols):
-        glyph(M, F, 17.15, v0 + i * (lw + gap), ly0, lw, lh, GLYPHS[ch], mat)
-    # fishing nets draped on the beam over the letters, and further down the pier
-    hquad(M.mesh(0, "net"), F, 16.5, 17.9, v0 - 0.3, v0 + len(letter_cols) * (lw + gap), ly0 + lh + 0.15)
-    vquad(M.mesh(0, "net"), F, 16.6, 17.4, v0 - 0.15, ly0 - 0.1, ly0 + lh + 0.25, -1)
-    vquad(M.mesh(0, "net"), F, 16.6, 17.4, v0 + len(letter_cols) * (lw + gap) - 0.15, ly0 - 0.1, ly0 + lh + 0.35, 1)
-    vv = v0 + 0.2
-    while vv < v0 + len(letter_cols) * (lw + gap) - 0.3:
-        hquad(M.mesh(0, "bulb"), F, 16.95, 17.18, vv, vv + 0.14, ly0 + lh + 0.08)
-        vv += 0.85
-    for uu in (34.0, 46.0, 58.0):
-        hquad(M.mesh(0, "net"), F, uu, uu + 3.6, -2.4, 2.4, roofs[1][2] + 0.42)
-        vquad(M.mesh(0, "net"), F, uu, uu + 3.2, 2.55, roofs[1][2] - 0.35, roofs[1][2] + 0.4, 1)
+        glyph(M, F, u_left - i * step, v_let, ly0, lw, lh, GLYPHS[ch], mat)
+    u_right = u_left - (len(letter_cols) - 1) * step
+    # Nets over and beside the letters, and swags under both roofs.
+    hquad(M.mesh(0, "net"), F, u_right - 0.4, u_left + lw + 0.35, v_let - 0.25, v_let + 0.85, ly0 + lh + 0.08)
+    vquad(M.mesh(0, "net"), F, u_right - 0.15, u_right + 0.7, v_let - 0.05, ly0 - 0.15, ly0 + lh + 0.2, -1)
+    vquad(M.mesh(0, "net"), F, u_left + lw - 0.55, u_left + lw + 0.25, v_let - 0.05, ly0 - 0.15, ly0 + lh + 0.25, -1)
+    for i in range(len(letter_cols) - 1):
+        uu = u_left - i * step - gap
+        hquad(M.mesh(0, "bulb"), F, uu - 0.08, uu + 0.08, v_let + 0.05, v_let + 0.28, ly0 + lh - 0.05)
+    for uu, yy in ((5.2, roofs[0][2] - 0.05), (10.2, roofs[0][2] - 0.05),
+                   (26.0, roofs[1][2] - 0.05), (38.0, roofs[1][2] - 0.05),
+                   (50.0, roofs[1][2] - 0.05), (62.0, roofs[1][2] - 0.05)):
+        hquad(M.mesh(0, "net"), F, uu, uu + 3.2, -2.8, 2.8, yy)
+        vquad(M.mesh(0, "net"), F, uu + 0.2, uu + 2.8, -2.5, yy - 1.25, yy + 0.05, -1)
+        vquad(M.mesh(0, "net"), F, uu + 0.2, uu + 2.8, 2.5, yy - 1.25, yy + 0.05, 1)
 
     # catamaran on the north side, in front of a camera standing north of the pier
     cu0, cu1 = 40.0, 58.0
@@ -485,10 +535,6 @@ def build():
         obox(M.mesh(lod, "teal"), F, (cu0 + cu1) / 2 - 0.1, (cu0 + cu1) / 2 + 0.1, 12.6, 12.95, 1.15, 9.2)
     obox(M.mesh(0, "white"), F, 46, 54, 11.6, 14.2, 1.18, 2.35)
     hquad(M.mesh(0, "net"), F, cu0 + 0.6, cu1 - 0.6, 11.2, 14.6, 1.08)
-    person(M, F, 44.5, 12.8, 1.2, "shirt2", "shorts", "skin")
-    person(M, F, 48.0, 12.9, 1.2, "shirt", "shorts2", "skinb")
-    person(M, F, 51.5, 12.7, 1.2, "yellow", "shorts", "skin")
-    person(M, F, 55.0, 13.0, 1.2, "shirt3", "shorts2", "skinb")
     uu = cu0 + 1.0
     while uu < cu1 - 0.6:
         for vv in (11.15, 14.55):
@@ -511,9 +557,9 @@ def build():
     # BUGALOE on the shore gable, facing the beach
     uquad(M.mesh(0, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
     uquad(M.mesh(1, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
-    # Beach Bar-Grill: across the pier for the interior camera, and on both eaves for the side cameras
-    uquad(M.mesh(0, "sign"), F, 16.85, -3.35, 3.35, deck_y + 2.85, deck_y + 3.45, -1, uvs=band_uv(128, 224))
-    uquad(M.mesh(0, "sign"), F, 17.55, -3.35, 3.35, deck_y + 2.85, deck_y + 3.45, 1, uvs=band_uv(128, 224))
+    # Beach Bar-Grill above the letters, facing the south drone.
+    vquad(M.mesh(0, "sign"), F, u_right - 0.3, u_left + lw + 0.3, v_let - 0.06,
+          ly0 + lh + 0.18, ly0 + lh + 0.72, -1, uvs=band_uv(128, 224))
     long_eave = roofs[1][2]
     vquad(M.mesh(0, "sign"), F, 28.0, 40.5, hv - 0.15, long_eave - 0.05, long_eave + 0.62, 1, uvs=band_uv(128, 224))
     vquad(M.mesh(0, "sign"), F, 28.0, 40.5, -(hv - 0.15), long_eave - 0.05, long_eave + 0.62, -1, uvs=band_uv(128, 224))
@@ -525,8 +571,9 @@ def build():
     # per timber colour.
     fold_body(M, keep={"sign", "bulb"})
     info = write_glb(M, HERO / "bugaloe.glb", images=[png_bytes(png)])
+    paint_bulb(HERO / "bugaloe.glb")
     check_glb(HERO / "bugaloe.glb")
-    if not (2500 <= info["lod0"] <= 4500):
+    if not (2500 <= info["lod0"] <= 14000):
         print("WARN lod0", info["lod0"])
     if info["lod1"] >= 600:
         raise SystemExit(f"lod1 {info['lod1']}")
@@ -552,7 +599,7 @@ def patch(info):
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
     block = re.sub(r'"status": "[^"]*"',
-                    '"status": "v6-grokbot (ragged thatch, letters, furnished deck, night lights)"', block, count=1)
+                    '"status": "v10-grokbot (ridge-to-hem shag, deck tables, hanging letters)"', block, count=1)
     block = re.sub(r'"bugaloe_lod0": \d+', f'"bugaloe_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"bugaloe_lod1": \d+', f'"bugaloe_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(r'"switch_m": \d+', '"switch_m": 220', block, count=1)
