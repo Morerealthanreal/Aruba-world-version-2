@@ -205,23 +205,32 @@ def pergola(M, F, u0, u1, v0, v1, posts=4):
     obox(M.mesh(1, "turq"), F, u0, u1, v0, v1, y, y + 0.2)
 
 
+def deck_seam(mesh, F, u0, u1, v0, v1, y):
+    """Dark line on the deck. A top face is what the garden camera sees."""
+    um, vm = (u0 + u1) / 2, (v0 + v1) / 2
+    _quad_out(
+        mesh,
+        F.p(u0, v0, y), F.p(u1, v0, y), F.p(u1, v1, y), F.p(u0, v1, y),
+        F.p(um, vm, y - 1),
+    )
+
+
 def boardwalk(M, F, u0, u1, v0, v1):
     lo_u, hi_u = (u0, u1) if u0 < u1 else (u1, u0)
     lo_v, hi_v = (v0, v1) if v0 < v1 else (v1, v0)
     obox(M.mesh(0, "wood"), F, lo_u, hi_u, lo_v, hi_v, 0.2, 0.38)
     # Plank seams across the path so it reads as boards, not a brown slab.
     across_u = (hi_u - lo_u) >= (hi_v - lo_v)
+    step = 0.85
     if across_u:
-        step = 0.55
         x = lo_u
         while x < hi_u:
-            obox(M.mesh(0, "wood2"), F, x, min(hi_u, x + 0.08), lo_v + 0.08, hi_v - 0.08, 0.36, 0.42)
+            deck_seam(M.mesh(0, "wood2"), F, x, min(hi_u, x + 0.08), lo_v + 0.08, hi_v - 0.08, 0.41)
             x += step
     else:
-        step = 0.55
         z = lo_v
         while z < hi_v:
-            obox(M.mesh(0, "wood2"), F, lo_u + 0.08, hi_u - 0.08, z, min(hi_v, z + 0.08), 0.36, 0.42)
+            deck_seam(M.mesh(0, "wood2"), F, lo_u + 0.08, hi_u - 0.08, z, min(hi_v, z + 0.08), 0.41)
             z += step
 
 
