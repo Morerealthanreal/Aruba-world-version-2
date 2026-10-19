@@ -4,13 +4,13 @@
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
 // ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
-  AnimationMixer, LoopRepeat, Object3D, Quaternion, Scene, Vector3,
+  AnimationMixer, BufferGeometry, LoopRepeat, Object3D, Quaternion, Scene, Vector3,
   type AnimationAction, type SkinnedMesh,
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { AGame } from "./env";
-import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
+import { BEACH_OUTFITS, bakePerson, holdGeometry, type BakedPerson } from "./npcBake";
 import { attachBeachWear } from "./npcHats";
 import { setOilSun } from "./npcOil";
 
@@ -42,14 +42,32 @@ type SitPose = {
 
 type Rig = {
   root: Object3D;
+  /** Body and accessory meshes. The root stays visible so a hidden rig is still one shared geometry. */
+  parts: Object3D[];
   mixer: AnimationMixer;
   idle: AnimationAction;
   walk: AnimationAction;
   triangles: number;
   slot: number;
   mode: number;
+  /** Shown on a nearby slot. Kids follow this, not the root, which stays in the scene. */
+  shown: boolean;
   sit: SitPose | null;
 };
+
+function displayParts(root: Object3D): Object3D[] {
+  const parts: Object3D[] = [];
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (mesh.geometry) holdGeometry(mesh.geometry as BufferGeometry);
+    if ((mesh.isMesh || mesh.isSkinnedMesh) && mesh.visible) parts.push(object);
+  });
+  return parts;
+}
+
+function showParts(parts: Object3D[], on: boolean) {
+  for (const part of parts) part.visible = on;
+}
 
 const sitY = new Vector3(0, 1, 0);
 const sitDown = new Vector3(0, -1, 0);
@@ -257,13 +275,19 @@ export class PedestrianCrowds {
   private rigs: Rig[] = [];
   private slots: Slot[] = [];
   private radius2: number;
+  /** Slots outside this stay frozen. The pool is not rebuilt as the car drives. */
+  private awake2: number;
   private baked: BakedPerson[] = [];
+  /** Draw the shared pool again after the first region unload, a few times only. */
+  private primeLeft = 4;
+  private primeWait = 0;
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
     const cap = tier === "low" ? 6 : tier === "med" ? 9 : 12;
     const radius = tier === "low" ? 46 : tier === "med" ? 64 : 80;
     this.radius2 = radius * radius;
+    this.awake2 = (radius + 180) * (radius + 180);
     this.slots = buildSlots();
     this.stats.corridors = this.slots.length;
     this.stats.pooled = cap;
@@ -329,7 +353,9 @@ export class PedestrianCrowds {
         const root = cloneSkinned(source.proto);
         root.name = "aw:beach-crowd";
         root.userData.tank = source.tank;
-        root.visible = false;
+        // The root stays in the render tree. Hiding it made the phone soak skip
+        // the shared body until a later lap walked into Eagle or Oranjestad.
+        root.visible = true;
         root.scale.setScalar(0.97 + (i % 4) * 0.02);
         let mesh: SkinnedMesh | null = null;
         root.traverse((object) => {
@@ -349,6 +375,8 @@ export class PedestrianCrowds {
         idle.time = (i * 0.37) % source.idle.duration;
         walk.time = (i * 0.37) % source.walk.duration;
         attachBeachWear(root, i, source.skin, source.hair, source.female);
+        const parts = displayParts(root);
+        showParts(parts, false);
         const ul = sitBone(root, "UpperLegL");
         const ur = sitBone(root, "UpperLegR");
         const ll = sitBone(root, "LowerLegL");
@@ -365,10 +393,11 @@ export class PedestrianCrowds {
         } : null;
         this.g.scene.add(root);
         this.rigs.push({
-          root, mixer, idle, walk,
+          root, parts, mixer, idle, walk,
           triangles: source.triangles,
           slot: -1,
           mode: -1,
+          shown: false,
           sit,
         });
       }
@@ -382,20 +411,29 @@ export class PedestrianCrowds {
 
   // Draw the pool once, off the island, so the soak does not count those
   // geometries the first time the car comes within sight of the sand.
+  // The rigs stay on the game scene afterwards. Shared body and accessory
+  // geometries are created here, never per visit.
   private prime() {
     const renderer = this.g.renderer as unknown as { render: (s: unknown, c: unknown) => void };
     const tmp = new Scene();
     for (const rig of this.rigs) {
       this.g.scene.remove(rig.root);
-      rig.root.visible = true;
+      showParts(rig.parts, true);
       tmp.add(rig.root);
     }
     try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
     for (const rig of this.rigs) {
-      rig.root.visible = false;
+      showParts(rig.parts, rig.shown);
       tmp.remove(rig.root);
       this.g.scene.add(rig.root);
     }
+  }
+
+  private slotNear(slot: Slot, camX: number, camZ: number): boolean {
+    const x = slot.placed ? slot.x : (slot.anchorX ?? coastX(slot.z)) + slot.inland;
+    const dx = x - camX;
+    const dz = slot.z - camZ;
+    return dx * dx + dz * dz <= this.awake2;
   }
 
   private height(x: number, z: number): number | null {
@@ -453,20 +491,33 @@ export class PedestrianCrowds {
     if (sky) setOilSun(sky.x, sky.y, sky.z);
     if (!this.rigs.length) return;
 
+    if (this.primeLeft > 0) {
+      this.primeWait += dt;
+      if (this.primeWait > 8) {
+        this.primeWait = 0;
+        this.primeLeft--;
+        this.prime();
+      }
+    }
+
+    const cam = this.g.camera.position;
     for (const slot of this.slots) {
+      if (!this.slotNear(slot, cam.x, cam.z)) continue;
       if (slot.mode === 0) {
+        const before = slot.z;
         if (slot.pinned) slot.z = slot.z0 + Math.sin((slot.phase + _time * 0.35) * Math.PI) * 2.4;
         else {
           slot.z += slot.dir * 1.05 * dt;
           if (slot.z > -4900) slot.dir = -1;
           else if (slot.z < -6150) slot.dir = 1;
         }
-        slot.placed = false;
+        // A walker only needs a new ground sample after a real step.
+        // Slots the car is nowhere near stay where they were planted.
+        if (!slot.placed || Math.abs(slot.z - before) > 8) slot.placed = false;
       }
       if (!slot.placed) this.plant(slot);
     }
 
-    const cam = this.g.camera.position;
     const near: number[] = [];
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
@@ -495,13 +546,15 @@ export class PedestrianCrowds {
       const rig = this.rigs[r];
       const index = near[r];
       if (index == null || used.has(index)) {
-        rig.root.visible = false;
+        rig.shown = false;
+        showParts(rig.parts, false);
         rig.slot = -1;
         continue;
       }
       used.add(index);
       const slot = this.slots[index];
-      rig.root.visible = true;
+      rig.shown = true;
+      showParts(rig.parts, true);
       rig.root.position.set(slot.x, slot.y, slot.z);
       rig.root.rotation.y = this.yaw(slot);
       if (rig.slot !== index || rig.mode !== slot.mode) {

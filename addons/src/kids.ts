@@ -6,14 +6,29 @@
 // after every animation update; brighter kids' clothes, tops and trousers kept.
 // Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
 // Pool is small (<= 2 per adult ped, capped per tier), no shadows on phones. Off with ?kids=0.
-import { AnimationMixer, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type Texture } from "three";
+import { AnimationMixer, BufferGeometry, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type SkinnedMesh, type Texture } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { AGame } from "./env";
+import { holdGeometry } from "./npcBake";
 
 type Ped = { g: Object3D & { position: Vector3; rotation: { y: number } }; rd: unknown; sp?: number; pedFlip?: number; __fam?: number; __rd?: unknown };
-type Kid = { root: Group; inner: Object3D; mixer: AnimationMixer; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; follow: number; slot: number; applied?: boolean };
-type CrowdRig = { mode: number; root: Object3D & { position: Vector3; rotation: { y: number }; visible: boolean } };
+type Kid = { root: Group; inner: Object3D; parts: Object3D[]; mixer: AnimationMixer; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; follow: number; slot: number; applied?: boolean };
+type CrowdRig = { mode: number; shown?: boolean; root: Object3D & { position: Vector3; rotation: { y: number }; visible: boolean } };
+
+function displayParts(root: Object3D): Object3D[] {
+  const parts: Object3D[] = [];
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh;
+    if (mesh.geometry) holdGeometry(mesh.geometry as BufferGeometry);
+    if ((mesh.isMesh || mesh.isSkinnedMesh) && mesh.visible) parts.push(object);
+  });
+  return parts;
+}
+
+function showParts(parts: Object3D[], on: boolean) {
+  for (const part of parts) part.visible = on;
+}
 type Follow = { key: number; want: number; pos: Vector3; ry: number; sp: number };
 
 const NEAR2 = 140 * 140;
@@ -37,6 +52,8 @@ export class Kids {
   private shadows: boolean;
   private v = new Vector3();
   private ready: Promise<void>;
+  private primeLeft = 4;
+  private primeWait = 0;
   constructor(private g: AGame, mobile: boolean) {
     const tier = (g.real as unknown as { q: { name: string } }).q.name;
     this.cap = tier === "low" ? 3 : tier === "med" ? 8 : 14;
@@ -90,9 +107,9 @@ export class Kids {
     const home = this.group.parent;
     const tmp = new Scene();
     tmp.add(this.group);
-    for (const k of this.pool) k.root.visible = true;
+    for (const k of this.pool) showParts(k.parts, true);
     try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
-    for (const k of this.pool) k.root.visible = false;
+    for (const k of this.pool) showParts(k.parts, k.follow >= 0);
     if (home) home.add(this.group);
   }
 
@@ -118,14 +135,26 @@ export class Kids {
     const walk = mixer.clipAction(clip("Walk_Brisk")), jog = mixer.clipAction(clip("Jog"));
     walk.play(); jog.play(); jog.setEffectiveWeight(0);
     walk.time = Math.random() * walk.getClip().duration;
-    root.visible = false;
+    // One clone per pool slot. The root stays visible so the shared GLB
+    // geometries are uploaded with the rest of the scene, not on a later lap.
+    const parts = displayParts(root);
+    showParts(parts, false);
+    root.visible = true;
     this.group.add(root);
     this.stats.kids++;
-    return { root, inner, mixer, walk, jog, bones, follow: -1, slot: 0 };
+    return { root, inner, parts, mixer, walk, jog, bones, follow: -1, slot: 0 };
   }
 
   update(dt: number) {
     if (!this.gl.length) return; // wait for the kid models before assigning families
+    if (this.primeLeft > 0 && this.pool.length) {
+      this.primeWait += dt;
+      if (this.primeWait > 8) {
+        this.primeWait = 0;
+        this.primeLeft--;
+        this.prime();
+      }
+    }
     const amb = (this.g.real as unknown as { amb?: { peds: Ped[] } }).amb;
     const cam = (this.g.camera as unknown as { position: Vector3 }).position;
     const surf = (this.g.real as unknown as { surfaceAt(x: number, z: number): number });
@@ -155,7 +184,7 @@ export class Kids {
     if (rigs) {
       for (let i = 0; i < rigs.length; i++) {
         const rig = rigs[i];
-        if (rig.mode !== 0 || !rig.root.visible) continue;
+        if (rig.mode !== 0 || !rig.shown) continue;
         const pos = rig.root.position;
         if (!near(pos.x, pos.z)) continue;
         const want = familySize(500 + i);
@@ -169,7 +198,7 @@ export class Kids {
       const adult = byKey.get(k.follow);
       if (!adult || k.slot >= adult.want) {
         k.follow = -1;
-        k.root.visible = false;
+        showParts(k.parts, false);
       }
     }
     for (const adult of wanted) {
@@ -186,7 +215,7 @@ export class Kids {
     const seen = new Set<number>();
     for (const k of this.pool) {
       const adult = byKey.get(k.follow);
-      if (!adult) { k.root.visible = false; continue; }
+      if (!adult) { showParts(k.parts, false); continue; }
       if (!seen.has(adult.key)) { seen.add(adult.key); fam++; }
       const ry = adult.ry;
       const fx = -Math.sin(ry);
@@ -200,7 +229,7 @@ export class Kids {
       const y = ground > 0.2 ? ground + 0.02 : adult.pos.y;
       k.root.position.set(x, y, z);
       k.root.rotation.y = ry;
-      k.root.visible = true;
+      showParts(k.parts, true);
       vis++;
       const sp = adult.sp;
       const size = k.root.scale.x;
