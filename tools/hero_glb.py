@@ -127,8 +127,8 @@ class Model:
         self.mats = {}  # name -> (rgba, roughness, double, emissive or None, has_tex)
         self.lod = [{}, {}]  # lod -> mat name -> Mesh
 
-    def material(self, name, rgb, rough=0.85, double=False, emissive=None, textured=False):
-        self.mats[name] = (tuple(rgb) + (1,), rough, double, emissive, textured)
+    def material(self, name, rgb, rough=0.85, double=False, emissive=None, textured=False, normal=False):
+        self.mats[name] = (tuple(rgb) + (1,), rough, double, emissive, textured, normal)
         return name
 
     def mesh(self, lod, mat):
@@ -168,7 +168,9 @@ def write_glb(model: Model, path, images=None):
     accessors = []
     materials = []
     mat_index = {}
-    for name, (rgba, rough, double, emissive, textured) in model.mats.items():
+    for name, spec in model.mats.items():
+        rgba, rough, double, emissive, textured = spec[:5]
+        has_normal = spec[5] if len(spec) > 5 else False
         m = {
             "name": name,
             "pbrMetallicRoughness": {
@@ -181,11 +183,13 @@ def write_glb(model: Model, path, images=None):
             m["doubleSided"] = True
         if textured and image_views:
             m["pbrMetallicRoughness"]["baseColorTexture"] = {"index": 0}
-            if emissive is None:
+            if emissive is None and not has_normal:
                 emissive = 0.35
+        if has_normal and len(image_views) > 1:
+            m["normalTexture"] = {"index": 1, "scale": 1.6}
         if emissive:
             m["emissiveFactor"] = [emissive, emissive, emissive]
-            if textured and image_views:
+            if textured and image_views and emissive and not has_normal:
                 m["emissiveTexture"] = {"index": 0}
         materials.append(m)
         mat_index[name] = len(materials) - 1
@@ -234,9 +238,12 @@ def write_glb(model: Model, path, images=None):
         "buffers": [{"byteLength": len(blob)}],
     }
     if images:
-        gltf["samplers"] = [{"wrapS": 10497, "wrapT": 10497}]
-        gltf["textures"] = [{"source": 0, "sampler": 0}]
-        gltf["images"] = [{"name": "signs", "mimeType": "image/png", "bufferView": image_views[0]}]
+        gltf["samplers"] = [{"wrapS": 10497, "wrapT": 10497, "magFilter": 9729, "minFilter": 9986}]
+        gltf["textures"] = [{"source": i, "sampler": 0} for i in range(len(images))]
+        gltf["images"] = [
+            {"name": "img%d" % i, "mimeType": "image/png", "bufferView": image_views[i]}
+            for i in range(len(images))
+        ]
     js = json.dumps(gltf, separators=(",", ":")).encode()
     js = _pad(js, 4, b" ")
     blob = _pad(blob, 4, b"\x00")
