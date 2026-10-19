@@ -3,7 +3,7 @@
 // the CC0 rigs): the face sits near z 0.09 and the eyes near y 0.15.
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute,
-  Mesh, SphereGeometry, TorusGeometry, type Object3D,
+  Mesh, Quaternion, SphereGeometry, TorusGeometry, Vector3, type Object3D,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { oilMaterial } from "./npcOil";
@@ -114,49 +114,72 @@ function faceFor(skin: number) {
   return geo;
 }
 
+const BRAID_UP = new Vector3(0, 1, 0);
+const BRAID_A = new Vector3();
+const BRAID_B = new Vector3();
+const BRAID_DIR = new Vector3();
+const BRAID_MID = new Vector3();
+const BRAID_QUAT = new Quaternion();
+
+function strandSegment(ax: number, ay: number, az: number, bx: number, by: number, bz: number, radius: number) {
+  BRAID_A.set(ax, ay, az);
+  BRAID_B.set(bx, by, bz);
+  BRAID_DIR.subVectors(BRAID_B, BRAID_A);
+  const len = Math.max(0.004, BRAID_DIR.length());
+  const geo = new CylinderGeometry(radius, radius, len * 1.08, 6, 1, true);
+  BRAID_QUAT.setFromUnitVectors(BRAID_UP, BRAID_DIR.normalize());
+  geo.applyQuaternion(BRAID_QUAT);
+  BRAID_MID.addVectors(BRAID_A, BRAID_B).multiplyScalar(0.5);
+  geo.translate(BRAID_MID.x, BRAID_MID.y, BRAID_MID.z);
+  return geo;
+}
+
+/** Flat three-strand plait in chest space. One strand crosses in front while the other two sit wide. */
+function braidPoint(strand: number, t: number) {
+  const y = 0.2 + (-0.3 - 0.2) * t;
+  const phase = t * Math.PI * 2 * 5 + strand * (Math.PI * 2 / 3);
+  const across = Math.asin(Math.max(-1, Math.min(1, Math.sin(phase)))) / (Math.PI / 2);
+  const amp = 0.0082 * (1 - t * 0.34);
+  const lift = Math.cos(phase);
+  const outward = (lift > 0 ? lift : lift * 0.15) * 0.0052 * (1 - t * 0.2);
+  return {
+    x: across * amp,
+    y,
+    z: -0.056 - t * 0.014 - outward,
+    radius: 0.0058 * (1 - t * 0.28),
+  };
+}
+
 function hairFor(hex: number) {
   const found = hairCache.get(hex);
   if (found) return found;
   // One nape lock so the plait starts in hair. Side spheres read as buns.
   const volume = new SphereGeometry(0.04, 7, 5).translate(0, 0.015, -0.072);
-  // Chest space. A three-strand plait from the nape (y 0.22) to the waist.
-  const strands: BufferGeometry[] = [];
-  const segments = 16;
-  const y0 = 0.2;
-  const y1 = -0.3;
-  const span = (y0 - y1) / segments;
-  for (let i = 0; i < segments; i++) {
-    const t = i / (segments - 1);
-    const y = y0 + (y1 - y0) * t;
-    // Lie on the back. A wide helix reads as a chain and swings off the shirt.
-    const z = -0.062 - t * 0.008;
-    const twist = t * Math.PI * 3.2;
-    const spread = 0.0065 * (1 - t * 0.15);
-    const radius = 0.0055 * (1 - t * 0.25);
-    for (let s = 0; s < 3; s++) {
-      const angle = twist + (s * Math.PI * 2) / 3;
-      const strand = new CylinderGeometry(radius, radius, span * 2.15, 5);
-      strand.translate(Math.cos(angle) * spread, y, z + Math.sin(angle) * spread * 0.45);
-      strands.push(strand);
+  const pieces: BufferGeometry[] = [];
+  const samples = 42;
+  const tone = new Color(hex);
+  const shades = [1, 0.78, 0.9];
+  for (let s = 0; s < 3; s++) {
+    const tint = tone.clone().multiplyScalar(shades[s]).getHex();
+    for (let i = 0; i < samples - 1; i++) {
+      const a = braidPoint(s, i / (samples - 1));
+      const b = braidPoint(s, (i + 1) / (samples - 1));
+      const seg = strandSegment(a.x, a.y, a.z, b.x, b.y, b.z, (a.radius + b.radius) * 0.5);
+      pieces.push(paint(seg, tint));
     }
   }
-  const core = new CylinderGeometry(0.012, 0.0075, y0 - y1, 6);
-  core.translate(0, (y0 + y1) / 2, -0.062);
-  strands.push(core);
-  const tie = new TorusGeometry(0.016, 0.0032, 5, 8);
+  const tie = new TorusGeometry(0.018, 0.003, 5, 10);
   tie.rotateX(Math.PI / 2);
-  tie.translate(0, 0.205, -0.064);
-  const tail = new SphereGeometry(0.014, 6, 5);
-  tail.scale(1, 1.25, 0.75);
-  tail.translate(0, -0.312, -0.08);
-  paint(tie, new Color(hex).multiplyScalar(0.62).getHex());
-  for (const strand of strands) paint(strand, hex);
+  tie.translate(0, 0.198, -0.06);
+  paint(tie, tone.clone().multiplyScalar(0.55).getHex());
+  const tail = new SphereGeometry(0.012, 6, 5);
+  tail.scale(1.15, 1.45, 0.7);
+  tail.translate(0, -0.308, -0.072);
   paint(tail, hex);
-  const braid = mergeGeometries([...strands, tie, tail], false);
-  for (const strand of strands) strand.dispose();
-  if (braid) {
-    tie.dispose();
-    tail.dispose();
+  pieces.push(tie, tail);
+  const braid = mergeGeometries(pieces, false);
+  for (const piece of pieces) {
+    if (braid) piece.dispose();
   }
   const made = {
     volume: paint(volume, hex),
