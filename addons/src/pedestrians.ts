@@ -1,240 +1,348 @@
-// Low-poly, instanced crowds for the Palm Beach hotel strip and Oranjestad's
-// Caya G.F. Betico Croes shopping street. Four draws replace A's many skinned
-// pedestrian parts, and instance counts drop to zero outside the LOD radius.
-// ?peds=0 (or ?life=0) restores A's original pedestrians.
+// Beach crowd for Palm Beach, added beside the island-wide ambient pedestrians.
+// Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
+// never grows geometries while it walks. The crowd stands on the sand west of
+// J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
+// ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
-  BoxGeometry, Color, DynamicDrawUsage, Group, InstancedMesh, Matrix4,
-  MeshLambertMaterial, Quaternion, SphereGeometry, Vector3, type Object3D,
+  AnimationMixer, LoopRepeat, Object3D, Scene,
+  type AnimationAction, type SkinnedMesh,
 } from "three";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { AGame } from "./env";
+import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
+import { attachBeachWear } from "./npcHats";
+import { setOilSun } from "./npcOil";
 
-type Road = {
-  id: number; n: string; w: number; p: number[][]; u: number;
-};
-type Ped = { g: Object3D };
-type World = {
-  regions: Map<unknown, { json?: { roads?: Road[] } }>;
-  surfaceAt(x: number, z: number): number;
-};
-type Amb = { peds: Ped[]; w: World };
-type Walker = {
-  road: Road | null; length: number; s: number; dir: number; side: number;
-  speed: number; phase: number; x: number; y: number; z: number; yaw: number;
-  skin: number; top: number; bottom: number;
+type Slot = {
+  z0: number;
+  z: number;
+  inland: number;
+  /** 0 walk, 1 stand. Sitting is a later pass. */
+  mode: 0 | 1;
+  phase: number;
+  dir: number;
+  yawJitter: number;
+  /** Stay in the Palm Beach foreground instead of leaving the frame. */
+  pinned: boolean;
+  x: number;
+  y: number;
+  placed: boolean;
 };
 
-const TOPS = [0xe95b5b, 0x3d8fcb, 0xf1c84b, 0x4da968, 0xe983b3, 0xe78b45, 0x735db2];
-const BOTTOMS = [0x263445, 0x554535, 0xd9d4c7, 0x334c69, 0x313338];
-const SKINS = [0x6f3f2b, 0x92583b, 0xb97954, 0xd59a72, 0xedc29e];
-const X_AXIS = new Vector3(1, 0, 0);
+type Rig = {
+  root: Object3D;
+  mixer: AnimationMixer;
+  idle: AnimationAction;
+  walk: AnimationAction;
+  triangles: number;
+  slot: number;
+  mode: number;
+};
+
+// West edge of the land, sampled from the island outline. Inland is +X (east).
+const COAST: ReadonlyArray<readonly [number, number]> = [
+  [-6200, -8218],
+  [-6000, -8246],
+  [-5800, -8310],
+  [-5600, -8404],
+  [-5400, -8490],
+  [-5300, -8549],
+  [-5100, -8680],
+  [-5000, -8821],
+  [-4800, -8950],
+];
+
+function coastX(z: number): number {
+  const first = COAST[0];
+  const last = COAST[COAST.length - 1];
+  if (z <= first[0]) return first[1];
+  if (z >= last[0]) return last[1];
+  for (let i = 1; i < COAST.length; i++) {
+    const a = COAST[i - 1];
+    const b = COAST[i];
+    if (z <= b[0]) {
+      const t = (z - a[0]) / (b[0] - a[0]);
+      return a[1] + (b[1] - a[1]) * t;
+    }
+  }
+  return last[1];
+}
+
+function buildSlots(): Slot[] {
+  const slots: Slot[] = [];
+  const push = (z: number, inland: number, mode: 0 | 1, phase: number, pinned: boolean) => {
+    slots.push({
+      z0: z, z, inland, mode, phase, pinned,
+      dir: slots.length & 1 ? 1 : -1,
+      yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
+      x: 0, y: 0, placed: false,
+    });
+  };
+  // Dense group on the sand at the Palm Beach photo spot, so a standing
+  // camera there sees people large in the frame, not a roadside lineup.
+  // A knot about 12 m across on the sand, so a camera 8 m away fills the frame.
+  const hero: Array<[number, number, 0 | 1]> = [
+    [-5348, 12, 1],
+    [-5346, 18, 1],
+    [-5345, 14, 0],
+    [-5343, 20, 1],
+    [-5342, 16, 0],
+    [-5340, 11, 0],
+    [-5339, 19, 1],
+    [-5337, 15, 0],
+    [-5336, 13, 1],
+    [-5344, 17, 0],
+  ];
+  hero.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.37) % 1, true));
+  for (let i = 0; i < 24; i++) {
+    const z = -6000 + i * 42;
+    if (z > -5400 && z < -5200) continue;
+    const inland = 20 + (i % 5) * 16;
+    push(z, inland, (i % 2) as 0 | 1, (i * 0.21) % 1, false);
+  }
+  return slots;
+}
 
 export class PedestrianCrowds {
-  stats = { pooled: 0, visible: 0, draws: 0, triangles: 0, corridors: 0 };
-  private amb: Amb | null = null;
-  private walkers: Walker[] = [];
-  private routes: Road[] = [];
-  private group = new Group();
-  private head: InstancedMesh;
-  private torso: InstancedMesh;
-  private legs: InstancedMesh;
-  private arms: InstancedMesh;
-  private meshes: InstancedMesh[];
-  private root = new Matrix4();
-  private local = new Matrix4();
-  private world = new Matrix4();
-  private pos = new Vector3();
-  private scale = new Vector3();
-  private quat = new Quaternion();
-  private tint = new Color();
-  private scanIn = 0;
-  private lod2: number;
+  stats = {
+    pooled: 0, visible: 0, draws: 0, triangles: 0, corridors: 0,
+    walking: 0, standing: 0, sitting: 0, ready: 0,
+  };
+  private rigs: Rig[] = [];
+  private slots: Slot[] = [];
+  private radius2: number;
+  private baked: BakedPerson[] = [];
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
-    const cap = tier === "low" ? 18 : tier === "med" ? 32 : 48;
-    const lod = tier === "low" ? 190 : 250;
-    this.lod2 = lod * lod;
-
-    this.group.name = "aw:pedestrians";
-    const skin = new MeshLambertMaterial({ color: 0xffffff });
-    const cloth = new MeshLambertMaterial({ color: 0xffffff });
-    const pants = new MeshLambertMaterial({ color: 0xffffff });
-    this.head = this.mesh(new SphereGeometry(1, 6, 4), skin, cap, "heads");
-    this.torso = this.mesh(new BoxGeometry(1, 1, 1), cloth, cap, "torsos");
-    this.legs = this.mesh(new BoxGeometry(1, 1, 1), pants, cap * 2, "legs");
-    this.arms = this.mesh(new BoxGeometry(1, 1, 1), skin, cap * 2, "arms");
-    this.meshes = [this.head, this.torso, this.legs, this.arms];
-    this.group.add(this.head, this.torso, this.legs, this.arms);
-    g.scene.add(this.group);
-
-    for (let i = 0; i < cap; i++) {
-      this.walkers.push({
-        road: null, length: 0, s: 0, dir: i & 1 ? 1 : -1, side: i & 2 ? 1 : -1,
-        speed: 1.05 + (i % 6) * 0.09, phase: (i * 2.399963) % (Math.PI * 2),
-        x: 0, y: 0, z: 0, yaw: 0,
-        skin: SKINS[(i * 3) % SKINS.length],
-        top: TOPS[(i * 5) % TOPS.length],
-        bottom: BOTTOMS[(i * 7) % BOTTOMS.length],
-      });
-    }
+    const cap = tier === "low" ? 6 : tier === "med" ? 9 : 12;
+    const radius = tier === "low" ? 46 : tier === "med" ? 64 : 80;
+    this.radius2 = radius * radius;
+    this.slots = buildSlots();
+    this.stats.corridors = this.slots.length;
     this.stats.pooled = cap;
+    void this.load(cap);
   }
 
-  private mesh(geo: BoxGeometry | SphereGeometry, mat: MeshLambertMaterial, count: number, name: string) {
-    const mesh = new InstancedMesh(geo, mat, count);
-    mesh.name = `aw:pedestrians:${name}`;
-    mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-    mesh.frustumCulled = false; // explicit distance culling compacts the instance buffer
-    mesh.castShadow = this.g.real!.q.name !== "low";
-    mesh.count = 0;
-    return mesh;
-  }
-
-  private roadLength(road: Road) {
-    let length = 0;
-    for (let i = 1; i < road.p.length; i++) {
-      length += Math.hypot(road.p[i][0] - road.p[i - 1][0], road.p[i][1] - road.p[i - 1][1]);
-    }
-    return length;
-  }
-
-  private inCorridor(road: Road) {
-    const main = road.n === "Caya G.F. Betico Croes";
-    const palm = road.n === "J.E. Irausquin Boulevard";
-    if (!main && !palm) return false;
-    for (let i = 0; i < road.p.length; i++) {
-      const x = road.p[i][0], z = road.p[i][1];
-      if (main && x > -7550 && x < -6450 && Math.abs(z) < 350) return true;
-      const dx = x + 8220, dz = z + 5750;
-      if (palm && dx * dx + dz * dz < 1450 * 1450) return true;
-    }
-    return false;
-  }
-
-  private scanRoutes() {
-    const amb = this.amb!;
-    this.routes = [];
-    const seen = new Set<string>();
-    for (const region of amb.w.regions.values()) {
-      const roads = region.json?.roads;
-      if (!roads) continue;
-      for (const road of roads) {
-        const key = `${road.n}:${road.id}`;
-        if (road.u || road.p.length < 2 || seen.has(key) || !this.inCorridor(road)) continue;
-        seen.add(key);
-        this.routes.push(road);
+  private async loadGlb(url: string, tries = 3) {
+    let last: unknown;
+    for (let attempt = 0; attempt < tries; attempt++) {
+      const ctrl = new AbortController();
+      const timer = window.setTimeout(() => ctrl.abort(), 15000);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`${url} ${res.status}`);
+        const buf = await res.arrayBuffer();
+        window.clearTimeout(timer);
+        return await new GLTFLoader().parseAsync(buf, "");
+      } catch (error) {
+        window.clearTimeout(timer);
+        last = error;
       }
     }
-    this.stats.corridors = this.routes.length;
-    if (!this.routes.length) return;
-    for (let i = 0; i < this.walkers.length; i++) {
-      const w = this.walkers[i];
-      if (w.road && this.routes.includes(w.road)) continue;
-      const road = this.routes[i % this.routes.length];
-      w.road = road;
-      w.length = this.roadLength(road);
-      w.s = w.length * (((i * 0.61803398875) % 1) * 0.9 + 0.05);
-      w.side = (i & 1 ? 1 : -1) * (road.w * 0.5 + 1.45);
-    }
+    throw last instanceof Error ? last : new Error(String(last));
   }
 
-  private sample(w: Walker): boolean {
-    const road = w.road;
-    if (!road) return false;
-    let along = 0;
-    for (let i = 1; i < road.p.length; i++) {
-      const ax = road.p[i - 1][0], az = road.p[i - 1][1];
-      const dx = road.p[i][0] - ax, dz = road.p[i][1] - az;
-      const length = Math.hypot(dx, dz) || 1;
-      if (along + length >= w.s || i === road.p.length - 1) {
-        const t = Math.max(0, Math.min(1, (w.s - along) / length));
-        const ux = dx / length, uz = dz / length;
-        w.x = ax + dx * t - uz * w.side;
-        w.z = az + dz * t + ux * w.side;
-        w.y = this.amb!.w.surfaceAt(w.x, w.z) + 0.02;
-        w.yaw = w.dir > 0 ? Math.atan2(ux, uz) : Math.atan2(-ux, -uz);
-        return true;
+  private async load(cap: number) {
+    try {
+      this.baked = [];
+      console.log("[aw-peds] loading beach outfits");
+      const missed: typeof BEACH_OUTFITS[number][] = [];
+      const baked = new Map<string, BakedPerson>();
+      const bake = async (outfit: typeof BEACH_OUTFITS[number], tries: number) => {
+        const url = `./models/${outfit.file}`;
+        console.log("[aw-peds] fetch", outfit.file);
+        const gl = await this.loadGlb(url, tries);
+        const person = bakePerson(gl, outfit);
+        baked.set(outfit.file, person);
+        console.log("[aw-peds] baked", outfit.file, person.triangles);
+      };
+      // The casual woman is fetched last. She loses the boot race if she goes first.
+      const loadOrder = [...BEACH_OUTFITS].sort((a, b) => Number(a.tank === true) - Number(b.tank === true));
+      for (const outfit of loadOrder) {
+        try {
+          await bake(outfit, 3);
+        } catch (error) {
+          console.warn("[aw-peds] retry later", outfit.file, error);
+          missed.push(outfit);
+        }
       }
-      along += length;
+      // The first file often loses the boot race against the single-threaded
+      // asset server. Try again once the rest of the page has finished.
+      for (const outfit of missed) {
+        try {
+          await bake(outfit, 2);
+        } catch (error) {
+          console.warn("[aw-peds] skip", outfit.file, error);
+        }
+      }
+      this.baked = BEACH_OUTFITS.map((outfit) => baked.get(outfit.file)).filter((person): person is BakedPerson => !!person);
+      if (!this.baked.length) throw new Error("no beach outfits");
+      for (let i = 0; i < cap; i++) {
+        const source = this.baked[i % this.baked.length];
+        const root = cloneSkinned(source.proto);
+        root.name = "aw:beach-crowd";
+        root.userData.tank = source.tank;
+        root.visible = false;
+        root.scale.setScalar(0.97 + (i % 4) * 0.02);
+        let mesh: SkinnedMesh | null = null;
+        root.traverse((object) => {
+          const skinned = object as SkinnedMesh;
+          if (skinned.isSkinnedMesh) mesh = skinned;
+        });
+        if (!mesh) continue;
+        const mixer = new AnimationMixer(root);
+        const idle = mixer.clipAction(source.idle);
+        const walk = mixer.clipAction(source.walk);
+        for (const action of [idle, walk]) {
+          action.setLoop(LoopRepeat, Infinity);
+          action.play();
+          action.setEffectiveWeight(0);
+        }
+        idle.setEffectiveWeight(1);
+        idle.time = (i * 0.37) % source.idle.duration;
+        walk.time = (i * 0.37) % source.walk.duration;
+        attachBeachWear(root, i, source.skin, source.hair, source.female);
+        this.g.scene.add(root);
+        this.rigs.push({
+          root, mixer, idle, walk,
+          triangles: source.triangles,
+          slot: -1,
+          mode: -1,
+        });
+      }
+      this.prime();
+      this.stats.ready = 1;
+      console.log("[aw-peds] beach crowd ready", this.rigs.length);
+    } catch (error) {
+      console.warn("[aw-peds] beach crowd", error);
     }
-    return false;
   }
 
-  private put(mesh: InstancedMesh, index: number, x: number, y: number, z: number,
-    rx: number, sx: number, sy: number, sz: number) {
-    this.pos.set(x, y, z);
-    this.quat.setFromAxisAngle(X_AXIS, rx);
-    this.scale.set(sx, sy, sz);
-    this.local.compose(this.pos, this.quat, this.scale);
-    this.world.multiplyMatrices(this.root, this.local);
-    mesh.setMatrixAt(index, this.world);
+  // Draw the pool once, off the island, so the soak does not count those
+  // geometries the first time the car comes within sight of the sand.
+  private prime() {
+    const renderer = this.g.renderer as unknown as { render: (s: unknown, c: unknown) => void };
+    const tmp = new Scene();
+    for (const rig of this.rigs) {
+      this.g.scene.remove(rig.root);
+      rig.root.visible = true;
+      tmp.add(rig.root);
+    }
+    try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
+    for (const rig of this.rigs) {
+      rig.root.visible = false;
+      tmp.remove(rig.root);
+      this.g.scene.add(rig.root);
+    }
   }
 
-  private drawWalker(w: Walker, index: number, time: number) {
-    const gait = Math.sin(time * 7.2 + w.phase);
-    const bob = Math.abs(gait) * 0.025;
-    this.root.makeRotationY(w.yaw);
-    this.root.setPosition(w.x, w.y + bob, w.z);
-    this.put(this.head, index, 0, 1.77, 0, 0, 0.18, 0.2, 0.18);
-    this.put(this.torso, index, 0, 1.29, 0, 0, 0.34, 0.52, 0.22);
-    this.put(this.legs, index * 2, -0.14, 0.64, gait * 0.08, gait * 0.45, 0.11, 0.62, 0.13);
-    this.put(this.legs, index * 2 + 1, 0.14, 0.64, -gait * 0.08, -gait * 0.45, 0.11, 0.62, 0.13);
-    this.put(this.arms, index * 2, -0.43, 1.26, 0, -gait * 0.5, 0.08, 0.48, 0.09);
-    this.put(this.arms, index * 2 + 1, 0.43, 1.26, 0, gait * 0.5, 0.08, 0.48, 0.09);
-    this.head.setColorAt(index, this.tint.setHex(w.skin));
-    this.torso.setColorAt(index, this.tint.setHex(w.top));
-    this.legs.setColorAt(index * 2, this.tint.setHex(w.bottom));
-    this.legs.setColorAt(index * 2 + 1, this.tint);
-    this.arms.setColorAt(index * 2, this.tint.setHex(w.skin));
-    this.arms.setColorAt(index * 2 + 1, this.tint);
+  private height(x: number, z: number): number | null {
+    const real = this.g.real as unknown as { heightAt?: (x: number, z: number) => number } | null;
+    const y = real?.heightAt?.(x, z);
+    return typeof y === "number" && Number.isFinite(y) ? y : null;
   }
 
-  update(dt: number, time: number) {
-    if (!this.amb) {
-      const amb = (this.g.real as unknown as { amb?: Amb }).amb;
-      if (!amb) return;
-      this.amb = amb;
-      this.scanRoutes();
+  private plant(slot: Slot) {
+    let inland = slot.inland;
+    let x = coastX(slot.z) + inland;
+    let y = this.height(x, slot.z);
+    if (y == null) return;
+    for (let n = 0; n < 8 && y < 0.35; n++) {
+      inland += 10;
+      x = coastX(slot.z) + inland;
+      y = this.height(x, slot.z) ?? y;
     }
+    if (y < 0.25 || y > 4.2) return;
+    slot.inland = inland;
+    slot.x = x;
+    slot.y = y;
+    slot.placed = true;
+  }
 
-    // Base pedestrians can finish loading asynchronously; retire them into no pool.
-    while (this.amb.peds.length) {
-      const ped = this.amb.peds.pop()!;
-      ped.g.visible = false;
-      ped.g.parent?.remove(ped.g);
-    }
-    if ((this.scanIn -= dt) <= 0) {
-      this.scanIn = 2;
-      this.scanRoutes();
+  private yaw(slot: Slot): number {
+    const along = Math.atan2(coastX(slot.z + 3) - coastX(slot.z - 3), 6);
+    if (slot.mode === 0) return (slot.dir > 0 ? along : along + Math.PI) + slot.yawJitter * 0.25;
+    // Model forward is +Z. Water is west (−X), so yaw +π/2 looks out to sea.
+    return Math.PI / 2 + slot.yawJitter;
+  }
+
+  update(dt: number, _time: number) {
+    const sky = this.g.real?.sky?.sunDir;
+    if (sky) setOilSun(sky.x, sky.y, sky.z);
+    if (!this.rigs.length) return;
+
+    for (const slot of this.slots) {
+      if (slot.mode === 0) {
+        if (slot.pinned) slot.z = slot.z0 + Math.sin((slot.phase + _time * 0.35) * Math.PI) * 2.4;
+        else {
+          slot.z += slot.dir * 1.05 * dt;
+          if (slot.z > -4900) slot.dir = -1;
+          else if (slot.z < -6150) slot.dir = 1;
+        }
+        slot.placed = false;
+      }
+      if (!slot.placed) this.plant(slot);
     }
 
     const cam = this.g.camera.position;
-    let visible = 0;
-    for (const w of this.walkers) {
-      if (!w.road || w.length <= 0) continue;
-      w.s += w.dir * w.speed * dt;
-      if (w.s >= w.length) { w.s = w.length; w.dir = -1; }
-      else if (w.s <= 0) { w.s = 0; w.dir = 1; }
-      if (!this.sample(w)) continue;
-      const dx = w.x - cam.x, dz = w.z - cam.z;
-      if (dx * dx + dz * dz > this.lod2) continue;
-      this.drawWalker(w, visible++, time);
+    const near: number[] = [];
+    for (let i = 0; i < this.slots.length; i++) {
+      const slot = this.slots[i];
+      if (!slot.placed) continue;
+      const dx = slot.x - cam.x;
+      const dz = slot.z - cam.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 > this.radius2) continue;
+      near.push(i);
     }
+    near.sort((a, b) => {
+      const sa = this.slots[a];
+      const sb = this.slots[b];
+      const da = (sa.x - cam.x) ** 2 + (sa.z - cam.z) ** 2;
+      const db = (sb.x - cam.x) ** 2 + (sb.z - cam.z) ** 2;
+      return da - db;
+    });
 
-    this.head.count = visible;
-    this.torso.count = visible;
-    this.legs.count = visible * 2;
-    this.arms.count = visible * 2;
-    for (const mesh of this.meshes) {
-      if (mesh.count) {
-        mesh.instanceMatrix.needsUpdate = true;
-        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    const used = new Set<number>();
+    let visible = 0;
+    let triangles = 0;
+    let walking = 0;
+    let standing = 0;
+    for (let r = 0; r < this.rigs.length; r++) {
+      const rig = this.rigs[r];
+      const index = near[r];
+      if (index == null || used.has(index)) {
+        rig.root.visible = false;
+        rig.slot = -1;
+        continue;
       }
-      mesh.visible = mesh.count > 0;
+      used.add(index);
+      const slot = this.slots[index];
+      rig.root.visible = true;
+      rig.root.position.set(slot.x, slot.y, slot.z);
+      rig.root.rotation.y = this.yaw(slot);
+      if (rig.slot !== index || rig.mode !== slot.mode) {
+        rig.slot = index;
+        rig.mode = slot.mode;
+        const moving = slot.mode === 0;
+        rig.walk.setEffectiveWeight(moving ? 1 : 0);
+        rig.idle.setEffectiveWeight(moving ? 0 : 1);
+        if (moving) rig.walk.time = slot.phase * rig.walk.getClip().duration;
+        else rig.idle.time = slot.phase * rig.idle.getClip().duration;
+      }
+      rig.mixer.update(dt);
+      visible++;
+      triangles += rig.triangles;
+      if (slot.mode === 0) walking++;
+      else standing++;
     }
     this.stats.visible = visible;
-    this.stats.draws = visible ? 4 : 0;
-    // 36 head + 12 torso + two 12-triangle legs + two 12-triangle arms.
-    this.stats.triangles = visible * 96;
+    this.stats.draws = visible;
+    this.stats.triangles = triangles;
+    this.stats.walking = walking;
+    this.stats.standing = standing;
+    this.stats.sitting = 0;
   }
 }
