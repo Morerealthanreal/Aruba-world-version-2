@@ -1,4 +1,5 @@
-// Beach crowds for Palm Beach and Noord, beside the island-wide ambient pedestrians.
+// Beach crowds for Palm Beach, Noord, Eagle Beach, and Oranjestad, beside the
+// island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
 // ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
@@ -221,6 +222,30 @@ function buildSlots(): Slot[] {
     [-6826, 22, 0],
   ];
   noord.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.41) % 1, true, -8136));
+  // Eagle Beach, south of Palm. The shore is the west edge around this z.
+  const eagle: Array<[number, number, 0 | 1 | 2]> = [
+    [-3112, 64, 1],
+    [-3104, 52, 2],
+    [-3096, 58, 0],
+    [-3088, 70, 1],
+    [-3080, 48, 2],
+    [-3072, 62, 0],
+    [-3064, 54, 1],
+    [-3056, 68, 0],
+  ];
+  eagle.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.29) % 1, true, -9720));
+  // Oranjestad waterfront. Inland walks off the harbor onto the walk.
+  const ora: Array<[number, number, 0 | 1 | 2]> = [
+    [168, 52, 0],
+    [176, 48, 1],
+    [184, 56, 2],
+    [192, 44, 0],
+    [200, 52, 1],
+    [160, 60, 2],
+    [208, 40, 0],
+    [152, 48, 1],
+  ];
+  ora.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.33) % 1, true, -7360));
   return slots;
 }
 
@@ -390,7 +415,22 @@ export class PedestrianCrowds {
       x = shore + inland;
       y = this.height(x, slot.z) ?? y;
     }
-    if (y < 0.25 || y > 4.2) return;
+    if ((y < 0.25 || y > 4.2) && slot.anchorX != null) {
+      let found = false;
+      for (let step = 1; step <= 8 && !found; step++) {
+        for (const sign of [1, -1]) {
+          const trial = shore + inland + sign * step * 8;
+          const hy = this.height(trial, slot.z);
+          if (hy != null && hy >= 0.4 && hy <= 4.2) {
+            x = trial;
+            y = hy;
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) return;
+    } else if (y < 0.25 || y > 4.2) return;
     slot.inland = inland;
     slot.x = x;
     slot.y = y;
