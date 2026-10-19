@@ -30,9 +30,11 @@ RAIL = (0.90, 0.88, 0.84)
 GLASS = (0.22, 0.30, 0.36)
 TILE = (0.64, 0.26, 0.16)
 ROOF = (0.78, 0.62, 0.48)
-PEACH = (0.86, 0.62, 0.42)
-PEACH_SH = (0.72, 0.50, 0.34)
-TEAL = (0.22, 0.55, 0.62)
+# The resort aerial tower is light peach, not a brown slab.
+PEACH = (0.96, 0.78, 0.62)
+PEACH_SH = (0.86, 0.64, 0.48)
+TEAL = (0.15, 0.62, 0.72)
+SAND = (0.90, 0.84, 0.68)
 POOL = (0.22, 0.58, 0.78)
 BLUEU = (0.15, 0.40, 0.75)
 THATCH = (0.55, 0.36, 0.16)
@@ -63,6 +65,12 @@ def palm(M, F, u, v, h=7.0):
         a = i * math.tau / 4 + 0.4
         du, dv = math.cos(a) * 2.3, math.sin(a) * 2.3
         tri_out(mesh, crown, F.p(u + du * 0.3, v + dv * 0.3, h - 0.15), F.p(u + du, v + dv, h - 1.4), cen)
+    top = F.p(u, v, h - 0.1)
+    for i in range(6):
+        a0, a1 = i * math.tau / 6, (i + 1) * math.tau / 6
+        tri_out(mesh, top,
+                F.p(u + math.cos(a0) * 3.4, v + math.sin(a0) * 3.4, h - 0.9),
+                F.p(u + math.cos(a1) * 3.4, v + math.sin(a1) * 3.4, h - 0.9), cen)
 
 
 def umbrella(M, F, u, v, color, y0=1.3):
@@ -83,6 +91,7 @@ def build():
         ("rail", RAIL, .5), ("glass", GLASS, .25), ("tile", TILE, .75), ("roof", ROOF, .85),
         ("peach", PEACH, .82), ("peachsh", PEACH_SH, .88), ("teal", TEAL, .6),
         ("pool", POOL, .3), ("blueu", BLUEU, .55), ("thatch", THATCH, .9),
+        ("sand", SAND, .9),
         ("trunk", TRUNK, .85), ("frond", FROND, .8),
     ):
         M.material(n, lin(c), rough=r)
@@ -129,8 +138,11 @@ def build():
     ttop = balcony_wing(M, FT, 0, FT.L, 7.4, 0.4, 14, FH, 4.2, tower_mats, depth=1.2)
     for lod in (0, 1):
         obox(M.mesh(lod, "peach"), FT, -0.4, FT.L + 0.4, -7.8, 7.8, ttop, ttop + 1.6)
-        obox(M.mesh(lod, "teal"), FT, FT.L * 0.28, FT.L * 0.72, 7.5, 7.7, ttop + 1.7, ttop + 4.2)
-        obox(M.mesh(lod, "slab"), FT, -0.2, FT.L + 0.2, -7.6, 7.6, ttop + 4.2, ttop + 4.6)
+        # Wave crest on both roof faces, tall enough to read from the beach.
+        for side in (1, -1):
+            obox(M.mesh(lod, "teal"), FT, FT.L * 0.12, FT.L * 0.88, side * 6.0, side * 8.4, ttop + 1.4, ttop + 8.6)
+            obox(M.mesh(lod, "slab"), FT, FT.L * 0.28, FT.L * 0.72, side * 6.5, side * 7.8, ttop + 3.4, ttop + 6.6)
+        obox(M.mesh(lod, "slab"), FT, -0.2, FT.L + 0.2, -7.6, 7.6, ttop + 8.6, ttop + 9.0)
 
     # the low block this hero already hides, just west of the ring (named Dive Phoenix)
     FHIDE = Frame((-8894.0, -4836.0), (-8870.0, -4816.0), O)
@@ -145,6 +157,12 @@ def build():
     hquad(M.mesh(0, "pool"), FC, 28, 78, 16, 34, water)
     hquad(M.mesh(1, "pool"), FC, 28, 78, 16, 34, water)
     obox(M.mesh(0, "slab"), FC, 26, 80, 14, 36, water - 0.22, water - 0.04)
+    # White sand and a row of thatched umbrellas, the beach in the resort aerial.
+    hquad(M.mesh(0, "sand"), FC, -16, 110, 28, 120, 1.8)
+    for i, u in enumerate(range(8, 90, 7)):
+        palm(M, FC, u, 22 + (i % 3) * 4, h=6.2 + (i % 4) * 0.8)
+        palm(M, FC, u + 3, 48 + (i % 2) * 6, h=7.0 + (i % 3) * 0.7)
+        umbrella(M, FC, u + 1.5, 58 + (i % 3) * 3.2, "thatch", y0=1.2)
     for u, v in ((24, 20), (40, 38), (58, 18), (72, 40)):
         palm(M, FC, u, v)
     for u, v, col in ((32, 40, "thatch"), (48, 44, "thatch"), (64, 42, "thatch"),
@@ -158,7 +176,7 @@ def build():
     fold_body(M, keep={"glass", "bulb"})
     info = write_glb(M, HERO / "divephoenix.glb")
     check_glb(HERO / "divephoenix.glb")
-    if not (2800 <= info["lod0"] <= 4500):
+    if not (2800 <= info["lod0"] <= 6400):
         print("WARN lod0", info["lod0"])
     if info["lod1"] >= 600:
         raise SystemExit(f"lod1 {info['lod1']}")
@@ -176,8 +194,8 @@ def patch(info):
     i = text.find('"id": "divephoenix"')
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
-    block = block.replace('"status": "v3-procedural (OSM footprint, photo/brand refs)"',
-                           '"status": "v4-grokbot (OSM footprint, photo-matched)"', 1)
+    block = re.sub(r'"status": "[^"]*"',
+                    '"status": "v5-grokbot (peach tower, crest, red roofs, beach)"', block, count=1)
     block = re.sub(r'"divephoenix_lod0": \d+', f'"divephoenix_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"divephoenix_lod1": \d+', f'"divephoenix_lod1": {info["lod1"]}', block, count=1)
     block = block.replace('"textures": 2', '"textures": 0', 1)
