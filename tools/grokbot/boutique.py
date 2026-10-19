@@ -81,20 +81,20 @@ def build():
     obox(M.mesh(0, "white"), F, L * 0.80, L * 0.94, 6.8, 8.2, Y0 + 0.2, Y0 + FH - 0.3)
     # Pool court on +v. Thick pads sit above the sand.
     for lod in (0, 1):
-        obox(M.mesh(lod, "deck"), F, 2, L - 2, 9, 28, 0.0, 0.22)
-        obox(M.mesh(lod, "lawn"), F, -4, L + 6, -16, 32, 0.0, 0.12)
-        obox(M.mesh(lod, "pool"), F, 8, L * 0.62, 14, 24, 0.16, 0.42)
-        obox(M.mesh(lod, "coping"), F, 7.2, L * 0.62 + 0.8, 13.2, 24.8, 0.28, 0.48)
-        obox(M.mesh(lod, "hedge"), F, 1.2, 3.2, 10, 27, 0.22, 3.4)
+        obox(M.mesh(lod, "deck"), F, 2, L - 2, 9, 32, 0.9, 1.55)
+        obox(M.mesh(lod, "lawn"), F, -6, L + 8, -18, 40, 0.35, 1.2)
+        obox(M.mesh(lod, "pool"), F, 8, L * 0.62, 16, 26, 1.4, 1.95)
+        obox(M.mesh(lod, "coping"), F, 7.2, L * 0.62 + 0.8, 15.2, 26.8, 1.7, 2.05)
+        obox(M.mesh(lod, "hedge"), F, 1.2, 3.4, 10, 30, 1.55, 4.9)
     # White pergola over the near edge of the deck.
     obox(M.mesh(0, "white"), F, 6, L * 0.55, 10.2, 13.6, 2.7, 3.05)
     for u in (7, 16, 25, L * 0.5):
-        obox(M.mesh(0, "white"), F, u, u + 0.28, 10.4, 10.9, 0.22, 2.8)
-        obox(M.mesh(0, "white"), F, u, u + 0.28, 12.9, 13.4, 0.22, 2.8)
+        obox(M.mesh(0, "white"), F, u, u + 0.28, 10.4, 10.9, 1.55, 2.8)
+        obox(M.mesh(0, "white"), F, u, u + 0.28, 12.9, 13.4, 1.55, 2.8)
     # Loungers. Furniture only; people belong to the NPC agent.
     for i, u in enumerate((10, 14, 18, 22, 26, 30)):
-        obox(M.mesh(0, "lounge"), F, u, u + 1.8, 15.2, 16.6, 0.48, 0.72)
-        obox(M.mesh(0, "cush"), F, u + 0.15, u + 1.65, 15.35, 16.45, 0.72, 0.86)
+        obox(M.mesh(0, "lounge"), F, u, u + 1.8, 27.2, 28.8, 1.55, 1.95)
+        obox(M.mesh(0, "cush"), F, u + 0.15, u + 1.65, 27.35, 28.65, 1.9, 2.08)
     # Drawn wordmark on the street face.
     vquad(
         M.mesh(0, "sign"), F, L * 0.28, L * 0.58, -8.1, Y0 + FH + 0.4, Y0 + 2 * FH - 0.2, -1,
@@ -107,8 +107,8 @@ def build():
     if info["lod1"] >= 600:
         raise SystemExit(f"lod1 {info['lod1']}")
     patch(info)
-    look = F.p(L * 0.45, 16, 4)
-    cam = F.p(L * 0.2, 42, 3)
+    look = F.p(L * 0.4, 20, 2)
+    cam = F.p(L * 0.15, 48, 10)
     print("look", round(O[0] + look[0], 1), round(O[1] + look[2], 1))
     print("cam", round(O[0] + cam[0], 1), round(O[1] + cam[2], 1))
     return info
