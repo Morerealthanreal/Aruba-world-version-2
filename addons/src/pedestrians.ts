@@ -39,7 +39,21 @@ type Rig = {
   triangles: number;
   slot: number;
   mode: number;
+  /** Standing women on even pool slots lift the left hand while they talk. */
+  talk: boolean;
+  upperL: Object3D | null;
+  lowerL: Object3D | null;
 };
+
+function poseTalk(rig: Rig, time: number) {
+  const upper = rig.upperL;
+  const lower = rig.lowerL;
+  if (!upper || !lower) return;
+  const wave = Math.sin(time * 2.6) * 0.07;
+  // Elbow out, hand at the lower chest so the cross and the mouth stay visible.
+  upper.rotation.set(-1.8, -0.8, -1.2 + wave);
+  lower.rotation.set(-2, 0, 0);
+}
 
 // West edge of the land, sampled from the island outline. Inland is +X (east).
 const COAST: ReadonlyArray<readonly [number, number]> = [
@@ -191,6 +205,9 @@ export class PedestrianCrowds {
           triangles: source.triangles,
           slot: -1,
           mode: -1,
+          talk: source.female && i % 2 === 0,
+          upperL: root.getObjectByName("UpperArmL") ?? null,
+          lowerL: root.getObjectByName("LowerArmL") ?? null,
         });
       }
       this.prime();
@@ -314,6 +331,7 @@ export class PedestrianCrowds {
         else rig.idle.time = slot.phase * rig.idle.getClip().duration;
       }
       rig.mixer.update(dt);
+      if (slot.mode !== 0 && rig.talk) poseTalk(rig, _time);
       visible++;
       triangles += rig.triangles;
       if (slot.mode === 0) walking++;
