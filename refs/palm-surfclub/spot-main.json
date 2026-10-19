@@ -1,0 +1,1 @@
+{"label":"main","port":"8822","q":"high","errors":[],"bench":[{"shot":"pool","calls":668,"tris":1027796.6666666667,"ms":5.4},{"shot":"beach","calls":647,"tris":1272002.6666666667,"ms":5.8},{"shot":"aerial","calls":357,"tris":1164611.6666666667,"ms":4.8}],"fps":{"fps":0.88,"p95ms":10966.3,"calls":1,"tris":1},"hero":[{"id":"marriott_surfclub","loaded":true,"hi":false}]}
