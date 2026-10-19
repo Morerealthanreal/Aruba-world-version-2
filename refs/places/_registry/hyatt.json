@@ -3,7 +3,7 @@
  "id": "hyatt",
  "k": "hyatt",
  "name": "Hyatt Regency Aruba Resort Spa & Casino",
- "status": "v4-grokbot (red roofs, casino pavilion, hedge garden)",
+ "status": "v5-grokbot (tan villa, red roof, curved hedges, white path)",
  "x": -8208.36,
  "z": -5722.87,
  "y": 0,
@@ -15,8 +15,8 @@
   "switch_m": 300
  },
  "tris": {
-  "hyatt_lod0": 1636,
-  "hyatt_lod1": 78
+  "hyatt_lod0": 3674,
+  "hyatt_lod1": 80
  },
  "textures": 1,
  "hide_footprint": [

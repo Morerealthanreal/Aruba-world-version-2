@@ -168,42 +168,35 @@ def build():
         vquad(M.mesh(0, "glass"), BF, u, u + 3.2, -hv - 2.15, GF + 1.2, GF + th - 1.4, -1)
         vquad(M.mesh(0, "white"), BF, u - 0.25, u, -hv - 2.2, GF + 1.0, GF + th - 1.2, -1)
 
-    # casino pavilion, closer to the street than the wing. Two storeys, a red
-    # hip, an arched window, vertical CASINO on both piers, and a stair.
-    cu0, cu1 = L * 0.42, L * 0.42 + 24
-    cv0, cv1 = -hv - 24, -hv - 8
-    ctop = 11.4
+    # Tan villa the street photo is of: red tile hip, a balcony, a dark arched entry.
+    # The casino billboard is not on this face.
+    cu0, cu1 = L * 0.38, L * 0.38 + 22
+    cv0, cv1 = -hv - 22, -hv - 8
+    ctop = 8.4
     mid = (cu0 + cu1) / 2
     for lod in (0, 1):
         obox(M.mesh(lod, "wall"), BF, cu0, cu1, cv0, cv1, GF, ctop)
-        hip_roof(M.mesh(lod, "tile"), BF, cu0 - 1.0, cu1 + 1.0, cv0 - 1.2, cv1 + 0.8, ctop - 0.15, 3.6)
-        obox(M.mesh(lod, "white"), BF, cu0 - 0.2, cu1 + 0.2, cv0 - 0.35, cv1 + 0.2, ctop - 0.55, ctop - 0.15)
-    au0, au1 = mid - 3.6, mid + 3.6
-    vquad(M.mesh(0, "glass"), BF, au0, au1, cv0 - 0.06, GF + 3.6, ctop - 1.5, -1)
-    vquad(M.mesh(0, "glass"), BF, mid - 2.4, mid + 2.4, cv0 - 0.08, GF + 0.25, GF + 2.35, -1)
-    for side in (au0 - 0.45, au1):
-        obox(M.mesh(0, "white"), BF, side, side + 0.42, cv0 - 0.28, cv0 + 0.08, GF + 2.5, ctop - 2.0)
-    for i in range(7):
-        t = i / 6
-        arch_y = (ctop - 2.7) + math.sin(t * math.pi) * 1.35
+        hip_roof(M.mesh(lod, "tile"), BF, cu0 - 1.1, cu1 + 1.1, cv0 - 1.4, cv1 + 0.6, ctop - 0.1, 2.8)
+        obox(M.mesh(lod, "white"), BF, cu0 - 0.15, cu1 + 0.15, cv0 - 0.3, cv1 + 0.15, ctop - 0.4, ctop - 0.08)
+    # balcony across the street face
+    obox(M.mesh(0, "white"), BF, cu0 + 1.2, cu1 - 1.2, cv0 - 1.7, cv0 + 0.15, ctop - 3.55, ctop - 3.28)
+    vquad(M.mesh(0, "white"), BF, cu0 + 1.4, cu1 - 1.4, cv0 - 1.55, ctop - 3.28, ctop - 2.35, -1)
+    # dark arched entry, with a white arch of short blocks
+    au0, au1 = mid - 2.6, mid + 2.6
+    vquad(M.mesh(0, "dark"), BF, au0, au1, cv0 - 0.08, GF + 0.15, GF + 3.55, -1)
+    vquad(M.mesh(0, "glass"), BF, mid - 1.6, mid + 1.6, cv0 - 1.85, ctop - 3.15, ctop - 1.15, -1)
+    for i in range(9):
+        t = i / 8
+        arch_y = (GF + 2.55) + math.sin(t * math.pi) * 1.25
         u = au0 + t * (au1 - au0)
-        obox(M.mesh(0, "white"), BF, u - 0.55, u + 0.55, cv0 - 0.32, cv0 + 0.06, arch_y, arch_y + 0.42)
+        obox(M.mesh(0, "white"), BF, u - 0.38, u + 0.38, cv0 - 0.28, cv0 + 0.08, arch_y, arch_y + 0.32)
+    for side in (au0 - 0.28, au1 - 0.08):
+        obox(M.mesh(0, "white"), BF, side, side + 0.32, cv0 - 0.22, cv0 + 0.06, GF + 0.2, GF + 2.7)
     png = logo_png()
-    pier = (GF + 1.6, ctop - 0.7)
-    for u0, u1 in ((cu0 + 0.35, cu0 + 2.5), (cu1 - 2.5, cu1 - 0.35)):
-        vquad(M.mesh(0, "sign"), BF, u0, u1, cv0 - 0.18, pier[0], pier[1], -1, uvs=face_uvs(CAS0, CAS1))
-        vquad(M.mesh(1, "sign"), BF, u0 - 0.05, u1 + 0.05, cv0 - 0.12, pier[0] - 0.1, pier[1] + 0.1, -1,
-              uvs=face_uvs(CAS0, CAS1))
-    vquad(M.mesh(0, "sign"), BF, mid - 3.1, mid + 3.1, cv0 - 0.22, GF + 2.45, GF + 4.55, -1,
-          uvs=face_uvs(*BILL))
-    for step in range(6):
-        obox(M.mesh(0, "white"), BF, mid - 3.2, mid + 3.2,
-             cv0 - 9.2 + step * 1.15, cv0 - 7.7 + step * 1.15,
-             GF + step * 0.22, GF + 0.28 + step * 0.22)
-        for side in (mid - 3.45, mid + 3.15):
-            obox(M.mesh(0, "white"), BF, side, side + 0.22,
-                 cv0 - 8.6 + step * 1.15, cv0 - 8.15 + step * 1.15,
-                 GF + 0.2 + step * 0.22, GF + 1.15 + step * 0.22)
+    for step in range(5):
+        obox(M.mesh(0, "white"), BF, mid - 2.4, mid + 2.4,
+             cv0 - 6.4 + step * 0.95, cv0 - 5.2 + step * 0.95,
+             GF + step * 0.18, GF + 0.26 + step * 0.18)
 
     # brown board on the right of the garden (north), the way the street photos read
     su0, su1 = mid - 18, mid - 14.6
@@ -213,35 +206,76 @@ def build():
     vquad(M.mesh(0, "sign"), BF, su0 + 0.12, su1 - 0.12, sv - 0.26, 0.45, 2.55, -1, uvs=face_uvs(*SIGN))
     vquad(M.mesh(1, "sign"), BF, su0, su1, sv - 0.2, 0.35, 2.65, -1, uvs=face_uvs(*SIGN))
 
-    # garden: lawn, brick street, an oval of clipped hedges, flower beds, palms
-    hquad(M.mesh(0, "lawn"), BF, -20, L + 16, -hv - 52, -hv + 2, 0.08)
-    hquad(M.mesh(1, "lawn"), BF, -12, L + 8, -hv - 46, -hv + 1, 0.08)
-    hquad(M.mesh(0, "paver"), BF, -18, L + 14, -hv - 50, -hv - 42, 0.12)
-    hquad(M.mesh(1, "road"), BF, -14, L + 10, -hv - 48, -hv - 42, 0.1)
-    hquad(M.mesh(0, "paver"), BF, mid - 2.2, mid + 2.2, cv0 - 16, cv0 - 1, 0.14)
-    uc, vc, rx, ry = mid, cv0 - 16, 18.0, 7.5
-    hquad(M.mesh(0, "lawn"), BF, uc - 7, uc + 7, vc - 3.2, vc + 3.2, 0.14)
-    for i in range(20):
-        t = (i + 0.5) * math.tau / 20
-        u = uc + math.cos(t) * rx
-        v = vc + math.sin(t) * ry
-        obox(M.mesh(0, "hedge"), BF, u - 1.5, u + 1.5, v - 0.7, v + 0.7, 0.16, 1.2)
-        if i % 4 == 0:
-            obox(M.mesh(0, "yellow"), BF, u - 0.8, u + 0.8, v - 1.5, v - 0.5, 0.16, 0.55)
-    for i in range(10):
-        t = math.pi * 0.15 + i * math.pi * 0.7 / 10
-        u = uc + math.cos(t) * (rx * 0.55)
-        v = vc + math.sin(t) * (ry * 0.45)
-        obox(M.mesh(0, "hedge"), BF, u - 1.1, u + 1.1, v - 0.55, v + 0.55, 0.16, 0.95)
-    obox(M.mesh(0, "purple"), BF, su0 - 1, su1 + 1, sv + 1.2, sv + 3.4, 0.16, 0.7)
-    obox(M.mesh(0, "purple"), BF, cu1 + 1, cu1 + 6, cv0 - 4, cv0 - 1.5, 0.16, 0.85)
+    # Lawn under the whole garden, then a curved white path, low swirled hedges
+    # and a yellow flower band. Hedges are a ribbon, not scattered cubes.
+    for lod in (0, 1):
+        obox(M.mesh(lod, "lawn"), BF, -30, L + 24, -hv - 80, -hv + 1, 0.0, 0.2)
+    def ribbon(mat, pts, half_w, y0, y1):
+        """A low strip that follows the curve, instead of a row of cubes."""
+        mesh = M.mesh(0, mat)
+        for i in range(len(pts) - 1):
+            u0, v0 = pts[i]
+            u1, v1 = pts[i + 1]
+            du, dv = u1 - u0, v1 - v0
+            length = math.hypot(du, dv) or 1
+            pu, pv = -dv / length * half_w, du / length * half_w
+            top = y1
+            bot = y0
+            ring = (
+                (u0 + pu, v0 + pv), (u1 + pu, v1 + pv),
+                (u1 - pu, v1 - pv), (u0 - pu, v0 - pv),
+            )
+            cen = BF.p((u0 + u1) / 2, (v0 + v1) / 2, bot - 1)
+            a, b, c, d = (BF.p(u, v, top) for u, v in ring)
+            tri_out(mesh, a, b, c, cen)
+            tri_out(mesh, a, c, d, cen)
+            for k in range(4):
+                ua, va = ring[k]
+                ub, vb = ring[(k + 1) % 4]
+                A, B = BF.p(ua, va, bot), BF.p(ub, vb, bot)
+                C, D = BF.p(ub, vb, top), BF.p(ua, va, top)
+                tri_out(mesh, A, B, C, cen)
+                tri_out(mesh, A, C, D, cen)
+    # The street photo's path leaves the foreground and bends toward the
+    # stairs. A fixed north-south wave reads as stripes from the drive.
+    def beside(pts, dist):
+        out = []
+        for i, (u, v) in enumerate(pts):
+            if i == 0:
+                du, dv = pts[1][0] - u, pts[1][1] - v
+            elif i == len(pts) - 1:
+                du, dv = u - pts[i - 1][0], v - pts[i - 1][1]
+            else:
+                du = pts[i + 1][0] - pts[i - 1][0]
+                dv = pts[i + 1][1] - pts[i - 1][1]
+            length = math.hypot(du, dv) or 1.0
+            out.append((u - dv / length * dist, v + du / length * dist))
+        return out
+
+    path = []
+    for i in range(48):
+        t = i / 47
+        u = mid + math.sin(t * math.tau) * 11
+        v = (cv0 - 46) + t * 38
+        path.append((u, v))
+    inner = []
+    for i in range(32):
+        ang = i / 31 * math.tau
+        inner.append((mid - 6 + math.cos(ang) * 8.2, cv0 - 18 + math.sin(ang) * 4.6))
+    ribbon("white", path, 1.7, 0.2, 0.36)
+    ribbon("hedge", beside(path, 2.7), 0.62, 0.26, 0.7)
+    ribbon("yellow", beside(path, 3.5), 0.28, 0.28, 0.48)
+    ribbon("hedge", beside(path, -2.7), 0.55, 0.26, 0.66)
+    ribbon("hedge", inner, 0.48, 0.26, 0.68)
+    ribbon("yellow", beside(inner, 1.05), 0.24, 0.28, 0.46)
+    obox(M.mesh(0, "purple"), BF, su0 - 1, su1 + 1, sv + 1.2, sv + 3.4, 0.2, 0.55)
     for u, v, h, spin in (
         (-8, -hv - 6, 18, 0.2), (6, -hv - 4, 20, 1.1), (16, -hv - 12, 17, 0.4),
         (28, -hv - 7, 19, 0.8), (40, -hv - 14, 16, 1.4), (52, -hv - 5, 18, 0.6),
         (64, -hv - 11, 17, 1.0), (78, -hv - 6, 19, 0.3), (90, -hv - 13, 16, 1.6),
-        (uc - 20, vc + 2, 18, 0.9), (uc - 12, vc + 6, 15, 0.5), (uc + 14, vc + 6, 16, 1.2),
-        (uc + 22, vc + 1, 14, 0.7), (cu0 - 4, cv1 + 3, 13, 1.3), (cu1 + 6, cv1 + 2, 12, 0.2),
-        (uc - 22, vc - 6, 17, 0.4), (uc + 20, vc - 6, 15, 1.5), (L - 4, -hv - 20, 18, 0.8),
+        (mid - 20, cv0 - 12, 18, 0.9), (mid - 12, cv0 - 8, 15, 0.5), (mid + 14, cv0 - 8, 16, 1.2),
+        (mid + 18, cv0 - 14, 14, 0.7), (cu0 - 4, cv1 + 3, 13, 1.3), (cu1 + 6, cv1 + 2, 12, 0.2),
+        (mid - 22, cv0 - 18, 17, 0.4), (mid + 16, cv0 - 20, 15, 1.5), (L - 4, -hv - 20, 18, 0.8),
         (-4, cv0 - 2, 16, 1.1), (L * 0.15, -hv - 28, 19, 0.6),
     ):
         palm(M, BF, u, v, h, spin)
@@ -267,10 +301,11 @@ def patch(info):
     i = text.find('"id": "hyatt"')
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
-    block = block.replace(
-        '"status": "v3-procedural (OSM footprint, photo/brand refs)"',
-        '"status": "v4-grokbot (red roofs, casino pavilion, hedge garden)"',
-        1,
+    block = re.sub(
+        r'"status": "[^"]*"',
+        '"status": "v5-grokbot (tan villa, red roof, curved hedges, white path)"',
+        block,
+        count=1,
     )
     block = re.sub(r'"hyatt_lod0": \d+', f'"hyatt_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"hyatt_lod1": \d+', f'"hyatt_lod1": {info["lod1"]}', block, count=1)
