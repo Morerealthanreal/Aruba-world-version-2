@@ -88,9 +88,9 @@ if 'for(let t of[...this.regions.values()])' in s:
         "regionsSpread")
 
 # A hero that replaces a landmark used to detach the sign mesh and leave its geometry
-# registered on the GPU. dispose() drops it. The canvas is released below; shared
-# post, base, and canopy materials are not.
-if "o.geometry&&o.geometry.dispose()" not in s:
+# registered on the GPU. dispose() drops it. Shared boxes are marked __awShared and
+# released later; the landmark canvas stays on the brand record.
+if "o.geometry&&o.geometry.dispose()" not in s and "__awShared&&o.geometry.dispose()" not in s:
     rep(
         "r.hero=t,r._g&&(e.group.remove(r._g),r._g=null)",
         "r.hero=t,r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)",
@@ -112,21 +112,46 @@ SIGN_TEX = (
 )
 def sign_tex(shared):
     return SIGN_TEX.replace("POST", shared[0]).replace("BASE", shared[1]).replace("GAS", shared[2])
+# Drop the sign mesh's own geometry. Leave _tex alone: nulling it makes the next
+# build allocate a second canvas, and disposing the first one often does not
+# decrement renderer.info (the upload refcount is still held, or the texture was
+# never uploaded so dispose is a no-op). The landmark keeps one canvas.
+# __awShared geometries stay; the perf fix releases them once nothing draws them.
 OLD_UPDATE = "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)"
-NEW_UPDATE = (
+NEW_UPDATE = "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&!o.geometry.__awShared&&o.geometry.dispose()}),null)"
+OLD_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)"
+NEW_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&!o.geometry.__awShared&&o.geometry.dispose()}),r._g=null)"
+CANVAS_UPDATE = (
+    "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{(o.geometry&&!o.geometry.__awShared&&o.geometry.dispose(),"
+    + sign_tex(("i.post", "i.base", "i.gasW"))
+    + ")}),a._tex=null,null)"
+)
+CANVAS_INIT = (
+    "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{(o.geometry&&!o.geometry.__awShared&&o.geometry.dispose(),"
+    + sign_tex(("e.post", "e.base", "e.gasW"))
+    + ")}),r._tex=null,r._g=null)"
+)
+CANVAS_UPDATE_PLAIN = (
     "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
     + sign_tex(("i.post", "i.base", "i.gasW"))
     + ")}),a._tex=null,null)"
 )
-OLD_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)"
-NEW_INIT = (
+CANVAS_INIT_PLAIN = (
     "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
     + sign_tex(("e.post", "e.base", "e.gasW"))
     + ")}),r._tex=null,r._g=null)"
 )
-if OLD_UPDATE in s:
+if CANVAS_UPDATE in s:
+    rep(CANVAS_UPDATE, NEW_UPDATE, "heroSignReuseUpdate")
+elif CANVAS_UPDATE_PLAIN in s:
+    rep(CANVAS_UPDATE_PLAIN, NEW_UPDATE, "heroSignReuseUpdatePlain")
+elif OLD_UPDATE in s:
     rep(OLD_UPDATE, NEW_UPDATE, "heroSignTexUpdate")
-if OLD_INIT in s:
+if CANVAS_INIT in s:
+    rep(CANVAS_INIT, NEW_INIT, "heroSignReuseInit")
+elif CANVAS_INIT_PLAIN in s:
+    rep(CANVAS_INIT_PLAIN, NEW_INIT, "heroSignReuseInitPlain")
+elif OLD_INIT in s:
     rep(OLD_INIT, NEW_INIT, "heroSignTexInit")
 
 if 'x.__awGone' not in s:
