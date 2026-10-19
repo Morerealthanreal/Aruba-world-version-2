@@ -95,15 +95,17 @@ def palm(M, F, u, v, h=12.0, spin=0.0, y0=0.2):
 def logo_png():
     """Drawn Hilton wordmark. Not a photograph of the sign."""
     w, h = 960, 520
-    im = Image.new("RGBA", (w, h), (206, 202, 192, 255))
+    im = Image.new("RGBA", (w, h), (198, 194, 184, 255))
     dr = ImageDraw.Draw(im)
-    f1 = ImageFont.truetype(FONT_SERIF, 188)
-    f2 = ImageFont.truetype(FONT_SANS, 42)
-    f3 = ImageFont.truetype(FONT_SANS, 38)
-    lines = (("Hilton", f1, 48), ("ARUBA CARIBBEAN", f2, 290), ("RESORT & CASINO", f3, 360))
+    f1 = ImageFont.truetype(FONT_SERIF, 220)
+    f2 = ImageFont.truetype(FONT_SANS, 48)
+    f3 = ImageFont.truetype(FONT_SANS, 42)
+    lines = (("Hilton", f1, 36), ("ARUBA CARIBBEAN", f2, 300), ("RESORT & CASINO", f3, 378))
     for text, font, y in lines:
         tw = font.getlength(text)
-        dr.text(((w - tw) / 2, y), text, font=font, fill=(255, 255, 255, 255))
+        x = (w - tw) / 2
+        dr.text((x + 3, y + 3), text, font=font, fill=(70, 68, 62, 255))
+        dr.text((x, y), text, font=font, fill=(255, 255, 255, 255))
     return im
 
 
@@ -151,9 +153,10 @@ def build():
     png = logo_png()
     # u increases south. From the east, south is on the left, so the texture's
     # left edge has to land on the south end of the quad.
-    vquad(M.mesh(0, "sign"), SF, sL * 0.10, sL * 0.72, -sh - 0.16, 14.6, 23.4, -1,
+    # Most of the east face, so the wordmark reads from the arrival drive.
+    vquad(M.mesh(0, "sign"), SF, sL * 0.06, sL * 0.70, -sh - 0.22, 12.2, 24.6, -1,
           uvs=((1, 1), (0, 1), (0, 0), (1, 0)))
-    vquad(M.mesh(1, "sign"), SF, sL * 0.08, sL * 0.74, -sh - 0.12, 14.4, 23.6, -1,
+    vquad(M.mesh(1, "sign"), SF, sL * 0.04, sL * 0.72, -sh - 0.16, 12.0, 24.8, -1,
           uvs=((1, 1), (0, 1), (0, 0), (1, 0)))
 
     # lower white wing north of the sign slab, the mass beside the tower
@@ -189,18 +192,25 @@ def build():
         obox(M.mesh(lod, "wall"), SF, sL * 0.15, sL * 0.85, sh - 1.0, 34.0, GF, 7.4)
         obox(M.mesh(lod, "slab"), SF, sL * 0.1, sL * 0.9, sh - 1.2, 34.2, 7.25, 7.9)
 
-    # arrival court: asphalt, curb, lawn, hedges, palms
-    hquad(M.mesh(0, "asphalt"), SF, -8, sL + 10, -sh - 28, -sh - 13.5, 0.12)
-    hquad(M.mesh(1, "asphalt"), SF, -8, sL + 10, -sh - 28, -sh - 13.5, 0.12)
-    hquad(M.mesh(0, "curb"), SF, -8, sL + 10, -sh - 13.6, -sh - 12.8, 0.22)
-    hquad(M.mesh(0, "lawn"), SF, -22, -6, -sh - 30, -sh - 14, 0.16)
-    hquad(M.mesh(0, "lawn"), SF, sL + 4, sL + 22, -sh - 32, -sh - 12, 0.16)
-    hquad(M.mesh(1, "lawn"), SF, -18, sL + 16, -sh - 30, -sh - 14, 0.14)
+    # Arrival court. Thick pads sit above the sand so the drive is asphalt, not dirt.
+    # The drive bows, the way the dusk photo curves in front of the pyramid.
+    for lod in (0, 1):
+        obox(M.mesh(lod, "asphalt"), SF, -28, sL + 36, -sh - 62, -sh - 10, 0.0, 0.22)
+        obox(M.mesh(lod, "lawn"), SF, -36, -6, -sh - 58, -sh - 8, 0.02, 0.26)
+        obox(M.mesh(lod, "lawn"), SF, sL + 8, sL + 42, -sh - 60, -sh - 8, 0.02, 0.26)
+    # curved lip of the drive: a fan of curb segments
+    for i in range(14):
+        t = i / 13
+        u = -6 + t * (sL + 18)
+        bow = 4.2 * math.sin(t * math.pi)
+        obox(M.mesh(0, "curb"), SF, u, u + (sL + 24) / 13, -sh - 16.5 - bow, -sh - 14.6 - bow, 0.18, 0.36)
+        obox(M.mesh(0, "asphalt"), SF, u - 1, u + (sL + 24) / 13, -sh - 28, -sh - 15.2 - bow, 0.16, 0.28)
     for u, v, w, d in (
-        (-12, -sh - 16, 6.5, 1.4), (-4, -sh - 12.2, 4.0, 1.2),
-        (sL + 6, -sh - 15, 7.0, 1.5), (sL * 0.4, -sh - 11.5, 3.2, 1.1),
+        (-18, -sh - 20, 8.0, 2.2), (-8, -sh - 14, 5.5, 1.6),
+        (sL + 4, -sh - 18, 9.0, 2.0), (sL * 0.35, -sh - 12.4, 4.2, 1.4),
+        (sL + 16, -sh - 28, 7.0, 1.8), (-24, -sh - 32, 6.0, 1.6),
     ):
-        obox(M.mesh(0, "hedge"), SF, u, u + w, v, v + d, 0.2, 1.35)
+        obox(M.mesh(0, "hedge"), SF, u, u + w, v, v + d, 0.26, 1.15)
     for u, v, h, spin in (
         (-16, -sh - 17, 15.5, 0.2), (-10, -sh - 23, 13.5, 1.1),
         (-6, -sh - 14, 12.0, 0.5), (-1, -sh - 20, 14.0, 1.6),
@@ -213,30 +223,40 @@ def build():
 
     # olive lagoon restaurant on the beach side of the south half of the wing
     # +v is west. The pavilion sits just off the balcony face.
-    lu0, lu1 = BF.L * 0.55, BF.L * 0.92
-    lv0, lv1 = hv + 3.5, hv + 18.0
-    deck_y, roof_y = 0.85, 4.15
+    lu0, lu1 = BF.L * 0.42, BF.L * 0.96
+    lv0, lv1 = hv + 2.2, hv + 22.0
+    deck_y, roof_y = 0.9, 4.35
     for lod in (0, 1):
-        hquad(M.mesh(lod, "water"), BF, lu0 - 2, lu1 + 3, hv + 1.5, lv1 + 4, 0.08)
-        obox(M.mesh(lod, "wood"), BF, lu0, lu1, lv0, lv1, 0.35, deck_y)
-        obox(M.mesh(lod, "olive"), BF, lu0 - 0.4, lu1 + 0.4, lv0 - 0.3, lv1 + 0.6, roof_y, roof_y + 0.35)
-    # posts, yellow chairs, globe lights: lod0
-    for u in (lu0 + 0.4, lu0 + (lu1 - lu0) * 0.33, lu0 + (lu1 - lu0) * 0.66, lu1 - 0.4):
-        for v in (lv0 + 0.4, lv1 - 0.4):
-            obox(M.mesh(0, "olived"), BF, u - 0.14, u + 0.14, v - 0.14, v + 0.14, deck_y, roof_y)
-    for i in range(10):
-        u = lu0 + 1.2 + i * (lu1 - lu0 - 2.4) / 9
-        obox(M.mesh(0, "yellow"), BF, u - 0.35, u + 0.35, lv0 + 1.3, lv0 + 2.3, deck_y, deck_y + 0.85)
-        obox(M.mesh(0, "yellow"), BF, u - 0.35, u + 0.35, lv1 - 2.5, lv1 - 1.5, deck_y, deck_y + 0.85)
-    for i in range(4):
-        u = lu0 + 2 + i * (lu1 - lu0 - 4) / 3
-        obox(M.mesh(0, "white"), BF, u - 0.7, u + 0.7, (lv0 + lv1) / 2 - 0.7, (lv0 + lv1) / 2 + 0.7,
-             deck_y, deck_y + 0.55)
-    for i in range(6):
-        u = lu0 + 1.5 + i * (lu1 - lu0 - 3) / 5
-        obox(M.mesh(0, "bulb"), BF, u - 0.28, u + 0.28, lv0 + 2.8, lv0 + 3.4, roof_y - 0.85, roof_y - 0.25)
-    # glass front of the restaurant, toward the wing
-    vquad(M.mesh(0, "glass"), BF, lu0 + 0.4, lu1 - 0.4, lv0 + 0.3, deck_y, roof_y - 0.1, -1)
+        obox(M.mesh(lod, "water"), BF, lu0 - 8, lu1 + 10, hv + 0.4, lv1 + 16, -0.05, 0.16)
+        obox(M.mesh(lod, "wood"), BF, lu0, lu1, lv0, lv1, 0.2, deck_y)
+        obox(M.mesh(lod, "olive"), BF, lu0 - 1.2, lu1 + 1.2, lv0 - 0.6, lv1 + 1.4, roof_y, roof_y + 0.42)
+        obox(M.mesh(lod, "olived"), BF, lu0 - 0.2, lu1 + 0.2, lv0, lv1 + 0.4, roof_y - 0.55, roof_y - 0.28)
+    # posts, yellow chairs, truss, globe lights
+    for u in (lu0 + 0.5, lu0 + (lu1 - lu0) * 0.33, lu0 + (lu1 - lu0) * 0.66, lu1 - 0.5):
+        for v in (lv0 + 0.5, (lv0 + lv1) / 2, lv1 - 0.5):
+            obox(M.mesh(0, "olived"), BF, u - 0.16, u + 0.16, v - 0.16, v + 0.16, deck_y, roof_y)
+    span = lu1 - lu0
+    for i in range(9):
+        u = lu0 + 1.5 + i * (span - 3) / 8
+        obox(M.mesh(0, "olived"), BF, u - 0.07, u + 0.07, lv0 + 0.8, lv1 - 0.4, roof_y - 0.5, roof_y - 0.22)
+        # diagonal brace in the frame
+        A = BF.p(u, lv0 + 1.2, roof_y - 0.45)
+        B = BF.p(u + span / 10, lv0 + 6.5, roof_y - 0.45)
+        C = BF.p(u + span / 10, lv0 + 6.5, roof_y - 0.22)
+        D = BF.p(u, lv0 + 1.2, roof_y - 0.22)
+        tri_out(M.mesh(0, "olived"), A, B, C, BF.p(u, lv0, roof_y - 2))
+        tri_out(M.mesh(0, "olived"), A, C, D, BF.p(u, lv0, roof_y - 2))
+    for i in range(16):
+        u = lu0 + 1.0 + i * (span - 2) / 15
+        obox(M.mesh(0, "yellow"), BF, u - 0.32, u + 0.32, lv1 - 2.6, lv1 - 1.55, deck_y, deck_y + 0.9)
+        if i % 2 == 0:
+            obox(M.mesh(0, "yellow"), BF, u - 0.32, u + 0.32, lv0 + 1.2, lv0 + 2.25, deck_y, deck_y + 0.9)
+            obox(M.mesh(0, "white"), BF, u - 0.55, u + 0.55, (lv0 + lv1) / 2 - 0.55, (lv0 + lv1) / 2 + 0.55,
+                 deck_y, deck_y + 0.5)
+    for i in range(14):
+        u = lu0 + 1.2 + i * (span - 2.4) / 13
+        obox(M.mesh(0, "bulb"), BF, u - 0.22, u + 0.22, lv1 - 1.15, lv1 - 0.55, roof_y - 1.25, roof_y - 0.62)
+    vquad(M.mesh(0, "glass"), BF, lu0 + 0.6, lu1 - 0.6, lv0 + 0.35, deck_y + 0.15, roof_y - 0.2, -1)
 
     # sand in front of the lagoon, where the beach photo looks across the water
     hquad(M.mesh(0, "sand"), BF, lu0 - 6, lu1 + 8, lv1 + 3.5, lv1 + 18, 0.1)
@@ -306,10 +326,11 @@ def patch(info):
     i = text.find('"id": "hilton"')
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
-    block = block.replace(
-        '"status": "v3-procedural (OSM footprint, photo/brand refs)"',
-        '"status": "v4-grokbot (beige sign tower, purple pyramid, blue beach rails)"',
-        1,
+    block = re.sub(
+        r'"status": "[^"]*"',
+        '"status": "v5-grokbot (Hilton wordmark, curved asphalt drive, lagoon pavilion)"',
+        block,
+        count=1,
     )
     block = re.sub(r'"hilton_lod0": \d+', f'"hilton_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"hilton_lod1": \d+', f'"hilton_lod1": {info["lod1"]}', block, count=1)
