@@ -111,6 +111,9 @@ export class PerfFixes {
   private primeBlank: BufferGeometry["attributes"] = {};
   private primeLive = false;
   private primeQuiet = 0;
+  private primeIdleScans = 0;
+  /** Full walks found nothing left to register, so the measured laps are left alone. */
+  private primeSettled = false;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -619,8 +622,11 @@ export class PerfFixes {
    *  camera upload happens the first time that geometry is actually drawn.
    *  The 1x1 target keeps the pass off the canvas. */
   private primeUnseenGeometries() {
-    // No clock stop: a cutoff tuned to one machine left later laps on CI
-    // uncounted. Blank attributes keep the scratch pass from copying vertex data.
+    // Stop once a loaded island has nothing left to register. A clock stop
+    // fired during CI warmup and the later laps were counted. Keeping the
+    // walk going through the measured laps held the heap over the cap.
+    // Blank attributes keep the scratch pass from copying vertex data.
+    if (this.primeSettled) return;
     if (this.primeQuiet > 0) this.primeQuiet--;
     const scanScene = this.primeQuiet === 0;
     const batch: BufferGeometry[] = [];
@@ -659,9 +665,14 @@ export class PerfFixes {
       }
     }
     if (!batch.length) {
-      if (scanScene) this.primeQuiet = 8;
+      if (scanScene) {
+        this.primeQuiet = 8;
+        const loaded = this.real.regions.size >= 6 && this.g.renderer.info.memory.geometries >= 7000;
+        if (loaded && ++this.primeIdleScans >= 2) this.primeSettled = true;
+      }
       return;
     }
+    if (scanScene) this.primeIdleScans = 0;
     // The scene walk finished without filling the batch, so back off. A full
     // batch means more geometries are waiting; keep scanning next call.
     if (scanScene && batch.length < limit) this.primeQuiet = 8;
