@@ -213,11 +213,11 @@ def paint_bulb(path):
             blob = raw
     hit = False
     for mat in js["materials"]:
-        if mat.get("name") == "bulb":
+        if mat.get("name") == "lampgold":
             mat["emissiveFactor"] = [1.0, 0.58, 0.10]
             hit = True
     if not hit:
-        raise SystemExit("bulb material missing")
+        raise SystemExit("lampgold material missing")
     js_bytes = json.dumps(js, separators=(",", ":")).encode()
     pad = (4 - len(js_bytes) % 4) % 4
     js_bytes += b" " * pad
@@ -348,7 +348,8 @@ def build():
     )
     for n, c, r in colours:
         M.material(n, lin(c), rough=r)
-    M.material("bulb", lin(BULB), rough=.4, emissive=.85)
+    # Dark housing. The night pass turns lampgold on after dusk and leaves it off by day.
+    M.material("bulb", (0.16, 0.08, 0.02), rough=.45, emissive=.85)
     M.material("sign", (0.96, 0.93, 0.84), rough=.5, textured=True, emissive=.22)
 
     # shore (east, u=0) to sea (west). The aerial pier leaves the beach going west.
@@ -448,16 +449,17 @@ def build():
         for u0, u1, eave, _rise in roofs:
             vquad(M.mesh(1, "fringe"), F, u0 + 0.4, u1 - 0.3, s * (V + 0.3), eave - 0.85, eave + 0.05, s)
 
-    # Discrete gold lanterns. A full-height bulb panel washes out to a cream
-    # wall. The night pass only brightens a material named bulb.
+    # Hanging lamps under each eave. No fascia: a bar across the south side
+    # hides the BUGALOE letters, and a full panel washed out to a cream wall.
     for u0, u1, eave, _rise in roofs:
-        hquad(M.mesh(0, "bulb"), F, u0 + 0.8, u1 - 0.8, -3.2, 3.2, eave - 0.28, up=-1)
-        uu = u0 + 1.6
-        while uu < u1 - 1.2:
+        uu = u0 + 1.4
+        while uu < u1 - 1.0:
             for s in (-1, 1):
-                obox(M.mesh(0, "bulb"), F, uu - 0.26, uu + 0.26, s * (hv - 0.85), s * (hv - 0.28),
-                     eave - 1.45, eave - 0.72)
-            uu += 4.0
+                if s < 0 and 2.6 < uu < 15.4:
+                    continue
+                obox(M.mesh(0, "bulb"), F, uu - 0.34, uu + 0.34, s * (hv - 1.05), s * (hv - 0.28),
+                     eave - 1.22, eave - 0.5)
+            uu += 3.2
     # king posts and a light-blue plank ceiling under each hip
     for u0, u1, eave, rise in roofs:
         u = u0 + 4.2
@@ -514,8 +516,10 @@ def build():
     uu = 2.0
     while uu < L - 1.5:
         for s in (-1, 1):
-            obox(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (hv + 0.05), s * (hv + 0.4),
-                 deck_y + 0.9, deck_y + 1.28)
+            if s < 0 and 2.6 < uu < 15.4:
+                continue
+            obox(M.mesh(0, "bulb"), F, uu - 0.22, uu + 0.22, s * (hv + 0.02), s * (hv + 0.42),
+                 deck_y + 0.82, deck_y + 1.38)
         uu += 5.2
 
     # Coloured BUGALOE under the shore pavilion, facing a camera on the south side.
@@ -594,6 +598,13 @@ def build():
     # vertex-coloured mesh per LOD so the phone soak does not upload a geometry
     # per timber colour.
     fold_body(M, keep={"sign", "bulb"})
+    # piernight darkens only this hero after dusk. lampgold is off by day.
+    for lod in (0, 1):
+        M.lod[lod]["piernight"] = M.lod[lod].pop("body")
+        if "bulb" in M.lod[lod]:
+            M.lod[lod]["lampgold"] = M.lod[lod].pop("bulb")
+    M.mats["piernight"] = M.mats.pop("body")
+    M.mats["lampgold"] = M.mats.pop("bulb")
     info = write_glb(M, HERO / "bugaloe.glb", images=[png_bytes(png)])
     paint_bulb(HERO / "bugaloe.glb")
     check_glb(HERO / "bugaloe.glb")
