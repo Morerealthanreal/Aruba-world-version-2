@@ -415,7 +415,7 @@ export class PerfFixes {
     // uploading signs on the measured lap (texture growth 4.5, limit 4).
     // The same backlog showed up at 5.5 once Surf Club, which adds no images,
     // sat inside that 1500 m load. Low draws less, so it can finish the set
-    // during warmup. Other tiers stay at 8.
+    // during warmup. Other tiers stay at 8. The gate stays at 4.
     let budget = this.real.q.name === "low" ? 24 : 8;
     const n = list.length;
     let i = this.mapCursor % n;
