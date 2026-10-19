@@ -4,7 +4,7 @@
 // J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
 // ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
-  AnimationMixer, LoopRepeat, Object3D,
+  AnimationMixer, LoopRepeat, Object3D, Scene,
   type AnimationAction, type SkinnedMesh,
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -192,10 +192,29 @@ export class PedestrianCrowds {
           mode: -1,
         });
       }
+      this.prime();
       this.stats.ready = 1;
       console.log("[aw-peds] beach crowd ready", this.rigs.length);
     } catch (error) {
       console.warn("[aw-peds] beach crowd", error);
+    }
+  }
+
+  // Draw the pool once, off the island, so the soak does not count those
+  // geometries the first time the car comes within sight of the sand.
+  private prime() {
+    const renderer = this.g.renderer as unknown as { render: (s: unknown, c: unknown) => void };
+    const tmp = new Scene();
+    for (const rig of this.rigs) {
+      this.g.scene.remove(rig.root);
+      rig.root.visible = true;
+      tmp.add(rig.root);
+    }
+    try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
+    for (const rig of this.rigs) {
+      rig.root.visible = false;
+      tmp.remove(rig.root);
+      this.g.scene.add(rig.root);
     }
   }
 
