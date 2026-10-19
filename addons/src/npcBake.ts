@@ -17,6 +17,8 @@ export type BeachOutfit = {
   shoe: number;
   /** Open the crew neck into a fitted tank. Casual woman only. */
   tank?: boolean;
+  /** Shorter, wider body and gray hair. Still fully clothed. */
+  older?: boolean;
 };
 
 // Six different bodies. Skin, hair, and clothes stay distinct on purpose.
@@ -29,6 +31,12 @@ export const BEACH_OUTFITS: readonly BeachOutfit[] = [
   { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0x2f8a86, bottom: 0xf4efe4, shoe: 0xb08968 },
   { file: "people/w-adventurer.glb", skin: 0x6b3a22, hair: 0x241816, top: 0xd4687a, bottom: 0x243044, shoe: 0xc4a574 },
   { file: "people/m-adventurer.glb", skin: 0xa86b45, hair: 0x2a1c14, top: 0xf2f0ea, bottom: 0x2c4f6e, shoe: 0x6e5344 },
+  // Same six meshes. Extra colorways are older adults and men's clothes.
+  // Opaque cloth only: no suits, sheer panels, hard hats, or mohawks.
+  { file: "people/w-casual.glb", skin: 0xd7a574, hair: 0xd5d0c6, top: 0xf7f4ee, bottom: 0x3a4a6e, shoe: 0xc4a574, tank: true, older: true },
+  { file: "people/m-casual.glb", skin: 0xa86b45, hair: 0xc8c2b4, top: 0x4e5968, bottom: 0xd2c4a4, shoe: 0x8a6244, older: true },
+  { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x2a1c14, top: 0xf4f0e6, bottom: 0x243e5c, shoe: 0x6e5344 },
+  { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x1a1412, top: 0x2c6b62, bottom: 0xe6d2a8, shoe: 0xc4a574 },
 ];
 
 const SOURCE_MAPS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
@@ -68,6 +76,7 @@ export type BakedPerson = {
   hair: number;
   female: boolean;
   tank: boolean;
+  older: boolean;
 };
 
 function materialName(mesh: Mesh): string {
@@ -221,5 +230,6 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     hair: outfit.hair,
     female: outfit.file.includes("/w-"),
     tank: outfit.tank === true,
+    older: outfit.older === true,
   };
 }
