@@ -257,6 +257,23 @@ function buckleGeometry() {
 }
 
 let phoneGeo: BufferGeometry | null = null;
+let talkGeo: BufferGeometry | null = null;
+
+function talkMouthGeometry() {
+  if (talkGeo) return talkGeo;
+  // Head space, just under the lip, so a standing woman reads as mid-sentence.
+  const gap = paint(new BoxGeometry(0.034, 0.011, 0.01).translate(0, 0.055, 0.14), 0x3a1618, 5);
+  const lower = paint(new BoxGeometry(0.046, 0.008, 0.012).translate(0, 0.046, 0.138), 0xb85a58, 1);
+  const parts = [gap, lower];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  const geo = merged ?? gap;
+  geo.clearGroups();
+  talkGeo = geo;
+  return talkGeo;
+}
 
 function phoneGeometry() {
   if (phoneGeo) return phoneGeo;
@@ -288,6 +305,7 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
       wear(head, index % 2 === 0 ? strawGeometry() : capGeometry(), "aw:hat");
     }
     if (female || index % 2 === 0) wear(head, glassGeometry(), "aw:sunglasses");
+    if (female && index % 2 === 0) wear(head, talkMouthGeometry(), "aw:mouth");
     if (female) {
       const locks = hairFor(hair);
       wear(head, locks.volume, "aw:hair");
