@@ -27,11 +27,11 @@ HERO = ROOT / "game" / "models" / "hero"
 MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 O = (-8523.4, -5313.88)
 
-# Golden dried thatch. The two tones stay close so the roof reads as shag,
-# not as a stack of flat boards.
-STRAW = (0.86, 0.64, 0.26)
-STRAW_D = (0.72, 0.50, 0.18)
-FRINGE = (0.58, 0.36, 0.14)
+# Dried thatch from the daytime side photo: tan courses with a darker ragged
+# hem, not a single bright yellow board.
+STRAW = (0.72, 0.52, 0.28)
+STRAW_D = (0.55, 0.36, 0.16)
+FRINGE = (0.42, 0.26, 0.10)
 WOOD = (0.50, 0.32, 0.16)
 POST = (0.42, 0.26, 0.13)
 DECK = (0.74, 0.58, 0.36)
@@ -387,15 +387,21 @@ def build():
         # Plank ceiling sits above the banner. The ridge is higher, so this stays inside the hip.
         obox(M.mesh(0, "ceil"), F, u0 + 1.2, u1 - 1.2, -2.7, 2.7, eave + 1.65, eave + 1.8)
 
-    # shaggy eaves on both hips
+    # shaggy eaves on both hips. Leave the letter bay open so BUGALOE is readable.
     for u0, u1, eave, rise in roofs:
-        # Short ragged edge with gaps, so the posts and the tables stay visible underneath.
-        fringe(M.mesh(0, "fringe"), F, u0 + 0.2, u1 - 0.15, V, eave, drop=0.95, out=0.55, step=1.65)
-        fringe(M.mesh(0, "fringe"), F, u0 + 0.2, u1 - 0.15, -V, eave, drop=0.95, out=0.55, step=1.65)
-        fringe_end(M, F, u0 + 0.05, eave, V, rise)
-        fringe_end(M, F, u1 - 0.05, eave, V, rise)
-        thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, u0 + 0.8, u1 - 0.6, V, eave, rise, courses=2, step=2.15)
-        thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, u0 + 0.8, u1 - 0.6, -V, eave, rise, courses=2, step=2.15)
+        spans = [(u0 + 0.2, min(u1 - 0.15, 23.5)), (max(u0 + 0.2, 33.5), u1 - 0.15)]
+        for a, b in spans:
+            if b - a < 1.2:
+                continue
+            fringe(M.mesh(0, "fringe"), F, a, b, V, eave, drop=1.45, out=0.95, step=1.28)
+            fringe(M.mesh(0, "fringe"), F, a, b, -V, eave, drop=1.45, out=0.95, step=1.28)
+            thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, a, b, V, eave, rise, courses=3, step=1.7)
+            thatch_shag(M.mesh(0, "straw"), M.mesh(0, "strawd"), F, a, b, -V, eave, rise, courses=3, step=1.7)
+        # Only the outer hip ends. Tags on the inner ends hang into the gap and cover the letters.
+        if u0 < 5:
+            fringe_end(M, F, u0 + 0.05, eave, V, rise)
+        if u1 > F.L - 2:
+            fringe_end(M, F, u1 - 0.05, eave, V, rise)
 
     # bar along the south side of the long hip, so an eye-level camera looking
     # west has the counter on the left and the open water on the right
@@ -448,22 +454,22 @@ def build():
     person(M, F, 27.0, -3.6, deck_y, "shirt", "shorts2", "skinb")
     person(M, F, 44.0, 4.35, deck_y, "shirt2", "shorts", "skin")
 
-    # multicolour BUGALOE letters, hanging under the beam. Order matches the bar photo.
+    # multicolour BUGALOE letters in the open gap between the two hips, so a
+    # shore camera reads the word without looking through the thatch.
     letter_cols = (("B", "red"), ("U", "pink"), ("G", "blue"), ("A", "yellow"),
                    ("L", "green"), ("O", "orange"), ("E", "green"))
-    lw, gap, lh = 0.78, 0.12, 1.2
+    lw, gap, lh = 0.78, 0.12, 1.35
     v0 = -((len(letter_cols) * (lw + gap) - gap) / 2)
-    ly0 = deck_y + 0.72
+    ly0 = deck_y + 1.35
     for i, (ch, mat) in enumerate(letter_cols):
-        glyph(M, F, 27.15, v0 + i * (lw + gap), ly0, lw, lh, GLYPHS[ch], mat)
+        glyph(M, F, 17.15, v0 + i * (lw + gap), ly0, lw, lh, GLYPHS[ch], mat)
     # fishing nets draped on the beam over the letters, and further down the pier
-    hquad(M.mesh(0, "net"), F, 26.6, 28.2, v0 - 0.3, v0 + len(letter_cols) * (lw + gap), ly0 + lh + 0.15)
-    vquad(M.mesh(0, "net"), F, 26.7, 27.6, v0 - 0.15, ly0 - 0.1, ly0 + lh + 0.25, -1)
-    vquad(M.mesh(0, "net"), F, 26.7, 27.6, v0 + len(letter_cols) * (lw + gap) - 0.15, ly0 - 0.1, ly0 + lh + 0.35, 1)
-    vquad(M.mesh(0, "net"), F, 26.9, 29.2, 1.15, ly0 + 0.2, ly0 + lh + 0.05, 1)
+    hquad(M.mesh(0, "net"), F, 16.5, 17.9, v0 - 0.3, v0 + len(letter_cols) * (lw + gap), ly0 + lh + 0.15)
+    vquad(M.mesh(0, "net"), F, 16.6, 17.4, v0 - 0.15, ly0 - 0.1, ly0 + lh + 0.25, -1)
+    vquad(M.mesh(0, "net"), F, 16.6, 17.4, v0 + len(letter_cols) * (lw + gap) - 0.15, ly0 - 0.1, ly0 + lh + 0.35, 1)
     vv = v0 + 0.2
     while vv < v0 + len(letter_cols) * (lw + gap) - 0.3:
-        hquad(M.mesh(0, "bulb"), F, 27.05, 27.28, vv, vv + 0.14, ly0 + lh + 0.08)
+        hquad(M.mesh(0, "bulb"), F, 16.95, 17.18, vv, vv + 0.14, ly0 + lh + 0.08)
         vv += 0.85
     for uu in (34.0, 46.0, 58.0):
         hquad(M.mesh(0, "net"), F, uu, uu + 3.6, -2.4, 2.4, roofs[1][2] + 0.42)
@@ -506,8 +512,8 @@ def build():
     uquad(M.mesh(0, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
     uquad(M.mesh(1, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
     # Beach Bar-Grill: across the pier for the interior camera, and on both eaves for the side cameras
-    uquad(M.mesh(0, "sign"), F, 26.95, -3.35, 3.35, deck_y + 2.15, deck_y + 2.72, -1, uvs=band_uv(128, 224))
-    uquad(M.mesh(0, "sign"), F, 27.7, -3.35, 3.35, deck_y + 2.15, deck_y + 2.72, 1, uvs=band_uv(128, 224))
+    uquad(M.mesh(0, "sign"), F, 16.85, -3.35, 3.35, deck_y + 2.85, deck_y + 3.45, -1, uvs=band_uv(128, 224))
+    uquad(M.mesh(0, "sign"), F, 17.55, -3.35, 3.35, deck_y + 2.85, deck_y + 3.45, 1, uvs=band_uv(128, 224))
     long_eave = roofs[1][2]
     vquad(M.mesh(0, "sign"), F, 28.0, 40.5, hv - 0.15, long_eave - 0.05, long_eave + 0.62, 1, uvs=band_uv(128, 224))
     vquad(M.mesh(0, "sign"), F, 28.0, 40.5, -(hv - 0.15), long_eave - 0.05, long_eave + 0.62, -1, uvs=band_uv(128, 224))
@@ -546,7 +552,7 @@ def patch(info):
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
     block = re.sub(r'"status": "[^"]*"',
-                    '"status": "v5-grokbot (two golden hips, letters, furnished deck, night lights)"', block, count=1)
+                    '"status": "v6-grokbot (ragged thatch, letters, furnished deck, night lights)"', block, count=1)
     block = re.sub(r'"bugaloe_lod0": \d+', f'"bugaloe_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"bugaloe_lod1": \d+', f'"bugaloe_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(r'"switch_m": \d+', '"switch_m": 220', block, count=1)
