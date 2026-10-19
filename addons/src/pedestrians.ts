@@ -125,9 +125,9 @@ export class PedestrianCrowds {
     void this.load(cap);
   }
 
-  private async loadGlb(url: string) {
+  private async loadGlb(url: string, tries = 3) {
     let last: unknown;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < tries; attempt++) {
       const ctrl = new AbortController();
       const timer = window.setTimeout(() => ctrl.abort(), 15000);
       try {
@@ -148,22 +148,42 @@ export class PedestrianCrowds {
     try {
       this.baked = [];
       console.log("[aw-peds] loading beach outfits");
-      for (const outfit of BEACH_OUTFITS) {
+      const missed: typeof BEACH_OUTFITS[number][] = [];
+      const baked = new Map<string, BakedPerson>();
+      const bake = async (outfit: typeof BEACH_OUTFITS[number], tries: number) => {
         const url = `./models/${outfit.file}`;
+        console.log("[aw-peds] fetch", outfit.file);
+        const gl = await this.loadGlb(url, tries);
+        const person = bakePerson(gl, outfit);
+        baked.set(outfit.file, person);
+        console.log("[aw-peds] baked", outfit.file, person.triangles);
+      };
+      // The casual woman is fetched last. She loses the boot race if she goes first.
+      const loadOrder = [...BEACH_OUTFITS].sort((a, b) => Number(a.tank === true) - Number(b.tank === true));
+      for (const outfit of loadOrder) {
         try {
-          console.log("[aw-peds] fetch", outfit.file);
-          const gl = await this.loadGlb(url);
-          this.baked.push(bakePerson(gl, outfit));
-          console.log("[aw-peds] baked", outfit.file, this.baked[this.baked.length - 1].triangles);
+          await bake(outfit, 3);
+        } catch (error) {
+          console.warn("[aw-peds] retry later", outfit.file, error);
+          missed.push(outfit);
+        }
+      }
+      // The first file often loses the boot race against the single-threaded
+      // asset server. Try again once the rest of the page has finished.
+      for (const outfit of missed) {
+        try {
+          await bake(outfit, 2);
         } catch (error) {
           console.warn("[aw-peds] skip", outfit.file, error);
         }
       }
+      this.baked = BEACH_OUTFITS.map((outfit) => baked.get(outfit.file)).filter((person): person is BakedPerson => !!person);
       if (!this.baked.length) throw new Error("no beach outfits");
       for (let i = 0; i < cap; i++) {
         const source = this.baked[i % this.baked.length];
         const root = cloneSkinned(source.proto);
         root.name = "aw:beach-crowd";
+        root.userData.tank = source.tank;
         root.visible = false;
         root.scale.setScalar(0.97 + (i % 4) * 0.02);
         let mesh: SkinnedMesh | null = null;
