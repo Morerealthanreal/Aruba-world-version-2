@@ -4,7 +4,7 @@
 // J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
 // ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
-  AnimationMixer, LoopRepeat, Object3D, Scene,
+  AnimationMixer, LoopRepeat, Object3D, Quaternion, Scene, Vector3,
   type AnimationAction, type SkinnedMesh,
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -18,8 +18,8 @@ type Slot = {
   z0: number;
   z: number;
   inland: number;
-  /** 0 walk, 1 stand. Sitting is a later pass. */
-  mode: 0 | 1;
+  /** 0 walk, 1 stand, 2 sit. */
+  mode: 0 | 1 | 2;
   phase: number;
   dir: number;
   yawJitter: number;
@@ -30,6 +30,14 @@ type Slot = {
   placed: boolean;
 };
 
+type SitBone = { bone: Object3D; rest: Quaternion };
+
+type SitPose = {
+  ul: SitBone; ur: SitBone; ll: SitBone; lr: SitBone; fl: SitBone; fr: SitBone;
+  ankleL: number; ankleR: number;
+  footRelL: Quaternion; footRelR: Quaternion;
+};
+
 type Rig = {
   root: Object3D;
   mixer: AnimationMixer;
@@ -38,7 +46,104 @@ type Rig = {
   triangles: number;
   slot: number;
   mode: number;
+  sit: SitPose | null;
 };
+
+const sitY = new Vector3(0, 1, 0);
+const sitDown = new Vector3(0, -1, 0);
+const sitForward = new Vector3();
+const sitLeft = new Vector3();
+const sitTarget = new Vector3();
+const sitFrom = new Vector3();
+const sitTo = new Vector3();
+const sitDelta = new Quaternion();
+const sitParentQ = new Quaternion();
+const sitWorldQ = new Quaternion();
+const sitAnkle = new Vector3();
+const sitFootY = new Vector3();
+
+function sitBone(root: Object3D, name: string): SitBone | null {
+  const bone = root.getObjectByName(name);
+  if (!bone) return null;
+  return { bone, rest: bone.quaternion.clone() };
+}
+
+/** Ankle sits on the lower-leg +Y axis. The foot bone itself is parented to Root. */
+function ankleLength(knee: Object3D, foot: Object3D): number {
+  knee.updateWorldMatrix(true, false);
+  const local = knee.worldToLocal(foot.getWorldPosition(new Vector3()));
+  return Math.max(0.2, local.y);
+}
+
+function footRelative(knee: Object3D, foot: Object3D): Quaternion {
+  const parentQ = new Quaternion();
+  const childQ = new Quaternion();
+  knee.getWorldQuaternion(parentQ);
+  foot.getWorldQuaternion(childQ);
+  return parentQ.invert().multiply(childQ);
+}
+
+/** Point the bone's local +Y at a world direction, keeping the captured rest as the twist. */
+function bendToward(bone: Object3D, rest: Quaternion, targetWorld: Vector3) {
+  const parent = bone.parent;
+  if (!parent) return;
+  parent.updateWorldMatrix(true, false);
+  sitParentQ.copy(parent.getWorldQuaternion(sitParentQ)).invert();
+  sitTo.copy(targetWorld).applyQuaternion(sitParentQ);
+  if (sitTo.lengthSq() < 1e-8) return;
+  sitTo.normalize();
+  sitFrom.copy(sitY).applyQuaternion(rest).normalize();
+  const align = sitFrom.dot(sitTo);
+  if (align > 0.9995) {
+    bone.quaternion.copy(rest);
+    return;
+  }
+  if (align < -0.9995) sitDelta.setFromAxisAngle(sitLeft.set(1, 0, 0), Math.PI);
+  else sitDelta.setFromUnitVectors(sitFrom, sitTo);
+  bone.quaternion.copy(rest).premultiply(sitDelta);
+}
+
+/** Move the root-parented foot onto the posed ankle and keep its rest angle to the shin. */
+function plantFoot(knee: Object3D, foot: SitBone, ankle: number, relative: Quaternion) {
+  const parent = foot.bone.parent;
+  if (!parent) return;
+  sitAnkle.set(0, ankle, 0);
+  knee.updateWorldMatrix(true, false);
+  knee.localToWorld(sitAnkle);
+  parent.updateWorldMatrix(true, false);
+  parent.worldToLocal(sitAnkle);
+  foot.bone.position.copy(sitAnkle);
+  knee.getWorldQuaternion(sitWorldQ).multiply(relative);
+  sitParentQ.copy(parent.getWorldQuaternion(sitParentQ)).invert();
+  foot.bone.quaternion.copy(sitParentQ.multiply(sitWorldQ));
+  foot.bone.updateMatrix();
+}
+
+function poseSit(rig: Rig) {
+  const sit = rig.sit;
+  if (!sit) return;
+  rig.root.updateMatrixWorld(true);
+  const e = rig.root.matrixWorld.elements;
+  sitForward.set(e[8], 0, e[10]);
+  if (sitForward.lengthSq() < 1e-6) sitForward.set(0, 0, 1);
+  sitForward.normalize();
+  sitLeft.set(e[0], 0, e[2]);
+  if (sitLeft.lengthSq() < 1e-6) sitLeft.set(1, 0, 0);
+  sitLeft.normalize();
+  // Knees up, shins down. Left and right are aimed separately because the
+  // two rest frames are not mirrors.
+  sitTarget.copy(sitForward).multiplyScalar(0.86).addScaledVector(sitLeft, 0.16).addScaledVector(sitDown, -0.45);
+  bendToward(sit.ul.bone, sit.ul.rest, sitTarget);
+  sitTarget.copy(sitForward).multiplyScalar(0.86).addScaledVector(sitLeft, -0.16).addScaledVector(sitDown, -0.45);
+  bendToward(sit.ur.bone, sit.ur.rest, sitTarget);
+  rig.root.updateMatrixWorld(true);
+  sitTarget.copy(sitDown).multiplyScalar(0.95).addScaledVector(sitForward, 0.22);
+  bendToward(sit.ll.bone, sit.ll.rest, sitTarget);
+  bendToward(sit.lr.bone, sit.lr.rest, sitTarget);
+  rig.root.updateMatrixWorld(true);
+  plantFoot(sit.ll.bone, sit.fl, sit.ankleL, sit.footRelL);
+  plantFoot(sit.lr.bone, sit.fr, sit.ankleR, sit.footRelR);
+}
 
 // West edge of the land, sampled from the island outline. Inland is +X (east).
 const COAST: ReadonlyArray<readonly [number, number]> = [
@@ -71,7 +176,7 @@ function coastX(z: number): number {
 
 function buildSlots(): Slot[] {
   const slots: Slot[] = [];
-  const push = (z: number, inland: number, mode: 0 | 1, phase: number, pinned: boolean) => {
+  const push = (z: number, inland: number, mode: 0 | 1 | 2, phase: number, pinned: boolean) => {
     slots.push({
       z0: z, z, inland, mode, phase, pinned,
       dir: slots.length & 1 ? 1 : -1,
@@ -82,14 +187,14 @@ function buildSlots(): Slot[] {
   // Dense group on the sand at the Palm Beach photo spot, so a standing
   // camera there sees people large in the frame, not a roadside lineup.
   // A knot about 12 m across on the sand, so a camera 8 m away fills the frame.
-  const hero: Array<[number, number, 0 | 1]> = [
-    [-5348, 12, 1],
-    [-5346, 18, 1],
+  const hero: Array<[number, number, 0 | 1 | 2]> = [
+    [-5348, 12, 2],
+    [-5346, 18, 2],
     [-5345, 14, 0],
     [-5343, 20, 1],
     [-5342, 16, 0],
     [-5340, 11, 0],
-    [-5339, 19, 1],
+    [-5339, 19, 2],
     [-5337, 15, 0],
     [-5336, 13, 1],
     [-5344, 17, 0],
@@ -204,12 +309,27 @@ export class PedestrianCrowds {
         idle.time = (i * 0.37) % source.idle.duration;
         walk.time = (i * 0.37) % source.walk.duration;
         attachBeachWear(root, i, source.skin, source.hair, source.female);
+        const ul = sitBone(root, "UpperLegL");
+        const ur = sitBone(root, "UpperLegR");
+        const ll = sitBone(root, "LowerLegL");
+        const lr = sitBone(root, "LowerLegR");
+        const fl = sitBone(root, "FootL");
+        const fr = sitBone(root, "FootR");
+        root.updateMatrixWorld(true);
+        const sit = ul && ur && ll && lr && fl && fr ? {
+          ul, ur, ll, lr, fl, fr,
+          ankleL: ankleLength(ll.bone, fl.bone),
+          ankleR: ankleLength(lr.bone, fr.bone),
+          footRelL: footRelative(ll.bone, fl.bone),
+          footRelR: footRelative(lr.bone, fr.bone),
+        } : null;
         this.g.scene.add(root);
         this.rigs.push({
           root, mixer, idle, walk,
           triangles: source.triangles,
           slot: -1,
           mode: -1,
+          sit,
         });
       }
       this.prime();
@@ -310,6 +430,7 @@ export class PedestrianCrowds {
     let triangles = 0;
     let walking = 0;
     let standing = 0;
+    let sitting = 0;
     for (let r = 0; r < this.rigs.length; r++) {
       const rig = this.rigs[r];
       const index = near[r];
@@ -333,9 +454,17 @@ export class PedestrianCrowds {
         else rig.idle.time = slot.phase * rig.idle.getClip().duration;
       }
       rig.mixer.update(dt);
+      if (slot.mode === 2 && rig.sit) {
+        poseSit(rig);
+        rig.root.updateMatrixWorld(true);
+        const leftFoot = rig.sit.fl.bone.getWorldPosition(sitAnkle).y;
+        const rightFoot = rig.sit.fr.bone.getWorldPosition(sitFootY).y;
+        rig.root.position.y += slot.y + 0.06 - Math.min(leftFoot, rightFoot);
+      }
       visible++;
       triangles += rig.triangles;
       if (slot.mode === 0) walking++;
+      else if (slot.mode === 2) sitting++;
       else standing++;
     }
     this.stats.visible = visible;
@@ -343,6 +472,6 @@ export class PedestrianCrowds {
     this.stats.triangles = triangles;
     this.stats.walking = walking;
     this.stats.standing = standing;
-    this.stats.sitting = 0;
+    this.stats.sitting = sitting;
   }
 }
