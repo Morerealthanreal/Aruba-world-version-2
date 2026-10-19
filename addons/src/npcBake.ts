@@ -15,17 +15,36 @@ export type BeachOutfit = {
   top: number;
   bottom: number;
   shoe: number;
+  /** Open the crew neck into a fitted tank. Casual woman only. */
+  tank?: boolean;
 };
 
-// Six different bodies. Skin tones are distinct on purpose.
+// Six different bodies. Skin, hair, and clothes stay distinct on purpose.
+// The casual woman keeps the white tank and denim. Nobody wears a suit,
+// a hard hat, or a mohawk.
 export const BEACH_OUTFITS: readonly BeachOutfit[] = [
-  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x3a2418, top: 0xf7f4ee, bottom: 0xe07a5f, shoe: 0xc4a574 },
-  { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x1a1412, top: 0x7eb6d9, bottom: 0xe6d2a8, shoe: 0x8a6244 },
-  { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x4a3020, top: 0xf3efe4, bottom: 0x3d6f8f, shoe: 0xc4a574 },
-  { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0xf7f3ea, bottom: 0xf2c14e, shoe: 0xb08968 },
-  { file: "people/w-adventurer.glb", skin: 0x6b3a22, hair: 0x241816, top: 0xfffaf4, bottom: 0xd98b6a, shoe: 0xc4a574 },
-  { file: "people/m-adventurer.glb", skin: 0xa86b45, hair: 0x2a1c14, top: 0x3e8f7a, bottom: 0xd8c3a5, shoe: 0x6e5344 },
+  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x8a3a22, top: 0xf7f4ee, bottom: 0x2f5d96, shoe: 0xc4a574, tank: true },
+  { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x1a1412, top: 0x3d7ea6, bottom: 0xe6d2a8, shoe: 0x8a6244 },
+  { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x4a3020, top: 0xc4654a, bottom: 0x3f4f3a, shoe: 0xc4a574 },
+  { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0x2f8a86, bottom: 0xf4efe4, shoe: 0xb08968 },
+  { file: "people/w-adventurer.glb", skin: 0x6b3a22, hair: 0x241816, top: 0xd4687a, bottom: 0x243044, shoe: 0xc4a574 },
+  { file: "people/m-adventurer.glb", skin: 0xa86b45, hair: 0x2a1c14, top: 0xf2f0ea, bottom: 0x2c4f6e, shoe: 0x6e5344 },
 ];
+
+const SOURCE_MAPS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
+
+/** The baked body uses the oil shader. Drop the GLB textures so a later draw cannot upload them. */
+function releaseSourceMaterial(mesh: Mesh) {
+  const mats = !mesh.material ? [] : Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  for (const mat of mats) {
+    const bag = mat as unknown as { [key: string]: { isTexture?: boolean; dispose?: () => void } | undefined; dispose?: () => void };
+    for (const key of SOURCE_MAPS) {
+      const tex = bag[key];
+      if (tex?.isTexture) tex.dispose?.();
+    }
+    bag.dispose?.();
+  }
+}
 
 const HAIR = new Set(["Hair", "Hair_Brown", "Hair_Blond", "Eyebrows", "Moustache", "DarkBrown", "Brown"]);
 const EYES = new Set(["Eye", "Eyes"]);
@@ -35,6 +54,10 @@ export type BakedPerson = {
   idle: AnimationClip;
   walk: AnimationClip;
   triangles: number;
+  skin: number;
+  hair: number;
+  female: boolean;
+  tank: boolean;
 };
 
 function materialName(mesh: Mesh): string {
@@ -58,6 +81,35 @@ function yRange(geo: BufferGeometry) {
   geo.computeBoundingBox();
   const box = geo.boundingBox!;
   return { min: box.min.y, max: box.max.y };
+}
+
+// The shirt shell has no skin under it, so a cut neckline is a hole.
+// Slim the shoulder caps and paint the scoop and outer shoulders as skin.
+// The straps stay cloth. The surface stays closed and it still animates.
+function paintTank(geo: BufferGeometry, clothHex: number, skinHex: number) {
+  const cloth = new Color(clothHex);
+  const skin = new Color(skinHex);
+  const pos = geo.getAttribute("position");
+  const data = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const ax = Math.abs(x);
+    if (y > 1.34 && ax > 0.12) {
+      x = Math.sign(x) * (0.12 + (ax - 0.12) * 0.4);
+      pos.setX(i, x);
+    }
+    const scoop = z > 0.03 && ax < 0.058 && y > 1.4;
+    const shoulder = ax > 0.15 && y > 1.38;
+    const tone = scoop || shoulder ? skin : cloth;
+    data[i * 3] = tone.r;
+    data[i * 3 + 1] = tone.g;
+    data[i * 3 + 2] = tone.b;
+  }
+  pos.needsUpdate = true;
+  geo.setAttribute("color", new Float32BufferAttribute(data, 3));
+  geo.computeVertexNormals();
 }
 
 function clothColor(outfit: BeachOutfit, name: string, min: number, max: number): number | null {
@@ -93,7 +145,8 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     const hex = clothColor(outfit, name, range.min, range.max);
     if (hex == null) return;
     const geo = src.clone();
-    paint(geo, hex);
+    if (outfit.tank && hex === outfit.top) paintTank(geo, hex, outfit.skin);
+    else paint(geo, hex);
     if (!geo.getAttribute("skinIndex") || !geo.getAttribute("skinWeight") || !geo.getIndex()) return;
     for (const key of Object.keys(geo.attributes)) {
       if (key !== "position" && key !== "normal" && key !== "uv" && key !== "skinIndex" && key !== "skinWeight" && key !== "color") {
@@ -129,7 +182,17 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
   for (const mesh of doomed) {
     mesh.parent?.remove(mesh);
     mesh.geometry.dispose();
+    releaseSourceMaterial(mesh);
   }
   gl.scene.add(skin);
-  return { proto: gl.scene, idle: clip("Idle"), walk: clip("Walk"), triangles };
+  return {
+    proto: gl.scene,
+    idle: clip("Idle"),
+    walk: clip("Walk"),
+    triangles,
+    skin: outfit.skin,
+    hair: outfit.hair,
+    female: outfit.file.includes("/w-"),
+    tank: outfit.tank === true,
+  };
 }
