@@ -11,6 +11,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { AGame } from "./env";
 import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
 import { attachBeachWear } from "./npcHats";
+import { applyAdultProportions } from "./npcProportions";
 import { setOilSun } from "./npcOil";
 
 type Slot = {
@@ -305,7 +306,7 @@ export class PedestrianCrowds {
         root.name = "aw:beach-crowd";
         root.userData.tank = source.tank;
         root.visible = false;
-        root.scale.setScalar(0.97 + (i % 4) * 0.02);
+        applyAdultProportions(root, i);
         let mesh: SkinnedMesh | null = null;
         root.traverse((object) => {
           const skinned = object as SkinnedMesh;
