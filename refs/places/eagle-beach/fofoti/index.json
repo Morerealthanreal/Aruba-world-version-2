@@ -1,0 +1,20 @@
+{
+  "place": "eaglebeach_fx",
+  "area": "eagle-beach",
+  "photos": [
+    {
+      "file": "divi.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Divi_divi_tree_Eagle_Beach.jpg",
+      "license": "CC BY-SA 4.0, reference only, not pasted onto geometry",
+      "credit": "Wikimedia Commons, Divi divi tree Eagle Beach",
+      "shows": "grey trunk bent over white sand, exposed roots, flat green canopy, rocks"
+    },
+    {
+      "file": "buttonwood.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mangrove_tree_(Conocarpus_erectus)_at_Eagle_Beach,_Aruba_2019.jpg",
+      "license": "CC BY-SA 4.0, reference only, not pasted onto geometry",
+      "credit": "Wikimedia Commons, Conocarpus erectus at Eagle Beach, 2019",
+      "shows": "wind-bent trunk, roots, flat canopy, wooden gazebo, yellow flags, thatched huts, chairs in the shade"
+    }
+  ]
+}
