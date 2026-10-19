@@ -13,6 +13,7 @@ import type { AGame } from "./env";
 import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
 import { attachBeachWear } from "./npcHats";
 import { setOilSun } from "./npcOil";
+import { applyAdultProportions } from "./npcProportions";
 
 type Slot = {
   z0: number;
@@ -165,7 +166,7 @@ export class PedestrianCrowds {
         const root = cloneSkinned(source.proto);
         root.name = "aw:beach-crowd";
         root.visible = false;
-        root.scale.setScalar(0.97 + (i % 4) * 0.02);
+        applyAdultProportions(root, i);
         let mesh: SkinnedMesh | null = null;
         root.traverse((object) => {
           const skinned = object as SkinnedMesh;
