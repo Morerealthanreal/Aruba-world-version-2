@@ -54,6 +54,22 @@ function patchWindows(wall: Material) {
 }
 
 /** Hero GLB facades have windows painted into the texture (dark blue-grey glass). Light them at night. */
+/** Bugaloe's folded pier. Other heroes share a material named body, so this name stays unique. */
+function patchPierNight(mat: Material) {
+  chainPatch(mat, "piernight-v1", (s) => {
+    if (!s.fragmentShader.includes("#include <color_fragment>")) return;
+    s.uniforms.uAwNight = uNight;
+    if (!s.fragmentShader.includes("uniform float uAwNight")) {
+      s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uAwNight;");
+    }
+    s.fragmentShader = s.fragmentShader.replace(
+      "#include <color_fragment>",
+      `#include <color_fragment>
+  diffuseColor.rgb *= mix(1.0, 0.14, smoothstep(0.35, 0.85, uAwNight));`,
+    );
+  });
+}
+
 function patchHeroWindows(mat: Material) {
   chainPatch(mat, "herowin-v2", (s) => {
     if (!s.fragmentShader.includes("#include <emissivemap_fragment>")) return;
@@ -92,6 +108,8 @@ export class NightLights {
   private scanT = 0;
   // hero GLB signs (material names signglow / neon* / bulb*): ramp emissive with night
   private heroGlow = new Map<StdMat, number>();
+  /** Bugaloe lanterns: off in daylight, hot gold after dusk. A day floor washed the eave out to a cream wall. */
+  private lampGold = new Set<StdMat>();
   private heroN = -1;
   private bump: Material[] = []; // three sometimes skips the first version bump on already-compiled hero mats; bump again next frame
   private poolT = 0;
@@ -190,8 +208,10 @@ export class NightLights {
       const mm = (o as InstancedMesh).material as StdMat | StdMat[];
       if (!(o as InstancedMesh).isMesh || !mm) return;
       for (const m of Array.isArray(mm) ? mm : [mm]) {
-        if (!m || !m.emissive || this.heroGlow.has(m)) continue;
+        if (!m || !m.emissive || this.heroGlow.has(m) || this.lampGold.has(m)) continue;
         const nm = m.name || "";
+        if (nm === "piernight") { patchPierNight(m); continue; }
+        if (nm === "lampgold") { this.lampGold.add(m); m.emissive.setRGB(1, 0.58, 0.1); continue; }
         if (/^l?(signglow|neon|bulb)/i.test(nm)) this.heroGlow.set(m, m.emissiveIntensity || 1);
         else if (nm === "sign") this.heroGlow.set(m, -(m.emissiveIntensity || 1)); // plain signs: gentler ramp
         else if (/^(facade|ground)(_\d+)?$/.test(nm)) { patchHeroWindows(m); this.bump.push(m); }
@@ -225,6 +245,7 @@ export class NightLights {
     if (this.bump.length) { for (const m of this.bump) m.needsUpdate = true; this.bump.length = 0; }
     // hero signs: dim by day (reads as paint), bright at night
     for (const m of this.heroGlow.keys()) { const i0 = this.heroGlow.get(m)!; m.emissiveIntensity = i0 > 0 ? i0 * (0.45 + k * 0.95) : i0 < 0 ? -i0 * (1 + k * 0.55) : k * 0.16; } // r202 1.8 / 1.2 / 0.3
+    for (const m of this.lampGold) m.emissiveIntensity = k * 1.15;
 
     // headlight: car/moto only, night > .35 (B)
     const S = g.S;
