@@ -167,9 +167,12 @@ def quad_facing(mesh, a, b, c, d, outward, uvs=None):
 
 
 def uv_at(p):
-    # 0.85 repeated the grain into stripes on the big faces.
-    s = 3.4
-    return ((p[0] + p[2]) / s, p[1] / s)
+    # Pure height in V turned the grain into horizontal corrugation.
+    s = 5.8
+    return (
+        (p[0] * 0.8 + p[2] * 0.35) / s,
+        (p[1] * 0.42 + p[2] * 0.75 + p[0] * 0.15) / s,
+    )
 
 
 def uvs_for(a, b, c, d):
@@ -667,8 +670,8 @@ def _volcanic_images():
             hr = height[y][(x + 1) % n]
             hd = height[(y - 1) % n][x]
             hu = height[(y + 1) % n][x]
-            nx = (hl - hr) * 4.0
-            ny = (hd - hu) * 4.0
+            nx = (hl - hr) * 1.15
+            ny = (hd - hu) * 1.15
             nz = 1.0
             length = math.sqrt(nx * nx + ny * ny + nz * nz) or 1
             np_[x, y] = (int(128 + 127 * nx / length), int(128 + 127 * ny / length), int(255 * nz / length))
@@ -710,7 +713,7 @@ def build():
     # Multiplied by the volcanic texture. The texture carries the dark grey and the rust.
     # Dark brown-black. 0.82 washed the volcanic grain out to pale grey.
     m.material("rock", (0.55, 0.46, 0.38), rough=0.96, textured=True, normal=True)
-    water = m.material("water", (0.05, 0.62, 0.58), rough=0.15, emissive=0.04)
+    water = m.material("water", (0.04, 0.40, 0.44), rough=0.28, emissive=0.012)
     sea = m.material("sea", (0.03, 0.18, 0.32), rough=0.1, emissive=0.03)
     foam = m.material("foam", (0.86, 0.90, 0.88), rough=0.4)
     shrub = m.material("shrub", (0.32, 0.34, 0.24), rough=0.9, double=True)
