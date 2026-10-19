@@ -1,9 +1,10 @@
 // Families: ~40% of A's ambient pedestrians walk with 1-2 children (rarely 3) at their side.
-// Children are the same rigged ped models re-proportioned (not just shrunk): ~0.62 overall,
-// head x1.3, legs/arms ~0.9, torso 0.95, re-applied after every animation update; brighter
-// kids' clothes. Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
-// Pool is small (<= 2 per adult ped, capped), no shadows on phones. Off with ?kids=0.
-import { AnimationMixer, Color, Group, Vector3, type AnimationAction, type Object3D } from "three";
+// Runs with the beach crowd. Children are the same rigged ped models re-proportioned
+// (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
+// after every animation update; brighter kids' clothes, tops and trousers kept.
+// Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
+// Pool is small (<= 2 per adult ped, capped per tier), no shadows on phones. Off with ?kids=0.
+import { AnimationMixer, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type Texture } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { AGame } from "./env";
@@ -22,14 +23,64 @@ export class Kids {
   private cap: number;
   private shadows: boolean;
   private v = new Vector3();
+  private ready: Promise<void>;
   constructor(private g: AGame, mobile: boolean) {
     const tier = (g.real as unknown as { q: { name: string } }).q.name;
     this.cap = tier === "low" ? 3 : tier === "med" ? 8 : 14;
     this.shadows = !mobile;
     this.group.name = "aw:kids";
     (g.scene as unknown as { add(o: Object3D): void }).add(this.group as unknown as Object3D);
-    const L = new GLTFLoader();
-    Promise.all(["ped_maya", "ped_sam"].map((n) => L.loadAsync(`./models/${n}.glb`))).then((a) => { this.gl = a; console.info("[aw-kids] models", a.map((g) => g.animations.map((c) => c.name).join("|"))); }).catch((e) => console.warn("[aw-kids]", e));
+    this.ready = this.boot();
+  }
+
+  whenReady(): Promise<void> {
+    return this.ready;
+  }
+
+  private async boot() {
+    try {
+      const L = new GLTFLoader();
+      const a = await Promise.all(["ped_maya", "ped_sam"].map((n) => L.loadAsync(`./models/${n}.glb`)));
+      this.gl = a;
+      // Build the whole capped pool now so the soak does not allocate kids mid-drive.
+      for (let i = 0; i < this.cap; i++) {
+        const m = this.make(i);
+        if (m) this.pool.push(m);
+      }
+      this.prime();
+      console.info("[aw-kids] models", a.map((g) => g.animations.map((c) => c.name).join("|")));
+    } catch (e) {
+      console.warn("[aw-kids]", e);
+    }
+  }
+
+  // Upload the two ped GLBs once, when they arrive, so the soak's later cycles
+  // do not see a new batch of textures. Draw only the kids, not the island.
+  private prime() {
+    const renderer = this.g.renderer as unknown as { initTexture?: (t: Texture) => void; render: (s: unknown, c: unknown) => void };
+    const seen = new Set<Texture>();
+    const keys = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
+    for (const gl of this.gl) {
+      gl.scene.traverse((o) => {
+        const mesh = o as unknown as { material?: { [k: string]: unknown } | Array<{ [k: string]: unknown }> };
+        const mats = !mesh.material ? [] : Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of mats) {
+          for (const key of keys) {
+            const tex = mat[key] as Texture | undefined;
+            if (!tex || !tex.isTexture || seen.has(tex)) continue;
+            seen.add(tex);
+            try { renderer.initTexture?.(tex); } catch { /* the kid draw uploads */ }
+          }
+        }
+      });
+    }
+    const home = this.group.parent;
+    const tmp = new Scene();
+    tmp.add(this.group);
+    for (const k of this.pool) k.root.visible = true;
+    try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
+    for (const k of this.pool) k.root.visible = false;
+    if (home) home.add(this.group);
   }
 
   private make(i: number): Kid | null {
