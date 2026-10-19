@@ -5,6 +5,7 @@
 // A 32x32 region mask (vertex-texture lookup) collapses the blocks of every region A has
 // built in full detail, so near the player you only ever see A's real buildings.
 // Data: data/far/massing.bin (tools/bake_far.py). Lambert, fog, no shadows. Off with ?far=0.
+// LOW: roofs only, plus walls on buildings of 7 m and up so tall silhouettes read from high points.
 // Also raises camera far / thins fog with camera altitude so the whole island reads from high points.
 import { BatchedMesh, BufferAttribute, BufferGeometry, Color, DataTexture, Mesh, MeshLambertMaterial, RGBAFormat, Sphere, UnsignedByteType, type Object3D } from "three";
 import type { AGame } from "./env";
@@ -40,7 +41,9 @@ export class FarCity {
     if (buf.byteLength < 8 + n * 14) { console.warn("[aw-far] massing.bin truncated", buf.byteLength, n); return; }
     const A = this.g.real as unknown as { heightAt(x: number, z: number): number };
     // count verts: roof 4; walls (if big) 16
-    const big = (h: number, w1: number, L: number) => this.walls && (h >= 7 || w1 * L * 4 > 350);
+    // LOW keeps roof-only blocks except for the ~900 buildings of 7 m and up (hotels, offices, churches,
+    // the refinery): their walls give the island's skyline from Hooiberg for ~7k extra triangles.
+    const big = (h: number, w1: number, L: number) => this.walls ? (h >= 7 || w1 * L * 4 > 350) : h >= 7;
     let nv = 0, ni = 0;
     for (let i = 0; i < n; i++) {
       const o = 8 + i * 14, hx = dv.getInt16(o + 4, true) / 20, hz = dv.getInt16(o + 6, true) / 20, w1 = dv.getUint8(o + 8) / 4, h = dv.getUint8(o + 9) / 4;
@@ -68,7 +71,7 @@ export class FarCity {
       if (cross < 0) { I[k++] = a[0]; I[k++] = a[1]; I[k++] = a[2]; I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[3]; }
       else { I[k++] = a[0]; I[k++] = a[2]; I[k++] = a[1]; I[k++] = a[0]; I[k++] = a[3]; I[k++] = a[2]; }
       if (big(h, w1, L)) {
-        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear().lerp(sand, 0.4).multiplyScalar(0.85);
+        col.setHex(WALLS[(seed >> 2) & 7]).convertSRGBToLinear().lerp(sand, this.walls ? 0.4 : 0.2).multiplyScalar(this.walls ? 0.85 : 1.05); // LOW skyline: lighter, more Caribbean
         for (let e = 0; e < 4; e++) {
           const [ax, az] = cs[e], [bx, bz] = cs[(e + 1) & 3];
           let nx = bz - az, nz = -(bx - ax); const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
