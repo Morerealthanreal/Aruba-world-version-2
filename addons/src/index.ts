@@ -83,7 +83,9 @@ async function main() {
   const useLife = params.get("life") !== "0";
   const peds = useLife && params.get("peds") !== "0" ? new PedestrianCrowds(g) : null;
   if (params.get("loco") !== "0") attachPlayerLocomotion(g); // r287: player mocap walk/run (from PR #13, player only)
-  const kids = !peds && params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
+  // Families stay on with the beach crowd. Kids follows the ambient pedestrians
+  // (about 40% walk with children). ?kids=0 turns that off on its own.
+  const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";

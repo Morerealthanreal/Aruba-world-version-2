@@ -19,13 +19,28 @@ export type BeachOutfit = {
 
 // Six different bodies. Skin tones are distinct on purpose.
 export const BEACH_OUTFITS: readonly BeachOutfit[] = [
-  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x3a2418, top: 0xf7f4ee, bottom: 0xe07a5f, shoe: 0xc4a574 },
+  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x8a3a22, top: 0xf7f4ee, bottom: 0x2f5d96, shoe: 0xc4a574 },
   { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x1a1412, top: 0x7eb6d9, bottom: 0xe6d2a8, shoe: 0x8a6244 },
   { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x4a3020, top: 0xf3efe4, bottom: 0x3d6f8f, shoe: 0xc4a574 },
   { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0xf7f3ea, bottom: 0xf2c14e, shoe: 0xb08968 },
   { file: "people/w-adventurer.glb", skin: 0x6b3a22, hair: 0x241816, top: 0xfffaf4, bottom: 0xd98b6a, shoe: 0xc4a574 },
   { file: "people/m-adventurer.glb", skin: 0xa86b45, hair: 0x2a1c14, top: 0x3e8f7a, bottom: 0xd8c3a5, shoe: 0x6e5344 },
 ];
+
+const SOURCE_MAPS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
+
+/** The baked body uses the oil shader. Drop the GLB textures so a later draw cannot upload them. */
+function releaseSourceMaterial(mesh: Mesh) {
+  const mats = !mesh.material ? [] : Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  for (const mat of mats) {
+    const bag = mat as unknown as { [key: string]: { isTexture?: boolean; dispose?: () => void } | undefined; dispose?: () => void };
+    for (const key of SOURCE_MAPS) {
+      const tex = bag[key];
+      if (tex?.isTexture) tex.dispose?.();
+    }
+    bag.dispose?.();
+  }
+}
 
 const HAIR = new Set(["Hair", "Hair_Brown", "Hair_Blond", "Eyebrows", "Moustache", "DarkBrown", "Brown"]);
 const EYES = new Set(["Eye", "Eyes"]);
@@ -35,6 +50,9 @@ export type BakedPerson = {
   idle: AnimationClip;
   walk: AnimationClip;
   triangles: number;
+  skin: number;
+  hair: number;
+  female: boolean;
 };
 
 function materialName(mesh: Mesh): string {
@@ -129,7 +147,16 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
   for (const mesh of doomed) {
     mesh.parent?.remove(mesh);
     mesh.geometry.dispose();
+    releaseSourceMaterial(mesh);
   }
   gl.scene.add(skin);
-  return { proto: gl.scene, idle: clip("Idle"), walk: clip("Walk"), triangles };
+  return {
+    proto: gl.scene,
+    idle: clip("Idle"),
+    walk: clip("Walk"),
+    triangles,
+    skin: outfit.skin,
+    hair: outfit.hair,
+    female: outfit.file.includes("/w-"),
+  };
 }

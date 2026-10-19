@@ -1,15 +1,17 @@
-// Beach crowd for Palm Beach. Six CC0 bodies, one shared oil-light shader,
-// and a fixed pool so a phone never grows geometries while it walks.
-// People exist only near the player, on the sand west of J.E. Irausquin.
-// ?peds=0 (or ?life=0) leaves the original pedestrians in place.
+// Beach crowd for Palm Beach, added beside the island-wide ambient pedestrians.
+// Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
+// never grows geometries while it walks. The crowd stands on the sand west of
+// J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
+// ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
-  AnimationMixer, LoopRepeat, Object3D,
+  AnimationMixer, LoopRepeat, Object3D, Scene,
   type AnimationAction, type SkinnedMesh,
 } from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { AGame } from "./env";
 import { BEACH_OUTFITS, bakePerson, type BakedPerson } from "./npcBake";
+import { attachBeachWear } from "./npcHats";
 import { setOilSun } from "./npcOil";
 
 type Slot = {
@@ -110,7 +112,6 @@ export class PedestrianCrowds {
   private rigs: Rig[] = [];
   private slots: Slot[] = [];
   private radius2: number;
-  private amb: { peds: Array<{ g: Object3D }> } | null = null;
   private baked: BakedPerson[] = [];
 
   constructor(private g: AGame) {
@@ -182,6 +183,7 @@ export class PedestrianCrowds {
         idle.setEffectiveWeight(1);
         idle.time = (i * 0.37) % source.idle.duration;
         walk.time = (i * 0.37) % source.walk.duration;
+        attachBeachWear(root, i, source.skin, source.hair, source.female);
         this.g.scene.add(root);
         this.rigs.push({
           root, mixer, idle, walk,
@@ -190,10 +192,29 @@ export class PedestrianCrowds {
           mode: -1,
         });
       }
+      this.prime();
       this.stats.ready = 1;
       console.log("[aw-peds] beach crowd ready", this.rigs.length);
     } catch (error) {
       console.warn("[aw-peds] beach crowd", error);
+    }
+  }
+
+  // Draw the pool once, off the island, so the soak does not count those
+  // geometries the first time the car comes within sight of the sand.
+  private prime() {
+    const renderer = this.g.renderer as unknown as { render: (s: unknown, c: unknown) => void };
+    const tmp = new Scene();
+    for (const rig of this.rigs) {
+      this.g.scene.remove(rig.root);
+      rig.root.visible = true;
+      tmp.add(rig.root);
+    }
+    try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
+    for (const rig of this.rigs) {
+      rig.root.visible = false;
+      tmp.remove(rig.root);
+      this.g.scene.add(rig.root);
     }
   }
 
@@ -227,21 +248,7 @@ export class PedestrianCrowds {
     return Math.PI / 2 + slot.yawJitter;
   }
 
-  private retireBase() {
-    if (!this.amb) {
-      const amb = (this.g.real as unknown as { amb?: { peds: Array<{ g: Object3D }> } } | null)?.amb;
-      if (!amb) return;
-      this.amb = amb;
-    }
-    while (this.amb.peds.length) {
-      const ped = this.amb.peds.pop()!;
-      ped.g.visible = false;
-      ped.g.parent?.remove(ped.g);
-    }
-  }
-
   update(dt: number, _time: number) {
-    this.retireBase();
     const sky = this.g.real?.sky?.sunDir;
     if (sky) setOilSun(sky.x, sky.y, sky.z);
     if (!this.rigs.length) return;
