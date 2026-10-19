@@ -1,5 +1,7 @@
-// Families: ~40% of A's ambient pedestrians walk with 1-2 children (rarely 3) at their side.
-// Runs with the beach crowd. Children are the same rigged ped models re-proportioned
+// Families: ~40% of nearby walkers have 1-2 children at their side.
+// Ambient pedestrians and beach-crowd walkers share one pool, and it follows
+// the camera, so Noord, Eagle, Malmok, and Oranjestad get families too.
+// Children are the same rigged ped models re-proportioned
 // (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
 // after every animation update; brighter kids' clothes, tops and trousers kept.
 // Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
@@ -10,7 +12,18 @@ import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { AGame } from "./env";
 
 type Ped = { g: Object3D & { position: Vector3; rotation: { y: number } }; rd: unknown; sp?: number; pedFlip?: number; __fam?: number; __rd?: unknown };
-type Kid = { root: Group; inner: Object3D; mixer: AnimationMixer; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; ped: Ped | null; slot: number; applied?: boolean };
+type Kid = { root: Group; inner: Object3D; mixer: AnimationMixer; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; follow: number; slot: number; applied?: boolean };
+type CrowdRig = { mode: number; root: Object3D & { position: Vector3; rotation: { y: number }; visible: boolean } };
+type Follow = { key: number; want: number; pos: Vector3; ry: number; sp: number };
+
+const NEAR2 = 140 * 140;
+
+/** Stable ~40% of walkers, one or two children. The same adult keeps the same count. */
+function familySize(key: number): 0 | 1 | 2 {
+  const n = Math.abs((key * 1103515245 + 12345) | 0) % 100;
+  if (n >= 40) return 0;
+  return n < 20 ? 1 : 2;
+}
 
 const BONES: Record<string, number> = { head: 1.3, thigh_l: 0.9, thigh_r: 0.9, upperarm_l: 0.9, upperarm_r: 0.9, spine_01: 0.95 };
 const KID_TOPS = [0xff5a5f, 0x3fa7ff, 0xffd23f, 0x5ed16a, 0xff8fd1, 0xff9b3d, 0x9b6bff];
@@ -108,56 +121,101 @@ export class Kids {
     root.visible = false;
     this.group.add(root);
     this.stats.kids++;
-    return { root, inner, mixer, walk, jog, bones, ped: null, slot: 0 };
+    return { root, inner, mixer, walk, jog, bones, follow: -1, slot: 0 };
   }
 
   update(dt: number) {
+    if (!this.gl.length) return; // wait for the kid models before assigning families
     const amb = (this.g.real as unknown as { amb?: { peds: Ped[] } }).amb;
-    if (!amb || !this.gl.length) return; // wait for the kid models before assigning families
     const cam = (this.g.camera as unknown as { position: Vector3 }).position;
     const surf = (this.g.real as unknown as { surfaceAt(x: number, z: number): number });
-    // (re)assign families when a ped starts a new route
-    for (const p of amb.peds) {
-      p.pedFlip = 1; // A's ped placement faced them backwards (car heading convention); bundle hook adds PI
-      if (p.rd !== p.__rd) {
-        p.__rd = p.rd;
-        for (const k of this.pool) if (k.ped === p) { k.ped = null; k.root.visible = false; }
-        p.__fam = 0;
-        if (p.rd && Math.random() < 0.4) {
-          const r = Math.random(); p.__fam = r < 0.06 ? 3 : r < 0.5 ? 2 : 1;
-          for (let s = 0; s < p.__fam; s++) {
-            let k = this.pool.find((q) => !q.ped);
-            if (!k && this.pool.length < this.cap) { const m = this.make(this.pool.length); if (m) { this.pool.push(m); k = m; } }
-            if (!k) break;
-            k.ped = p; k.slot = s;
-          }
-        }
+    const near = (x: number, z: number) => {
+      const dx = x - cam.x;
+      const dz = z - cam.z;
+      return dx * dx + dz * dz <= NEAR2;
+    };
+    const wanted: Follow[] = [];
+    if (amb) {
+      // A's ped placement faced them backwards. The bundle hook adds PI.
+      for (let i = 0; i < amb.peds.length; i++) {
+        const p = amb.peds[i];
+        p.pedFlip = 1;
+        const pos = p.g.position;
+        if (!p.rd || !p.g.visible || !near(pos.x, pos.z)) continue;
+        const want = familySize(i + 1);
+        if (!want) continue;
+        wanted.push({ key: i + 1, want, pos, ry: p.g.rotation.y, sp: p.sp || 1.3 });
+      }
+    }
+    // Beach-crowd walkers at Palm Beach, Noord, Eagle, and Oranjestad. The
+    // same pool follows whoever is near the camera, so Malmok's ambient
+    // walkers are not left without children.
+    const crowd = (window as unknown as { __aw?: { peds?: { rigs?: CrowdRig[] } } }).__aw?.peds;
+    const rigs = crowd?.rigs;
+    if (rigs) {
+      for (let i = 0; i < rigs.length; i++) {
+        const rig = rigs[i];
+        if (rig.mode !== 0 || !rig.root.visible) continue;
+        const pos = rig.root.position;
+        if (!near(pos.x, pos.z)) continue;
+        const want = familySize(500 + i);
+        if (!want) continue;
+        wanted.push({ key: 500 + i, want, pos, ry: rig.root.rotation.y, sp: 1.05 });
+      }
+    }
+    const byKey = new Map<number, Follow>();
+    for (const adult of wanted) byKey.set(adult.key, adult);
+    for (const k of this.pool) {
+      const adult = byKey.get(k.follow);
+      if (!adult || k.slot >= adult.want) {
+        k.follow = -1;
+        k.root.visible = false;
+      }
+    }
+    for (const adult of wanted) {
+      let have = 0;
+      for (const k of this.pool) if (k.follow === adult.key) have++;
+      for (let s = have; s < adult.want; s++) {
+        const k = this.pool.find((q) => q.follow < 0);
+        if (!k) break;
+        k.follow = adult.key;
+        k.slot = s;
       }
     }
     let vis = 0, fam = 0;
-    const seen = new Set<Ped>();
+    const seen = new Set<number>();
     for (const k of this.pool) {
-      const p = k.ped;
-      if (!p || !p.rd || !p.g.visible) { k.root.visible = false; continue; }
-      const pp = p.g.position;
-      if (cam.distanceToSquared(pp) > 140 * 140) { k.root.visible = false; continue; }
-      if (!seen.has(p)) { seen.add(p); fam++; }
-      const ry = p.g.rotation.y, fx = -Math.sin(ry), fz = -Math.cos(ry); // walking direction
-      const side = k.slot === 1 ? -1 : 1, lat = k.slot === 2 ? 0 : 0.75 * side, back = k.slot === 2 ? 0.9 : 0.15;
-      const x = pp.x + fz * lat - fx * back, z = pp.z - fx * lat - fz * back;
-      k.root.position.set(x, surf.surfaceAt(x, z) + 0.02, z);
+      const adult = byKey.get(k.follow);
+      if (!adult) { k.root.visible = false; continue; }
+      if (!seen.has(adult.key)) { seen.add(adult.key); fam++; }
+      const ry = adult.ry;
+      const fx = -Math.sin(ry);
+      const fz = -Math.cos(ry);
+      const side = k.slot === 1 ? -1 : 1;
+      const lat = 0.75 * side;
+      const back = 0.15;
+      const x = adult.pos.x + fz * lat - fx * back;
+      const z = adult.pos.z - fx * lat - fz * back;
+      const ground = surf.surfaceAt(x, z);
+      const y = ground > 0.2 ? ground + 0.02 : adult.pos.y;
+      k.root.position.set(x, y, z);
       k.root.rotation.y = ry;
-      k.root.visible = true; vis++;
-      // match the adult's pace: clip speed scales with body size
-      const sp = p.sp || 1.3, size = k.root.scale.x, ts = sp / (1.8 * size);
+      k.root.visible = true;
+      vis++;
+      const sp = adult.sp;
+      const size = k.root.scale.x;
+      const ts = sp / (1.8 * size);
       const jogW = ts > 1.45 ? 1 : 0;
-      k.walk.setEffectiveWeight(1 - jogW); k.jog.setEffectiveWeight(jogW);
-      k.walk.timeScale = Math.min(1.6, ts); k.jog.timeScale = Math.min(1.3, sp / (3.2 * size));
-      if (k.applied) for (const [b, s] of k.bones) b.scale.divideScalar(s); // undo last frame (if the clip has no scale track)
+      k.walk.setEffectiveWeight(1 - jogW);
+      k.jog.setEffectiveWeight(jogW);
+      k.walk.timeScale = Math.min(1.6, ts);
+      k.jog.timeScale = Math.min(1.3, sp / (3.2 * size));
+      if (k.applied) for (const [b, s] of k.bones) b.scale.divideScalar(s);
       k.mixer.update(dt);
       k.applied = true;
-      for (const [b, s] of k.bones) b.scale.multiplyScalar(s); // child proportions on top of the clip pose
+      for (const [b, s] of k.bones) b.scale.multiplyScalar(s);
     }
-    this.stats.visible = vis; this.stats.families = fam;
+    this.stats.visible = vis;
+    this.stats.families = fam;
   }
 }
