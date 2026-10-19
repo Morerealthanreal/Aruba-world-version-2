@@ -22,9 +22,9 @@ MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 O = (-9903.58, -2591.96)
 NAME = "costalinda"
 
-YELLOW = (0.98, 0.82, 0.22)
-WHITE = (0.96, 0.95, 0.92)
-ORANGE = (0.90, 0.40, 0.10)
+YELLOW = (0.93, 0.84, 0.68)
+WHITE = (0.96, 0.93, 0.86)
+ORANGE = (0.74, 0.36, 0.20)
 GLASS = (0.40, 0.58, 0.72)
 POOL = (0.22, 0.78, 0.90)
 COPING = (0.78, 0.74, 0.68)
@@ -43,9 +43,9 @@ def lin(c):
 
 
 def palm(M, F, u, v, h=11.0):
-    obox(M.mesh(0, "trunk"), F, u - 0.16, u + 0.16, v - 0.16, v + 0.16, 0.15, h)
+    obox(M.mesh(0, "trunk"), F, u - 0.28, u + 0.28, v - 0.28, v + 0.28, 0.15, h)
     mesh = M.mesh(0, "frond")
-    for ring, drop, reach in ((0.0, 1.2, 2.8), (1.1, 1.5, 2.2)):
+    for ring, drop, reach in ((0.0, 1.4, 4.4), (1.2, 1.7, 3.4)):
         crown, cen = F.p(u, v, h - ring), F.p(u, v, h - ring - 1.4)
         for i in range(6):
             a = i * math.tau / 6 + ring
@@ -128,8 +128,11 @@ def build():
     obox(M.mesh(0, "white"), F, 35.2, 35.45, 9.6, 9.85, 1.1, 3.2)
     obox(M.mesh(0, "white"), F, 48.5, 48.8, 12.2, 12.5, 0.7, 2.6)
 
-    for u, v in ((20, 3.2), (26, 6), (42, 3.5), (50, 8), (14, 12), (58, 14), (8, 8), (62, 6)):
-        palapa(M, F, u, v, 2.3 if u % 2 == 0 else 1.8)
+    for u, v in (
+        (20, 3.2), (26, 6), (42, 3.5), (50, 8), (14, 12), (58, 14), (8, 8), (62, 6),
+        (34, -2), (46, -3), (70, 8), (74, 2), (16, -4), (28, 14), (54, 2), (66, 12),
+    ):
+        palapa(M, F, u, v, 2.6 if int(u) % 2 == 0 else 2.0)
     for u in (18, 22, 27, 32, 40, 45, 51, 56, 14, 36):
         obox(M.mesh(0, "lounge"), F, u, u + 1.6, -1.2, 0.2, 0.28, 0.55)
         obox(M.mesh(0, "cush"), F, u + 0.1, u + 1.5, -1.05, 0.05, 0.52, 0.66)
@@ -137,8 +140,9 @@ def build():
     for u, v, h in (
         (10, 4, 12), (15, 14, 13), (24, 18, 11), (32, 2, 14), (40, 20, 12),
         (48, 1, 13), (55, 16, 11), (64, 10, 12), (6, 20, 10), (30, 22, 9),
-        (18, -6, 11), (28, -8, 13), (38, -4, 10), (50, -8, 12), (12, 8, 9),
-        (44, 8, 11), (60, -2, 10),
+        (18, -6, 12), (28, -8, 14), (38, -4, 12), (50, -8, 13), (12, 8, 11),
+        (44, 8, 12), (60, -2, 13), (68, 4, 12), (72, 14, 11), (76, 0, 13),
+        (22, -10, 12), (36, -12, 14), (58, -12, 12), (8, -2, 11),
     ):
         palm(M, F, u, v, h)
     obox(M.mesh(1, "frond"), F, 8, 60, 0, 22, 6, 6.4)
@@ -169,16 +173,16 @@ def patch(info):
     block = text[i:k]
     block = re.sub(
         r'"status": "[^"]*"',
-        '"status": "v4-grokbot (yellow arches, free-form pool, palapas)"',
+        '"status": "v4-grokbot (terracotta arches, free-form pool, palapas, palms)"',
         block, count=1,
     )
     block = re.sub(rf'"{NAME}_lod0": \d+', f'"{NAME}_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(rf'"{NAME}_lod1": \d+', f'"{NAME}_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(r'"textures": \d+', '"textures": 0', block, count=1)
     new = (
-        '"ref_sources": "aruba.com Costa Linda pool photo (yellow-and-white arched wing, '
-        'orange roofs, free-form turquoise pool, thatched palapas, yellow restaurant, '
-        'palms, loungers). OSM footprint. No pasted photo. Built by tools/grokbot/costa.py"'
+        '"ref_sources": "aruba.com Costa Linda pool photo (terracotta-and-cream arched '
+        'building, free-form pool, many thatched huts, dense palms, loungers). '
+        'OSM footprint. No pasted photo. Built by tools/grokbot/costa.py"'
     )
     block2, n = re.subn(r'"ref_sources": "(?:[^"\\]|\\.)*"', new, block, count=1)
     if n != 1:
