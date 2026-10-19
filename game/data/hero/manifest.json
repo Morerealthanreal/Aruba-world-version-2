@@ -13697,7 +13697,7 @@
   "id": "divephoenix",
   "k": "divephoenix",
   "name": "Divi Aruba Phoenix Beach Resort",
-  "status": "v5-grokbot (peach tower, crest, red roofs, beach)",
+  "status": "v6-grokbot (lawn, palms, lit pools, palapas, breakwater, lit crest)",
   "x": -8836.18,
   "z": -4878.89,
   "y": 0,
@@ -13709,8 +13709,8 @@
    "switch_m": 300
   },
   "tris": {
-   "divephoenix_lod0": 5202,
-   "divephoenix_lod1": 472
+   "divephoenix_lod0": 9294,
+   "divephoenix_lod1": 444
   },
   "textures": 0,
   "hide_footprint": [
