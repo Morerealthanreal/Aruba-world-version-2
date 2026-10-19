@@ -506,7 +506,7 @@ export class PedestrianCrowds {
       // until the ground is a deck or the sand in front of the entrance.
       let x = slot.anchorX;
       let y = this.height(x, slot.z);
-      for (let n = 0; n < 12 && (y == null || y < 0.3 || y > 3.2); n++) {
+      for (let n = 0; n < 20 && (y == null || y < 0.3 || y > 3.2); n++) {
         x -= 4;
         y = this.height(x, slot.z);
       }
