@@ -177,6 +177,26 @@ function necklaceGeometry() {
 }
 
 let crossGeo: BufferGeometry | null = null;
+let phoneGeo: BufferGeometry | null = null;
+
+function phoneGeometry() {
+  if (phoneGeo) return phoneGeo;
+  // Wrist space. A closed phone, screen facing out, held at the side.
+  const body = new BoxGeometry(0.038, 0.07, 0.006);
+  body.translate(0, -0.08, 0.03);
+  const screen = new BoxGeometry(0.03, 0.056, 0.004);
+  screen.translate(0, -0.08, 0.034);
+  const paintedBody = paint(body, 0x1c1e22, 5);
+  const paintedScreen = paint(screen, 0x8eb4c8, 0);
+  const merged = mergeGeometries([paintedBody, paintedScreen], false);
+  if (merged) {
+    body.dispose();
+    screen.dispose();
+  }
+  phoneGeo = merged ?? paintedBody;
+  return phoneGeo;
+}
+
 
 function crossGeometry() {
   if (crossGeo) return crossGeo;
@@ -232,6 +252,8 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
   }
   if (female && neck) wear(neck, necklaceGeometry(), "aw:necklace");
   if (female && chest) wear(chest, crossGeometry(), "aw:cross");
+  const wrist = root.getObjectByName("WristR");
+  if (female && wrist && index % 2 === 0) wear(wrist, phoneGeometry(), "aw:phone");
   if (hips) {
     wear(hips, beltGeometry(), "aw:belt");
     wear(hips, buckleGeometry(), "aw:buckle");
