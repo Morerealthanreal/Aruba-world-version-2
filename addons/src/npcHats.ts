@@ -94,7 +94,8 @@ function faceFor(skin: number) {
   const found = faceCache.get(skin);
   if (found) return found;
   const tone = new Color(skin);
-  const nose = paint(new BoxGeometry(0.016, 0.032, 0.016).translate(0, 0.112, 0.108), tone.getHex());
+  const bridge = paint(new BoxGeometry(0.011, 0.024, 0.01).translate(0, 0.126, 0.102), tone.getHex());
+  const tip = paint(new BoxGeometry(0.015, 0.011, 0.012).translate(0, 0.108, 0.108), tone.getHex());
   const brow = tone.clone().multiplyScalar(0.45).getHex();
   const browL = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(-0.032, 0.176, 0.108), brow);
   const browR = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(0.032, 0.176, 0.108), brow);
@@ -103,12 +104,12 @@ function faceFor(skin: number) {
   const eyeR = paint(new SphereGeometry(0.014, 8, 6).translate(0.032, 0.15, 0.1), EYE);
   const pupilL = paint(new SphereGeometry(0.007, 6, 5).translate(-0.032, 0.15, 0.112), PUPIL);
   const pupilR = paint(new SphereGeometry(0.007, 6, 5).translate(0.032, 0.15, 0.112), PUPIL);
-  const parts = [nose, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
+  const parts = [bridge, tip, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
     if (merged) part.dispose();
   }
-  const geo = merged ?? nose;
+  const geo = merged ?? bridge;
   faceCache.set(skin, geo);
   return geo;
 }
@@ -116,30 +117,50 @@ function faceFor(skin: number) {
 function hairFor(hex: number) {
   const found = hairCache.get(hex);
   if (found) return found;
-  // Volume sits beside and behind the scalp, not as a bun on the crown.
-  const locks = [
-    new SphereGeometry(0.062, 8, 6).translate(-0.09, 0.06, -0.05),
-    new SphereGeometry(0.058, 8, 6).translate(0.088, 0.04, -0.04),
-    new SphereGeometry(0.07, 8, 6).translate(0, 0.08, -0.15),
-    new SphereGeometry(0.05, 7, 5).translate(0, -0.04, -0.12),
-  ];
-  const volume = mergeGeometries(locks, false);
-  for (const lock of locks) lock.dispose();
-  // Chest space: from the nape (y 0.36, z -0.16) down the back to the waist.
-  const beads: BufferGeometry[] = [];
-  const count = 16;
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const bead = new SphereGeometry(0.038 - t * 0.014, 7, 5);
-    const x = i % 2 === 0 ? -0.012 : 0.012;
-    bead.translate(x, 0.36 - i * 0.042, -0.155 - t * 0.02);
-    beads.push(bead);
+  // One nape lock so the plait starts in hair. Side spheres read as buns.
+  const volume = new SphereGeometry(0.04, 7, 5).translate(0, 0.015, -0.072);
+  // Chest space. A three-strand plait from the nape (y 0.22) to the waist.
+  const strands: BufferGeometry[] = [];
+  const segments = 16;
+  const y0 = 0.2;
+  const y1 = -0.3;
+  const span = (y0 - y1) / segments;
+  for (let i = 0; i < segments; i++) {
+    const t = i / (segments - 1);
+    const y = y0 + (y1 - y0) * t;
+    // Lie on the back. A wide helix reads as a chain and swings off the shirt.
+    const z = -0.062 - t * 0.008;
+    const twist = t * Math.PI * 3.2;
+    const spread = 0.0065 * (1 - t * 0.15);
+    const radius = 0.0055 * (1 - t * 0.25);
+    for (let s = 0; s < 3; s++) {
+      const angle = twist + (s * Math.PI * 2) / 3;
+      const strand = new CylinderGeometry(radius, radius, span * 2.15, 5);
+      strand.translate(Math.cos(angle) * spread, y, z + Math.sin(angle) * spread * 0.45);
+      strands.push(strand);
+    }
   }
-  const braid = mergeGeometries(beads, false);
-  for (const bead of beads) bead.dispose();
+  const core = new CylinderGeometry(0.012, 0.0075, y0 - y1, 6);
+  core.translate(0, (y0 + y1) / 2, -0.062);
+  strands.push(core);
+  const tie = new TorusGeometry(0.016, 0.0032, 5, 8);
+  tie.rotateX(Math.PI / 2);
+  tie.translate(0, 0.205, -0.064);
+  const tail = new SphereGeometry(0.014, 6, 5);
+  tail.scale(1, 1.25, 0.75);
+  tail.translate(0, -0.312, -0.08);
+  paint(tie, new Color(hex).multiplyScalar(0.62).getHex());
+  for (const strand of strands) paint(strand, hex);
+  paint(tail, hex);
+  const braid = mergeGeometries([...strands, tie, tail], false);
+  for (const strand of strands) strand.dispose();
+  if (braid) {
+    tie.dispose();
+    tail.dispose();
+  }
   const made = {
-    volume: paint(volume ?? locks[0], hex),
-    braid: paint(braid ?? beads[0], hex),
+    volume: paint(volume, hex),
+    braid: braid ?? tail,
   };
   hairCache.set(hex, made);
   return made;
@@ -147,15 +168,21 @@ function hairFor(hex: number) {
 
 function necklaceGeometry() {
   if (neckGeo) return neckGeo;
-  const ring = new TorusGeometry(0.07, 0.006, 6, 14);
+  // Neck local. A short chain on the neck, one pendant on the upper chest.
+  const ring = new TorusGeometry(0.05, 0.006, 6, 16);
   ring.rotateX(Math.PI / 2);
-  ring.translate(0, -0.03, 0.02);
-  const pendant = new BoxGeometry(0.016, 0.022, 0.007);
-  pendant.translate(0, -0.07, 0.078);
-  const merged = mergeGeometries([ring, pendant], false);
-  ring.dispose();
-  if (merged) pendant.dispose();
-  neckGeo = paint(merged ?? pendant, GOLD);
+  ring.translate(0, 0.016, 0.034);
+  const bail = new CylinderGeometry(0.0036, 0.0036, 0.03, 5);
+  bail.translate(0, -0.006, 0.058);
+  const pendant = new SphereGeometry(0.016, 8, 6);
+  pendant.scale(0.7, 1.15, 0.4);
+  pendant.translate(0, -0.026, 0.078);
+  const links = [ring, bail, pendant];
+  const merged = mergeGeometries(links, false);
+  for (const link of links) {
+    if (merged) link.dispose();
+  }
+  neckGeo = paint(merged ?? ring, GOLD);
   return neckGeo;
 }
 
