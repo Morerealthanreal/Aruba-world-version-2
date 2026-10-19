@@ -110,10 +110,6 @@ export class PerfFixes {
   /** Shared stand-in so the scratch pass can register a geometry without uploading it. */
   private primeBlank: BufferGeometry["attributes"] = {};
   private primeLive = false;
-  private primeQuiet = 0;
-  private primeIdleScans = 0;
-  /** Full walks found nothing left to register, so the measured laps are left alone. */
-  private primeSettled = false;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -622,13 +618,10 @@ export class PerfFixes {
    *  camera upload happens the first time that geometry is actually drawn.
    *  The 1x1 target keeps the pass off the canvas. */
   private primeUnseenGeometries() {
-    // Stop once a loaded island has nothing left to register. A clock stop
-    // fired during CI warmup and the later laps were counted. Keeping the
-    // walk going through the measured laps held the heap over the cap.
-    // Blank attributes keep the scratch pass from copying vertex data.
-    if (this.primeSettled) return;
-    if (this.primeQuiet > 0) this.primeQuiet--;
-    const scanScene = this.primeQuiet === 0;
+    // Only the geometries that swap without being drawn: chunk meshes, roads,
+    // and overview LOD levels. Registering every hidden mesh in the scene
+    // pulled their vertex data into the heap and missed the cap. There is no
+    // clock stop; a cutoff tuned to one machine left the slower CI laps uncounted.
     const batch: BufferGeometry[] = [];
     const seen = new Set<BufferGeometry>();
     const limit = 16;
@@ -655,27 +648,7 @@ export class PerfFixes {
       extra.roadMesh?.traverse((o) => add((o as Obj).geometry));
       for (const b of r.__awBB || []) add(b.bm.geometry);
     }
-    if (scanScene && batch.length < limit) {
-      const stack: Obj[] = [this.g.scene as unknown as Obj];
-      while (stack.length && batch.length < limit) {
-        const o = stack.pop()!;
-        add(o.geometry);
-        lodsOf(o);
-        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
-      }
-    }
-    if (!batch.length) {
-      if (scanScene) {
-        this.primeQuiet = 8;
-        const loaded = this.real.regions.size >= 6 && this.g.renderer.info.memory.geometries >= 7000;
-        if (loaded && ++this.primeIdleScans >= 2) this.primeSettled = true;
-      }
-      return;
-    }
-    if (scanScene) this.primeIdleScans = 0;
-    // The scene walk finished without filling the batch, so back off. A full
-    // batch means more geometries are waiting; keep scanning next call.
-    if (scanScene && batch.length < limit) this.primeQuiet = 8;
+    if (!batch.length) return;
     if (!this.primeScene || !this.primeMat || !this.primeTarget || !this.primeCam) {
       this.primeScene = new Scene();
       this.primeMat = new MeshBasicMaterial();
@@ -712,14 +685,15 @@ export class PerfFixes {
       // geometries.update upload every hidden chunk, and that copy stayed in the
       // heap after the region was gone. The next real draw uploads the restored
       // attributes at their real size, because no GPU buffer exists yet.
-      const hidden: Array<{ geo: BufferGeometry; attrs: BufferGeometry["attributes"] }> = [];
+      const hidden: Array<{ geo: BufferGeometry; attrs: BufferGeometry["attributes"]; index: BufferGeometry["index"] }> = [];
       const blanked = new Set<BufferGeometry>();
       for (const holder of holders) {
         const geo = holder.geometry as BufferGeometry | undefined;
         if (!geo || blanked.has(geo)) continue;
         blanked.add(geo);
-        hidden.push({ geo, attrs: geo.attributes });
+        hidden.push({ geo, attrs: geo.attributes, index: geo.index });
         geo.attributes = this.primeBlank;
+        geo.index = null;
       }
       try {
         renderer.setRenderTarget(this.primeTarget);
@@ -728,7 +702,10 @@ export class PerfFixes {
       } catch {
         threw = true;
       } finally {
-        for (const item of hidden) item.geo.attributes = item.attrs;
+        for (const item of hidden) {
+          item.geo.attributes = item.attrs;
+          item.geo.index = item.index;
+        }
         renderer.sortObjects = prevSort;
         renderer.autoClear = prevClear;
         shadow.autoUpdate = prevAuto;
