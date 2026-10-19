@@ -481,13 +481,31 @@ export class PerfFixes {
       extra.roadMesh?.traverse((o) => consider(o as Obj));
       for (const b of r.__awBB || []) consider(b.bm as unknown as Obj);
     }
+    // Hero and brand meshes are built, drawn, then sometimes detached. A clone that
+    // left the scene still counts on the GPU until dispose. Overview LOD swaps keep
+    // the previous buffer alive on userData.lods and never dispose it.
+    const watched: (Obj | null | undefined)[] = [
+      this.real.hero?.group as Obj | undefined,
+      this.real.brands?.group as Obj | undefined,
+    ];
+    for (const root of watched) root?.traverse((o) => consider(o as Obj));
+    const blocks = (this.real as unknown as { ovBlocks?: Obj[] }).ovBlocks;
+    if (blocks) for (const block of blocks) consider(block);
     for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
     this.liveRegionGeo = now;
-    if (!this.swapped.size) return;
     const live = new Set<BufferGeometry>();
-    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    if (this.swapped.size || this.shapeCache.size) {
+      this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    }
     for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
     this.swapped.clear();
+    // A shared box can leave the scene between watches. The sign teardown leaves
+    // it alone so a sibling mesh can keep drawing it; once nothing in the scene
+    // references it, the cache is the only owner and the GPU slot has to go.
+    for (const [key, geo] of this.shapeCache) if (!live.has(geo)) {
+      geo.dispose();
+      this.shapeCache.delete(key);
+    }
   }
 
   /** Maps on a live region are uploaded before the soak samples, so a later dispose
@@ -703,10 +721,51 @@ export class PerfFixes {
     this.stats.peds = n0 + " -> " + amb.peds.length + " (no shadows)";
   }
 
+  private shapeCache = new Map<string, BufferGeometry>();
+
+  /** Sign panels and posts each allocated a BoxGeometry, and every palapa GLB
+   *  uploaded its own copy of the same mesh. Keep one buffer and dispose the
+   *  clones. __awShared tells the landmark teardown not to free a buffer that
+   *  another mesh still draws. noteSwaps drops the cached buffer once the last
+   *  mesh is gone, and the landmark canvas stays on the brand record so a
+   *  rebuilt sign does not upload a second texture. */
+  private shareGeometries() {
+    const cache = this.shapeCache;
+    const adopt = (mesh: Obj) => {
+      const geo = mesh.geometry;
+      if (!geo || mesh.isInstancedMesh || mesh.isSkinnedMesh) return;
+      const typed = geo as BufferGeometry & { parameters?: Record<string, unknown>; __awShared?: number };
+      let key: string | null = null;
+      if (typed.parameters) {
+        try { key = geo.type + JSON.stringify(typed.parameters); } catch { key = null; }
+      } else if (mesh.name.startsWith("palapa_")) {
+        const pos = geo.getAttribute("position");
+        const arr = pos?.array as ArrayLike<number> | undefined;
+        if (pos && arr && arr.length >= 6) {
+          const n = arr.length;
+          key = `palapa:${pos.count}:${geo.index?.count || 0}:${arr[0].toFixed(3)}:${arr[1].toFixed(3)}:${arr[2].toFixed(3)}:${arr[n - 3].toFixed(3)}:${arr[n - 1].toFixed(3)}`;
+        }
+      }
+      if (!key) return;
+      const prev = cache.get(key);
+      if (!prev) {
+        cache.set(key, geo);
+        typed.__awShared = 1;
+        return;
+      }
+      if (prev === geo) return;
+      mesh.geometry = prev;
+      geo.dispose();
+    };
+    const roots = [this.real.brands?.group, this.real.hero?.group];
+    for (const root of roots) root?.traverse((o) => { const mesh = o as Obj; if (mesh.isMesh) adopt(mesh); });
+  }
+
   update(dt: number) {
     this.t -= dt;
     if (this.t > 0) return;
     this.t = 1;
+    this.shareGeometries();
     this.fixGlass();
     this.fixCar();
     this.fixPeds();
