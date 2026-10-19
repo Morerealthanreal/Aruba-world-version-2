@@ -50,6 +50,7 @@ import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
 import { Sea } from "./sea";
+import { BocaGrandi } from "./bocaGrandi";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
 import { Navigator } from "./nav/navigator";
@@ -162,6 +163,8 @@ async function main() {
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
   }
   const guard = new FpsGuard(g);
+  const boca = params.get("bocagrandi") !== "0" ? new BocaGrandi(g) : null; // Boca Grandi reef flat, surf, sand and scrub
+  (window as unknown as { __awBocaGrandi?: unknown }).__awBocaGrandi = boca;
   if (params.get("progcache") === "0") (window as unknown as { __awProg: number }).__awProg = 0;
   // texture pre-upload is on unless ?preup=0; it only queues textures of meshes the warm-up actually sees
   const mperf = params.get("mperf") !== "0" ? new MobilePerf(g, perf ? perf.mobile : touch, params.get("warmup") !== "full", params.get("preup") !== "0") : null;
