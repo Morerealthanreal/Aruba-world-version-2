@@ -8800,8 +8800,8 @@
    "switch_m": 140
   },
   "tris": {
-   "boardwalk_lod0": 568,
-   "boardwalk_lod1": 54
+   "boardwalk_lod0": 592,
+   "boardwalk_lod1": 70
   },
   "textures": 1,
   "hide_footprint": [

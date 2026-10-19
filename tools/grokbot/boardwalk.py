@@ -128,11 +128,12 @@ def build():
     for i in range(6):
         obox(M.mesh(0, "turq"), BF, 1.0, 5.9, -8.4 + i * 0.7, -8.2 + i * 0.7, GF + 2.55, GF + 2.75)
 
-    hquad(M.mesh(0, "lawn"), BF, -2, L + 2, -16, 8, 0.06)
-    hquad(M.mesh(1, "lawn"), BF, 0, L, -12, 6, 0.06)
-    hquad(M.mesh(0, "wood"), BF, -1, L + 1, -11.5, -9.6, 0.12)
-    hquad(M.mesh(0, "wood"), BF, 6, 8.2, -16, -4, 0.12)
-    hquad(M.mesh(1, "wood"), BF, 0, L, -11, -10, 0.1)
+    # Thick pads. A flat quad at y=0.06 sinks into the sand and the garden reads as dirt.
+    for lod in (0, 1):
+        obox(M.mesh(lod, "lawn"), BF, -2, L + 2, -18, 8, 0.0, 0.2)
+    obox(M.mesh(0, "wood"), BF, -1, L + 1, -12.2, -9.4, 0.16, 0.32)
+    obox(M.mesh(0, "wood"), BF, 5.6, 8.6, -16, -3.5, 0.16, 0.32)
+    obox(M.mesh(1, "wood"), BF, 0, L, -11.4, -9.8, 0.14, 0.28)
     for u in (2, 8, 14, 22):
         obox(M.mesh(0, "hedge"), BF, u, u + 3.2, -3.2, -2.2, 0.1, 0.8)
 
