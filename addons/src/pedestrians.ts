@@ -1,7 +1,8 @@
-// Beach crowd for Palm Beach. Six CC0 bodies, one shared oil-light shader,
-// and a fixed pool so a phone never grows geometries while it walks.
-// People exist only near the player, on the sand west of J.E. Irausquin.
-// ?peds=0 (or ?life=0) leaves the original pedestrians in place.
+// Beach crowd for Palm Beach, added beside the island-wide ambient pedestrians.
+// Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
+// never grows geometries while it walks. The crowd stands on the sand west of
+// J.E. Irausquin. Ambient pedestrians keep walking towns and beaches.
+// ?peds=0 (or ?life=0) leaves only those ambient pedestrians.
 import {
   AnimationMixer, LoopRepeat, Object3D,
   type AnimationAction, type SkinnedMesh,
@@ -110,7 +111,6 @@ export class PedestrianCrowds {
   private rigs: Rig[] = [];
   private slots: Slot[] = [];
   private radius2: number;
-  private amb: { peds: Array<{ g: Object3D }> } | null = null;
   private baked: BakedPerson[] = [];
 
   constructor(private g: AGame) {
@@ -227,21 +227,7 @@ export class PedestrianCrowds {
     return Math.PI / 2 + slot.yawJitter;
   }
 
-  private retireBase() {
-    if (!this.amb) {
-      const amb = (this.g.real as unknown as { amb?: { peds: Array<{ g: Object3D }> } } | null)?.amb;
-      if (!amb) return;
-      this.amb = amb;
-    }
-    while (this.amb.peds.length) {
-      const ped = this.amb.peds.pop()!;
-      ped.g.visible = false;
-      ped.g.parent?.remove(ped.g);
-    }
-  }
-
   update(dt: number, _time: number) {
-    this.retireBase();
     const sky = this.g.real?.sky?.sunDir;
     if (sky) setOilSun(sky.x, sky.y, sky.z);
     if (!this.rigs.length) return;
