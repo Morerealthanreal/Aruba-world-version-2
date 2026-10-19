@@ -411,7 +411,13 @@ export class PerfFixes {
   private uploadPendingMaps(x: number, z: number) {
     const list = this.real.hero?.list;
     if (!list || !list.length) return;
-    let budget = 8;
+    // Noord has a few hundred loaded heroes. Eight maps a frame was still
+    // uploading signs on the measured lap after Surf Club joined that set
+    // (texture growth 5.5, limit 4). Surf Club adds no images; it is inside
+    // the 1500 m load, so the phone was still flushing other heroes' signs.
+    // Low draws less, so it can finish that set during warmup. Other tiers
+    // stay at 8.
+    let budget = this.real.q.name === "low" ? 24 : 8;
     const n = list.length;
     let i = this.mapCursor % n;
     const start = i;

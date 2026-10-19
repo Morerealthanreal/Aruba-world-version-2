@@ -1,0 +1,61 @@
+{
+  "place": "bugaloe",
+  "area": "palm-beach",
+  "photos": [
+    {
+      "file": "yt_zEBaFtoL3_o_night.jpg",
+      "source_url": "https://www.youtube.com/watch?v=zEBaFtoL3_o",
+      "license": "unknown - reference only, not pasted onto geometry",
+      "credit": "video still, night drone; rights belong to the original author",
+      "lat": 12.572,
+      "lon": -70.046,
+      "heading": "oblique, looking along the pier from the sea toward the beach hotels",
+      "date": null,
+      "shows": "long low dark-thatch roof, open sides, deck over the water, lights under the eave, palms on the beach, a catamaran alongside"
+    },
+    {
+      "file": "esri_aerial.jpg",
+      "source_url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "license": "Esri World Imagery / Maxar - reference only, all rights reserved, not pasted onto geometry",
+      "credit": "Esri, Maxar. Red outline is the shore-end footprint of hero bugaloe.",
+      "lat": 12.572,
+      "lon": -70.046,
+      "heading": "nadir, north up",
+      "date": null,
+      "shows": "the pier leaves the beach going west into the water; palms and umbrella rows on the sand"
+    },
+    {
+      "file": "unleashed-interior.jpg",
+      "source_url": "https://arubaunleashed.com/bugaloe-beach-bar-in-aruba/",
+      "license": "unknown - reference only, not pasted onto geometry",
+      "credit": "Aruba Unleashed, Bugaloe Beach Bar interior, 2024",
+      "lat": 12.572,
+      "lon": -70.046,
+      "heading": "inside the palapa, looking along the bar toward the sea",
+      "date": "2024",
+      "shows": "mint posts with painted panels, BEACH BAR-GRILL banner, multicolour BUGALOE letters, string lights, nets, blue bar, clothed guests"
+    },
+    {
+      "file": "d30a-drone.jpg",
+      "source_url": "https://30a.com/bugaloe-aruba/",
+      "license": "unknown - reference only, not pasted onto geometry",
+      "credit": "30A.com drone still of Bugaloe",
+      "lat": 12.572,
+      "lon": -70.046,
+      "heading": "oblique from the side, slightly above the deck",
+      "date": null,
+      "shows": "teal posts, navy skirt at the waterline, thatch, wood deck, tables, red benches, palms and the beach behind"
+    },
+    {
+      "file": "d30a-bar.jpg",
+      "source_url": "https://30a.com/bugaloe-aruba/",
+      "license": "unknown - reference only, not pasted onto geometry",
+      "credit": "30A.com bar interior",
+      "lat": 12.572,
+      "lon": -70.046,
+      "heading": "behind the bar",
+      "date": null,
+      "shows": "blue staff shirts, bottle shelves, mint ceiling beams, nets, clothed people"
+    }
+  ]
+}
