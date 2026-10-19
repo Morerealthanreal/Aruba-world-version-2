@@ -173,9 +173,6 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  // Kid models share the ambient ped GLBs. Finish that load, and upload the
-  // textures, before the soak starts sampling (it waits on window.__aw).
-  if (kids) await kids.whenReady();
   window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, version: "0.19.0" };
 
   let last = performance.now();

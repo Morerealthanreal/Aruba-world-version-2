@@ -4,7 +4,7 @@
 // after every animation update; brighter kids' clothes, tops and trousers kept.
 // Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
 // Pool is small (<= 2 per adult ped, capped per tier), no shadows on phones. Off with ?kids=0.
-import { AnimationMixer, Color, Group, Vector3, type AnimationAction, type Object3D, type Texture } from "three";
+import { AnimationMixer, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type Texture } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { AGame } from "./env";
@@ -54,7 +54,8 @@ export class Kids {
     }
   }
 
-  // Upload the two ped GLBs' maps before the first measured soak cycle.
+  // Upload the two ped GLBs once, when they arrive, so the soak's later cycles
+  // do not see a new batch of textures. Draw only the kids, not the island.
   private prime() {
     const renderer = this.g.renderer as unknown as { initTexture?: (t: Texture) => void; render: (s: unknown, c: unknown) => void };
     const seen = new Set<Texture>();
@@ -68,14 +69,18 @@ export class Kids {
             const tex = mat[key] as Texture | undefined;
             if (!tex || !tex.isTexture || seen.has(tex)) continue;
             seen.add(tex);
-            try { renderer.initTexture?.(tex); } catch { /* first draw uploads */ }
+            try { renderer.initTexture?.(tex); } catch { /* the kid draw uploads */ }
           }
         }
       });
     }
+    const home = this.group.parent;
+    const tmp = new Scene();
+    tmp.add(this.group);
     for (const k of this.pool) k.root.visible = true;
-    try { renderer.render(this.g.scene, this.g.camera); } catch { /* the game loop draws them */ }
+    try { renderer.render(tmp, this.g.camera); } catch { /* the game loop draws them */ }
     for (const k of this.pool) k.root.visible = false;
+    if (home) home.add(this.group);
   }
 
   private make(i: number): Kid | null {
