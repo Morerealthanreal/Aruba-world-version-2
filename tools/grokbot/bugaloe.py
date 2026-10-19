@@ -28,24 +28,24 @@ HERO = ROOT / "game" / "models" / "hero"
 MANIFEST = ROOT / "game" / "data" / "hero" / "manifest.json"
 O = (-8523.4, -5313.88)
 
-# Dried thatch from the daytime side photo: tan courses with a darker ragged
-# hem, not a single bright yellow board.
-STRAW = (0.72, 0.52, 0.28)
-STRAW_D = (0.55, 0.36, 0.16)
-FRINGE = (0.42, 0.26, 0.10)
+# Golden layered straw. Alternating courses, not one orange board.
+STRAW = (0.86, 0.70, 0.36)
+STRAW_D = (0.62, 0.44, 0.18)
+FRINGE = (0.50, 0.34, 0.14)
 WOOD = (0.50, 0.32, 0.16)
 POST = (0.42, 0.26, 0.13)
 DECK = (0.74, 0.58, 0.36)
 DECK_D = (0.58, 0.42, 0.24)
 RAIL = (0.48, 0.34, 0.20)
-BULB = (0.42, 0.20, 0.06)
+BULB = (1.0, 0.72, 0.28)
 # Painted bar, from the interior and side photos.
 TEAL = (0.42, 0.78, 0.74)
 TEAL_D = (0.28, 0.55, 0.56)
 CEIL = (0.62, 0.82, 0.88)
-NAVY = (0.07, 0.10, 0.22)
+NAVY = (0.10, 0.16, 0.42)
 SKIRT_W = (0.82, 0.84, 0.86)
 BLUE = (0.13, 0.38, 0.78)
+MINT = (0.42, 0.78, 0.58)
 ORANGE = (0.86, 0.42, 0.16)
 RED = (0.78, 0.16, 0.14)
 YELLOW = (0.92, 0.76, 0.18)
@@ -64,7 +64,8 @@ SHIRT3 = (0.85, 0.28, 0.32)
 SHORTS = (0.12, 0.14, 0.18)
 SHORTS2 = (0.20, 0.32, 0.62)
 
-ATLAS_H = 320
+ATLAS_W = 1024
+ATLAS_H = 512
 
 
 def lin(c):
@@ -115,35 +116,34 @@ def _rnd(n):
 
 
 def thatch_shag(mesh_a, mesh_b, F, u0, u1, v_edge, y0, rise):
-    """One straw strip from the ridge to a ragged hem. No horizontal courses,
-    which read as planks from the side. Strips are wide enough to cover the
-    hip, and there is one of them per step: a second overlapping strip only
-    added vertices, and the phone soak was still uploading geometries on the
-    measured lap."""
+    """Overlapping straw courses. Each course steps out past the one below it
+    and droops, with a dark lip, so the hip reads as layered thatch."""
     s = 1 if v_edge >= 0 else -1
     V = abs(v_edge)
-    u, k = u0, 1
-    while u < u1 - 0.1:
-        r0, r1, r2 = _rnd(k * 5), _rnd(k + 2), _rnd(k * 3 + 7)
-        w = 0.55 + 0.22 * r0
-        f_top = 0.72 + 0.26 * r0
-        v_top = s * V * (1 - f_top)
-        y_top = y0 + rise * f_top + 0.06
-        droop = 0.25 + 0.85 * r1
-        out = 0.55 + 0.95 * r2
-        v_bot = s * (V + 0.15 + 0.35 * r2)
-        y_bot = y0 - droop
-        skew = (r0 - 0.5) * 0.18
-        A = F.p(u + skew, v_top, y_top)
-        B = F.p(u + w + skew, v_top + s * 0.04, y_top - 0.03)
-        C = F.p(u + w * (0.55 + 0.3 * r1), v_bot + s * out, y_bot)
-        D = F.p(u + w * 0.08, v_bot + s * out * 0.65, y_bot - 0.2 * r0)
-        cen = F.p(u + w / 2, 0, y_top)
-        m = mesh_a if r2 > 0.42 else mesh_b
+    n = 12
+    cen = F.p((u0 + u1) / 2, 0, y0 - 8)
+    for i in range(n):
+        f_hi = (i + 1) / n
+        f_lo = i / n
+        sag = 0.05 + 0.04 * (i % 3)
+        v_in = s * V * (1 - f_hi * 0.90)
+        v_out = s * (V * (1 - f_lo) + 0.42 + 0.08 * (i % 2))
+        y_in = y0 + rise * f_hi + 0.10
+        y_out = y0 + rise * f_lo - 0.16 - sag
+        A = F.p(u0, v_out, y_out)
+        B = F.p(u1, v_out, y_out - 0.04)
+        C = F.p(u1, v_in, y_in)
+        D = F.p(u0, v_in, y_in + 0.03)
+        m = mesh_a if i % 2 == 0 else mesh_b
         tri_out(m, A, B, C, cen)
         tri_out(m, A, C, D, cen)
-        u += w * 0.82
-        k += 1
+        # dark underside of the course, the shadow line between layers
+        lip = 0.16
+        A2 = F.p(u0, v_out, y_out - lip)
+        B2 = F.p(u1, v_out, y_out - lip - 0.04)
+        dark = mesh_b
+        tri_out(dark, A, B, B2, cen)
+        tri_out(dark, A, B2, A2, cen)
 
 
 def glyph(M, F, u, v, y, w, h, parts, color, depth=0.72):
@@ -214,7 +214,7 @@ def paint_bulb(path):
     hit = False
     for mat in js["materials"]:
         if mat.get("name") == "bulb":
-            mat["emissiveFactor"] = [1.0, 0.45, 0.08]
+            mat["emissiveFactor"] = [1.0, 0.78, 0.32]
             hit = True
     if not hit:
         raise SystemExit("bulb material missing")
@@ -299,14 +299,34 @@ def dining(M, F, u, v, y, chair_color):
 
 
 def sign_atlas():
-    gable = text_png(["BUGALOE"], 512, 128, (255, 236, 190, 255), (92, 52, 24, 255), FONT_SANS)
-    # Cream board, red letters, matching the beam over the bar.
-    banner = text_png(["BEACH BAR - GRILL"], 512, 96, (255, 236, 190, 255), (176, 42, 34, 255), FONT_SANS)
-    music = text_png(["MUSICA EN VIVO"], 512, 96, (214, 122, 36, 255), (255, 244, 220, 255), FONT_SANS)
-    im = Image.new("RGBA", (512, ATLAS_H), (0, 0, 0, 0))
-    im.paste(gable, (0, 0))
-    im.paste(banner, (0, 128))
-    im.paste(music, (0, 224))
+    """Drawn signs. The word is one letter per colour, the way the bar spells it."""
+    from PIL import ImageDraw, ImageFont
+    im = Image.new("RGBA", (ATLAS_W, ATLAS_H), (0, 0, 0, 0))
+    dr = ImageDraw.Draw(im)
+    # BUGALOE, left to right, photo colours. B is camera-left when looking north.
+    letters = (
+        ("B", (214, 42, 46)),
+        ("U", (186, 156, 204)),
+        ("G", (36, 92, 196)),
+        ("A", (242, 198, 36)),
+        ("L", (92, 196, 128)),
+        ("O", (236, 112, 28)),
+        ("E", (36, 150, 72)),
+    )
+    font = ImageFont.truetype(FONT_SANS, 210)
+    slot = ATLAS_W / len(letters)
+    for i, (ch, col) in enumerate(letters):
+        tw = font.getlength(ch)
+        x = i * slot + (slot - tw) / 2
+        # dark offset so the letter stays a letter against the thatch
+        dr.text((x + 6, 28), ch, font=font, fill=(40, 24, 12, 255))
+        dr.text((x, 20), ch, font=font, fill=col + (255,))
+    banner_font = ImageFont.truetype(FONT_SANS, 72)
+    dr.rectangle((0, 280, ATLAS_W, 400), fill=(255, 236, 190, 255))
+    dr.rectangle((8, 288, ATLAS_W - 8, 392), outline=(176, 42, 34, 255), width=6)
+    text = "BEACH BAR-GRILL"
+    tw = banner_font.getlength(text)
+    dr.text(((ATLAS_W - tw) / 2, 300), text, font=banner_font, fill=(176, 42, 34, 255))
     return im
 
 
@@ -316,7 +336,7 @@ def build():
         ("straw", STRAW, .95), ("strawd", STRAW_D, .95), ("fringe", FRINGE, 1),
         ("wood", WOOD, .8), ("deck", DECK, .75), ("deckd", DECK_D, .8),
         ("rail", RAIL, .55), ("post", POST, .8),
-        ("teal", TEAL, .55), ("teald", TEAL_D, .6), ("ceil", CEIL, .5),
+        ("teal", TEAL, .55), ("teald", TEAL_D, .6), ("ceil", CEIL, .5), ("mint", MINT, .55),
         ("navy", NAVY, .8), ("skirtw", SKIRT_W, .6),
         ("blue", BLUE, .45), ("orange", ORANGE, .6), ("red", RED, .55),
         ("yellow", YELLOW, .5), ("pink", PINK, .55), ("green", GREEN, .55),
@@ -382,22 +402,25 @@ def build():
             obox(M.mesh(lod, "wood"), F, 1.2, L - 0.4, s * (hv - 0.05), s * (hv + 0.26),
                  deck_y - 0.55, deck_y - 0.28)
 
-    # navy skirt, cut into drapes so the hem sags, with a white trim where it meets the deck
+    # navy skirt, scalloped and hung well outside the deck so a side camera sees blue
     u = 0.3
     k = 0
     while u < L - 0.2:
-        w = min(2.15, L - 0.2 - u)
-        sag = 0.12 + 0.42 * ((k * 3) % 5) / 4
+        w = min(2.4, L - 0.2 - u)
+        sag = 0.35 + 0.85 * ((k * 3) % 5) / 4
         for s in (-1, 1):
-            vquad(M.mesh(0, "navy"), F, u, u + w, s * (hv + 0.52), -0.02 - sag, deck_y - 0.1, s)
-        u += 2.05
+            v_out = s * (hv + 1.55)
+            vquad(M.mesh(0, "navy"), F, u, u + w, v_out, -0.15 - sag, deck_y + 0.02, s)
+            # a second panel tucked in, so the skirt has a fold instead of one flat sheet
+            vquad(M.mesh(0, "navy"), F, u + 0.15, u + w - 0.1, s * (hv + 0.85), 0.05 - sag * 0.45, deck_y - 0.02, s)
+        u += 2.25
         k += 1
     for lod in (0, 1):
         for s in (-1, 1):
             if lod == 1:
-                vquad(M.mesh(1, "navy"), F, 0.4, L + 0.4, s * (hv + 0.52), -0.15, deck_y - 0.1, s)
-            vquad(M.mesh(lod, "skirtw"), F, 0.3, L + 0.4, s * (hv + 0.56), deck_y - 0.12, deck_y + 0.08, s)
-        uquad(M.mesh(lod, "navy"), F, L + 0.7, -hv - 0.15, hv + 0.15, -0.2, deck_y - 0.08, 1)
+                vquad(M.mesh(1, "navy"), F, 0.4, L + 0.4, s * (hv + 1.35), -0.35, deck_y + 0.02, s)
+            vquad(M.mesh(lod, "skirtw"), F, 0.3, L + 0.4, s * (hv + 1.7), deck_y - 0.06, deck_y + 0.16, s)
+        uquad(M.mesh(lod, "navy"), F, L + 0.7, -hv - 0.4, hv + 0.4, -0.4, deck_y - 0.02, 1)
 
     # teal posts, painted panels, rails. Height follows whichever hip is overhead.
     posts = []
@@ -425,24 +448,24 @@ def build():
         for u0, u1, eave, _rise in roofs:
             vquad(M.mesh(1, "fringe"), F, u0 + 0.4, u1 - 0.3, s * (V + 0.3), eave - 0.85, eave + 0.05, s)
 
-    # String lights under the hem, and lanterns in the open side. The night drone
-    # looks into the south opening and sees the amber ceiling through it.
+    # Warm gold the night drone sees through the open south side: a tall interior
+    # panel, the ceiling, and lanterns hung under the hem.
     for u0, u1, eave, _rise in roofs:
-        uu = u0 + 0.8
-        while uu < u1 - 0.6:
+        uu = u0 + 1.1
+        while uu < u1 - 0.8:
             for s in (-1, 1):
-                # A face the side camera sees, plus a cap. A box was ten triangles
-                # for the same amber pixel, and that vertex load kept the phone
-                # uploading geometries on the measured soak lap.
-                vquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.48), eave - 0.95, eave - 0.42, s)
-                hquad(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (V + 0.22), s * (V + 0.5), eave - 0.4)
-            uu += 2.4
-        for s in (-1, 1):
-            # Warm band just under the eave, above the furniture, facing the opening.
-            vquad(M.mesh(0, "bulb"), F, u0 + 0.4, u1 - 0.4, s * (hv - 0.15), eave - 1.05, eave - 0.12, s)
-        # Ceiling, plus the south opening itself, which is what the drone looks into.
-        hquad(M.mesh(0, "bulb"), F, u0 + 0.8, u1 - 0.8, -2.4, 2.4, eave + 0.55, up=-1)
-        vquad(M.mesh(0, "bulb"), F, u0 + 0.6, u1 - 0.6, -3.15, deck_y + 0.85, eave - 0.55, -1)
+                vquad(M.mesh(0, "bulb"), F, uu - 0.28, uu + 0.28, s * (hv - 0.55), eave - 1.35, eave - 0.55, s)
+                hquad(M.mesh(0, "bulb"), F, uu - 0.28, uu + 0.28, s * (hv - 0.9), s * (hv - 0.2), eave - 0.5)
+            uu += 2.6
+        # Ceiling glow, seen through the open side. No wall across the opening:
+        # that was hiding the letters.
+        hquad(M.mesh(0, "bulb"), F, u0 + 0.6, u1 - 0.6, -4.6, 4.4, eave - 0.15, up=-1)
+        uu = u0 + 1.2
+        while uu < u1 - 1.0:
+            for s in (-1, 1):
+                obox(M.mesh(0, "bulb"), F, uu - 0.22, uu + 0.22, s * (hv - 0.85), s * (hv - 0.35),
+                     eave - 1.15, eave - 0.55)
+            uu += 2.2
     # king posts and a light-blue plank ceiling under each hip
     for u0, u1, eave, rise in roofs:
         u = u0 + 4.2
@@ -499,31 +522,38 @@ def build():
     hquad(M.mesh(0, "bulb"), F, 1.5, 15.5, -5.05, -4.45, deck_y + 0.11)
     hquad(M.mesh(0, "bulb"), F, 20.0, L - 1.0, -5.05, -4.45, deck_y + 0.11)
 
-    # 3D coloured BUGALOE under the shore pavilion, facing the south drone.
-    # +u is west, which is screen-left when that camera looks north, so B is the west letter.
-    letter_cols = (("B", "red"), ("U", "pink"), ("G", "blue"), ("A", "yellow"),
-                   ("L", "green"), ("O", "orange"), ("E", "green"))
-    lw, gap, lh = 1.32, 0.08, 1.32
-    step = lw + gap
-    u_left = 14.0
-    v_let = -4.35
-    ly0 = deck_y + 0.58
-    for i, (ch, mat) in enumerate(letter_cols):
-        glyph(M, F, u_left - i * step, v_let, ly0, lw, lh, GLYPHS[ch], mat)
-    u_right = u_left - (len(letter_cols) - 1) * step
-    # Nets over and beside the letters, and swags under both roofs.
-    hquad(M.mesh(0, "net"), F, u_right - 0.4, u_left + lw + 0.35, v_let - 0.25, v_let + 0.85, ly0 + lh + 0.08)
-    vquad(M.mesh(0, "net"), F, u_right - 0.15, u_right + 0.7, v_let - 0.05, ly0 - 0.15, ly0 + lh + 0.2, -1)
-    vquad(M.mesh(0, "net"), F, u_left + lw - 0.55, u_left + lw + 0.25, v_let - 0.05, ly0 - 0.15, ly0 + lh + 0.25, -1)
-    for i in range(len(letter_cols) - 1):
-        uu = u_left - i * step - gap
-        hquad(M.mesh(0, "bulb"), F, uu - 0.08, uu + 0.08, v_let + 0.05, v_let + 0.28, ly0 + lh - 0.05)
-    for uu, yy in ((5.2, roofs[0][2] - 0.05), (10.2, roofs[0][2] - 0.05),
-                   (26.0, roofs[1][2] - 0.05), (38.0, roofs[1][2] - 0.05),
-                   (50.0, roofs[1][2] - 0.05), (62.0, roofs[1][2] - 0.05)):
-        hquad(M.mesh(0, "net"), F, uu, uu + 3.2, -2.8, 2.8, yy)
-        vquad(M.mesh(0, "net"), F, uu + 0.2, uu + 2.8, -2.5, yy - 1.25, yy + 0.05, -1)
-        vquad(M.mesh(0, "net"), F, uu + 0.2, uu + 2.8, 2.5, yy - 1.25, yy + 0.05, 1)
+    # Coloured BUGALOE under the shore pavilion, facing a camera on the south side.
+    # +u is west, which is screen-left when that camera looks north.
+    word_u0, word_u1 = 3.2, 14.6
+    v_let = -4.05
+    # Sit in the open side, under the eave, where a standing camera can read them.
+    ly0, ly1 = deck_y + 0.55, deck_y + 2.05
+    eave0 = roofs[0][2]
+    # Green rafters the banner and the nets hang from. Mint, not the teal posts.
+    for uu in (3.6, 6.2, 8.8, 11.4, 14.0):
+        obox(M.mesh(0, "mint"), F, uu - 0.11, uu + 0.11, -5.3, 4.8, eave0 - 0.55, eave0 - 0.28)
+    for vv in (-3.4, -1.2, 1.0, 3.2):
+        obox(M.mesh(0, "mint"), F, 2.6, 15.0, vv - 0.09, vv + 0.09, eave0 - 0.22, eave0 + 0.02)
+    obox(M.mesh(0, "mint"), F, word_u0 - 0.15, word_u1 + 0.15, v_let - 0.08, v_let + 0.55, ly1 + 0.55, ly1 + 0.78)
+    # Rope nets swagged over the letters and between the rafters.
+    for i, uu in enumerate((3.8, 6.4, 9.0, 11.6)):
+        y_end = ly1 + 0.62
+        y_mid = ly1 - 0.15 - 0.12 * (i % 2)
+        um = uu + 1.15
+        A = F.p(uu, v_let + 0.15, y_end)
+        B = F.p(um, v_let - 0.05, y_mid)
+        C = F.p(uu + 2.3, v_let + 0.15, y_end)
+        D = F.p(uu, v_let + 0.55, y_end)
+        E = F.p(um, v_let + 0.35, y_mid)
+        G = F.p(uu + 2.3, v_let + 0.55, y_end)
+        cen = F.p(um, v_let - 2, y_mid)
+        tri_out(M.mesh(0, "net"), A, B, C, cen)
+        tri_out(M.mesh(0, "net"), D, E, G, cen)
+        tri_out(M.mesh(0, "net"), A, D, E, cen)
+        tri_out(M.mesh(0, "net"), A, E, B, cen)
+    for uu, yy in ((26.0, roofs[1][2] - 0.15), (40.0, roofs[1][2] - 0.15), (54.0, roofs[1][2] - 0.15)):
+        hquad(M.mesh(0, "net"), F, uu, uu + 4.5, -3.2, 3.2, yy)
+        vquad(M.mesh(0, "net"), F, uu + 0.3, uu + 4.0, -3.0, yy - 1.4, yy + 0.05, -1)
 
     # catamaran on the north side, in front of a camera standing north of the pier
     cu0, cu1 = 40.0, 58.0
@@ -554,17 +584,15 @@ def build():
         umbrella(M, F, u, v, col)
 
     png = sign_atlas()
-    # BUGALOE on the shore gable, facing the beach
-    uquad(M.mesh(0, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
-    uquad(M.mesh(1, "sign"), F, -0.48, -3.4, 3.4, roofs[0][2] - 1.7, roofs[0][2] - 0.25, -1, uvs=band_uv(0, 128))
-    # Beach Bar-Grill above the letters, facing the south drone.
-    vquad(M.mesh(0, "sign"), F, u_right - 0.3, u_left + lw + 0.3, v_let - 0.06,
-          ly0 + lh + 0.18, ly0 + lh + 0.72, -1, uvs=band_uv(128, 224))
+    # South face of the word. u increases west, which is camera-left looking north,
+    # so the texture's left edge (B) is mapped onto the west end of the quad.
+    word_uv = ((1, 270 / ATLAS_H), (0, 270 / ATLAS_H), (0, 0), (1, 0))
+    banner_uv = ((1, 400 / ATLAS_H), (0, 400 / ATLAS_H), (0, 280 / ATLAS_H), (1, 280 / ATLAS_H))
+    vquad(M.mesh(0, "sign"), F, word_u0, word_u1, v_let, ly0, ly1, -1, uvs=word_uv)
+    vquad(M.mesh(1, "sign"), F, word_u0, word_u1, v_let + 0.02, ly0, ly1, -1, uvs=word_uv)
+    vquad(M.mesh(0, "sign"), F, word_u0 + 0.4, word_u1 - 0.4, v_let - 0.04, ly1 + 0.06, ly1 + 0.58, -1, uvs=banner_uv)
     long_eave = roofs[1][2]
-    vquad(M.mesh(0, "sign"), F, 28.0, 40.5, hv - 0.15, long_eave - 0.05, long_eave + 0.62, 1, uvs=band_uv(128, 224))
-    vquad(M.mesh(0, "sign"), F, 28.0, 40.5, -(hv - 0.15), long_eave - 0.05, long_eave + 0.62, -1, uvs=band_uv(128, 224))
-    # music board on the south wall beside the bar, facing into the room
-    vquad(M.mesh(0, "sign"), F, 22.4, 28.6, -4.85, deck_y + 1.25, deck_y + 2.15, 1, uvs=band_uv(224, 320))
+    vquad(M.mesh(0, "sign"), F, 28.0, 42.0, -(hv - 0.2), long_eave - 0.85, long_eave - 0.15, -1, uvs=banner_uv)
 
     # Sign keeps its texture and bulb keeps its name. Everything else is one
     # vertex-coloured mesh per LOD so the phone soak does not upload a geometry
@@ -599,7 +627,7 @@ def patch(info):
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
     block = re.sub(r'"status": "[^"]*"',
-                    '"status": "v11-grokbot (ridge-to-hem shag, one mesh, phone triangle budget)"', block, count=1)
+                    '"status": "v12-grokbot (layered thatch, blue skirt, coloured BUGALOE, green rafters)"', block, count=1)
     block = re.sub(r'"bugaloe_lod0": \d+', f'"bugaloe_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"bugaloe_lod1": \d+', f'"bugaloe_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(r'"switch_m": \d+', '"switch_m": 220', block, count=1)
