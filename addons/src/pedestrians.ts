@@ -227,7 +227,6 @@ function buildSlots(): Slot[] {
       dir: slots.length & 1 ? 1 : -1,
       yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
       x: 0, y: 0, placed: false,
-      anchorX: null,
       fallbackY: null,
       provisional: false,
     });
@@ -509,7 +508,7 @@ export class PedestrianCrowds {
   }
 
   private plant(slot: Slot) {
-    if (slot.anchorX != null) {
+    if (slot.anchorX != null && slot.inland === 0) {
       // A pool centroid can sample the hotel roof. Step toward the water,
       // then inland, until the ground is a deck or the sand by the door.
       const fit = (x: number) => {
