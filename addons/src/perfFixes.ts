@@ -111,6 +111,9 @@ export class PerfFixes {
   private primeBlank: BufferGeometry["attributes"] = {};
   private primeLive = false;
   private primeQuiet = 0;
+  private primeCount = 0;
+  private primeIdleScans = 0;
+  private primeSettled = false;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -619,12 +622,13 @@ export class PerfFixes {
    *  camera upload happens the first time that geometry is actually drawn.
    *  The 1x1 target keeps the pass off the canvas. */
   private primeUnseenGeometries() {
-    // Keep registering for the whole session. A clock stop tuned to one machine
-    // left the later laps on a slower runner uncounted, and those draws then
-    // raised the geometry total. Blank attributes keep the scratch pass from
-    // retaining the vertex copies that previously blew the heap cap.
+    // Keep registering until a full walk finds nothing new, then only pick up
+    // chunk, road, and overview LOD swaps. A clock stop tuned to one machine
+    // left the later laps on a slower runner uncounted. Walking the whole scene
+    // through the measured laps retained enough to miss the heap cap. Blank
+    // attributes keep the scratch pass from copying vertex data.
     if (this.primeQuiet > 0) this.primeQuiet--;
-    const scanScene = this.primeQuiet === 0;
+    const scanScene = !this.primeSettled && this.primeQuiet === 0;
     const batch: BufferGeometry[] = [];
     const seen = new Set<BufferGeometry>();
     const limit = 16;
@@ -661,9 +665,13 @@ export class PerfFixes {
       }
     }
     if (!batch.length) {
-      if (scanScene) this.primeQuiet = 8;
+      if (scanScene) {
+        this.primeQuiet = 8;
+        if (this.primeCount > 1000 && ++this.primeIdleScans >= 2) this.primeSettled = true;
+      }
       return;
     }
+    if (scanScene) this.primeIdleScans = 0;
     // The scene walk finished without filling the batch, so back off. A full
     // batch means more geometries are waiting; keep scanning next call.
     if (scanScene && batch.length < limit) this.primeQuiet = 8;
@@ -752,6 +760,7 @@ export class PerfFixes {
       return;
     }
     for (const g of batch) this.primedGeo.add(g);
+    this.primeCount += batch.length;
   }
 
   /** Runs right after A's per-frame world update, before A renders. */
