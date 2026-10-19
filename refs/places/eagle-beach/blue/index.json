@@ -1,0 +1,22 @@
+{
+  "place": "blue_residences",
+  "area": "eagle-beach",
+  "photos": [
+    {
+      "file": "aruba-pool.jpg",
+      "source_url": "https://www.aruba.com/us/stay-at/blue-residences",
+      "image_url": "https://aruba.bynder.com/m/01116d3034d62f47/desktop_horizontal_rectangle_retina-Blue-Residences.jpg",
+      "license": "aruba.com listing photo, reference only, not pasted onto geometry",
+      "credit": "Aruba.com, Blue Residences pool court",
+      "shows": "beige towers, turquoise balcony glass, white rails, blue roofs, blue umbrellas, pool, palm, lawn"
+    },
+    {
+      "file": "exterior.jpg",
+      "source_url": "http://beachesofaruba.com/blue-residences-condominium-resort-has-third-tower/",
+      "image_url": "http://beachesofaruba.com/wp-content/uploads/2016/01/Blue-Residences-Condominium-Resort.jpg",
+      "license": "Beaches of Aruba, reference only, not pasted onto geometry",
+      "credit": "Beaches of Aruba, Blue Residences exterior, 2016",
+      "shows": "two pools, dark tile wall, blue roofs, beige glass towers, curved deck, palms"
+    }
+  ]
+}
