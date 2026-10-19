@@ -214,7 +214,7 @@ def paint_bulb(path):
     hit = False
     for mat in js["materials"]:
         if mat.get("name") == "bulb":
-            mat["emissiveFactor"] = [1.0, 0.78, 0.32]
+            mat["emissiveFactor"] = [1.0, 0.58, 0.10]
             hit = True
     if not hit:
         raise SystemExit("bulb material missing")
@@ -448,24 +448,16 @@ def build():
         for u0, u1, eave, _rise in roofs:
             vquad(M.mesh(1, "fringe"), F, u0 + 0.4, u1 - 0.3, s * (V + 0.3), eave - 0.85, eave + 0.05, s)
 
-    # Warm gold the night drone sees through the open south side: a tall interior
-    # panel, the ceiling, and lanterns hung under the hem.
+    # Discrete gold lanterns. A full-height bulb panel washes out to a cream
+    # wall. The night pass only brightens a material named bulb.
     for u0, u1, eave, _rise in roofs:
-        uu = u0 + 1.1
-        while uu < u1 - 0.8:
+        hquad(M.mesh(0, "bulb"), F, u0 + 0.8, u1 - 0.8, -3.2, 3.2, eave - 0.28, up=-1)
+        uu = u0 + 1.6
+        while uu < u1 - 1.2:
             for s in (-1, 1):
-                vquad(M.mesh(0, "bulb"), F, uu - 0.28, uu + 0.28, s * (hv - 0.55), eave - 1.35, eave - 0.55, s)
-                hquad(M.mesh(0, "bulb"), F, uu - 0.28, uu + 0.28, s * (hv - 0.9), s * (hv - 0.2), eave - 0.5)
-            uu += 2.6
-        # Ceiling glow, seen through the open side. No wall across the opening:
-        # that was hiding the letters.
-        hquad(M.mesh(0, "bulb"), F, u0 + 0.6, u1 - 0.6, -4.6, 4.4, eave - 0.15, up=-1)
-        uu = u0 + 1.2
-        while uu < u1 - 1.0:
-            for s in (-1, 1):
-                obox(M.mesh(0, "bulb"), F, uu - 0.22, uu + 0.22, s * (hv - 0.85), s * (hv - 0.35),
-                     eave - 1.15, eave - 0.55)
-            uu += 2.2
+                obox(M.mesh(0, "bulb"), F, uu - 0.26, uu + 0.26, s * (hv - 0.85), s * (hv - 0.28),
+                     eave - 1.45, eave - 0.72)
+            uu += 4.0
     # king posts and a light-blue plank ceiling under each hip
     for u0, u1, eave, rise in roofs:
         u = u0 + 4.2
@@ -518,9 +510,13 @@ def build():
         (27.5, 2.4, "red"), (40.5, 2.3, "white"), (52.5, 2.5, "red"),
     ):
         dining(M, F, tu, tv, deck_y, col)
-    # Narrow amber strips on the deck edge. The night drone sees them through the open side.
-    hquad(M.mesh(0, "bulb"), F, 1.5, 15.5, -5.05, -4.45, deck_y + 0.11)
-    hquad(M.mesh(0, "bulb"), F, 20.0, L - 1.0, -5.05, -4.45, deck_y + 0.11)
+    # Small lanterns along both deck edges, above the rail so they stay lamps.
+    uu = 2.0
+    while uu < L - 1.5:
+        for s in (-1, 1):
+            obox(M.mesh(0, "bulb"), F, uu - 0.16, uu + 0.16, s * (hv + 0.05), s * (hv + 0.4),
+                 deck_y + 0.9, deck_y + 1.28)
+        uu += 5.2
 
     # Coloured BUGALOE under the shore pavilion, facing a camera on the south side.
     # +u is west, which is screen-left when that camera looks north.
