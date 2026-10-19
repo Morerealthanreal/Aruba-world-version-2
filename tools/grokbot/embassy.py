@@ -48,22 +48,24 @@ def lin(c):
 
 
 def picture(M, F, u0, u1, side, y0, floors):
-    """Brown frame sitting just outside the balcony line."""
+    """Solid brown balcony stack, proud of the white slab."""
+    from hotelkit import vquad
     hv = 10.0
-    outer = side * (hv + 0.95)
-    inner = side * (hv + 0.28)
+    inner = side * (hv - 0.2)
+    outer = side * (hv + 2.8)
     v0, v1 = sorted((inner, outer))
     y1 = y0 + floors * FH
-    t = 0.85
+    face = outer + side * 0.05
     for lod in (0, 1):
-        m = M.mesh(lod, "brown")
-        obox(m, F, u0, u0 + t, v0, v1, y0, y1)
-        obox(m, F, u1 - t, u1, v0, v1, y0, y1)
-        obox(m, F, u0, u1, v0, v1, y1 - 0.7, y1)
-        obox(m, F, u0, u1, v0, v1, y0, y0 + 0.45)
-        for f in range(1, floors):
+        obox(M.mesh(lod, "brown"), F, u0, u1, v0, v1, y0, y1)
+        if lod == 1:
+            continue
+        for f in range(floors):
             yy = y0 + f * FH
-            obox(m, F, u0 + t, u1 - t, v0, v1, yy - 0.28, yy + 0.22)
+            vquad(M.mesh(0, "glass"), F, u0 + 0.8, u1 - 0.8, face, yy + 0.45, yy + 2.5, side)
+            vquad(M.mesh(0, "rail"), F, u0 + 0.3, u1 - 0.3, face + side * 0.08, yy + 0.35, yy + 1.15, side)
+            slab0, slab1 = sorted((outer, outer - side * 1.1))
+            obox(M.mesh(0, "white"), F, u0, u1, slab0, slab1, yy + FH - 0.22, yy + FH + 0.08)
 
 
 def palm(M, F, u, v, h=11.0, spin=0.0):
@@ -135,7 +137,7 @@ def build():
         print("WARN lod0", info["lod0"])
     patch(info)
     mid = F.p(L * 0.5, 0, 8)
-    cam = F.p(L * 0.42, 28, 4)
+    cam = F.p(L * 0.35, 78, 6)
     print("look", round(O[0] + mid[0], 1), round(O[1] + mid[2], 1))
     print("cam", round(O[0] + cam[0], 1), round(O[1] + cam[2], 1))
     return info
