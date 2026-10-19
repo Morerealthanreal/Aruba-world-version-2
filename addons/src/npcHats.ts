@@ -169,16 +169,29 @@ function hairFor(hex: number) {
 
 function necklaceGeometry() {
   if (neckGeo) return neckGeo;
-  const ring = new TorusGeometry(0.07, 0.006, 6, 14);
+  const ring = new TorusGeometry(0.055, 0.007, 6, 16);
   ring.rotateX(Math.PI / 2);
-  ring.translate(0, -0.03, 0.02);
-  const pendant = new BoxGeometry(0.016, 0.022, 0.007);
-  pendant.translate(0, -0.07, 0.078);
-  const merged = mergeGeometries([ring, pendant], false);
-  ring.dispose();
-  if (merged) pendant.dispose();
-  neckGeo = paint(merged ?? pendant, GOLD, 4);
+  ring.translate(0, 0.01, 0.04);
+  neckGeo = paint(ring, GOLD, 4);
   return neckGeo;
+}
+
+let crossGeo: BufferGeometry | null = null;
+
+function crossGeometry() {
+  if (crossGeo) return crossGeo;
+  // Chest space. The shirt front is about z 0.12, so the cross sits on the cloth.
+  const upright = new BoxGeometry(0.014, 0.078, 0.01);
+  upright.translate(0, 0.2, 0.145);
+  const bar = new BoxGeometry(0.046, 0.012, 0.01);
+  bar.translate(0, 0.218, 0.15);
+  const parts = [upright, bar];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  crossGeo = paint(merged ?? upright, GOLD, 4);
+  return crossGeo;
 }
 
 function beltGeometry() {
@@ -218,6 +231,7 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
     }
   }
   if (female && neck) wear(neck, necklaceGeometry(), "aw:necklace");
+  if (female && chest) wear(chest, crossGeometry(), "aw:cross");
   if (hips) {
     wear(hips, beltGeometry(), "aw:belt");
     wear(hips, buckleGeometry(), "aw:buckle");
