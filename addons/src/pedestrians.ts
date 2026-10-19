@@ -31,8 +31,6 @@ type Slot = {
   x: number;
   y: number;
   placed: boolean;
-  /** Hotel deck or door. Stays on this x instead of walking inland from the coast. */
-  anchorX: number | null;
   /** Sand height used until the Noord heightfield streams in. */
   fallbackY: number | null;
   /** Standing on fallbackY, still waiting for a real ground sample. */
