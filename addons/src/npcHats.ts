@@ -127,12 +127,23 @@ function faceFor(skin: number) {
 function hairFor(hex: number) {
   const found = hairCache.get(hex);
   if (found) return found;
-  // Volume sits beside and behind the scalp, not as a bun on the crown.
+  // A cap, side locks, and a fringe above the sunglasses. The fringe stays
+  // above the eye line so the lenses and the mouth stay visible.
+  const bangs = new SphereGeometry(0.055, 8, 6);
+  bangs.scale(1.7, 0.45, 0.55);
+  bangs.translate(0, 0.175, 0.07);
+  const leftLock = new CylinderGeometry(0.028, 0.016, 0.22, 6);
+  leftLock.translate(-0.095, -0.02, 0.01);
+  const rightLock = new CylinderGeometry(0.028, 0.016, 0.22, 6);
+  rightLock.translate(0.095, -0.02, 0.01);
   const locks = [
-    new SphereGeometry(0.062, 8, 6).translate(-0.09, 0.06, -0.05),
-    new SphereGeometry(0.058, 8, 6).translate(0.088, 0.04, -0.04),
-    new SphereGeometry(0.07, 8, 6).translate(0, 0.08, -0.15),
-    new SphereGeometry(0.05, 7, 5).translate(0, -0.04, -0.12),
+    new SphereGeometry(0.078, 8, 6).translate(0, 0.11, -0.04),
+    new SphereGeometry(0.09, 8, 6).translate(0, 0.04, -0.13),
+    new SphereGeometry(0.055, 7, 5).translate(-0.08, 0.05, -0.02),
+    new SphereGeometry(0.055, 7, 5).translate(0.08, 0.05, -0.02),
+    bangs,
+    leftLock,
+    rightLock,
   ];
   const volume = mergeGeometries(locks, false);
   for (const lock of locks) lock.dispose();
