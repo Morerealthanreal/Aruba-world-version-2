@@ -12,6 +12,6 @@ Each file keeps that pack's mesh, skeleton, Idle, and Walk. Clothing colours are
 set in addons/src/npcBake.ts (linen, coral, khaki, teal, cream). They are not
 photographs. The hard hat on the worker pack is left out. Shoe meshes stay on the
 feet and are recolored sandal tan. The oil shader in addons/src/npcOil.ts only
-changes the light, and keeps the cloth colours clean. Women have a braid and
-extra hair volume. Straw hats, caps, sunglasses, a necklace, and a belt are
-shared meshes. They add no textures.
+changes the light, and keeps the cloth colours clean. Women have long hair
+and a braid down the back, plus a necklace. Men wear straw hats or caps.
+Sunglasses, a belt, and a small buckle are shared meshes. They add no textures.
