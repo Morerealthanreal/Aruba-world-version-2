@@ -45,12 +45,13 @@ GLASS = (0.34, 0.36, 0.38)
 TILE = (0.74, 0.22, 0.14)
 ROOF = (0.82, 0.80, 0.76)
 GROUND = (0.20, 0.22, 0.24)
-POOL = (0.20, 0.62, 0.78)
+POOL = (0.10, 0.55, 0.92)
 DECK = (0.90, 0.86, 0.78)
 BLUEU = (0.12, 0.38, 0.78)
 GREENU = (0.18, 0.62, 0.32)
 TRUNK = (0.40, 0.26, 0.14)
 FROND = (0.12, 0.40, 0.16)
+LAWN = (0.28, 0.55, 0.24)
 BULB = (1.0, 0.86, 0.45)
 SKIN = (0.62, 0.44, 0.32)
 SHIRT = (0.85, 0.28, 0.28)
@@ -67,25 +68,20 @@ def hquad(mesh, F, u0, u1, v0, v1, y, up=1):
     tri_out(mesh, A, C, D, cen)
 
 
-def palm(M, F, u, v, h=12.0):
-    obox(M.mesh(0, "trunk"), F, u - 0.28, u + 0.28, v - 0.28, v + 0.28, 0.2, h)
-    crown = F.p(u, v, h + 0.2)
-    cen = F.p(u, v, h - 3)
+def palm(M, F, u, v, h=16.0, spin=0.0):
+    """Tapered trunk with fronds only at the crown, so the trunk stays visible."""
+    obox(M.mesh(0, "trunk"), F, u - 0.24, u + 0.24, v - 0.24, v + 0.24, 0.15, h * 0.5)
+    obox(M.mesh(0, "trunk"), F, u - 0.16, u + 0.16, v - 0.16, v + 0.16, h * 0.46, h)
+    crown = F.p(u, v, h + 0.25)
+    cen = F.p(u, v, h - 5)
     mesh = M.mesh(0, "frond")
-    for i in range(5):
-        a = i * math.tau / 5
-        du, dv = math.cos(a) * 4.4, math.sin(a) * 4.4
-        p1 = F.p(u + du * 0.35, v + dv * 0.35, h - 0.2)
-        p2 = F.p(u + du, v + dv, h - 2.4)
+    for i in range(7):
+        a = i * math.tau / 7 + spin
+        reach = 3.4 + (i % 3) * 0.85
+        droop = 1.8 + (i % 2) * 1.1
+        p1 = F.p(u + math.cos(a) * reach * 0.3, v + math.sin(a) * reach * 0.3, h + 0.1)
+        p2 = F.p(u + math.cos(a) * reach, v + math.sin(a) * reach, h - droop)
         tri_out(mesh, crown, p1, p2, cen)
-    # A filled crown. The thin fronds disappear from the hotel-tour camera.
-    top = F.p(u, v, h - 0.15)
-    for i in range(6):
-        a0 = i * math.tau / 6
-        a1 = (i + 1) * math.tau / 6
-        p0 = F.p(u + math.cos(a0) * 4.6, v + math.sin(a0) * 4.6, h - 1.2)
-        p1 = F.p(u + math.cos(a1) * 4.6, v + math.sin(a1) * 4.6, h - 1.2)
-        tri_out(mesh, top, p0, p1, cen)
 
 
 def umbrella(M, F, u, v, color, y0=0.45):
@@ -106,7 +102,8 @@ def build():
     for n, c, r in (("wall", SAND, .85), ("recess", SAND_SH, .9), ("salmon", SALMON, .85), ("slab", WHITE, .8),
                     ("rail", RAIL, .5), ("glass", GLASS, .2), ("tile", TILE, .8), ("roof", ROOF, .9),
                     ("ground", GROUND, .3), ("pool", POOL, .25), ("deck", DECK, .7),
-                    ("blueu", BLUEU, .6), ("greenu", GREENU, .6), ("trunk", TRUNK, .85), ("frond", FROND, .8),
+                    ("blueu", BLUEU, .6), ("greenu", GREENU, .6), ("lawn", LAWN, .85),
+                    ("trunk", TRUNK, .85), ("frond", FROND, .8),
                     ("skin", SKIN, .7), ("shirt", SHIRT, .55)):
         M.material(n, tuple(round(v ** 2.2, 4) for v in c), rough=r)
     M.material("bulb", tuple(round(v ** 2.2, 4) for v in BULB), rough=.4, emissive=.85)
@@ -137,33 +134,26 @@ def build():
     # tall beach slab (13 floors incl. ground, 43.5 m) and lower street slab (38 m)
     FW, topw = slab((-8045.5, -6454.0), (-7957.0, -6446.0), 13.5, 12, towers=(30.0, 62.0))
     FE, tope = slab((-7957.0, -6446.0), (-7862.0, -6438.0), 15.0, 10, towers=(34.0, 70.0))
-    # South of the beach slab: the pool court in the tour still (ocean to the left
-    # when you face this facade). Lod1 is only the water, so the distant soak
-    # does not pick up a palm geometry.
+    # South of the beach slab: the pool court in the hotel-tour still.
+    # Palms stand around the water. Their crowns are fronds, not discs, so the
+    # pool and the green and blue umbrellas stay visible.
     hv = 13.5
-    # The resort sand sits above the footprint's y=0, so the court is lifted
-    # clear of it. A pool at y=0.4 disappears into the beach mesh.
     deck_y = 1.55
-    hquad(M.mesh(0, "pool"), FW, 16, 70, hv + 5.5, hv + 22, deck_y + 0.08)
-    hquad(M.mesh(1, "pool"), FW, 16, 70, hv + 5.5, hv + 22, deck_y + 0.08)
-    obox(M.mesh(0, "deck"), FW, 14, 72, hv + 3.2, hv + 24.5, deck_y - 0.28, deck_y)
-    # The hotel-tour still is a palm jungle with rows of green and blue umbrellas
-    # in front of the red-roofed slab, not a bare sand court.
-    umbrellas = []
-    for i, u in enumerate(range(18, 72, 6)):
-        umbrellas.append((u, hv + 3.4, "greenu" if i % 2 == 0 else "blueu"))
-        umbrellas.append((u + 2.4, hv + 8.2, "blueu" if i % 2 == 0 else "greenu"))
-        umbrellas.append((u + 1.1, hv + 22.5, "greenu" if i % 3 else "blueu"))
-    for u, v, col in umbrellas:
-        umbrella(M, FW, u, v, col, y0=deck_y)
-    palms = []
-    for i, u in enumerate(range(16, 74, 5)):
-        palms.append((u, hv + 1.2 + (i % 3) * 0.6))
-        palms.append((u + 1.8, hv + 11 + (i % 2) * 1.4))
-        palms.append((u - 0.6, hv + 18 + (i % 4) * 0.8))
-        palms.append((u + 2.2, hv + 27 + (i % 3)))
-    for i, (u, v) in enumerate(palms):
-        palm(M, FW, u, v, h=11.0 + (i % 5) * 1.5)
+    hquad(M.mesh(0, "lawn"), FW, 8, 80, hv + 0.8, hv + 38, deck_y - 0.08)
+    hquad(M.mesh(0, "pool"), FW, 18, 68, hv + 8.0, hv + 26.0, deck_y + 0.55)
+    hquad(M.mesh(1, "pool"), FW, 18, 68, hv + 8.0, hv + 26.0, deck_y + 0.55)
+    obox(M.mesh(0, "slab"), FW, 16.5, 69.5, hv + 6.6, hv + 27.4, deck_y + 0.15, deck_y + 0.42)
+    obox(M.mesh(0, "deck"), FW, 12, 76, hv + 2.0, hv + 32, deck_y - 0.28, deck_y)
+    for i, u in enumerate(range(15, 74, 4)):
+        umbrella(M, FW, u, hv + 3.4, "greenu" if i % 2 == 0 else "blueu", y0=deck_y)
+        umbrella(M, FW, u + 1.7, hv + 7.4, "blueu" if i % 2 == 0 else "greenu", y0=deck_y)
+        umbrella(M, FW, u + 0.6, hv + 22.6, "greenu" if i % 3 else "blueu", y0=deck_y)
+        umbrella(M, FW, u + 2.1, hv + 26.8, "blueu" if i % 3 else "greenu", y0=deck_y)
+    n = 0
+    for u in range(13, 78, 4):
+        for v, hh in ((hv + 1.2, 16.0), (hv + 9.2, 18.5), (hv + 21.0, 17.0), (hv + 31.5, 19.0)):
+            palm(M, FW, u + (n % 3) * 0.35, v + (n % 2) * 0.4, h=hh + (n % 4) * 0.8, spin=n * 0.55)
+            n += 1
     uu = 18
     while uu < 70:
         hquad(M.mesh(0, "bulb"), FW, uu - 0.15, uu + 0.15, hv + 4.3, hv + 4.7, deck_y + 0.45)
@@ -176,7 +166,7 @@ def build():
     fold_body(M, keep={"glass", "bulb"})
     info = write_glb(M, HERO / "marriott_surfclub.glb")
     check_glb(HERO / "marriott_surfclub.glb")
-    if info["lod0"] > 6200 or info["lod1"] >= 600:
+    if info["lod0"] > 14000 or info["lod1"] >= 600:
         raise SystemExit(f"budget {info}")
     patch(info)
     def world(F, u, v, y):
@@ -194,12 +184,12 @@ def patch(info):
     k = text.find('\n  "id":', i + 10)
     block = text[i:k]
     block = re.sub(r'"status": "[^"]*"',
-                    '"status": "v5-grokbot (red roofs, salmon towers, palm court)"', block, count=1)
+                    '"status": "v6-grokbot (tall palm trunks, pool, green and blue umbrellas)"', block, count=1)
     block = re.sub(r'"marriott_surfclub_lod0": \d+', f'"marriott_surfclub_lod0": {info["lod0"]}', block, count=1)
     block = re.sub(r'"marriott_surfclub_lod1": \d+', f'"marriott_surfclub_lod1": {info["lod1"]}', block, count=1)
     block = re.sub(
         r'"ref_sources": "[^"]*"',
-        '"ref_sources": "Resort videos (-Z3xBQbZpGg hotel tour, EVzxoJGTfs0 4K walk): sand balcony slab, salmon stair towers, red hips, and the pool court with palms and blue and green umbrellas in front of that facade. OSM way 40082945. Built by tools/grokbot/surfclub.py"',
+        '"ref_sources": "Resort videos (-Z3xBQbZpGg hotel tour, EVzxoJGTfs0 4K walk): sand balcony slab, salmon stair towers, red hips, a tall palm court with visible trunks, the pool, and rows of green and blue umbrellas. OSM way 40082945. Built by tools/grokbot/surfclub.py"',
         block, count=1)
     if "surfclub.py" not in block:
         raise SystemExit("surfclub ref anchor missing")
