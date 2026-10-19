@@ -31,6 +31,8 @@ type Slot = {
   x: number;
   y: number;
   placed: boolean;
+  /** Hotel deck or door. Stays on this x instead of walking inland from the coast. */
+  anchorX: number | null;
 };
 
 type SitBone = { bone: Object3D; rest: Quaternion };
@@ -221,8 +223,37 @@ function buildSlots(): Slot[] {
       dir: slots.length & 1 ? 1 : -1,
       yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
       x: 0, y: 0, placed: false,
+      anchorX: null,
     });
   };
+  // Deck rims and doors. Read from the hotel heroes; this file does not move them.
+  // A few metres east of each pool centroid so they stand on the deck, not in the water.
+  const hotels: Array<[number, number]> = [
+    [-8410, -5339], // Hilton pool deck
+    [-8280, -5328], // Hilton entrance
+    [-8468, -5192], // Riu Palace pool deck
+    [-8436, -5174], // Riu Palace entrance
+    [-8305, -5579], // Barceló pool deck
+    [-8196, -5583], // Barceló entrance
+    [-8268, -5699], // Hyatt pool deck
+    [-8192, -5723], // Hyatt entrance
+    [-7805, -6180], // Radisson pool deck
+    [-7815, -6156], // Radisson entrance
+    [-8146, -6209], // Holiday Inn pool deck
+    [-8110, -6229], // Holiday Inn entrance
+    [-7998, -6567], // Marriott pool deck (Noord end of the strip)
+    [-7984, -6711], // Marriott entrance
+    [-7920, -6441], // Marriott Surf Club
+  ];
+  hotels.forEach(([x, z], i) => {
+    slots.push({
+      z0: z, z, inland: 0, mode: 1, phase: (i * 0.29) % 1, pinned: true,
+      dir: 1,
+      yawJitter: ((slots.length * 17) % 9) * 0.14 - 0.56,
+      x, y: 0, placed: false,
+      anchorX: x,
+    });
+  });
   // Dense group on the sand at the Palm Beach photo spot, so a standing
   // camera there sees people large in the frame, not a roadside lineup.
   // A knot about 12 m across on the sand, so a camera 8 m away fills the frame.
@@ -470,6 +501,14 @@ export class PedestrianCrowds {
   }
 
   private plant(slot: Slot) {
+    if (slot.anchorX != null) {
+      const y = this.height(slot.anchorX, slot.z);
+      if (y == null || y < 0.2 || y > 8) return;
+      slot.x = slot.anchorX;
+      slot.y = y;
+      slot.placed = true;
+      return;
+    }
     let inland = slot.inland;
     const shore = slot.anchorX == null ? coastX(slot.z) : slot.anchorX;
     let x = shore + inland;
