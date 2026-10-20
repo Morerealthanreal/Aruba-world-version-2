@@ -330,6 +330,10 @@ export class PerfFixes {
       const owned = this.regionTextures(rec);
       const geos = new Set<BufferGeometry>();
       rec.group?.traverse((o) => { const g = (o as Obj).geometry; if (g) geos.add(g); });
+      // A geometry that never reached the GPU does not lower info.memory.geometries,
+      // and the copy created on the next visit raises it. Draw the ones prime has
+      // not uploaded yet, then let dispose drop that slot.
+      this.uploadRegionGeometries(rec.group);
       orig(r);
       const live = this.referencedTextures();
       let n = 0;
@@ -606,6 +610,30 @@ export class PerfFixes {
       if (Math.hypot(cx - x, cz - z) - M.RS * 0.71 > R) { A.disposeRegion(r); n++; }
     }
     if (n) this.stats.changes.push("dropped " + n + " far regions");
+  }
+
+  /** One draw so dispose can lower the GPU count. Already primed meshes are skipped. */
+  private uploadRegionGeometries(root: Obj | null | undefined) {
+    const renderer = this.g.renderer as unknown as {
+      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
+    };
+    if (!root || !renderer.renderBufferDirect) return;
+    const cam = this.g.camera;
+    const stack: Obj[] = [root];
+    while (stack.length) {
+      const mesh = stack.pop()!;
+      for (let i = 0; i < mesh.children.length; i++) stack.push(mesh.children[i] as Obj);
+      if (!mesh.isMesh || !mesh.geometry || !mesh.material || mesh.isSkinnedMesh) continue;
+      if (this.primedGeo.has(mesh.geometry)) continue;
+      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!mat) continue;
+      try {
+        renderer.renderBufferDirect(cam, null, mesh.geometry, mat, mesh, null);
+        this.primedGeo.add(mesh.geometry);
+      } catch {
+        this.primedGeo.add(mesh.geometry);
+      }
+    }
   }
 
   /** A mesh the camera never drew is absent from renderer.info until a later drive.
