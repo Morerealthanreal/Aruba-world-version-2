@@ -1,6 +1,6 @@
 // Families: ~40% of nearby walkers have 1-2 children at their side.
 // Ambient pedestrians and beach-crowd walkers share one pool, and it follows
-// the camera, so Noord, Eagle, Malmok, Baby Beach, Arashi, and Oranjestad get families too.
+// the camera, so Noord, Eagle, Malmok, Baby Beach, Arashi, Hadicurari, and Oranjestad get families too.
 // Children are the same rigged ped models re-proportioned
 // (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
 // after every animation update. Shirts, trousers, and hair are flat opaque colors.

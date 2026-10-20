@@ -1,4 +1,4 @@
-// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, Malmok, Baby Beach, and Arashi, beside the
+// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, Malmok, Baby Beach, Arashi, and Hadicurari, beside the
 // island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
@@ -367,6 +367,17 @@ function buildSlots(): Slot[] {
     [-9056, -9872, 38, 2],
   ];
   arashi.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.23) % 1, true, x));
+  // Fisherman's Huts at Hadicurari, OSM node 4632067907. Six people on the
+  // open sand west of the north hut (DEM about 0.9–1.1 m), clear of its walls.
+  const hadi: Array<[number, number, number, 0 | 1 | 2]> = [
+    [-8312, -7412, 20, 1],
+    [-8312, -7408, 24, 2],
+    [-8312, -7404, 16, 0],
+    [-8312, -7400, 28, 1],
+    [-8312, -7396, 20, 0],
+    [-8308, -7392, 20, 2],
+  ];
+  hadi.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.19) % 1, true, x));
   return slots;
 }
 
