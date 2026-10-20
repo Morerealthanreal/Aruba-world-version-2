@@ -19,9 +19,11 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
-//  8. Region unload frees textures nothing else still references. Every map on a live
-//     region is uploaded before a sample can miss it, so the loader's dispose drops the
-//     GPU count instead of leaving a slot the next visit fills. Building batches release
+//  8. Region unload frees textures nothing else still references. The first height,
+//     splat, and sign image stay, and the terrain and water materials that close over
+//     them are reused, so a reload does not upload a second copy. Every other map on a
+//     live region is uploaded before a sample can miss it, so the loader's dispose drops
+//     the GPU count instead of leaving a slot the next visit fills. Building batches release
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
 //     that swaps geometry disposes the previous one. That geometry check is every fourth
 //     frame; running it every frame left the forced-GC heap with almost no room.
@@ -73,6 +75,8 @@ type GpuTex = {
   clone?: () => GpuTex;
   mipmaps?: unknown[];
   __awGone?: number;
+  /** First copy for this region. Later visits reuse it instead of uploading another. */
+  __awKeep?: number;
   image?: { complete?: boolean; width?: number; height?: number } | null;
 };
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
@@ -323,6 +327,9 @@ export class PerfFixes {
     const orig = A.disposeRegion.bind(A);
     A.disposeRegion = (r: unknown) => {
       const rec = r as Reg;
+      // The kept height, splat, and sign stay on the GPU. Detach them so the
+      // loader's dispose does not free that slot for the next visit to fill.
+      this.detachKept(rec);
       // Upload before the loader disposes. A texture that never reached the GPU does
       // not lower info.memory.textures, and the copy created on the next visit raises it.
       this.uploadNow(rec.hf);
@@ -336,7 +343,7 @@ export class PerfFixes {
       const live = this.referencedTextures();
       let n = 0;
       for (const t of owned) {
-        if (live.has(t) || t.isDataArrayTexture) continue;
+        if (live.has(t) || t.isDataArrayTexture || t.__awKeep) continue;
         if (!t.__awGone) t.__awGone = 1;
         t.dispose();
         n++;
@@ -345,6 +352,105 @@ export class PerfFixes {
       this.freedTex += n;
       this.reapGeometries(geos);
     };
+  }
+
+  /** First height, splat, sign, and the terrain/water materials that close over
+   *  them. A reload builds new images; water keeps its height texture in the
+   *  shader closure, so the whole material has to be reused. The duplicate is
+   *  disposed before it is uploaded. */
+  private keptRegion = new Map<string, {
+    hf: GpuTex | null; splat: GpuTex | null; sign: GpuTex | null;
+    mat: Material | null; wmat: Material | null;
+  }>();
+
+  private reuseRegionTextures() {
+    for (const rec of this.real.regions.values()) {
+      if (rec.state === "loading" || rec.state === "failed") continue;
+      const key = rec.rx + "," + rec.rz;
+      const slot = this.keptRegion.get(key);
+      if (!slot) {
+        const ready = (tex: GpuTex | null | undefined) =>
+          tex?.isTexture && (tex.image?.width ?? 0) > 0 ? tex : null;
+        const hf = ready(rec.hf), splat = ready(rec.splat), sign = ready(rec.signTex);
+        if (!hf && !splat && !sign) continue;
+        for (const tex of [hf, splat, sign]) if (tex) tex.__awKeep = 1;
+        this.keptRegion.set(key, { hf, splat, sign, mat: rec.mat ?? null, wmat: rec.wmat ?? null });
+        continue;
+      }
+      if (!this.sameSize(rec.hf, slot.hf) || !this.sameSize(rec.splat, slot.splat) || !this.sameSize(rec.signTex, slot.sign)) continue;
+      this.reuseMaterial(rec, slot, "mat");
+      this.reuseMaterial(rec, slot, "wmat");
+      this.reuseTexture(rec, slot, "hf");
+      this.reuseTexture(rec, slot, "splat");
+      this.reuseSign(rec, slot);
+    }
+  }
+
+  /** A texture that is still empty does not count. A real size mismatch keeps the fresh copy. */
+  private sameSize(fresh: GpuTex | null | undefined, kept: GpuTex | null) {
+    if (!fresh?.isTexture || !kept || (fresh.image?.width ?? 0) <= 0) return true;
+    return fresh.image?.width === kept.image?.width && fresh.image?.height === kept.image?.height;
+  }
+
+  private reuseMaterial(rec: Reg, slot: { mat: Material | null; wmat: Material | null }, field: "mat" | "wmat") {
+    const fresh = rec[field];
+    if (!fresh) return;
+    const kept = slot[field];
+    if (!kept) { slot[field] = fresh; return; }
+    if (fresh === kept) return;
+    rec.group?.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.material === fresh) mesh.material = kept;
+    });
+    fresh.dispose();
+    rec[field] = kept;
+  }
+
+  private reuseTexture(rec: Reg, slot: { hf: GpuTex | null; splat: GpuTex | null }, field: "hf" | "splat") {
+    const fresh = rec[field];
+    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return;
+    const kept = slot[field];
+    if (!kept) { fresh.__awKeep = 1; slot[field] = fresh; return; }
+    if (fresh === kept) return;
+    rec[field] = kept;
+    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+  }
+
+  private reuseSign(rec: Reg, slot: { sign: GpuTex | null }) {
+    const fresh = rec.signTex;
+    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return;
+    if (!slot.sign) { fresh.__awKeep = 1; slot.sign = fresh; return; }
+    const kept = slot.sign;
+    if (fresh === kept) return;
+    rec.group?.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.name !== "signs" || !mesh.material || Array.isArray(mesh.material)) return;
+      const mat = mesh.material as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
+      if (mat.map === fresh) mat.map = kept;
+      if (mat.emissiveMap === fresh) mat.emissiveMap = kept;
+    });
+    rec.signTex = kept;
+    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+  }
+
+  /** Drop the loader's handles. Leave the kept material's uniforms alone. */
+  private detachKept(rec: Reg) {
+    const slot = this.keptRegion.get(rec.rx + "," + rec.rz);
+    if (!slot) return;
+    if (rec.hf && rec.hf === slot.hf) rec.hf = null;
+    if (rec.splat && rec.splat === slot.splat) rec.splat = null;
+    if (rec.signTex && rec.signTex === slot.sign) rec.signTex = null;
+    if (rec.mat && rec.mat === slot.mat) rec.mat = null;
+    if (rec.wmat && rec.wmat === slot.wmat) rec.wmat = null;
+    const sign = slot.sign;
+    if (!sign) return;
+    rec.group?.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.name !== "signs" || !mesh.material || Array.isArray(mesh.material)) return;
+      const mat = mesh.material as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
+      if (mat.map === sign) mat.map = null;
+      if (mat.emissiveMap === sign) mat.emissiveMap = null;
+    });
   }
 
   private gpu() {
@@ -672,6 +778,7 @@ export class PerfFixes {
     A.update = (...a: unknown[]) => {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
+      this.reuseRegionTextures();
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
