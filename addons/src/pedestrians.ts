@@ -59,6 +59,8 @@ type Rig = {
   mode: number;
   /** Shown on a nearby slot. Kids follow this, not the root, which stays in the scene. */
   shown: boolean;
+  /** Ground speed this frame. Kids match it, including a full stop. */
+  speed: number;
   sit: SitPose | null;
   /** Standing women on even pool slots lift the left hand while they talk. */
   talk: boolean;
@@ -509,6 +511,7 @@ export class PedestrianCrowds {
           slot: -1,
           mode: -1,
           shown: false,
+          speed: 0,
           sit,
           talk: source.female && i % 2 === 0,
           upperL: root.getObjectByName("UpperArmL") ?? null,
@@ -691,6 +694,7 @@ export class PedestrianCrowds {
       const index = near[r];
       if (index == null || used.has(index)) {
         rig.shown = false;
+        rig.speed = 0;
         showParts(rig.parts, false);
         rig.slot = -1;
         continue;
@@ -710,8 +714,9 @@ export class PedestrianCrowds {
         if (moving) rig.walk.time = slot.phase * rig.walk.getClip().duration;
         else rig.idle.time = slot.phase * rig.idle.getClip().duration;
       }
+      const speed = slot.mode === 0 ? paceSpeed(slot, _time) : 0;
+      rig.speed = speed;
       if (slot.mode === 0) {
-        const speed = paceSpeed(slot, _time);
         const pace = Math.min(1, speed / 0.4);
         rig.walk.setEffectiveWeight(pace);
         rig.idle.setEffectiveWeight(1 - pace);
