@@ -49,6 +49,7 @@ import { SnSacRecentMurals } from "./snSacRecentMurals";
 import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
+import { Wariruri } from "./wariruri";
 import { Sea } from "./sea";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
@@ -103,6 +104,8 @@ async function main() {
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
+  const wariruri = params.get("wariruri") !== "0" ? new Wariruri(g) : null; // Wariruri cove: sand pocket, beach break, ironshore lip, Small Natural Bridge
+  (window as unknown as { __awWariruri?: unknown }).__awWariruri = wariruri;
   const muralPreload: string[] = [];
   if (params.get("snmurals") !== "0") muralPreload.push("textures/sn_mural_atlas.jpg");
   if (params.get("snfair") !== "0") muralPreload.push("textures/sn_fair_atlas.jpg");
