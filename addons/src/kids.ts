@@ -1,6 +1,6 @@
 // Families: ~40% of nearby walkers have 1-2 children at their side.
 // Ambient pedestrians and beach-crowd walkers share one pool, and it follows
-// the camera, so Noord, Eagle, Malmok, and Oranjestad get families too.
+// the camera, so Noord, Eagle, Malmok, Baby Beach, Arashi, and Oranjestad get families too.
 // Children are the same rigged ped models re-proportioned
 // (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
 // after every animation update. Shirts, trousers, and hair are flat opaque colors.
@@ -191,9 +191,7 @@ export class Kids {
         wanted.push({ key: i + 1, want, pos, ry: p.g.rotation.y, sp: p.sp || 1.3 });
       }
     }
-    // Beach-crowd walkers at Palm Beach, Noord, Eagle, and Oranjestad. The
-    // same pool follows whoever is near the camera, so Malmok's ambient
-    // walkers are not left without children.
+    // Beach-crowd walkers. The same pool follows whoever is near the camera.
     const crowd = (window as unknown as { __aw?: { peds?: { rigs?: CrowdRig[] } } }).__aw?.peds;
     const rigs = crowd?.rigs;
     if (rigs) {
