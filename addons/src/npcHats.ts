@@ -52,8 +52,8 @@ function roundPart(
   z: number,
   hex: number,
   kind: number,
-  width = 8,
-  height = 6,
+  width = 6,
+  height = 5,
 ) {
   const geo = new SphereGeometry(radius, width, height);
   geo.scale(sx, sy, sz);
@@ -122,7 +122,7 @@ function wear(parent: Object3D, geo: BufferGeometry, name: string) {
 }
 
 function browArc(side: number, hex: number) {
-  const geo = new SphereGeometry(0.024, 8, 5);
+  const geo = new SphereGeometry(0.024, 6, 4);
   geo.scale(1.05, 0.22, 0.32);
   geo.rotateZ(side * -0.38);
   geo.translate(side * 0.036, 0.148, 0.12);
@@ -134,9 +134,9 @@ function eyeParts(side: number, lid: number) {
   return [
     roundPart(0.015, 1.12, 0.78, 0.5, x, 0.108, 0.102, EYE, 0, 10, 8),
     roundPart(0.0066, 1, 1, 0.4, x, 0.107, 0.111, 0x5a341c, 5, 8, 6),
-    roundPart(0.0034, 1, 1, 0.65, x, 0.107, 0.114, PUPIL, 5, 6, 4),
+    roundPart(0.0034, 1, 1, 0.65, x, 0.107, 0.114, PUPIL, 5, 5, 4),
     // A thin hood sunk into the top of the eye, not a bar in front of it.
-    roundPart(0.014, 1.15, 0.18, 0.46, x, 0.118, 0.104, lid, 1, 8, 4),
+    roundPart(0.014, 1.15, 0.18, 0.46, x, 0.118, 0.104, lid, 1, 6, 3),
   ];
 }
 
@@ -160,9 +160,9 @@ function faceFor(skin: number) {
     roundPart(0.005, 1.3, 0.45, 0.7, 0.008, 0.073, 0.118, shadow, 5, 6, 4),
     browArc(-1, brow),
     browArc(1, brow),
-    roundPart(0.02, 1.2, 0.36, 0.4, 0, 0.061, 0.128, upper, 1, 8, 5),
-    roundPart(0.019, 1.28, 0.46, 0.44, 0, 0.053, 0.129, lower, 1, 8, 6),
-    roundPart(0.015, 1.05, 0.08, 0.22, 0, 0.057, 0.133, 0x3a1618, 5, 8, 4),
+    roundPart(0.02, 1.2, 0.36, 0.4, 0, 0.061, 0.128, upper, 1, 7, 4),
+    roundPart(0.019, 1.28, 0.46, 0.44, 0, 0.053, 0.129, lower, 1, 7, 5),
+    roundPart(0.015, 1.05, 0.08, 0.22, 0, 0.057, 0.133, 0x3a1618, 5, 6, 3),
     ...eyeParts(-1, skinHex),
     ...eyeParts(1, skinHex),
   ];
@@ -333,8 +333,8 @@ function towelGeometry() {
 function talkMouthGeometry() {
   if (talkGeo) return talkGeo;
   // Head space, just in front of the closed mouth, so a standing woman reads as mid-sentence.
-  const gap = roundPart(0.015, 1.15, 0.32, 0.38, 0, 0.055, 0.14, 0x3a1618, 5, 8, 5);
-  const lower = roundPart(0.016, 1.25, 0.46, 0.46, 0, 0.046, 0.136, 0xb85a58, 1, 8, 5);
+  const gap = roundPart(0.015, 1.15, 0.32, 0.38, 0, 0.055, 0.14, 0x3a1618, 5, 6, 4);
+  const lower = roundPart(0.016, 1.25, 0.46, 0.46, 0, 0.046, 0.136, 0xb85a58, 1, 6, 4);
   const parts = [gap, lower];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
