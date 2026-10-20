@@ -1,0 +1,66 @@
+{
+ "_ord": 3,
+ "id": "m_dominos",
+ "name": "Domino's",
+ "status": "v1-brand-standard (no location photo yet)",
+ "x": 2047.13,
+ "z": 7402.45,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/m_dominos.glb",
+ "lod": {
+  "hi": "m_dominos_lod0",
+  "lo": "m_dominos_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "m_dominos_lod0": 1768,
+  "m_dominos_lod1": 136
+ },
+ "hide_footprint": [
+  [
+   2034.6,
+   7415.2
+  ],
+  [
+   2046.5,
+   7417.5
+  ],
+  [
+   2048.5,
+   7407.1
+  ],
+  [
+   2051.5,
+   7407.7
+  ],
+  [
+   2052.8,
+   7401.2
+  ],
+  [
+   2049.8,
+   7400.6
+  ],
+  [
+   2052.6,
+   7386.3
+  ],
+  [
+   2040.7,
+   7384
+  ]
+ ],
+ "new_place": false,
+ "sign": {
+  "text": "DOMINO'S",
+  "bg": "#006491",
+  "fg": "#ffffff",
+  "edge_index": 0
+ },
+ "kind": "replace",
+ "unit_edge": null,
+ "approx_location": false,
+ "geo_source": null,
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

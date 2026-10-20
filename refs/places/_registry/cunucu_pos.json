@@ -1,0 +1,48 @@
+{
+ "_ord": 1327,
+ "id": "cunucu_pos",
+ "k": "cunucu_pos",
+ "name": "",
+ "status": "v5-accuracy",
+ "x": 1541.0,
+ "z": 5843.65,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/cunucu_pos.glb",
+ "lod": {
+  "hi": "cunucu_pos_lod0",
+  "lo": "cunucu_pos_lod1",
+  "switch_m": 200
+ },
+ "tris": {
+  "cunucu_pos_lod0": 366,
+  "cunucu_pos_lod1": 114
+ },
+ "textures": 0,
+ "hide_footprint": [
+  [
+   1534.5,
+   5843.1
+  ],
+  [
+   1543.0,
+   5849.8
+  ],
+  [
+   1547.5,
+   5844.2
+  ],
+  [
+   1539.0,
+   5837.5
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": false,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Cunucu house: one storey, coloured walls, red hip roof, porch, low concrete fence with white caps. Guides: Commons 'Cunucu House Sabana Basora 2' (cream walls, porch, red hip) and 'Cunucu Traditional Countryside ... Santa Cruz' (salmon walls, terracotta fence, cactus). Placed on an OSM house lot facing the town road. Not a photo texture. Road: Pos Chikito.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "house"
+}

@@ -22,23 +22,11 @@ export type BeachOutfit = {
   older?: boolean;
 };
 
-// Six different bodies. Skin, hair, and clothes stay distinct on purpose.
-// The casual woman keeps the white tank and denim. Nobody wears a suit,
-// a hard hat, or a mohawk.
-export const BEACH_OUTFITS: readonly BeachOutfit[] = [
-  { file: "people/w-casual.glb", skin: 0xc68642, hair: 0x8a3a22, top: 0xf7f4ee, bottom: 0x2f5d96, shoe: 0xc4a574, tank: true },
-  { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x1a1412, top: 0x3d7ea6, bottom: 0xe6d2a8, shoe: 0x8a6244 },
-  { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x4a3020, top: 0xc4654a, bottom: 0x3f4f3a, shoe: 0xc4a574 },
-  { file: "people/w-worker.glb", skin: 0xf1c27d, hair: 0x8a5a32, top: 0x2f8a86, bottom: 0xf4efe4, shoe: 0xb08968 },
-  { file: "people/w-adventurer.glb", skin: 0x6b3a22, hair: 0x241816, top: 0xd4687a, bottom: 0x243044, shoe: 0xc4a574 },
-  { file: "people/m-adventurer.glb", skin: 0xa86b45, hair: 0x2a1c14, top: 0xf2f0ea, bottom: 0x2c4f6e, shoe: 0x6e5344 },
-  // Same six meshes. Extra colorways are older adults and men's clothes.
-  // Opaque cloth only: no suits, sheer panels, hard hats, or mohawks.
-  { file: "people/w-casual.glb", skin: 0xd7a574, hair: 0xd5d0c6, top: 0xf7f4ee, bottom: 0x3a4a6e, shoe: 0xc4a574, tank: true, older: true },
-  { file: "people/m-casual.glb", skin: 0xa86b45, hair: 0xc8c2b4, top: 0x4e5968, bottom: 0xd2c4a4, shoe: 0x8a6244, older: true },
-  { file: "people/m-casual.glb", skin: 0x8d5524, hair: 0x2a1c14, top: 0xf4f0e6, bottom: 0x243e5c, shoe: 0x6e5344 },
-  { file: "people/m-hoodie.glb", skin: 0xe0ac69, hair: 0x1a1412, top: 0x2c6b62, bottom: 0xe6d2a8, shoe: 0xc4a574 },
-];
+// Bodies live one file each under src/outfits. Skin, hair, and clothes stay
+// distinct on purpose. The casual woman keeps the white tank and denim.
+// Extra colorways are older adults and men's clothes, each in its own file.
+// Nobody wears a suit, a hard hat, or a mohawk.
+export { BEACH_OUTFITS } from "./outfits/index";
 
 const SOURCE_MAPS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
 

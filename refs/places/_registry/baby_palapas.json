@@ -1,0 +1,31 @@
+{
+ "_ord": 1320,
+ "id": "baby_palapas",
+ "k": "baby_palapas",
+ "name": "",
+ "status": "v5-accuracy",
+ "x": 9681.25,
+ "z": 11670.0,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/baby_palapas.glb",
+ "lod": {
+  "hi": "baby_palapas_lod0",
+  "lo": "baby_palapas_lod1",
+  "switch_m": 280
+ },
+ "tris": {
+  "baby_palapas_lod0": 260,
+  "baby_palapas_lod1": 112
+ },
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": false,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Commons 'Baby Beach (Aruba)': thatch palapas and pale rocks on the sand east of Rum Reef, clear of the Rum Reef, Big Mama, Secrets and lettered-wall heroes.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "beach"
+}
