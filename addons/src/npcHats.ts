@@ -256,6 +256,25 @@ function buckleGeometry() {
   return buckleGeo;
 }
 
+let phoneGeo: BufferGeometry | null = null;
+
+function phoneGeometry() {
+  if (phoneGeo) return phoneGeo;
+  // Wrist space. A closed phone, screen facing out, held at the side.
+  // One merged geometry: the body is metal, the screen stays the flat oil light.
+  const body = paint(new BoxGeometry(0.038, 0.07, 0.006).translate(0, -0.08, 0.03), 0x1c1e22, 4);
+  const screen = paint(new BoxGeometry(0.03, 0.056, 0.004).translate(0, -0.08, 0.034), 0x8eb4c8, 0);
+  const parts = [body, screen];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  const geo = merged ?? body;
+  geo.clearGroups();
+  phoneGeo = geo;
+  return phoneGeo;
+}
+
 /** Face, hair, hats, sunglasses, and jewelry. Shared meshes, no textures. */
 export function attachBeachWear(root: Object3D, index: number, skin: number, hair: number, female: boolean) {
   const head = root.getObjectByName("Head");
@@ -276,6 +295,9 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
     }
   }
   if (female && neck) wear(neck, necklaceGeometry(), "aw:necklace");
+  // Even pool slots are the casual and adventurer women. They hold the phone.
+  const wristR = root.getObjectByName("WristR");
+  if (female && wristR && index % 2 === 0) wear(wristR, phoneGeometry(), "aw:phone");
   if (hips) {
     wear(hips, beltGeometry(), "aw:belt");
     wear(hips, buckleGeometry(), "aw:buckle");
