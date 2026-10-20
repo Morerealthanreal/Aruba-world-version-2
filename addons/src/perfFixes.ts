@@ -117,6 +117,7 @@ export class PerfFixes {
   private primedGeo = new WeakSet<BufferGeometry>();
   private gpuGeo = new WeakSet<BufferGeometry>();
   private geoTarget: GeoTarget | null = null;
+  private uploadMat: Material | null = null;
   private primeIdle = 0;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
@@ -661,6 +662,13 @@ export class PerfFixes {
     const target = this.ensureGeoTarget();
     if (!target) return;
     const scratch = new this.g.scene.constructor();
+    if (!this.uploadMat) {
+      const firstMat = pending[0].material;
+      const blank = (Array.isArray(firstMat) ? firstMat[0] : firstMat).clone();
+      for (const key of MAP_KEYS) (blank as unknown as Record<string, unknown>)[key] = null;
+      this.uploadMat = blank;
+    }
+    const blank = this.uploadMat;
     const saved = pending.map((mesh) => {
       const inst = mesh as Obj & { count?: number };
       return {
@@ -668,12 +676,14 @@ export class PerfFixes {
         parent: mesh.parent as Obj | null,
         visible: mesh.visible,
         frustumCulled: mesh.frustumCulled,
+        material: mesh.material,
         count: inst.count,
       };
     });
     for (const item of saved) {
       item.mesh.visible = true;
       item.mesh.frustumCulled = false;
+      item.mesh.material = blank;
       const inst = item.mesh as Obj & { isInstancedMesh?: boolean; count?: number };
       if (inst.isInstancedMesh && (inst.count ?? 0) > 1) inst.count = 1;
       scratch.add(item.mesh);
@@ -693,6 +703,7 @@ export class PerfFixes {
       for (const item of saved) {
         item.mesh.visible = item.visible;
         item.mesh.frustumCulled = item.frustumCulled;
+        item.mesh.material = item.material;
         const inst = item.mesh as Obj & { count?: number };
         if (item.count !== undefined) inst.count = item.count;
         if (item.parent) item.parent.add(item.mesh);
