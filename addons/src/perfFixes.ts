@@ -612,8 +612,8 @@ export class PerfFixes {
       for (const b of r.__awBB || []) consider(b.bm as unknown as Obj);
     }
     // Hero and brand meshes are built, drawn, then sometimes detached. A clone that
-    // left the scene still counts on the GPU until dispose. Overview LOD swaps keep
-    // the previous buffer alive on userData.lods and never dispose it.
+    // left the scene still counts on the GPU until dispose. Inactive overview LOD
+    // buffers stay on userData.lods; releaseOrphans frees the GPU copy.
     const watched: (Obj | null | undefined)[] = [
       this.real.hero?.group as Obj | undefined,
       this.real.brands?.group as Obj | undefined,
@@ -859,15 +859,16 @@ export class PerfFixes {
   private seenGeo = new Set<BufferGeometry>();
 
   /** Geometries that left the scene still count on the GPU until dispose.
-   *  LOD backups and the shared sign/palapa cache stay. */
+   *  The shared sign/palapa cache stays. Overview blocks keep every LOD buffer
+   *  on userData.lods; only the one assigned to the mesh is on screen. Holding
+   *  the others in the GPU count made a later drive's first use of a far LOD
+   *  stick after the camera had already switched back. */
   private releaseOrphans() {
     const live = new Set<BufferGeometry>();
     const keep = new Set<BufferGeometry>();
     this.g.scene.traverse((object) => {
       const mesh = object as Obj;
       if (mesh.geometry) live.add(mesh.geometry);
-      const lods = (object.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
-      if (lods) for (const geo of lods) if (geo) keep.add(geo);
     });
     for (const geo of this.shapeCache.values()) keep.add(geo);
     for (const geo of this.seenGeo) {
