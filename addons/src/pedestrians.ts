@@ -1,4 +1,4 @@
-// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, Malmok, and Baby Beach, beside the
+// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, Malmok, Baby Beach, and Arashi, beside the
 // island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
@@ -340,6 +340,18 @@ function buildSlots(): Slot[] {
     [9736, 11670, 6, 2],
   ];
   baby.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.31) % 1, true, x));
+  // Arashi Beach, OSM node 2610646204. The lower sand sits about 80 m from
+  // L.G. Smith, outside the phone draw. These six stand on the palapa terrace
+  // (DEM about 2.2–2.4 m), 38–42 m from the road center, clear of the posts.
+  const arashi: Array<[number, number, number, 0 | 1 | 2]> = [
+    [-9060, -9904, 44, 1],
+    [-9060, -9900, 42, 2],
+    [-9056, -9892, 40, 0],
+    [-9056, -9888, 42, 1],
+    [-9056, -9876, 40, 0],
+    [-9056, -9872, 38, 2],
+  ];
+  arashi.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.23) % 1, true, x));
   return slots;
 }
 
