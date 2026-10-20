@@ -1,4 +1,4 @@
-// Beach crowds for Palm Beach, Noord, Eagle Beach, and Oranjestad, beside the
+// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, and Malmok, beside the
 // island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
@@ -317,6 +317,17 @@ function buildSlots(): Slot[] {
     [152, 48, 1],
   ];
   ora.forEach(([z, inland, mode], i) => push(z, inland, mode, (i * 0.33) % 1, true, -7360));
+  // Malmok sand notch. OSM beach way 255368366; each person stands 4–8 m
+  // east of that waterline, on the cove sand (DEM about 0.8–1.0 m), short of the stair.
+  const malmok: Array<[number, number, number, 0 | 1 | 2]> = [
+    [-8831, -8928, 4, 1],
+    [-8829, -8927, 6, 2],
+    [-8828, -8926, 4, 0],
+    [-8827, -8923, 8, 1],
+    [-8832, -8930, 6, 0],
+    [-8828, -8925, 8, 2],
+  ];
+  malmok.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.27) % 1, true, x));
   return slots;
 }
 
