@@ -33,6 +33,16 @@ export const BEACH_OUTFITS: readonly BeachOutfit[] = [
 
 const SOURCE_MAPS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"];
 
+/** Crowd and kid rigs share these buffers for the whole session. A region
+ *  unload must not drop them, or the next time the camera reaches a beach
+ *  the GPU count climbs while the scene count does not. */
+export function holdGeometry(geo: BufferGeometry | null | undefined) {
+  const held = geo as (BufferGeometry & { __awHeld?: boolean }) | null | undefined;
+  if (!held || held.__awHeld) return;
+  held.__awHeld = true;
+  held.dispose = () => { /* the NPC pool still draws this */ };
+}
+
 /** The baked body uses the oil shader. Drop the GLB textures so a later draw cannot upload them. */
 function releaseSourceMaterial(mesh: Mesh) {
   const mats = !mesh.material ? [] : Array.isArray(mesh.material) ? mesh.material : [mesh.material];
