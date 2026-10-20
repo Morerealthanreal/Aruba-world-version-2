@@ -70,8 +70,10 @@ type GpuTex = {
   isTexture?: boolean;
   isDataArrayTexture?: boolean;
   dispose(): void;
+  clone?: () => GpuTex;
+  mipmaps?: unknown[];
   __awGone?: number;
-  image?: { complete?: boolean; width?: number } | null;
+  image?: { complete?: boolean; width?: number; height?: number } | null;
 };
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
@@ -608,9 +610,12 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
-  /** A mesh the camera never drew is absent from renderer.info until a later drive.
-   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
-   *  irrelevant: renderBufferDirect does not consult them. */
+  /**
+   * Register region geometries with the renderer before unload.
+   * renderBufferDirect outside a frame never touches info.memory.geometries,
+   * so dispose of a mesh the camera has not drawn yet does not free a slot
+   * and the copy built on the next visit raises the count.
+   */
   private primeUnseenGeometries() {
     if (this.primeIdle > 0) { this.primeIdle--; return; }
     const renderer = this.g.renderer as unknown as {
@@ -671,6 +676,7 @@ export class PerfFixes {
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
+        this.releaseOrphans();
         this.primeUnseenGeometries();
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
@@ -719,6 +725,28 @@ export class PerfFixes {
     for (const p of amb.peds.splice(cap)) { p.g.visible = false; p.g.parent?.remove(p.g); }
     for (const p of amb.peds) p.g.traverse((o) => { o.castShadow = false; });
     this.stats.peds = n0 + " -> " + amb.peds.length + " (no shadows)";
+  }
+
+  private seenGeo = new Set<BufferGeometry>();
+
+  /** Geometries that left the scene still count on the GPU until dispose.
+   *  LOD backups and the shared sign/palapa cache stay. */
+  private releaseOrphans() {
+    const live = new Set<BufferGeometry>();
+    const keep = new Set<BufferGeometry>();
+    this.g.scene.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.geometry) live.add(mesh.geometry);
+      const lods = (object.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
+      if (lods) for (const geo of lods) if (geo) keep.add(geo);
+    });
+    for (const geo of this.shapeCache.values()) keep.add(geo);
+    for (const geo of this.seenGeo) {
+      if (live.has(geo) || keep.has(geo)) continue;
+      geo.dispose();
+      this.seenGeo.delete(geo);
+    }
+    for (const geo of live) this.seenGeo.add(geo);
   }
 
   private shapeCache = new Map<string, BufferGeometry>();

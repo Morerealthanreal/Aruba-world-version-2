@@ -1,0 +1,14 @@
+{
+  "place": "amsterdam",
+  "area": "eagle-beach",
+  "photos": [
+    {
+      "file": "exterior.jpg",
+      "source_url": "https://www.amsterdammanor.com/",
+      "image_url": "https://image-tc.galaxy.tf/wijpeg-bqo8rtgrmy47kaa9hokicl7xd/exterior3.jpg",
+      "license": "Amsterdam Manor listing photo, reference only, not pasted onto geometry",
+      "credit": "Amsterdam Manor Beach Resort, aerial of the yellow wings",
+      "shows": "sunflower-yellow walls, orange clay roofs, white dormers and gable ends, courtyard, palms, the sea beyond"
+    }
+  ]
+}
