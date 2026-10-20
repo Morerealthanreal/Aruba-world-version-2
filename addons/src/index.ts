@@ -41,6 +41,7 @@ import { Fly } from "./fly";
 import { SnFairMurals } from "./snFairMurals";
 import { loadMuralAtlas, muralAtlasKey } from "./muralAtlas";
 import { WindFarm } from "./windFarm";
+import { DePalm } from "./dePalm";
 import { TierraGolf } from "./golf";
 import { SnMurals } from "./snMurals";
 import { SnLaterMurals } from "./snLaterMurals";
@@ -101,6 +102,8 @@ async function main() {
   const fly = params.get("fly") !== "0" ? new Fly(g) : null;
   const turbo = params.get("turbo") !== "0" ? new Turbo(g) : null;
   const wind = params.get("wind") !== "0" ? new WindFarm(g) : null;
+  const depalm = params.get("depalm") !== "0" ? new DePalm(g) : null; // De Palm Island: lagoon reef flats, ferry lane, piers, both ferries, palms, palapas, water park
+  (window as unknown as { __awDePalm?: unknown }).__awDePalm = depalm;
   const golf = params.get("golf") !== "0" ? new TierraGolf(g) : null;
   const resort = golf && params.get("resort") !== "0" ? new TierraResort(g) : null;
   const muralPreload: string[] = [];
