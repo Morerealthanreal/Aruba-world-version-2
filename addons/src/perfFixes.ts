@@ -319,19 +319,31 @@ export class PerfFixes {
     const cap = this.heroCap;
     h.update = (x: number, z: number) => {
       // The base loader fetches every GLB inside 1500 m. Low already hides
-      // heroes outside this cap, and those hidden signs were still uploading
-      // on the measured lap (texture growth 5.5, limit 4). Keep the fetch
-      // until the phone is close enough to draw the building.
+      // heroes outside this cap. Starting that whole set at once was still
+      // uploading signs on the measured lap (texture growth 10, limit 4) and
+      // the phone soak timed out. Hold the far ones, and keep only a few of
+      // the closest fetches in flight so the visible buildings finish during
+      // warmup.
       if (this.real.q.name === "low") {
+        const near: Array<{ n: (typeof h.list)[number]; d: number }> = [];
         for (const n of h.list) {
           if (n._g) continue;
-          const far = Math.hypot(n.x - x, n.z - z) > cap;
-          if (far) {
-            if (!n._loading) { n._loading = true; n._awHold = 1; }
-          } else if (n._awHold) {
-            n._loading = false;
-            n._awHold = 0;
+          const d = Math.hypot(n.x - x, n.z - z);
+          if (d > cap) {
+            if (!n._loading || n._awHold) { n._loading = true; n._awHold = 1; }
+            continue;
           }
+          near.push({ n, d });
+        }
+        near.sort((a, b) => a.d - b.d);
+        let used = 0;
+        for (const item of near) if (item.n._loading && !item.n._awHold) used++;
+        let room = 8 - used;
+        for (const item of near) {
+          const live = item.n._loading && !item.n._awHold;
+          if (live) continue;
+          if (room > 0) { item.n._loading = false; item.n._awHold = 0; room--; }
+          else { item.n._loading = true; item.n._awHold = 1; }
         }
       }
       orig(x, z);
@@ -579,8 +591,10 @@ export class PerfFixes {
       if (budget <= 0) break;
       if (!hero._g && !hero._sign) continue;
       if (Math.hypot(hero.x - x, hero.z - z) > 1500) continue;
-      if (hero._g) budget = this.uploadObjectMaps(hero._g, budget);
-      if (hero._sign && budget > 0) budget = this.uploadObjectMaps(hero._sign, budget);
+      // Signs first. A hero with several maps was using the whole frame budget
+      // and leaving the sign for the measured lap.
+      if (hero._sign) budget = this.uploadObjectMaps(hero._sign, budget);
+      if (hero._g && budget > 0) budget = this.uploadObjectMaps(hero._g, budget);
     } while (i !== start);
     this.mapCursor = i;
   }
