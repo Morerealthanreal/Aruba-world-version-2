@@ -1,0 +1,14 @@
+{
+  "place": "azure_residences",
+  "area": "eagle-beach",
+  "photos": [
+    {
+      "file": "aruba-pool.jpg",
+      "source_url": "https://www.aruba.com/us/stay-at/azure-beach-residences",
+      "image_url": "https://aruba.bynder.com/m/1b4fd577e6ee15ab/desktop_horizontal_rectangle-Azure-Beach-Residences.jpg",
+      "license": "aruba.com listing photo, reference only, not pasted onto geometry",
+      "credit": "Aruba.com, Azure Beach Residences pool",
+      "shows": "pale tower, dark glass, glass rails, turquoise pool, blue tile edge, light-blue pergola, white umbrellas, palms"
+    }
+  ]
+}
