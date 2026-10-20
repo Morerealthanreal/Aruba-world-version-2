@@ -257,6 +257,42 @@ function buckleGeometry() {
 }
 
 let phoneGeo: BufferGeometry | null = null;
+let talkGeo: BufferGeometry | null = null;
+let towelGeo: BufferGeometry | null = null;
+
+function towelGeometry() {
+  if (towelGeo) return towelGeo;
+  // Wrist local +Y runs from the wrist down past the hand. Negative Y
+  // would float the cloth up by the shoulder. Opaque stripes, not sheer.
+  const cloth = paint(new BoxGeometry(0.16, 0.38, 0.02).translate(0.02, 0.24, 0.05), 0xf7f4ee, 2);
+  const stripe = paint(new BoxGeometry(0.16, 0.048, 0.024).translate(0.02, 0.16, 0.05), 0x2f8f9a, 2);
+  const hem = paint(new BoxGeometry(0.16, 0.048, 0.024).translate(0.02, 0.34, 0.05), 0x2f8f9a, 2);
+  const parts = [cloth, stripe, hem];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  const geo = merged ?? cloth;
+  geo.clearGroups();
+  towelGeo = geo;
+  return towelGeo;
+}
+
+function talkMouthGeometry() {
+  if (talkGeo) return talkGeo;
+  // Head space, just under the lip, so a standing woman reads as mid-sentence.
+  const gap = paint(new BoxGeometry(0.034, 0.011, 0.01).translate(0, 0.055, 0.14), 0x3a1618, 5);
+  const lower = paint(new BoxGeometry(0.046, 0.008, 0.012).translate(0, 0.046, 0.138), 0xb85a58, 1);
+  const parts = [gap, lower];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  const geo = merged ?? gap;
+  geo.clearGroups();
+  talkGeo = geo;
+  return talkGeo;
+}
 
 function phoneGeometry() {
   if (phoneGeo) return phoneGeo;
@@ -288,6 +324,7 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
       wear(head, index % 2 === 0 ? strawGeometry() : capGeometry(), "aw:hat");
     }
     if (female || index % 2 === 0) wear(head, glassGeometry(), "aw:sunglasses");
+    if (female && index % 2 === 0) wear(head, talkMouthGeometry(), "aw:mouth");
     if (female) {
       const locks = hairFor(hair);
       wear(head, locks.volume, "aw:hair");
@@ -298,6 +335,9 @@ export function attachBeachWear(root: Object3D, index: number, skin: number, hai
   // Even pool slots are the casual and adventurer women. They hold the phone.
   const wristR = root.getObjectByName("WristR");
   if (female && wristR && index % 2 === 0) wear(wristR, phoneGeometry(), "aw:phone");
+  // Odd pool slots are the worker woman. The towel hangs from the left hand.
+  const wristL = root.getObjectByName("WristL");
+  if (female && wristL && index % 2 === 1) wear(wristL, towelGeometry(), "aw:towel");
   if (hips) {
     wear(hips, beltGeometry(), "aw:belt");
     wear(hips, buckleGeometry(), "aw:buckle");
