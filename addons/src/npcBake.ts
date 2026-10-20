@@ -1,6 +1,6 @@
 // CC0 Quaternius bodies, recolored in code to modern Aruba beach clothes.
 // Fully opaque: shirts, shorts, cover-ups, sundress colors. No photo textures.
-// Torso shirts carry a darker collar and one band in the shorts color.
+// Torso shirts carry a darker collar, a hem, sleeve cuffs, and one band in the shorts color.
 import {
   AnimationClip, BufferGeometry, Color, Float32BufferAttribute,
   Mesh, SkinnedMesh, type Object3D,
@@ -113,14 +113,17 @@ function torsoShirt(geo: BufferGeometry) {
 // The shirt shell has no skin under it, so a cut neckline is a hole.
 // Slim the shoulder caps and paint the scoop and outer shoulders as skin.
 // The straps stay cloth. The surface stays closed and it still animates.
-// A torso shirt also gets a darker collar and one band in the shorts color,
-// so the cloth reads up close. No new texture.
+// A torso shirt also gets a darker collar, a hem, sleeve cuffs, and one
+// band in the shorts color, so the cloth reads up close. No new texture.
 function paintTop(geo: BufferGeometry, clothHex: number, skinHex: number, accentHex: number, tank: boolean) {
   const cloth = new Color(clothHex);
   const skin = new Color(skinHex);
   const accent = new Color(accentHex);
   const collarTone = cloth.clone().multiplyScalar(0.55);
+  const hemTone = cloth.clone().multiplyScalar(0.62);
+  const cuffTone = cloth.clone().multiplyScalar(0.48);
   const shirt = torsoShirt(geo);
+  const hemLine = shirt ? geo.boundingBox!.min.y + 0.04 : 0;
   const pos = geo.getAttribute("position");
   const data = new Float32Array(pos.count * 3);
   const kinds = new Float32Array(pos.count);
@@ -141,7 +144,11 @@ function paintTop(geo: BufferGeometry, clothHex: number, skinHex: number, accent
     const bare = scoop || shoulder;
     const chest = shirt && !bare && y > 1.28 && y < 1.36 && z > 0.02 && ax < 0.14;
     const collar = shirt && !tank && !bare && y > 1.46 && z > 0.03 && ax < 0.1;
-    const tone = bare ? skin : chest ? accent : collar ? collarTone : cloth;
+    // The hem is the bottom edge of the shell, including the tank.
+    // Cuffs are the outer lip of a short sleeve. A tank has no sleeve.
+    const hem = shirt && !bare && y < hemLine;
+    const cuff = shirt && !tank && !bare && ax > 0.25 && y > 1.38 && y < 1.5;
+    const tone = bare ? skin : cuff ? cuffTone : hem ? hemTone : chest ? accent : collar ? collarTone : cloth;
     data[i * 3] = tone.r;
     data[i * 3 + 1] = tone.g;
     data[i * 3 + 2] = tone.b;
