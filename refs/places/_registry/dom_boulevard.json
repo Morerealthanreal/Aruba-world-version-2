@@ -1,0 +1,42 @@
+{
+ "_ord": 0,
+ "id": "dom_boulevard",
+ "name": "Domino's (L.G. Smith Blvd 126)",
+ "status": "v1-unit",
+ "x": -8327.07,
+ "z": -680.08,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/dom_boulevard.glb",
+ "lod": {
+  "hi": "dom_boulevard_lod0",
+  "lo": "dom_boulevard_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "dom_boulevard_lod0": 84,
+  "dom_boulevard_lod1": 24
+ },
+ "hide_footprint": null,
+ "new_place": true,
+ "sign": {
+  "text": "DOMINO'S",
+  "bg": "#006491",
+  "fg": "#ffffff",
+  "edge_index": null
+ },
+ "kind": "unit",
+ "unit_edge": [
+  [
+   -8330.492049934603,
+   -683.0077201053863
+  ],
+  [
+   -8323.650957835436,
+   -677.1596897625506
+  ]
+ ],
+ "approx_location": false,
+ "geo_source": "Nominatim address L.G. Smith Boulevard 126; findyello/mallaruba (Antraco Plaza)",
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

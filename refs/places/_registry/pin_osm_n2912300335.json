@@ -1,0 +1,19 @@
+{
+ "_ord": 1125,
+ "id": "pin_osm_n2912300335",
+ "k": "osm_n2912300335",
+ "status": "v1-sign-suppressed (outdated/duplicate OSM brand sign inside modelled mall)",
+ "x": -7287.17,
+ "z": 353.58,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/tenant_pin.glb",
+ "tris": {},
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "tenant",
+ "new_place": false,
+ "mall": "renmarket"
+}

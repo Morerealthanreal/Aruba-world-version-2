@@ -177,6 +177,16 @@ test("runs every travel mode and captures fixed locations", async ({
   await expect
     .poll(() => page.evaluate(() => window.game.real.q.name), { timeout: 90_000 })
     .toBe(quality);
+  const heroes = await page.evaluate(async () => {
+    const response = await fetch("./data/hero/manifest.json", { cache: "no-cache" });
+    const data = await response.json();
+    const rows = Array.isArray(data) ? data : data.entries || [];
+    const expected = rows.filter(
+      (entry) => entry && entry.glb && Number.isFinite(entry.x) && Number.isFinite(entry.z),
+    ).length;
+    return { expected, loaded: window.game.hero?.list?.length ?? -1 };
+  });
+  expect(heroes.loaded, "every hero place failed to load").toBe(heroes.expected);
   assertNoRuntimeErrors(runtimeErrors);
 
   for (const spot of SPOTS) {

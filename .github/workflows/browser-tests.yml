@@ -35,6 +35,14 @@ jobs:
           npm ci
           npm ci --prefix addons
 
+      - name: Build the hero manifest and keep every place from main
+        run: |
+          git fetch origin main --depth=1
+          python3 tools/build_hero_manifest.py
+          python3 tools/manifest_at.py origin/main /tmp/main-manifest.json
+          python3 tools/check_manifest.py /tmp/main-manifest.json game/data/hero/manifest.json
+          python3 tools/check_hero_glbs.py
+
       - name: Install headless Chromium
         run: npx playwright install --with-deps chromium
 

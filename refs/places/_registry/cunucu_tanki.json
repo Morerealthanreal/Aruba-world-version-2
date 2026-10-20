@@ -1,0 +1,48 @@
+{
+ "_ord": 1325,
+ "id": "cunucu_tanki",
+ "k": "cunucu_tanki",
+ "name": "",
+ "status": "v5-accuracy",
+ "x": -5657.2,
+ "z": -1508.95,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/cunucu_tanki.glb",
+ "lod": {
+  "hi": "cunucu_tanki_lod0",
+  "lo": "cunucu_tanki_lod1",
+  "switch_m": 200
+ },
+ "tris": {
+  "cunucu_tanki_lod0": 414,
+  "cunucu_tanki_lod1": 114
+ },
+ "textures": 0,
+ "hide_footprint": [
+  [
+   -5662.1,
+   -1501.9
+  ],
+  [
+   -5652.3,
+   -1501.9
+  ],
+  [
+   -5652.3,
+   -1516.0
+  ],
+  [
+   -5662.1,
+   -1516.0
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": false,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Cunucu house: one storey, coloured walls, red hip roof, porch, low concrete fence with white caps. Guides: Commons 'Cunucu House Sabana Basora 2' (cream walls, porch, red hip) and 'Cunucu Traditional Countryside ... Santa Cruz' (salmon walls, terracotta fence, cactus). Placed on an OSM house lot facing the town road. Not a photo texture. Road: Tanki Leendert.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "house"
+}

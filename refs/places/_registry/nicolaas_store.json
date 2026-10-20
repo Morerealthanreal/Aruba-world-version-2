@@ -1,0 +1,60 @@
+{
+ "_ord": 1316,
+ "id": "nicolaas_store",
+ "k": "nicolaas_store",
+ "name": "Nicolaas Store (San Nicolas Main Street)",
+ "status": "v5-accuracy",
+ "x": 6600.15,
+ "z": 9436.6,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/nicolaas_store.glb",
+ "lod": {
+  "hi": "nicolaas_store_lod0",
+  "lo": "nicolaas_store_lod1",
+  "switch_m": 220
+ },
+ "tris": {
+  "nicolaas_store_lod0": 384,
+  "nicolaas_store_lod1": 103
+ },
+ "textures": 1,
+ "hide_footprint": [
+  [
+   6583.0,
+   9427.5
+  ],
+  [
+   6584.2,
+   9419.7
+  ],
+  [
+   6594.1,
+   9419.8
+  ],
+  [
+   6606.0,
+   9427.6
+  ],
+  [
+   6607.2,
+   9434.4
+  ],
+  [
+   6606.0,
+   9439.6
+  ],
+  [
+   6593.4,
+   9439.2
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Wikimedia Commons '01Nicolaas Store': two-storey yellow corner, white cornice and pilasters, pink-red hip roof, brown shuttered upper windows, NICOLAAS STORE lettering, open ground floor. OSM 'Nicolas store/ Kulture Cafe' on B. van der Veen Zeppenfeldstraat 27, with the turquoise one-storey neighbour (Yiu di Tera). Geometry only, not a photo texture.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "store"
+}

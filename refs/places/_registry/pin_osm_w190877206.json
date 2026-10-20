@@ -1,0 +1,19 @@
+{
+ "_ord": 1135,
+ "id": "pin_osm_w190877206",
+ "k": "osm_w190877206",
+ "status": "v1-sign-suppressed (outdated/duplicate OSM brand sign inside modelled mall)",
+ "x": -8769.15,
+ "z": -3535.9,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/tenant_pin.glb",
+ "tris": {},
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "tenant",
+ "new_place": false,
+ "mall": "superfood"
+}
