@@ -1,0 +1,39 @@
+{
+ "label": "final",
+ "port": "8821",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "photo2",
+   "calls": 352,
+   "tris": 1098325,
+   "ms": 5.8
+  },
+  {
+   "shot": "core",
+   "calls": 382,
+   "tris": 1112917,
+   "ms": 6.4
+  },
+  {
+   "shot": "south",
+   "calls": 883,
+   "tris": 1325948,
+   "ms": 8
+  }
+ ],
+ "fps": {
+  "fps": 1.26,
+  "p95ms": 100,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "riuantillas",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}
