@@ -676,6 +676,7 @@ export class PerfFixes {
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
+        this.releaseOrphans();
         this.primeUnseenGeometries();
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
@@ -724,6 +725,28 @@ export class PerfFixes {
     for (const p of amb.peds.splice(cap)) { p.g.visible = false; p.g.parent?.remove(p.g); }
     for (const p of amb.peds) p.g.traverse((o) => { o.castShadow = false; });
     this.stats.peds = n0 + " -> " + amb.peds.length + " (no shadows)";
+  }
+
+  private seenGeo = new Set<BufferGeometry>();
+
+  /** Geometries that left the scene still count on the GPU until dispose.
+   *  LOD backups and the shared sign/palapa cache stay. */
+  private releaseOrphans() {
+    const live = new Set<BufferGeometry>();
+    const keep = new Set<BufferGeometry>();
+    this.g.scene.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.geometry) live.add(mesh.geometry);
+      const lods = (object.userData as { lods?: BufferGeometry[] } | undefined)?.lods;
+      if (lods) for (const geo of lods) if (geo) keep.add(geo);
+    });
+    for (const geo of this.shapeCache.values()) keep.add(geo);
+    for (const geo of this.seenGeo) {
+      if (live.has(geo) || keep.has(geo)) continue;
+      geo.dispose();
+      this.seenGeo.delete(geo);
+    }
+    for (const geo of live) this.seenGeo.add(geo);
   }
 
   private shapeCache = new Map<string, BufferGeometry>();
