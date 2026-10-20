@@ -44,7 +44,7 @@ export function holdGeometry(geo: BufferGeometry | null | undefined) {
 function releaseSourceMaterial(mesh: Mesh) {
   const mats = !mesh.material ? [] : Array.isArray(mesh.material) ? mesh.material : [mesh.material];
   for (const mat of mats) {
-    const bag = mat as unknown as { [key: string]: { isTexture?: boolean; dispose?: () => void } | undefined; dispose?: () => void };
+    const bag = mat as unknown as Record<string, { isTexture?: boolean; dispose?: () => void } | undefined> & { dispose?: () => void };
     for (const key of SOURCE_MAPS) {
       const tex = bag[key];
       if (tex?.isTexture) tex.dispose?.();
