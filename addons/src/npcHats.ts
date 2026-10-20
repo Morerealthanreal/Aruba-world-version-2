@@ -41,6 +41,26 @@ function paint(geo: BufferGeometry, hex: number, kind = 0) {
   return geo;
 }
 
+/** A stretched sphere in head space. Faces stay one merged mesh per skin tone. */
+function roundPart(
+  radius: number,
+  sx: number,
+  sy: number,
+  sz: number,
+  x: number,
+  y: number,
+  z: number,
+  hex: number,
+  kind: number,
+  width = 8,
+  height = 6,
+) {
+  const geo = new SphereGeometry(radius, width, height);
+  geo.scale(sx, sy, sz);
+  geo.translate(x, y, z);
+  return paint(geo, hex, kind);
+}
+
 function strawGeometry() {
   if (strawGeo) return strawGeo;
   const brim = new CylinderGeometry(0.168, 0.176, 0.012, 14);
@@ -101,25 +121,57 @@ function wear(parent: Object3D, geo: BufferGeometry, name: string) {
   parent.add(mesh);
 }
 
+function browArc(side: number, hex: number) {
+  const geo = new SphereGeometry(0.024, 8, 5);
+  geo.scale(1.05, 0.22, 0.32);
+  geo.rotateZ(side * -0.38);
+  geo.translate(side * 0.036, 0.148, 0.12);
+  return paint(geo, hex, 1);
+}
+
+function eyeParts(side: number, lid: number) {
+  const x = side * 0.034;
+  return [
+    roundPart(0.015, 1.12, 0.78, 0.5, x, 0.108, 0.102, EYE, 0, 10, 8),
+    roundPart(0.0066, 1, 1, 0.4, x, 0.107, 0.111, 0x5a341c, 5, 8, 6),
+    roundPart(0.0034, 1, 1, 0.65, x, 0.107, 0.114, PUPIL, 5, 6, 4),
+    // A thin hood sunk into the top of the eye, not a bar in front of it.
+    roundPart(0.014, 1.15, 0.18, 0.46, x, 0.118, 0.104, lid, 1, 8, 4),
+  ];
+}
+
 function faceFor(skin: number) {
   const found = faceCache.get(skin);
   if (found) return found;
   const tone = new Color(skin);
-  const nose = paint(new BoxGeometry(0.014, 0.028, 0.016).translate(0, 0.086, 0.112), tone.getHex(), 1);
+  const skinHex = tone.getHex();
   const brow = tone.clone().multiplyScalar(0.32).getHex();
-  const browL = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(-0.036, 0.148, 0.124), brow, 1);
-  const browR = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(0.036, 0.148, 0.124), brow, 1);
-  const lip = paint(new BoxGeometry(0.052, 0.016, 0.014).translate(0, 0.062, 0.13), 0xb85a58, 1);
-  const eyeL = paint(new SphereGeometry(0.016, 8, 6).translate(-0.034, 0.108, 0.104), EYE, 0);
-  const eyeR = paint(new SphereGeometry(0.016, 8, 6).translate(0.034, 0.108, 0.104), EYE, 0);
-  const pupilL = paint(new SphereGeometry(0.008, 6, 5).translate(-0.034, 0.108, 0.116), PUPIL, 5);
-  const pupilR = paint(new SphereGeometry(0.008, 6, 5).translate(0.034, 0.108, 0.116), PUPIL, 5);
-  const parts = [nose, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
+  const shadow = tone.clone().multiplyScalar(0.42).getHex();
+  const lip = tone.clone().lerp(new Color(0xc45b62), 0.58);
+  const upper = lip.clone().multiplyScalar(0.84).getHex();
+  const lower = lip.getHex();
+  // Same anchors as the old slabs: nose near y 0.086, mouth near y 0.06,
+  // eyes near y 0.108. Sunglasses hide the eyes except on odd-index men.
+  // The mouth is on this shared mesh, so every walker gets it.
+  const parts = [
+    roundPart(0.009, 0.75, 1.65, 0.85, 0, 0.094, 0.109, skinHex, 1),
+    roundPart(0.012, 1, 0.8, 1.08, 0, 0.08, 0.113, skinHex, 1),
+    roundPart(0.005, 1.3, 0.45, 0.7, -0.008, 0.073, 0.118, shadow, 5, 6, 4),
+    roundPart(0.005, 1.3, 0.45, 0.7, 0.008, 0.073, 0.118, shadow, 5, 6, 4),
+    browArc(-1, brow),
+    browArc(1, brow),
+    roundPart(0.02, 1.2, 0.36, 0.4, 0, 0.061, 0.128, upper, 1, 8, 5),
+    roundPart(0.019, 1.28, 0.46, 0.44, 0, 0.053, 0.129, lower, 1, 8, 6),
+    roundPart(0.015, 1.05, 0.08, 0.22, 0, 0.057, 0.133, 0x3a1618, 5, 8, 4),
+    ...eyeParts(-1, skinHex),
+    ...eyeParts(1, skinHex),
+  ];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
     if (merged) part.dispose();
   }
-  const geo = merged ?? nose;
+  const geo = merged ?? parts[0];
+  geo.clearGroups();
   faceCache.set(skin, geo);
   return geo;
 }
@@ -280,9 +332,9 @@ function towelGeometry() {
 
 function talkMouthGeometry() {
   if (talkGeo) return talkGeo;
-  // Head space, just under the lip, so a standing woman reads as mid-sentence.
-  const gap = paint(new BoxGeometry(0.034, 0.011, 0.01).translate(0, 0.055, 0.14), 0x3a1618, 5);
-  const lower = paint(new BoxGeometry(0.046, 0.008, 0.012).translate(0, 0.046, 0.138), 0xb85a58, 1);
+  // Head space, just in front of the closed mouth, so a standing woman reads as mid-sentence.
+  const gap = roundPart(0.015, 1.15, 0.32, 0.38, 0, 0.055, 0.14, 0x3a1618, 5, 8, 5);
+  const lower = roundPart(0.016, 1.25, 0.46, 0.46, 0, 0.046, 0.136, 0xb85a58, 1, 8, 5);
   const parts = [gap, lower];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
