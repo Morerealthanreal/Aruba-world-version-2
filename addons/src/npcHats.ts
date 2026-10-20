@@ -1,6 +1,6 @@
 // Beach accessories for the Quaternius crowd. Shared geometry, vertex colors,
 // no textures. Placed in Head / Neck / Chest / Hips local space (measured on
-// the CC0 rigs): the face sits near z 0.09 and the eyes near y 0.15.
+// the CC0 rigs): the face sits near z 0.09 and the eyes near y 0.112.
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute,
   Mesh, Quaternion, SphereGeometry, TorusGeometry, Vector3, type Object3D,
@@ -25,16 +25,19 @@ let strawGeo: BufferGeometry | null = null;
 let capGeo: BufferGeometry | null = null;
 let glassGeo: BufferGeometry | null = null;
 
-function paint(geo: BufferGeometry, hex: number) {
+function paint(geo: BufferGeometry, hex: number, kind = 0) {
   const color = new Color(hex);
   const count = geo.getAttribute("position").count;
   const data = new Float32Array(count * 3);
+  const kinds = new Float32Array(count);
   for (let i = 0; i < count; i++) {
     data[i * 3] = color.r;
     data[i * 3 + 1] = color.g;
     data[i * 3 + 2] = color.b;
+    kinds[i] = kind;
   }
   geo.setAttribute("color", new Float32BufferAttribute(data, 3));
+  geo.setAttribute("awKind", new Float32BufferAttribute(kinds, 1));
   return geo;
 }
 
@@ -47,7 +50,7 @@ function strawGeometry() {
   const merged = mergeGeometries([brim, crown], false);
   brim.dispose();
   if (merged) crown.dispose();
-  strawGeo = paint(merged ?? crown, STRAW);
+  strawGeo = paint(merged ?? crown, STRAW, 2);
   return strawGeo;
 }
 
@@ -60,24 +63,32 @@ function capGeometry() {
   const merged = mergeGeometries([crown, brim], false);
   crown.dispose();
   if (merged) brim.dispose();
-  capGeo = paint(merged ?? brim, CAP);
+  capGeo = paint(merged ?? brim, CAP, 2);
   return capGeo;
 }
 
 function glassGeometry() {
   if (glassGeo) return glassGeo;
-  // Eye line is y 0.15. Hair bangs reach z 0.11, so the lenses sit just past that.
-  const left = new BoxGeometry(0.058, 0.034, 0.008);
-  left.translate(-0.036, 0.152, 0.122);
-  const right = new BoxGeometry(0.058, 0.034, 0.008);
-  right.translate(0.036, 0.152, 0.122);
-  const bridge = new BoxGeometry(0.018, 0.008, 0.006);
-  bridge.translate(0, 0.156, 0.118);
-  const merged = mergeGeometries([left, right, bridge], false);
-  left.dispose();
-  right.dispose();
-  if (merged) bridge.dispose();
-  glassGeo = paint(merged ?? bridge, LENS);
+  // The eye line on this rig is y 0.112, not the forehead. A flattened lens
+  // rests on the eyes, with a bridge and short arms.
+  const left = new SphereGeometry(0.036, 10, 8);
+  left.scale(1.2, 0.68, 0.22);
+  left.translate(-0.04, 0.112, 0.12);
+  const right = new SphereGeometry(0.036, 10, 8);
+  right.scale(1.2, 0.68, 0.22);
+  right.translate(0.04, 0.112, 0.12);
+  const bridge = new BoxGeometry(0.02, 0.006, 0.006);
+  bridge.translate(0, 0.118, 0.114);
+  const armL = new BoxGeometry(0.008, 0.006, 0.055);
+  armL.translate(-0.074, 0.116, 0.086);
+  const armR = new BoxGeometry(0.008, 0.006, 0.055);
+  armR.translate(0.074, 0.116, 0.086);
+  const parts = [left, right, bridge, armL, armR];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) {
+    if (merged) part.dispose();
+  }
+  glassGeo = paint(merged ?? left, LENS, 5);
   return glassGeo;
 }
 
@@ -94,22 +105,21 @@ function faceFor(skin: number) {
   const found = faceCache.get(skin);
   if (found) return found;
   const tone = new Color(skin);
-  const bridge = paint(new BoxGeometry(0.011, 0.024, 0.01).translate(0, 0.126, 0.102), tone.getHex());
-  const tip = paint(new BoxGeometry(0.015, 0.011, 0.012).translate(0, 0.108, 0.108), tone.getHex());
-  const brow = tone.clone().multiplyScalar(0.45).getHex();
-  const browL = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(-0.032, 0.176, 0.108), brow);
-  const browR = paint(new BoxGeometry(0.04, 0.008, 0.008).translate(0.032, 0.176, 0.108), brow);
-  const lip = paint(new BoxGeometry(0.036, 0.01, 0.008).translate(0, 0.078, 0.104), tone.clone().multiplyScalar(0.55).getHex());
-  const eyeL = paint(new SphereGeometry(0.014, 8, 6).translate(-0.032, 0.15, 0.1), EYE);
-  const eyeR = paint(new SphereGeometry(0.014, 8, 6).translate(0.032, 0.15, 0.1), EYE);
-  const pupilL = paint(new SphereGeometry(0.007, 6, 5).translate(-0.032, 0.15, 0.112), PUPIL);
-  const pupilR = paint(new SphereGeometry(0.007, 6, 5).translate(0.032, 0.15, 0.112), PUPIL);
-  const parts = [bridge, tip, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
+  const nose = paint(new BoxGeometry(0.014, 0.028, 0.016).translate(0, 0.086, 0.112), tone.getHex(), 1);
+  const brow = tone.clone().multiplyScalar(0.32).getHex();
+  const browL = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(-0.036, 0.148, 0.124), brow, 1);
+  const browR = paint(new BoxGeometry(0.05, 0.009, 0.01).translate(0.036, 0.148, 0.124), brow, 1);
+  const lip = paint(new BoxGeometry(0.052, 0.016, 0.014).translate(0, 0.062, 0.13), 0xb85a58, 1);
+  const eyeL = paint(new SphereGeometry(0.016, 8, 6).translate(-0.034, 0.108, 0.104), EYE, 0);
+  const eyeR = paint(new SphereGeometry(0.016, 8, 6).translate(0.034, 0.108, 0.104), EYE, 0);
+  const pupilL = paint(new SphereGeometry(0.008, 6, 5).translate(-0.034, 0.108, 0.116), PUPIL, 5);
+  const pupilR = paint(new SphereGeometry(0.008, 6, 5).translate(0.034, 0.108, 0.116), PUPIL, 5);
+  const parts = [nose, browL, browR, lip, eyeL, eyeR, pupilL, pupilR];
   const merged = mergeGeometries(parts, false);
   for (const part of parts) {
     if (merged) part.dispose();
   }
-  const geo = merged ?? bridge;
+  const geo = merged ?? nose;
   faceCache.set(skin, geo);
   return geo;
 }
@@ -153,8 +163,23 @@ function braidPoint(strand: number, t: number) {
 function hairFor(hex: number) {
   const found = hairCache.get(hex);
   if (found) return found;
-  // One nape lock so the plait starts in hair. Side spheres read as buns.
-  const volume = new SphereGeometry(0.04, 7, 5).translate(0, 0.015, -0.072);
+  // A cap, side locks, and a fringe above the sunglasses. The crossing
+  // strand braid below stays. The fringe stays above the eye line.
+  const bangs = new SphereGeometry(0.055, 8, 6);
+  bangs.scale(1.7, 0.45, 0.55);
+  bangs.translate(0, 0.175, 0.07);
+  const locks = [
+    new SphereGeometry(0.04, 6, 5).translate(0, 0.015, -0.072),
+    new SphereGeometry(0.078, 8, 6).translate(0, 0.11, -0.04),
+    new SphereGeometry(0.09, 8, 6).translate(0, 0.04, -0.13),
+    new SphereGeometry(0.055, 6, 5).translate(-0.08, 0.05, -0.02),
+    new SphereGeometry(0.055, 6, 5).translate(0.08, 0.05, -0.02),
+    bangs,
+    new CylinderGeometry(0.028, 0.016, 0.22, 6).translate(-0.095, -0.02, 0.01),
+    new CylinderGeometry(0.028, 0.016, 0.22, 6).translate(0.095, -0.02, 0.01),
+  ];
+  const volume = mergeGeometries(locks, false);
+  for (const lock of locks) lock.dispose();
   const pieces: BufferGeometry[] = [];
   const samples = 42;
   const tone = new Color(hex);
@@ -165,24 +190,24 @@ function hairFor(hex: number) {
       const a = braidPoint(s, i / (samples - 1));
       const b = braidPoint(s, (i + 1) / (samples - 1));
       const seg = strandSegment(a.x, a.y, a.z, b.x, b.y, b.z, (a.radius + b.radius) * 0.5);
-      pieces.push(paint(seg, tint));
+      pieces.push(paint(seg, tint, 3));
     }
   }
   const tie = new TorusGeometry(0.018, 0.003, 5, 10);
   tie.rotateX(Math.PI / 2);
   tie.translate(0, 0.198, -0.06);
-  paint(tie, tone.clone().multiplyScalar(0.55).getHex());
+  paint(tie, tone.clone().multiplyScalar(0.55).getHex(), 3);
   const tail = new SphereGeometry(0.012, 6, 5);
   tail.scale(1.15, 1.45, 0.7);
   tail.translate(0, -0.308, -0.072);
-  paint(tail, hex);
+  paint(tail, hex, 3);
   pieces.push(tie, tail);
   const braid = mergeGeometries(pieces, false);
   for (const piece of pieces) {
     if (braid) piece.dispose();
   }
   const made = {
-    volume: paint(volume, hex),
+    volume: paint(volume ?? new SphereGeometry(0.04, 6, 5), hex, 3),
     braid: braid ?? tail,
   };
   hairCache.set(hex, made);
@@ -191,38 +216,43 @@ function hairFor(hex: number) {
 
 function necklaceGeometry() {
   if (neckGeo) return neckGeo;
-  // Neck local. A short chain on the neck, one pendant on the upper chest.
+  // Neck local. The cross is part of this one cached geometry, not a second
+  // chest mesh. That extra mesh grew renderer geometries on the low soak.
   const ring = new TorusGeometry(0.05, 0.006, 6, 16);
   ring.rotateX(Math.PI / 2);
   ring.translate(0, 0.016, 0.034);
   const bail = new CylinderGeometry(0.0036, 0.0036, 0.03, 5);
   bail.translate(0, -0.006, 0.058);
-  const pendant = new SphereGeometry(0.016, 8, 6);
-  pendant.scale(0.7, 1.15, 0.4);
-  pendant.translate(0, -0.026, 0.078);
-  const links = [ring, bail, pendant];
+  const upright = new BoxGeometry(0.012, 0.046, 0.008);
+  upright.translate(0, -0.034, 0.082);
+  const bar = new BoxGeometry(0.028, 0.01, 0.008);
+  bar.translate(0, -0.022, 0.086);
+  const links = [ring, bail, upright, bar];
   const merged = mergeGeometries(links, false);
   for (const link of links) {
     if (merged) link.dispose();
   }
-  neckGeo = paint(merged ?? ring, GOLD);
+  const geo = merged ?? ring;
+  geo.clearGroups();
+  neckGeo = paint(geo, GOLD, 4);
   return neckGeo;
 }
 
 function beltGeometry() {
   if (beltGeo) return beltGeo;
-  const ring = new TorusGeometry(0.132, 0.011, 6, 16);
+  // A smaller ring at the hip line, so the belt sits on the cloth.
+  const ring = new TorusGeometry(0.108, 0.012, 6, 16);
   ring.rotateX(Math.PI / 2);
-  ring.translate(0, 0.17, 0);
-  beltGeo = paint(ring, BELT);
+  ring.translate(0, 0.145, -0.01);
+  beltGeo = paint(ring, BELT, 2);
   return beltGeo;
 }
 
 function buckleGeometry() {
   if (buckleGeo) return buckleGeo;
   const box = new BoxGeometry(0.03, 0.02, 0.008);
-  box.translate(0, 0.17, 0.128);
-  buckleGeo = paint(box, GOLD);
+  box.translate(0, 0.145, 0.102);
+  buckleGeo = paint(box, GOLD, 4);
   return buckleGeo;
 }
 
