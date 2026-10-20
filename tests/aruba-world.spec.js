@@ -60,7 +60,9 @@ function distance(a, b) {
 async function exerciseMode(page, mode) {
   await page
     .locator(`#modes button[data-mode="${mode.id}"]`)
-    .click({ force: true });
+    // Right after a cold boot SwiftShader HIGH can sit in a long frame; the
+    // click only has to outlast it (same as the phone soak).
+    .click({ force: true, timeout: 90_000 });
   await page.evaluate((activeMode) => {
     const game = window.game;
     const target = game.fromLL(12.535, -70.02);
@@ -156,17 +158,7 @@ async function captureFixedSpot(page, quality, spot, screenshotDir) {
   );
 }
 
-test("runs every travel mode and captures fixed locations", async ({
-  page,
-}, testInfo) => {
-  // High quality on SwiftShader spends most of this budget inside the fixed-spot
-  // renders. The captures were still completing when the 8 minute cap hit.
-  test.setTimeout(15 * 60 * 1000);
-  const quality = testInfo.project.name;
-  const runtimeErrors = installRuntimeErrorCapture(page);
-  const screenshotDir = testInfo.outputPath("screenshots");
-
-  await mkdir(screenshotDir, { recursive: true });
+async function bootGame(page, quality) {
   await page.goto(`/?q=${quality}`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => window.game?.ready && window.__aw,
@@ -177,21 +169,42 @@ test("runs every travel mode and captures fixed locations", async ({
   await expect
     .poll(() => page.evaluate(() => window.game.real.q.name), { timeout: 90_000 })
     .toBe(quality);
-  assertNoRuntimeErrors(runtimeErrors);
+}
 
+// Two tests so CI can run them in separate parallel jobs: one boots once and
+// captures every fixed spot, the other boots once and drives every travel mode.
+// Each fails on any browser error from load to finish, like the single combined
+// test did. A fresh boot per spot or mode cost minutes each on SwiftShader HIGH.
+test("captures fixed locations", async ({ page }, testInfo) => {
+  // High quality on SwiftShader spends most of this budget inside the
+  // fixed-spot renders.
+  test.setTimeout(15 * 60 * 1000);
+  const quality = testInfo.project.name;
+  const runtimeErrors = installRuntimeErrorCapture(page);
+  const screenshotDir = testInfo.outputPath("screenshots");
+
+  await mkdir(screenshotDir, { recursive: true });
+  await bootGame(page, quality);
+  assertNoRuntimeErrors(runtimeErrors);
   for (const spot of SPOTS) {
     await test.step(`capture ${spot.name}`, async () => {
       await captureFixedSpot(page, quality, spot, screenshotDir);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
+});
 
+test("exercises every travel mode", async ({ page }, testInfo) => {
+  test.setTimeout(15 * 60 * 1000);
+  const quality = testInfo.project.name;
+  const runtimeErrors = installRuntimeErrorCapture(page);
+
+  await bootGame(page, quality);
+  assertNoRuntimeErrors(runtimeErrors);
   for (const mode of MODES) {
     await test.step(`exercise ${mode.label} for 30 seconds`, async () => {
       await exerciseMode(page, mode);
       assertNoRuntimeErrors(runtimeErrors);
     });
   }
-
-  assertNoRuntimeErrors(runtimeErrors);
 });

@@ -6,16 +6,37 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same PR cancels the older run, so stale runs stop
+# holding runners while many PRs are open at once.
+concurrency:
+  group: browser-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Each quality is split into groups that run as parallel jobs. Groups filter
+# with --grep, which matches the spec file name and test title. The last group
+# of each quality uses --grep-invert of everything the other groups take, so a
+# new spec or test always lands somewhere and nothing drops out of coverage.
+# The final "Aruba World (low)" / "Aruba World (high)" jobs keep the check
+# names other agents already watch and pass only when every group passed.
+
 jobs:
-  aruba-world:
-    name: Aruba World (${{ matrix.quality }})
+  low-shards:
+    name: Aruba World low - ${{ matrix.group }}
     runs-on: ubuntu-latest
-    # SwiftShader low runs the phone soak and the corner comparison; 15 minutes cancels them.
-    timeout-minutes: 45
+    # The phone soak is the longest LOW group (~10 min, ~20 with its CI retry).
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        quality: [low, high]
+        include:
+          - group: travel modes and spots
+            args: "tests/aruba-world.spec.js"
+          - group: phone HUD
+            args: "tests/hud-layout.spec.js"
+          - group: phone soak
+            args: "tests/long-drive-soak.spec.js"
+          - group: everything else
+            args: "--grep-invert 'aruba-world\\.spec|hud-layout\\.spec|long-drive-soak\\.spec'"
 
     steps:
       - name: Check out repository
@@ -35,17 +56,118 @@ jobs:
           npm ci
           npm ci --prefix addons
 
+      - name: Read Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+
       - name: Install headless Chromium
+        # Skips the download when the cache holds this version; system
+        # libraries still come from apt.
         run: npx playwright install --with-deps chromium
 
-      - name: Build and test ${{ matrix.quality }}
-        run: npm run test:e2e -- --project=${{ matrix.quality }}
+      - name: Build and test low - ${{ matrix.group }}
+        run: npm run test:e2e -- --project=low ${{ matrix.args }}
 
       - name: Upload browser artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aruba-world-${{ matrix.quality }}-browser-artifacts
+          name: aruba-world-low-${{ strategy.job-index }}-browser-artifacts
           path: tests/artifacts/
           if-no-files-found: warn
           retention-days: 14
+
+  high-shards:
+    name: Aruba World high - ${{ matrix.group }}
+    runs-on: ubuntu-latest
+    # Each fixed-spot render on HIGH is slow under SwiftShader.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: fixed spots
+            args: "tests/aruba-world.spec.js --grep captures"
+          - group: travel modes
+            args: "tests/aruba-world.spec.js --grep-invert captures"
+          - group: everything else
+            args: "--grep-invert 'aruba-world\\.spec'"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            addons/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix addons
+
+      - name: Read Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+
+      - name: Install headless Chromium
+        # Skips the download when the cache holds this version; system
+        # libraries still come from apt.
+        run: npx playwright install --with-deps chromium
+
+      - name: Build and test high - ${{ matrix.group }}
+        run: npm run test:e2e -- --project=high ${{ matrix.args }}
+
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aruba-world-high-${{ strategy.job-index }}-browser-artifacts
+          path: tests/artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+  low:
+    name: Aruba World (low)
+    needs: low-shards
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All low groups passed
+        env:
+          SHARDS: ${{ needs.low-shards.result }}
+        run: |
+          echo "low shards: $SHARDS"
+          test "$SHARDS" = "success"
+
+  high:
+    name: Aruba World (high)
+    needs: high-shards
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All high groups passed
+        env:
+          SHARDS: ${{ needs.high-shards.result }}
+        run: |
+          echo "high shards: $SHARDS"
+          test "$SHARDS" = "success"
