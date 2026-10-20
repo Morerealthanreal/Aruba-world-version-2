@@ -212,26 +212,64 @@ function braidPoint(strand: number, t: number) {
   };
 }
 
+function shadeHair(geo: BufferGeometry, hex: number, shadeAt: (x: number, y: number, z: number) => number) {
+  const tone = new Color(hex);
+  const ink = new Color();
+  const pos = geo.getAttribute("position");
+  const data = new Float32Array(pos.count * 3);
+  const kinds = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) {
+    ink.copy(tone).multiplyScalar(shadeAt(pos.getX(i), pos.getY(i), pos.getZ(i)));
+    data[i * 3] = ink.r;
+    data[i * 3 + 1] = ink.g;
+    data[i * 3 + 2] = ink.b;
+    kinds[i] = 3;
+  }
+  geo.setAttribute("color", new Float32BufferAttribute(data, 3));
+  geo.setAttribute("awKind", new Float32BufferAttribute(kinds, 1));
+  return geo;
+}
+
 function hairFor(hex: number) {
   const found = hairCache.get(hex);
   if (found) return found;
-  // A cap, side locks, and a fringe above the sunglasses. The crossing
-  // strand braid below stays. The fringe stays above the eye line.
-  const bangs = new SphereGeometry(0.055, 8, 6);
-  bangs.scale(1.7, 0.45, 0.55);
-  bangs.translate(0, 0.175, 0.07);
+  // One shared volume. The crown is darker at the sides so the outline
+  // reads, and the bangs carry a darker cut above the sunglasses.
+  // Vertex colors only. The crossing-strand braid below stays.
+  const crown = new SphereGeometry(0.086, 8, 6);
+  crown.scale(1.08, 0.62, 0.95);
+  crown.translate(0, 0.155, -0.01);
+  const back = new SphereGeometry(0.078, 7, 6);
+  back.scale(0.95, 0.9, 0.62);
+  back.translate(0, 0.05, -0.11);
   const locks = [
-    new SphereGeometry(0.04, 6, 5).translate(0, 0.015, -0.072),
-    new SphereGeometry(0.078, 8, 6).translate(0, 0.11, -0.04),
-    new SphereGeometry(0.09, 8, 6).translate(0, 0.04, -0.13),
-    new SphereGeometry(0.055, 6, 5).translate(-0.08, 0.05, -0.02),
-    new SphereGeometry(0.055, 6, 5).translate(0.08, 0.05, -0.02),
-    bangs,
-    new CylinderGeometry(0.028, 0.016, 0.22, 6).translate(-0.095, -0.02, 0.01),
-    new CylinderGeometry(0.028, 0.016, 0.22, 6).translate(0.095, -0.02, 0.01),
+    shadeHair(crown, hex, (x, y) => 0.7 + 0.32 * (1 - Math.min(1, Math.abs(x) / 0.09)) * (y > 0.16 ? 1 : 0.82)),
+    shadeHair(back, hex, () => 0.78),
   ];
+  // Two thin sweeps across the forehead. The lower edge is darker, so the
+  // bangs read as a cut instead of a second hat brim.
+  for (const [x, y, z, sx] of [[-0.02, 0.17, 0.09, 1.15], [0.028, 0.162, 0.094, 1.25]] as const) {
+    const fringe = new SphereGeometry(0.04, 10, 5);
+    fringe.scale(sx, 0.2, 0.4);
+    fringe.rotateX(-0.4);
+    fringe.translate(x, y, z);
+    locks.push(shadeHair(fringe, hex, (_px, py) => (py < y ? 0.55 : 1.08)));
+  }
+  for (const side of [-1, 1]) {
+    const cheek = new SphereGeometry(0.046, 6, 5);
+    cheek.scale(0.65, 1.15, 0.7);
+    cheek.translate(side * 0.086, 0.07, 0.01);
+    const fall = new CylinderGeometry(0.026, 0.014, 0.2, 6);
+    fall.translate(side * 0.092, -0.01, 0.005);
+    locks.push(
+      shadeHair(cheek, hex, () => 0.86),
+      shadeHair(fall, hex, (_x, y) => (y > 0 ? 0.84 : 0.66)),
+    );
+  }
   const volume = mergeGeometries(locks, false);
-  for (const lock of locks) lock.dispose();
+  for (const lock of locks) {
+    if (volume) lock.dispose();
+  }
   const pieces: BufferGeometry[] = [];
   const samples = 42;
   const tone = new Color(hex);
@@ -258,8 +296,10 @@ function hairFor(hex: number) {
   for (const piece of pieces) {
     if (braid) piece.dispose();
   }
+  const shell = volume ?? shadeHair(new SphereGeometry(0.04, 6, 5), hex, () => 1);
+  shell.clearGroups();
   const made = {
-    volume: paint(volume ?? new SphereGeometry(0.04, 6, 5), hex, 3),
+    volume: shell,
     braid: braid ?? tail,
   };
   hairCache.set(hex, made);
