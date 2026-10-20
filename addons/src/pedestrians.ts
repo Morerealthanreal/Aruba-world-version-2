@@ -1,4 +1,4 @@
-// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, and Malmok, beside the
+// Beach crowds for Palm Beach, Noord, Eagle Beach, Oranjestad, Malmok, and Baby Beach, beside the
 // island-wide ambient pedestrians.
 // Six CC0 bodies, one shared oil-light shader, and a fixed pool so a phone
 // never grows geometries while it walks. Ambient pedestrians keep walking towns and beaches.
@@ -328,6 +328,18 @@ function buildSlots(): Slot[] {
     [-8828, -8925, 8, 2],
   ];
   malmok.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.27) % 1, true, x));
+  // Baby Beach sand beside the palapas. The shore runs east-west, so each
+  // person has their own x. East is inland, toward Big Mama; plant() steps
+  // that way if a sample is still in the lagoon.
+  const baby: Array<[number, number, number, 0 | 1 | 2]> = [
+    [9606, 11676, 4, 1],
+    [9661, 11680, 4, 2],
+    [9716, 11674, 4, 0],
+    [9766, 11682, 4, 1],
+    [9686, 11678, 6, 0],
+    [9736, 11670, 6, 2],
+  ];
+  baby.forEach(([x, z, inland, mode], i) => push(z, inland, mode, (i * 0.31) % 1, true, x));
   return slots;
 }
 
