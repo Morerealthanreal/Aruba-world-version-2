@@ -75,23 +75,6 @@ type GpuTex = {
   __awGone?: number;
   image?: { complete?: boolean; width?: number; height?: number } | null;
 };
-type GeoTarget = {
-  isWebGLRenderTarget: true;
-  width: number;
-  height: number;
-  depth: number;
-  scissor: { x: number; y: number; z: number; w: number };
-  scissorTest: boolean;
-  viewport: { x: number; y: number; z: number; w: number };
-  texture: GpuTex;
-  textures: GpuTex[];
-  depthBuffer: boolean;
-  stencilBuffer: boolean;
-  depthTexture: null;
-  samples: number;
-  addEventListener(type: string, listener: (...args: unknown[]) => void): void;
-  removeEventListener(type: string, listener: (...args: unknown[]) => void): void;
-};
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
@@ -115,9 +98,6 @@ export class PerfFixes {
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
-  private gpuGeo = new WeakSet<BufferGeometry>();
-  private geoTarget: GeoTarget | null = null;
-  private uploadMat: Material | null = null;
   private primeIdle = 0;
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
@@ -352,10 +332,6 @@ export class PerfFixes {
       const owned = this.regionTextures(rec);
       const geos = new Set<BufferGeometry>();
       rec.group?.traverse((o) => { const g = (o as Obj).geometry; if (g) geos.add(g); });
-      // A geometry that never reached the GPU does not lower info.memory.geometries,
-      // and the copy created on the next visit raises it. Draw the ones prime has
-      // not uploaded yet, then let dispose drop that slot.
-      this.uploadRegionGeometries(rec.group);
       orig(r);
       const live = this.referencedTextures();
       let n = 0;
@@ -640,122 +616,6 @@ export class PerfFixes {
    * so dispose of a mesh the camera has not drawn yet does not free a slot
    * and the copy built on the next visit raises the count.
    */
-  private uploadRegionGeometries(root: Obj | null | undefined) {
-    const renderer = this.g.renderer as unknown as {
-      render: (scene: unknown, camera: unknown) => void;
-      getRenderTarget: () => unknown;
-      setRenderTarget: (target: unknown) => void;
-      autoClear: boolean;
-      info?: { memory?: { geometries?: number } };
-    };
-    if (!root || typeof renderer.render !== "function") return;
-    const pending: Obj[] = [];
-    const stack: Obj[] = [root];
-    while (stack.length) {
-      const mesh = stack.pop()!;
-      for (let i = 0; i < mesh.children.length; i++) stack.push(mesh.children[i] as Obj);
-      if (!mesh.isMesh || mesh.isSkinnedMesh || !mesh.geometry || !mesh.material) continue;
-      if (this.gpuGeo.has(mesh.geometry)) continue;
-      pending.push(mesh);
-    }
-    if (!pending.length) return;
-    const target = this.ensureGeoTarget();
-    if (!target) return;
-    const scratch = new this.g.scene.constructor();
-    if (!this.uploadMat) {
-      const firstMat = pending[0].material;
-      const blank = (Array.isArray(firstMat) ? firstMat[0] : firstMat).clone();
-      for (const key of MAP_KEYS) (blank as unknown as Record<string, unknown>)[key] = null;
-      this.uploadMat = blank;
-    }
-    const blank = this.uploadMat;
-    const saved = pending.map((mesh) => {
-      const inst = mesh as Obj & { count?: number };
-      return {
-        mesh,
-        parent: mesh.parent as Obj | null,
-        visible: mesh.visible,
-        frustumCulled: mesh.frustumCulled,
-        material: mesh.material,
-        count: inst.count,
-      };
-    });
-    for (const item of saved) {
-      item.mesh.visible = true;
-      item.mesh.frustumCulled = false;
-      item.mesh.material = blank;
-      const inst = item.mesh as Obj & { isInstancedMesh?: boolean; count?: number };
-      if (inst.isInstancedMesh && (inst.count ?? 0) > 1) inst.count = 1;
-      scratch.add(item.mesh);
-    }
-    const prevTarget = renderer.getRenderTarget();
-    const prevAutoClear = renderer.autoClear;
-    try {
-      renderer.autoClear = true;
-      renderer.setRenderTarget(target);
-      renderer.render(scratch, this.g.camera);
-      for (const mesh of pending) if (mesh.geometry) this.gpuGeo.add(mesh.geometry);
-    } catch {
-      // Leave them unregistered so a later unload can try again.
-    } finally {
-      renderer.setRenderTarget(prevTarget);
-      renderer.autoClear = prevAutoClear;
-      for (const item of saved) {
-        item.mesh.visible = item.visible;
-        item.mesh.frustumCulled = item.frustumCulled;
-        item.mesh.material = item.material;
-        const inst = item.mesh as Obj & { count?: number };
-        if (item.count !== undefined) inst.count = item.count;
-        if (item.parent) item.parent.add(item.mesh);
-      }
-    }
-  }
-
-  /** One 4×4 target, built from a live game texture so the two Three copies are not mixed. */
-  private ensureGeoTarget(): GeoTarget | null {
-    if (this.geoTarget) return this.geoTarget;
-    let sample: GpuTex | null = null;
-    this.g.scene.traverse((object) => {
-      if (sample) return;
-      const material = (object as Obj).material;
-      const mat = Array.isArray(material) ? material[0] : material;
-      const map = (mat as { map?: GpuTex } | undefined)?.map;
-      if (map?.isTexture && map.clone) sample = map;
-    });
-    if (!sample) return null;
-    const texture = sample.clone!();
-    texture.image = { width: 4, height: 4 };
-    texture.mipmaps = [];
-    const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
-    this.geoTarget = {
-      isWebGLRenderTarget: true,
-      width: 4,
-      height: 4,
-      depth: 1,
-      scissor: { x: 0, y: 0, z: 4, w: 4 },
-      scissorTest: false,
-      viewport: { x: 0, y: 0, z: 4, w: 4 },
-      texture,
-      textures: [texture],
-      depthBuffer: false,
-      stencilBuffer: false,
-      depthTexture: null,
-      samples: 0,
-      addEventListener(type, listener) {
-        let set = listeners.get(type);
-        if (!set) { set = new Set(); listeners.set(type, set); }
-        set.add(listener);
-      },
-      removeEventListener(type, listener) {
-        listeners.get(type)?.delete(listener);
-      },
-    };
-    return this.geoTarget;
-  }
-
-  /** A mesh the camera never drew is absent from renderer.info until a later drive.
-   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
-   *  irrelevant: renderBufferDirect does not consult them. */
   private primeUnseenGeometries() {
     if (this.primeIdle > 0) { this.primeIdle--; return; }
     const renderer = this.g.renderer as unknown as {
