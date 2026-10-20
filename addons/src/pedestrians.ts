@@ -194,7 +194,7 @@ function turnToward(current: number, target: number, dt: number): number {
   return current + Math.sign(delta) * step;
 }
 
-/** Hair and the braid lag the step. They are not in the Walk clip. */
+/** Hair and the braid lag the step. The Walk clip already swings the arms. */
 function swayHair(rig: Rig) {
   const duration = rig.walk.getClip().duration || 1;
   const moving = rig.mode === 0 && rig.speed > 0.25;
