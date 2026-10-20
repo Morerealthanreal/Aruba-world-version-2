@@ -1,5 +1,6 @@
 // CC0 Quaternius bodies, recolored in code to modern Aruba beach clothes.
 // Fully opaque: shirts, shorts, cover-ups, sundress colors. No photo textures.
+// Torso shirts carry a darker collar and one band in the shorts color.
 import {
   AnimationClip, BufferGeometry, Color, Float32BufferAttribute,
   Mesh, SkinnedMesh, type Object3D,
@@ -112,12 +113,26 @@ function yRange(geo: BufferGeometry) {
   return { min: box.min.y, max: box.max.y };
 }
 
+// A torso shell, not a zipper or a backpack. The band is only painted here.
+function torsoShirt(geo: BufferGeometry) {
+  geo.computeBoundingBox();
+  const box = geo.boundingBox!;
+  const wide = box.max.x - box.min.x > 0.2;
+  const tall = box.max.y - box.min.y > 0.28 && box.max.y > 1.3 && box.min.y < 1.4;
+  return wide && tall;
+}
+
 // The shirt shell has no skin under it, so a cut neckline is a hole.
 // Slim the shoulder caps and paint the scoop and outer shoulders as skin.
 // The straps stay cloth. The surface stays closed and it still animates.
-function paintTank(geo: BufferGeometry, clothHex: number, skinHex: number) {
+// A torso shirt also gets a darker collar and one band in the shorts color,
+// so the cloth reads up close. No new texture.
+function paintTop(geo: BufferGeometry, clothHex: number, skinHex: number, accentHex: number, tank: boolean) {
   const cloth = new Color(clothHex);
   const skin = new Color(skinHex);
+  const accent = new Color(accentHex);
+  const collarTone = cloth.clone().multiplyScalar(0.55);
+  const shirt = torsoShirt(geo);
   const pos = geo.getAttribute("position");
   const data = new Float32Array(pos.count * 3);
   const kinds = new Float32Array(pos.count);
@@ -126,17 +141,19 @@ function paintTank(geo: BufferGeometry, clothHex: number, skinHex: number) {
     const y = pos.getY(i);
     const z = pos.getZ(i);
     const ax = Math.abs(x);
-    if (y > 1.34 && ax > 0.12) {
+    if (tank && y > 1.34 && ax > 0.12) {
       x = Math.sign(x) * (0.12 + (ax - 0.12) * 0.4);
       pos.setX(i, x);
     }
     // A real cut would be a hole. Keep the shell closed and paint a small
     // scoop. Kind 0 stays on the flat oil light: kind 1 on this panel reads
     // as an orange bib.
-    const scoop = z > 0.045 && ax < 0.04 && y > 1.5;
-    const shoulder = ax > 0.175 && y > 1.48;
+    const scoop = tank && z > 0.045 && ax < 0.04 && y > 1.5;
+    const shoulder = tank && ax > 0.175 && y > 1.48;
     const bare = scoop || shoulder;
-    const tone = bare ? skin : cloth;
+    const chest = shirt && !bare && y > 1.28 && y < 1.36 && z > 0.02 && ax < 0.14;
+    const collar = shirt && !tank && !bare && y > 1.46 && z > 0.03 && ax < 0.1;
+    const tone = bare ? skin : chest ? accent : collar ? collarTone : cloth;
     data[i * 3] = tone.r;
     data[i * 3 + 1] = tone.g;
     data[i * 3 + 2] = tone.b;
@@ -145,7 +162,7 @@ function paintTank(geo: BufferGeometry, clothHex: number, skinHex: number) {
   pos.needsUpdate = true;
   geo.setAttribute("color", new Float32BufferAttribute(data, 3));
   geo.setAttribute("awKind", new Float32BufferAttribute(kinds, 1));
-  geo.computeVertexNormals();
+  if (tank) geo.computeVertexNormals();
 }
 
 function clothColor(outfit: BeachOutfit, name: string, min: number, max: number): number | null {
@@ -181,7 +198,7 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     const hex = clothColor(outfit, name, range.min, range.max);
     if (hex == null) return;
     const geo = src.clone();
-    if (outfit.tank && hex === outfit.top) paintTank(geo, hex, outfit.skin);
+    if (hex === outfit.top) paintTop(geo, hex, outfit.skin, outfit.bottom, outfit.tank === true);
     else paint(geo, hex, surfaceKind(name));
     if (!geo.getAttribute("skinIndex") || !geo.getAttribute("skinWeight") || !geo.getIndex()) return;
     for (const key of Object.keys(geo.attributes)) {
