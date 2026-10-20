@@ -52,6 +52,8 @@ type Rig = {
   mixer: AnimationMixer;
   idle: AnimationAction;
   walk: AnimationAction;
+  /** Meters per second of the Walk clip at timeScale 1. */
+  walkMps: number;
   triangles: number;
   slot: number;
   mode: number;
@@ -173,6 +175,17 @@ function poseSit(rig: Rig) {
   rig.root.updateMatrixWorld(true);
   plantFoot(sit.ll.bone, sit.fl, sit.ankleL, sit.footRelL);
   plantFoot(sit.lr.bone, sit.fr, sit.ankleR, sit.footRelR);
+}
+
+/** Stance travel of one in-place Walk cycle, measured on these Quaternius feet. */
+const WALK_STRIDE = 1.47;
+
+/** How fast this slot is moving along the beach, in meters per second. */
+function paceSpeed(slot: Slot, time: number): number {
+  if (slot.mode !== 0) return 0;
+  if (!slot.pinned) return 1.05;
+  const theta = (slot.phase + time * 0.35) * Math.PI;
+  return Math.abs(Math.cos(theta) * 2.4 * 0.35 * Math.PI);
 }
 
 function poseTalk(rig: Rig, time: number, standing: boolean) {
@@ -491,6 +504,7 @@ export class PedestrianCrowds {
         this.g.scene.add(root);
         this.rigs.push({
           root, parts, mixer, idle, walk,
+          walkMps: WALK_STRIDE / source.walk.duration,
           triangles: source.triangles,
           slot: -1,
           mode: -1,
@@ -695,6 +709,13 @@ export class PedestrianCrowds {
         rig.idle.setEffectiveWeight(moving ? 0 : 1);
         if (moving) rig.walk.time = slot.phase * rig.walk.getClip().duration;
         else rig.idle.time = slot.phase * rig.idle.getClip().duration;
+      }
+      if (slot.mode === 0) {
+        const speed = paceSpeed(slot, _time);
+        const pace = Math.min(1, speed / 0.4);
+        rig.walk.setEffectiveWeight(pace);
+        rig.idle.setEffectiveWeight(1 - pace);
+        if (speed > 0.05) rig.walk.timeScale = Math.min(2, Math.max(0.7, speed / rig.walkMps));
       }
       rig.mixer.update(dt);
       if (slot.mode === 2 && rig.sit) {
