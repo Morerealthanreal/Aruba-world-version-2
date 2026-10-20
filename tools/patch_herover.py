@@ -41,3 +41,13 @@ if "dm=new Nf().setDRACOLoader" not in s:
     )
     open(f, "w").write(s)
     print("herover: draco on")
+    s = open(f).read()
+# The public window.game facade does not include the hero list. Publish it for
+# the registry check. No scene objects are added.
+site = "await this.hero.init(),this.group.add(this.hero.group)"
+hooked = "await this.hero.init(),window.__awHeroes=this.hero.list,this.group.add(this.hero.group)"
+if "window.__awHeroes=" not in s:
+    assert s.count(site) == 1, "hero init site not found"
+    s = s.replace(site, hooked, 1)
+    open(f, "w").write(s)
+    print("herover: hero list hook")

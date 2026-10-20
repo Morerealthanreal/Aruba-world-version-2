@@ -184,7 +184,7 @@ test("runs every travel mode and captures fixed locations", async ({
     const expected = rows.filter(
       (entry) => entry && entry.glb && Number.isFinite(entry.x) && Number.isFinite(entry.z),
     ).length;
-    return { expected, loaded: window.game.hero?.list?.length ?? -1 };
+    return { expected, loaded: window.__awHeroes?.length ?? -1 };
   });
   expect(heroes.loaded, "every hero place failed to load").toBe(heroes.expected);
   assertNoRuntimeErrors(runtimeErrors);
