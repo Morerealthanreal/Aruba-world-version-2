@@ -1,5 +1,5 @@
-import { RoadGraph, type RoadPolyline } from "./graph.ts";
-import { MinHeap } from "./heap.ts";
+import { RoadGraph, type RoadPolyline } from "./graph";
+import { MinHeap } from "./heap";
 
 /** Arrow relative to the way the player is facing. Heading 0 looks toward -Z. Positive is a right turn. */
 export function turnArrow(heading: number, dx: number, dz: number): "↑" | "→" | "←" {
