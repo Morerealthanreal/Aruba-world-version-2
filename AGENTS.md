@@ -18,7 +18,7 @@ python3 tools/build_hero_manifest.py --adopt
 
 ## Beach outfits
 
-Each outfit is one file: `addons/src/outfits/<order>-<name>.ts`. `npm run build` in `addons/` generates `addons/src/outfits/index.ts`. Do not edit the generated index. A new body is a new numbered file. Keep the six current bodies distinct. The casual woman keeps the white tank and denim.
+Each outfit is one file: `addons/src/outfits/<order>-<name>.ts`. `npm run build` in `addons/` generates `addons/src/outfits/index.ts`. Do not edit the generated index. The generator sorts by the numeric prefix. A new body or colorway is a new numbered file. Keep the six current bodies distinct. The casual woman keeps the white tank and denim. Extra colorways for older adults and men's clothes stay in their own files.
 
 ## Checks
 
