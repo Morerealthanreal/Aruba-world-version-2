@@ -3,9 +3,10 @@
 // the camera, so Noord, Eagle, Malmok, and Oranjestad get families too.
 // Children are the same rigged ped models re-proportioned
 // (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
-// after every animation update; brighter kids' clothes, tops and trousers kept.
+// after every animation update. Shirts, trousers, and hair are flat opaque colors.
 // Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
-// Pool is small (<= 2 per adult ped, capped per tier), no shadows on phones. Off with ?kids=0.
+// Pool is small (<= 2 per adult ped, capped per tier). Low keeps one of each
+// shirt. No shadows on phones. Off with ?kids=0.
 import { AnimationMixer, BufferGeometry, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type SkinnedMesh, type Texture } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skClone } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -42,6 +43,8 @@ function familySize(key: number): 0 | 1 | 2 {
 
 const BONES: Record<string, number> = { head: 1.3, thigh_l: 0.9, thigh_r: 0.9, upperarm_l: 0.9, upperarm_r: 0.9, spine_01: 0.95 };
 const KID_TOPS = [0xff5a5f, 0x3fa7ff, 0xffd23f, 0x5ed16a, 0xff8fd1, 0xff9b3d, 0x9b6bff];
+const KID_BOTTOMS = [0x2f5d96, 0xe6d2a8, 0x243044, 0xf4efe4, 0x3f4f3a, 0x4e5968, 0xd2c4a4];
+const KID_HAIR = [0x1a1412, 0x4a3020, 0x8a3a22, 0xc8c2b4, 0x2a1c14, 0x6b3a22, 0xd5d0c6];
 
 export class Kids {
   stats = { kids: 0, families: 0, visible: 0 };
@@ -56,7 +59,7 @@ export class Kids {
   private primeWait = 0;
   constructor(private g: AGame, mobile: boolean) {
     const tier = (g.real as unknown as { q: { name: string } }).q.name;
-    this.cap = tier === "low" ? 3 : tier === "med" ? 8 : 14;
+    this.cap = tier === "low" ? KID_TOPS.length : tier === "med" ? 8 : 14;
     this.shadows = !mobile;
     this.group.name = "aw:kids";
     (g.scene as unknown as { add(o: Object3D): void }).add(this.group as unknown as Object3D);
@@ -126,7 +129,19 @@ export class Kids {
       if (m.isMesh || m.isSkinnedMesh) {
         m.castShadow = this.shadows; m.frustumCulled = false;
         if (/accessory|held/i.test(m.name)) m.visible = false;
-        if (m.material) { const mt = m.material.clone() as { name?: string; color?: Color }; if (/top/i.test(mt.name || "") && mt.color) mt.color.copy(top); (o as unknown as { material: unknown }).material = mt; }
+        if (m.material) {
+          const mt = m.material.clone() as { name?: string; color?: Color; map?: unknown; transparent?: boolean; opacity?: number };
+          const name = mt.name || "";
+          if (mt.color) {
+            if (/top/i.test(name)) mt.color.copy(top);
+            else if (/trouser|bottom/i.test(name)) mt.color.setHex(KID_BOTTOMS[(i * 3) % KID_BOTTOMS.length]);
+            else if (/hair|ponytail|short01/i.test(name)) mt.color.setHex(KID_HAIR[(i * 5) % KID_HAIR.length]);
+          }
+          // Flat cloth. Drop the photo weave so a dark texture cannot hide the color.
+          // Hair cards keep their mask and their texture.
+          if (/top|trouser|bottom/i.test(name)) { mt.map = null; mt.transparent = false; mt.opacity = 1; }
+          (o as unknown as { material: unknown }).material = mt;
+        }
       }
       if (BONES[o.name]) bones.push([o, BONES[o.name]]);
     });
