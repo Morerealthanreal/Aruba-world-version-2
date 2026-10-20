@@ -20,8 +20,12 @@
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
 //  8. Region unload frees textures nothing else still references. The first height,
-//     splat, and sign image stay, and the terrain and water materials that close over
-//     them are reused, so a reload does not upload a second copy. Every other map on a
+//     splat, and sign image stay. A reload's terrain and water materials are still new
+//     (reusing the material kept the previous visit's geometries on the GPU), and they
+//     are built around that first image instead of a second upload. Water's height
+//     uniform is closed over inside onBeforeCompile, so the kept image has to be the
+//     one passed into the factory; wrapping onBeforeCompile to swap it later compiled
+//     a fresh program per visit and the geometry count climbed. Every other map on a
 //     live region is uploaded before a sample can miss it, so the loader's dispose drops
 //     the GPU count instead of leaving a slot the next visit fills. Building batches release
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
@@ -122,6 +126,7 @@ export class PerfFixes {
     this.hookUpdate();
     this.hookHero();
     this.hookDispose();
+    this.hookMaterialFactories();
     this.fixGlass();
   }
 
@@ -354,66 +359,84 @@ export class PerfFixes {
     };
   }
 
-  /** First height, splat, sign, and the terrain/water materials that close over
-   *  them. A reload builds new images; water keeps its height texture in the
-   *  shader closure, so the whole material has to be reused. The duplicate is
-   *  disposed before it is uploaded. */
-  private keptRegion = new Map<string, {
-    hf: GpuTex | null; splat: GpuTex | null; sign: GpuTex | null;
-    mat: Material | null; wmat: Material | null;
-  }>();
+  /** First height, splat, and sign image for a region. Later visits build new
+   *  materials around these, then dispose the duplicates before they upload. */
+  private keptRegion = new Map<string, { hf: GpuTex | null; splat: GpuTex | null; sign: GpuTex | null }>();
 
+  /** Terrain and water close over the textures passed into their factories.
+   *  Swap in the kept image before that closure is built. Materials stay per
+   *  visit, which is what releases their geometries on unload. */
+  private hookMaterialFactories() {
+    const real = this.real as unknown as {
+      terrain?: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } };
+      water?: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } };
+    };
+    const wrap = (
+      fac: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } } | undefined,
+      kind: "terrain" | "water",
+    ) => {
+      if (!fac?.material || fac.material.__awReuse) return;
+      const orig = fac.material.bind(fac);
+      const wrapped = (...args: unknown[]) => {
+        if (kind === "terrain") {
+          args[0] = this.reuseBuilt(args[0], "splat");
+          args[1] = this.reuseBuilt(args[1], "hf");
+        } else {
+          args[0] = this.reuseBuilt(args[0], "hf");
+        }
+        return orig(...args);
+      };
+      wrapped.__awReuse = 1;
+      fac.material = wrapped;
+    };
+    wrap(real.terrain, "terrain");
+    wrap(real.water, "water");
+  }
+
+  /** The region record already holds the fresh image when the factory runs. */
+  private reuseBuilt(tex: unknown, field: "hf" | "splat") {
+    const fresh = tex as GpuTex | null | undefined;
+    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return tex;
+    let rec: Reg | null = null;
+    for (const region of this.real.regions.values()) if (region[field] === fresh) { rec = region; break; }
+    if (!rec) return tex;
+    const slot = this.slotFor(rec);
+    const kept = slot[field];
+    if (!kept) { fresh.__awKeep = 1; slot[field] = fresh; return fresh; }
+    if (kept === fresh) return fresh;
+    if ((kept.image?.width ?? 0) !== fresh.image?.width || (kept.image?.height ?? 0) !== fresh.image?.height) return fresh;
+    rec[field] = kept;
+    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+    return kept;
+  }
+
+  private slotFor(rec: Reg) {
+    const key = rec.rx + "," + rec.rz;
+    let slot = this.keptRegion.get(key);
+    if (!slot) {
+      slot = { hf: null, splat: null, sign: null };
+      this.keptRegion.set(key, slot);
+    }
+    return slot;
+  }
+
+  /** Images created before the factory hook (the boot ring) are the copies to keep.
+   *  Signs are ordinary maps, built with the region mesh, so they can be retargeted
+   *  after the fact. Height and splat are not: their materials already closed over them. */
   private reuseRegionTextures() {
     for (const rec of this.real.regions.values()) {
       if (rec.state === "loading" || rec.state === "failed") continue;
-      const key = rec.rx + "," + rec.rz;
-      const slot = this.keptRegion.get(key);
-      if (!slot) {
-        const ready = (tex: GpuTex | null | undefined) =>
-          tex?.isTexture && (tex.image?.width ?? 0) > 0 ? tex : null;
-        const hf = ready(rec.hf), splat = ready(rec.splat), sign = ready(rec.signTex);
-        if (!hf && !splat && !sign) continue;
-        for (const tex of [hf, splat, sign]) if (tex) tex.__awKeep = 1;
-        this.keptRegion.set(key, { hf, splat, sign, mat: rec.mat ?? null, wmat: rec.wmat ?? null });
-        continue;
-      }
-      if (!this.sameSize(rec.hf, slot.hf) || !this.sameSize(rec.splat, slot.splat) || !this.sameSize(rec.signTex, slot.sign)) continue;
-      this.reuseMaterial(rec, slot, "mat");
-      this.reuseMaterial(rec, slot, "wmat");
-      this.reuseTexture(rec, slot, "hf");
-      this.reuseTexture(rec, slot, "splat");
+      const slot = this.slotFor(rec);
+      this.adopt(slot, "hf", rec.hf);
+      this.adopt(slot, "splat", rec.splat);
       this.reuseSign(rec, slot);
     }
   }
 
-  /** A texture that is still empty does not count. A real size mismatch keeps the fresh copy. */
-  private sameSize(fresh: GpuTex | null | undefined, kept: GpuTex | null) {
-    if (!fresh?.isTexture || !kept || (fresh.image?.width ?? 0) <= 0) return true;
-    return fresh.image?.width === kept.image?.width && fresh.image?.height === kept.image?.height;
-  }
-
-  private reuseMaterial(rec: Reg, slot: { mat: Material | null; wmat: Material | null }, field: "mat" | "wmat") {
-    const fresh = rec[field];
-    if (!fresh) return;
-    const kept = slot[field];
-    if (!kept) { slot[field] = fresh; return; }
-    if (fresh === kept) return;
-    rec.group?.traverse((object) => {
-      const mesh = object as Obj;
-      if (mesh.material === fresh) mesh.material = kept;
-    });
-    fresh.dispose();
-    rec[field] = kept;
-  }
-
-  private reuseTexture(rec: Reg, slot: { hf: GpuTex | null; splat: GpuTex | null }, field: "hf" | "splat") {
-    const fresh = rec[field];
-    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return;
-    const kept = slot[field];
-    if (!kept) { fresh.__awKeep = 1; slot[field] = fresh; return; }
-    if (fresh === kept) return;
-    rec[field] = kept;
-    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+  private adopt(slot: { hf: GpuTex | null; splat: GpuTex | null }, field: "hf" | "splat", tex: GpuTex | null | undefined) {
+    if (slot[field] || !tex?.isTexture || (tex.image?.width ?? 0) <= 0) return;
+    tex.__awKeep = 1;
+    slot[field] = tex;
   }
 
   private reuseSign(rec: Reg, slot: { sign: GpuTex | null }) {
@@ -422,6 +445,7 @@ export class PerfFixes {
     if (!slot.sign) { fresh.__awKeep = 1; slot.sign = fresh; return; }
     const kept = slot.sign;
     if (fresh === kept) return;
+    if ((kept.image?.width ?? 0) !== fresh.image?.width || (kept.image?.height ?? 0) !== fresh.image?.height) return;
     rec.group?.traverse((object) => {
       const mesh = object as Obj;
       if (mesh.name !== "signs" || !mesh.material || Array.isArray(mesh.material)) return;
@@ -433,15 +457,13 @@ export class PerfFixes {
     if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
   }
 
-  /** Drop the loader's handles. Leave the kept material's uniforms alone. */
+  /** Drop the loader's handles so disposeRegion does not free the kept images. */
   private detachKept(rec: Reg) {
     const slot = this.keptRegion.get(rec.rx + "," + rec.rz);
     if (!slot) return;
     if (rec.hf && rec.hf === slot.hf) rec.hf = null;
     if (rec.splat && rec.splat === slot.splat) rec.splat = null;
     if (rec.signTex && rec.signTex === slot.sign) rec.signTex = null;
-    if (rec.mat && rec.mat === slot.mat) rec.mat = null;
-    if (rec.wmat && rec.wmat === slot.wmat) rec.wmat = null;
     const sign = slot.sign;
     if (!sign) return;
     rec.group?.traverse((object) => {
