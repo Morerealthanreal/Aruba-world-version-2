@@ -45,7 +45,11 @@ import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
-type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type Hero = {
+  group?: Obj;
+  list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean; _awHold?: number }>;
+  update(x: number, z: number): void;
+};
 type BatchMesh = {
   dispose(): void;
   geometry?: BufferGeometry;
@@ -314,6 +318,22 @@ export class PerfFixes {
     const orig = h.update.bind(h);
     const cap = this.heroCap;
     h.update = (x: number, z: number) => {
+      // The base loader fetches every GLB inside 1500 m. Low already hides
+      // heroes outside this cap, and those hidden signs were still uploading
+      // on the measured lap (texture growth 5.5, limit 4). Keep the fetch
+      // until the phone is close enough to draw the building.
+      if (this.real.q.name === "low") {
+        for (const n of h.list) {
+          if (n._g) continue;
+          const far = Math.hypot(n.x - x, n.z - z) > cap;
+          if (far) {
+            if (!n._loading) { n._loading = true; n._awHold = 1; }
+          } else if (n._awHold) {
+            n._loading = false;
+            n._awHold = 0;
+          }
+        }
+      }
       orig(x, z);
       let hidden = 0;
       for (const n of h.list) {
