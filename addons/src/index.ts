@@ -49,6 +49,7 @@ import { SnSacRecentMurals } from "./snSacRecentMurals";
 import { TierraResort } from "./tdsResort";
 import { CamCycle } from "./camCycle";
 import { Radio } from "./radio";
+import { Barcadera } from "./barcadera";
 import { Sea } from "./sea";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
@@ -117,6 +118,8 @@ async function main() {
   const snfamous = params.get("snfamous") !== "0" ? new SnFamousMurals(g) : null;
   const snsacrecent = params.get("snsacrecent") === "1" ? new SnSacRecentMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
+  const barc = params.get("barcadera") !== "0" ? new Barcadera(g) : null; // Barcadera cargo port: quay, yard, containers, cranes, basin, reef surf
+  (window as unknown as { __awBarcadera?: unknown }).__awBarcadera = barc;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
   // Route from a minimap tap. On by default; ?nav=0 disables it. Nothing is built when disabled.
   let nav: Navigator | null = null;
