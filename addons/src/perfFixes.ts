@@ -37,7 +37,7 @@
 //     already include them. Hero images, including the sign, that decode after that
 //     first draw are uploaded on a later pass for any hero already loaded within
 //     1500 m, instead of waiting until the next visit.
-import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, Scene, type Material, type Object3D } from "three";
+import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
 import { TileInstances } from "./tileInst";
@@ -340,9 +340,6 @@ export class PerfFixes {
       this.uploadNow(rec.hf);
       this.uploadNow(rec.splat);
       this.uploadNow(rec.signTex);
-      // A geometry the camera never drew is not in info.memory.geometries, so
-      // dispose does not lower the count and the rebuild on the next visit does.
-      this.registerGeometries(this.regionMeshes(rec));
       this.releaseBatches(rec);
       const owned = this.regionTextures(rec);
       const geos = new Set<BufferGeometry>();
@@ -741,119 +738,59 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
-  /** Meshes whose geometry disposeRegion and the batch sweep are about to free. */
-  private regionMeshes(rec: Reg) {
-    const meshes: Obj[] = [];
-    rec.group?.traverse((object) => {
-      const mesh = object as Obj;
-      if (mesh.geometry) meshes.push(mesh);
-    });
-    for (const batch of rec.__awBB || []) meshes.push(batch.bm as unknown as Obj);
-    return meshes;
-  }
-
-  private scratch: { scene: Scene; mat: MeshBasicMaterial; pool: Mesh[] } | null = null;
-
   /**
-   * Put geometries into renderer.info.memory before they are disposed.
-   * renderBufferDirect never calls the object's geometry update, so a chunk
-   * the camera had not drawn stayed out of the count, dispose was a no-op,
-   * and the buffer built on the next visit raised it. A scratch render goes
-   * through that update. One shared untextured material keeps the texture
-   * count unchanged.
-   */
-  private registerGeometries(meshes: Array<Obj | null | undefined>) {
-    const renderer = this.g.renderer as unknown as { render?: (scene: Object3D, camera: unknown) => void };
-    const camera = this.g.camera;
-    if (!renderer.render || !camera) return;
-    const render = renderer.render.bind(renderer);
-    const pending: BufferGeometry[] = [];
-    const seen = new Set<BufferGeometry>();
-    for (const mesh of meshes) {
-      const geo = mesh?.geometry;
-      if (!geo || this.primedGeo.has(geo) || seen.has(geo)) continue;
-      const position = geo.getAttribute("position");
-      // Instanced buffers draw through their own mesh. A plain Mesh here
-      // would throw and the rest of the batch would never be registered.
-      if ((geo as BufferGeometry & { isInstancedBufferGeometry?: boolean }).isInstancedBufferGeometry) {
-        this.primedGeo.add(geo);
-        continue;
-      }
-      if (!position || position.count === 0) { this.primedGeo.add(geo); continue; }
-      seen.add(geo);
-      pending.push(geo);
-    }
-    if (!pending.length) return;
-    const accepted = this.drawGeometries(render, camera, pending)
-      ? pending
-      : pending.filter((geo) => this.drawGeometries(render, camera, [geo]));
-    for (const geo of pending) this.primedGeo.add(geo);
-    if (accepted.length !== pending.length && this.freedGeo === 0) {
-      this.stats.changes.push("some region geometries could not be registered before dispose");
-    }
-  }
-
-  /** Returns false when the scratch draw throws before the geometries are registered. */
-  private drawGeometries(
-    render: (scene: Object3D, camera: unknown) => void,
-    camera: unknown,
-    geos: BufferGeometry[],
-  ) {
-    if (!this.scratch) this.scratch = { scene: new Scene(), mat: new MeshBasicMaterial(), pool: [] };
-    const { scene, mat, pool } = this.scratch;
-    const used: Mesh[] = [];
-    for (const geo of geos) {
-      const holder = pool.pop() || new Mesh();
-      holder.geometry = geo;
-      holder.material = mat;
-      holder.frustumCulled = false;
-      holder.matrixAutoUpdate = false;
-      holder.visible = true;
-      scene.add(holder);
-      used.push(holder);
-    }
-    let ok = true;
-    try { render(scene, camera); }
-    catch { ok = false; }
-    for (const holder of used) {
-      scene.remove(holder);
-      holder.geometry = null as unknown as BufferGeometry;
-      pool.push(holder);
-    }
-    return ok;
-  }
-
-  /**
-   * Register region geometries with the renderer before unload or a LOD swap.
-   * A geometry the camera has not drawn is missing from info.memory.geometries,
-   * so dispose does not free a slot and the copy built on the next visit raises
-   * the count.
+   * Register region geometries with the renderer before unload.
+   * renderBufferDirect outside a frame never touches info.memory.geometries,
+   * so dispose of a mesh the camera has not drawn yet does not free a slot
+   * and the copy built on the next visit raises the count.
    */
   private primeUnseenGeometries() {
     if (this.primeIdle > 0) { this.primeIdle--; return; }
-    const budget = 24;
-    const meshes: Obj[] = [];
-    const walk = (root: Obj | null | undefined) => {
-      if (!root || meshes.length >= budget) return;
-      const stack: Obj[] = [root];
-      while (stack.length && meshes.length < budget) {
-        const object = stack.pop()!;
-        if (object.geometry && !this.primedGeo.has(object.geometry)) meshes.push(object);
-        for (let i = 0; i < object.children.length; i++) stack.push(object.children[i] as Obj);
+    const renderer = this.g.renderer as unknown as {
+      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
+    };
+    if (!renderer.renderBufferDirect) return;
+    const cam = this.g.camera;
+    let budget = 16;
+    const draw = (mesh: Obj | null | undefined) => {
+      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
+      if (this.primedGeo.has(mesh.geometry)) return;
+      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!mat) return;
+      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
+      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
+      if (savedCount !== undefined) inst.count = 1;
+      try {
+        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
+        this.primedGeo.add(mesh.geometry);
+        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
+        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
+        budget--;
+      } catch {
+        // A mesh that cannot draw here would otherwise sit at the front of the walk
+        // and spend the budget forever. The normal frame can still upload it.
+        this.primedGeo.add(mesh.geometry);
+      } finally {
+        if (savedCount !== undefined) inst.count = savedCount;
       }
     };
-    for (const region of this.real.regions.values()) {
-      if (meshes.length >= budget) break;
-      if (region.state === "loading" || region.state === "failed") continue;
-      walk(region.group);
-      for (const batch of region.__awBB || []) {
-        if (meshes.length >= budget) break;
-        walk(batch.bm as unknown as Obj);
+    const walk = (root: Obj | null | undefined) => {
+      if (!root || budget <= 0) return;
+      const stack: Obj[] = [root];
+      while (stack.length && budget > 0) {
+        const o = stack.pop()!;
+        draw(o);
+        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
       }
+    };
+    for (const r of this.real.regions.values()) {
+      if (budget <= 0) break;
+      if (r.state === "loading" || r.state === "failed") continue;
+      walk(r.group);
+      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
     }
-    if (meshes.length < budget) walk(this.real.hero?.group);
-    if (!meshes.length) { this.primeIdle = 2; return; }
-    this.registerGeometries(meshes);
+    if (budget > 0) walk(this.real.hero?.group);
+    if (budget === 16) this.primeIdle = 2;
   }
 
   /** Runs right after A's per-frame world update, before A renders. */
