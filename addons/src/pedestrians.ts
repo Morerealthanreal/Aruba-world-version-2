@@ -67,6 +67,8 @@ type Rig = {
   upperL: Object3D | null;
   lowerL: Object3D | null;
   mouth: Object3D | null;
+  hair: Object3D | null;
+  braid: Object3D | null;
 };
 
 function displayParts(root: Object3D): Object3D[] {
@@ -181,6 +183,25 @@ function poseSit(rig: Rig) {
 
 /** Stance travel of one in-place Walk cycle, measured on these Quaternius feet. */
 const WALK_STRIDE = 1.47;
+
+/** Shortest step from the current heading toward the way they are walking. */
+function turnToward(current: number, target: number, dt: number): number {
+  let delta = target - current;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  const step = 4.5 * dt;
+  if (Math.abs(delta) <= step) return target;
+  return current + Math.sign(delta) * step;
+}
+
+/** Hair and the braid lag the step. They are not in the Walk clip. */
+function swayHair(rig: Rig) {
+  const duration = rig.walk.getClip().duration || 1;
+  const moving = rig.mode === 0 && rig.speed > 0.25;
+  const swing = moving ? Math.sin((rig.walk.time / duration) * Math.PI * 2) * 0.12 : 0;
+  if (rig.hair) rig.hair.rotation.x = swing * 0.45;
+  if (rig.braid) rig.braid.rotation.x = -swing;
+}
 
 /** How fast this slot is moving along the beach, in meters per second. */
 function paceSpeed(slot: Slot, time: number): number {
@@ -517,6 +538,8 @@ export class PedestrianCrowds {
           upperL: root.getObjectByName("UpperArmL") ?? null,
           lowerL: root.getObjectByName("LowerArmL") ?? null,
           mouth: root.getObjectByName("aw:mouth") ?? null,
+          hair: root.getObjectByName("aw:hair") ?? null,
+          braid: root.getObjectByName("aw:braid") ?? null,
         });
       }
       this.prime();
@@ -652,7 +675,13 @@ export class PedestrianCrowds {
       if (!this.slotNear(slot, cam.x, cam.z)) continue;
       if (slot.mode === 0) {
         const before = slot.z;
-        if (slot.pinned) slot.z = slot.z0 + Math.sin((slot.phase + _time * 0.35) * Math.PI) * 2.4;
+        if (slot.pinned) {
+          const theta = (slot.phase + _time * 0.35) * Math.PI;
+          const along = Math.cos(theta);
+          // Hold the heading through the pause, then face the new direction.
+          if (Math.abs(along) > 0.2) slot.dir = along > 0 ? 1 : -1;
+          slot.z = slot.z0 + Math.sin(theta) * 2.4;
+        }
         else {
           slot.z += slot.dir * 1.05 * dt;
           if (slot.z > -4900) slot.dir = -1;
@@ -704,7 +733,9 @@ export class PedestrianCrowds {
       rig.shown = true;
       showParts(rig.parts, true);
       rig.root.position.set(slot.x, slot.y, slot.z);
-      rig.root.rotation.y = this.yaw(slot);
+      const heading = this.yaw(slot);
+      const fresh = rig.slot !== index;
+      rig.root.rotation.y = slot.mode === 0 && !fresh ? turnToward(rig.root.rotation.y, heading, dt) : heading;
       if (rig.slot !== index || rig.mode !== slot.mode) {
         rig.slot = index;
         rig.mode = slot.mode;
@@ -723,6 +754,7 @@ export class PedestrianCrowds {
         if (speed > 0.05) rig.walk.timeScale = Math.min(2, Math.max(0.7, speed / rig.walkMps));
       }
       rig.mixer.update(dt);
+      swayHair(rig);
       if (slot.mode === 2 && rig.sit) {
         poseSit(rig);
         rig.root.updateMatrixWorld(true);
