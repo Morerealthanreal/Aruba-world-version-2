@@ -4,7 +4,8 @@
 // Children are the same rigged ped models re-proportioned
 // (not just shrunk): ~0.62 overall, head x1.3, legs/arms ~0.9, torso 0.95, re-applied
 // after every animation update. Shirts, trousers, and hair are flat opaque colors.
-// Gait: Walk_Brisk at a faster cadence to keep the adult's pace (Jog if needed).
+// Gait follows the adult: Idle_Standing when they stop, Walk_Brisk at their
+// speed, Jog when that is faster than a brisk walk.
 // Pool is small (<= 2 per adult ped, capped per tier). Low keeps one of each
 // shirt. No shadows on phones. Off with ?kids=0.
 import { AnimationMixer, BufferGeometry, Color, Group, Scene, Vector3, type AnimationAction, type Object3D, type SkinnedMesh, type Texture } from "three";
@@ -14,8 +15,8 @@ import type { AGame } from "./env";
 import { holdGeometry } from "./npcBake";
 
 type Ped = { g: Object3D & { position: Vector3; rotation: { y: number } }; rd: unknown; sp?: number; pedFlip?: number; __fam?: number; __rd?: unknown };
-type Kid = { root: Group; inner: Object3D; parts: Object3D[]; mixer: AnimationMixer; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; follow: number; slot: number; applied?: boolean };
-type CrowdRig = { mode: number; shown?: boolean; root: Object3D & { position: Vector3; rotation: { y: number }; visible: boolean } };
+type Kid = { root: Group; inner: Object3D; parts: Object3D[]; mixer: AnimationMixer; idle: AnimationAction; walk: AnimationAction; jog: AnimationAction; bones: Array<[Object3D, number]>; follow: number; slot: number; applied?: boolean };
+type CrowdRig = { mode: number; shown?: boolean; speed?: number; root: Object3D & { position: Vector3; rotation: { y: number }; visible: boolean } };
 
 function displayParts(root: Object3D): Object3D[] {
   const parts: Object3D[] = [];
@@ -147,8 +148,10 @@ export class Kids {
     });
     const mixer = new AnimationMixer(inner);
     const clip = (n: string) => src.animations.find((a) => a.name === n) || src.animations[0];
+    const idle = mixer.clipAction(clip("Idle_Standing"));
     const walk = mixer.clipAction(clip("Walk_Brisk")), jog = mixer.clipAction(clip("Jog"));
-    walk.play(); jog.play(); jog.setEffectiveWeight(0);
+    idle.play(); walk.play(); jog.play();
+    idle.setEffectiveWeight(0); jog.setEffectiveWeight(0);
     walk.time = Math.random() * walk.getClip().duration;
     // One clone per pool slot. The root stays visible so the shared GLB
     // geometries are uploaded with the rest of the scene, not on a later lap.
@@ -157,7 +160,7 @@ export class Kids {
     root.visible = true;
     this.group.add(root);
     this.stats.kids++;
-    return { root, inner, parts, mixer, walk, jog, bones, follow: -1, slot: 0 };
+    return { root, inner, parts, mixer, idle, walk, jog, bones, follow: -1, slot: 0 };
   }
 
   update(dt: number) {
@@ -202,7 +205,7 @@ export class Kids {
         if (!near(pos.x, pos.z)) continue;
         const want = familySize(500 + i);
         if (!want) continue;
-        wanted.push({ key: 500 + i, want, pos, ry: rig.root.rotation.y, sp: 1.05 });
+        wanted.push({ key: 500 + i, want, pos, ry: rig.root.rotation.y, sp: rig.speed ?? 0 });
       }
     }
     const byKey = new Map<number, Follow>();
@@ -246,12 +249,17 @@ export class Kids {
       vis++;
       const sp = adult.sp;
       const size = k.root.scale.x;
+      // Same blend as the beach adults: a full walk only once they are moving.
+      const pace = Math.min(1, sp / 0.4);
       const ts = sp / (1.8 * size);
-      const jogW = ts > 1.45 ? 1 : 0;
-      k.walk.setEffectiveWeight(1 - jogW);
-      k.jog.setEffectiveWeight(jogW);
-      k.walk.timeScale = Math.min(1.6, ts);
-      k.jog.timeScale = Math.min(1.3, sp / (3.2 * size));
+      const jog = pace > 0 && ts > 1.45;
+      k.idle.setEffectiveWeight(1 - pace);
+      k.walk.setEffectiveWeight(jog ? 0 : pace);
+      k.jog.setEffectiveWeight(jog ? pace : 0);
+      if (sp > 0.05) {
+        k.walk.timeScale = Math.min(1.6, Math.max(0.7, ts));
+        k.jog.timeScale = Math.min(1.3, sp / (3.2 * size));
+      }
       if (k.applied) for (const [b, s] of k.bones) b.scale.divideScalar(s);
       k.mixer.update(dt);
       k.applied = true;
