@@ -311,7 +311,7 @@ export class PedestrianCrowds {
     void this.load(cap);
   }
 
-  private async loadGlb(url: string, tries = 3) {
+  private async loadBuffer(url: string, tries = 3) {
     let last: unknown;
     for (let attempt = 0; attempt < tries; attempt++) {
       const ctrl = new AbortController();
@@ -321,7 +321,7 @@ export class PedestrianCrowds {
         if (!res.ok) throw new Error(`${url} ${res.status}`);
         const buf = await res.arrayBuffer();
         window.clearTimeout(timer);
-        return await new GLTFLoader().parseAsync(buf, "");
+        return buf;
       } catch (error) {
         window.clearTimeout(timer);
         last = error;
@@ -334,36 +334,42 @@ export class PedestrianCrowds {
     try {
       this.baked = [];
       console.log("[aw-peds] loading beach outfits");
-      const missed: typeof BEACH_OUTFITS[number][] = [];
-      const baked = new Map<string, BakedPerson>();
-      const bake = async (outfit: typeof BEACH_OUTFITS[number], tries: number) => {
-        const url = `./models/${outfit.file}`;
-        console.log("[aw-peds] fetch", outfit.file);
-        const gl = await this.loadGlb(url, tries);
-        const person = bakePerson(gl, outfit);
-        baked.set(outfit.file, person);
-        console.log("[aw-peds] baked", outfit.file, person.triangles);
-      };
-      // The casual woman is fetched last. She loses the boot race if she goes first.
-      const loadOrder = [...BEACH_OUTFITS].sort((a, b) => Number(a.tank === true) - Number(b.tank === true));
-      for (const outfit of loadOrder) {
+      // One download per GLB. Colorways parse a copy so an older adult and a
+      // linen shirt can share the casual man without a second fetch.
+      const files = [...new Set(BEACH_OUTFITS.map((outfit) => outfit.file))];
+      files.sort((a, b) => Number(a.includes("w-casual")) - Number(b.includes("w-casual")));
+      const buffers = new Map<string, ArrayBuffer>();
+      const missed: string[] = [];
+      for (const file of files) {
         try {
-          await bake(outfit, 3);
+          console.log("[aw-peds] fetch", file);
+          buffers.set(file, await this.loadBuffer(`./models/${file}`, 3));
         } catch (error) {
-          console.warn("[aw-peds] retry later", outfit.file, error);
-          missed.push(outfit);
+          console.warn("[aw-peds] retry later", file, error);
+          missed.push(file);
         }
       }
-      // The first file often loses the boot race against the single-threaded
-      // asset server. Try again once the rest of the page has finished.
-      for (const outfit of missed) {
+      for (const file of missed) {
         try {
-          await bake(outfit, 2);
+          buffers.set(file, await this.loadBuffer(`./models/${file}`, 2));
         } catch (error) {
-          console.warn("[aw-peds] skip", outfit.file, error);
+          console.warn("[aw-peds] skip", file, error);
         }
       }
-      this.baked = BEACH_OUTFITS.map((outfit) => baked.get(outfit.file)).filter((person): person is BakedPerson => !!person);
+      const people: BakedPerson[] = [];
+      for (const outfit of BEACH_OUTFITS) {
+        const buf = buffers.get(outfit.file);
+        if (!buf) continue;
+        try {
+          const gl = await new GLTFLoader().parseAsync(buf.slice(0), "");
+          const person = bakePerson(gl, outfit);
+          people.push(person);
+          console.log("[aw-peds] baked", outfit.file, outfit.hair.toString(16), person.triangles);
+        } catch (error) {
+          console.warn("[aw-peds] skip colorway", outfit.file, error);
+        }
+      }
+      this.baked = people;
       if (!this.baked.length) throw new Error("no beach outfits");
       for (let i = 0; i < cap; i++) {
         const source = this.baked[i % this.baked.length];
@@ -373,7 +379,7 @@ export class PedestrianCrowds {
         // The root stays in the render tree. Hiding it made the phone soak skip
         // the shared body until a later lap walked into Eagle or Oranjestad.
         root.visible = true;
-        applyAdultProportions(root, i);
+        applyAdultProportions(root, i, source.older);
         let mesh: SkinnedMesh | null = null;
         root.traverse((object) => {
           const skinned = object as SkinnedMesh;
