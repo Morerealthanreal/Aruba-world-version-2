@@ -337,7 +337,10 @@ export class PedestrianCrowds {
 
   constructor(private g: AGame) {
     const tier = g.real!.q.name;
-    const cap = tier === "low" ? 6 : tier === "med" ? 9 : 12;
+    // Low and med draw every colorway: older adults, the linen shirt, and the
+    // sea-green hoodie. The pool is primed up front, so those geometries are
+    // not new on a later lap.
+    const cap = tier === "low" || tier === "med" ? BEACH_OUTFITS.length : 12;
     const radius = tier === "low" ? 46 : tier === "med" ? 64 : 80;
     this.radius2 = radius * radius;
     this.awake2 = (radius + 180) * (radius + 180);
