@@ -37,7 +37,7 @@
 //     already include them. Hero images, including the sign, that decode after that
 //     first draw are uploaded on a later pass for any hero already loaded within
 //     1500 m, instead of waiting until the next visit.
-import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
+import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, Scene, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
 import { TileInstances } from "./tileInst";
@@ -111,6 +111,11 @@ export class PerfFixes {
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
   private primeIdle = 0;
+  private pendingPrime: BufferGeometry[] = [];
+  private scratchScene: Scene | null = null;
+  private scratchMat: MeshBasicMaterial | null = null;
+  private scratchEmpty = new BufferGeometry();
+  private scratchMeshes: Mesh[] = [];
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -322,7 +327,7 @@ export class PerfFixes {
       // outside this cap, and those hidden signs were still uploading on the
       // measured lap. Eight fetches at a time never caught up (texture growth
       // 12, scene geometries 101). Remember every hero that comes inside the
-      // cap, and keep thirty-two of the closest fetches going after the
+      // cap, and keep forty-eight of the closest fetches going after the
       // camera leaves so warmup can finish them.
       if (this.real.q.name === "low") {
         const queued: Array<{ n: (typeof h.list)[number]; d: number }> = [];
@@ -338,7 +343,7 @@ export class PerfFixes {
           queued.push({ n, d });
         }
         queued.sort((a, b) => a.d - b.d);
-        let room = 32;
+        let room = 48;
         for (const item of queued) if (item.n._loading && !item.n._awHold) room--;
         for (const item of queued) {
           if (item.n._loading && !item.n._awHold) continue;
@@ -663,6 +668,11 @@ export class PerfFixes {
     if (this.swapped.size || this.shapeCache.size) {
       this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
     }
+    const dropping: BufferGeometry[] = [];
+    for (const geo of this.swapped) if (!live.has(geo)) dropping.push(geo);
+    for (const [, geo] of this.shapeCache) if (!live.has(geo)) dropping.push(geo);
+    for (const geo of dropping) this.rememberGeometry(geo);
+    this.flushRemembered();
     for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
     this.swapped.clear();
     // A shared box can leave the scene between watches. The sign teardown leaves
@@ -775,40 +785,63 @@ export class PerfFixes {
   }
 
   /**
-   * Register region geometries with the renderer before unload.
-   * renderBufferDirect outside a frame never touches info.memory.geometries,
-   * so dispose of a mesh the camera has not drawn yet does not free a slot
-   * and the copy built on the next visit raises the count.
+   * A geometry dispose only frees a renderer.info.memory.geometries slot after
+   * the renderer has seen that geometry. renderBufferDirect outside a frame
+   * never does, so an unseen chunk disposed on unload left the slot behind and
+   * the copy built on the next visit raised the count (146 against a live
+   * scene growth of 70). One scratch render registers the batch, draws nothing,
+   * and then dispose can free the slot.
    */
+  private rememberGeometry(geo: BufferGeometry | null | undefined) {
+    if (!geo || this.primedGeo.has(geo)) return;
+    this.primedGeo.add(geo);
+    this.pendingPrime.push(geo);
+  }
+
+  private priming = false;
+  private flushRemembered() {
+    const list = this.pendingPrime;
+    if (!list.length || this.priming) return;
+    this.pendingPrime = [];
+    this.priming = true;
+    if (!this.scratchScene || !this.scratchMat) {
+      this.scratchScene = new Scene();
+      this.scratchMat = new MeshBasicMaterial({ visible: false });
+    }
+    const scene = this.scratchScene;
+    const mat = this.scratchMat;
+    while (this.scratchMeshes.length < list.length) {
+      const mesh = new Mesh(this.scratchEmpty, mat);
+      mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
+      this.scratchMeshes.push(mesh);
+    }
+    for (let i = 0; i < list.length; i++) {
+      const mesh = this.scratchMeshes[i];
+      mesh.geometry = list[i];
+      scene.add(mesh);
+    }
+    try {
+      this.g.renderer.render(scene, this.g.camera);
+    } catch {
+      // One bad mesh must not wedge the queue. The real frame can still upload it.
+    }
+    for (let i = 0; i < list.length; i++) {
+      const mesh = this.scratchMeshes[i];
+      scene.remove(mesh);
+      mesh.geometry = this.scratchEmpty;
+    }
+    this.priming = false;
+  }
+
   private primeUnseenGeometries() {
     if (this.primeIdle > 0) { this.primeIdle--; return; }
-    const renderer = this.g.renderer as unknown as {
-      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
-    };
-    if (!renderer.renderBufferDirect) return;
-    const cam = this.g.camera;
-    let budget = 16;
+    let budget = 48;
     const draw = (mesh: Obj | null | undefined) => {
-      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
+      if (budget <= 0 || !mesh?.geometry) return;
       if (this.primedGeo.has(mesh.geometry)) return;
-      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      if (!mat) return;
-      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
-      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
-      if (savedCount !== undefined) inst.count = 1;
-      try {
-        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
-        this.primedGeo.add(mesh.geometry);
-        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
-        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
-        budget--;
-      } catch {
-        // A mesh that cannot draw here would otherwise sit at the front of the walk
-        // and spend the budget forever. The normal frame can still upload it.
-        this.primedGeo.add(mesh.geometry);
-      } finally {
-        if (savedCount !== undefined) inst.count = savedCount;
-      }
+      this.rememberGeometry(mesh.geometry);
+      budget--;
     };
     const walk = (root: Obj | null | undefined) => {
       if (!root || budget <= 0) return;
@@ -826,7 +859,8 @@ export class PerfFixes {
       for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
     }
     if (budget > 0) walk(this.real.hero?.group);
-    if (budget === 16) this.primeIdle = 2;
+    if (budget === 48) this.primeIdle = 2;
+    this.flushRemembered();
   }
 
   /** Runs right after A's per-frame world update, before A renders. */
@@ -840,9 +874,9 @@ export class PerfFixes {
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
+        this.primeUnseenGeometries();
         this.noteSwaps();
         this.releaseOrphans();
-        this.primeUnseenGeometries();
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
@@ -907,11 +941,15 @@ export class PerfFixes {
       if (mesh.geometry) live.add(mesh.geometry);
     });
     for (const geo of this.shapeCache.values()) keep.add(geo);
+    const dropping: BufferGeometry[] = [];
     for (const geo of this.seenGeo) {
       if (live.has(geo) || keep.has(geo)) continue;
-      geo.dispose();
+      dropping.push(geo);
       this.seenGeo.delete(geo);
     }
+    for (const geo of dropping) this.rememberGeometry(geo);
+    this.flushRemembered();
+    for (const geo of dropping) geo.dispose();
     for (const geo of live) this.seenGeo.add(geo);
   }
 
