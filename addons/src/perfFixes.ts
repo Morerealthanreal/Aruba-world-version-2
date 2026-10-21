@@ -47,7 +47,7 @@ type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMe
 type Region = { group?: Obj; state: string };
 type Hero = {
   group?: Obj;
-  list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean; _awHold?: number }>;
+  list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean; _awHold?: number; _awWant?: number }>;
   update(x: number, z: number): void;
 };
 type BatchMesh = {
@@ -318,30 +318,30 @@ export class PerfFixes {
     const orig = h.update.bind(h);
     const cap = this.heroCap;
     h.update = (x: number, z: number) => {
-      // The base loader fetches every GLB inside 1500 m. Low already hides
-      // heroes outside this cap. Starting that whole set at once was still
-      // uploading signs on the measured lap (texture growth 10, limit 4) and
-      // the phone soak timed out. Hold the far ones, and keep only a few of
-      // the closest fetches in flight so the visible buildings finish during
-      // warmup.
+      // The base loader fetches every GLB inside 1500 m. Low hides heroes
+      // outside this cap, and those hidden signs were still uploading on the
+      // measured lap. Eight fetches at a time never caught up (texture growth
+      // 12, scene geometries 101). Remember every hero that comes inside the
+      // cap, and keep thirty-two of the closest fetches going after the
+      // camera leaves so warmup can finish them.
       if (this.real.q.name === "low") {
-        const near: Array<{ n: (typeof h.list)[number]; d: number }> = [];
+        const queued: Array<{ n: (typeof h.list)[number]; d: number }> = [];
         for (const n of h.list) {
           if (n._g) continue;
           const d = Math.hypot(n.x - x, n.z - z);
-          if (d > cap) {
-            if (!n._loading || n._awHold) { n._loading = true; n._awHold = 1; }
+          if (d <= cap) n._awWant = 1;
+          const live = !!n._loading && !n._awHold;
+          if (!n._awWant || d > 1500) {
+            if (!live) { n._loading = true; n._awHold = 1; }
             continue;
           }
-          near.push({ n, d });
+          queued.push({ n, d });
         }
-        near.sort((a, b) => a.d - b.d);
-        let used = 0;
-        for (const item of near) if (item.n._loading && !item.n._awHold) used++;
-        let room = 8 - used;
-        for (const item of near) {
-          const live = item.n._loading && !item.n._awHold;
-          if (live) continue;
+        queued.sort((a, b) => a.d - b.d);
+        let room = 32;
+        for (const item of queued) if (item.n._loading && !item.n._awHold) room--;
+        for (const item of queued) {
+          if (item.n._loading && !item.n._awHold) continue;
           if (room > 0) { item.n._loading = false; item.n._awHold = 0; room--; }
           else { item.n._loading = true; item.n._awHold = 1; }
         }
