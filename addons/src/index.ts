@@ -123,12 +123,12 @@ async function main() {
   // Route from a minimap tap. On by default; ?nav=0 disables it. Nothing is built when disabled.
   let nav: Navigator | null = null;
   if (params.get("nav") !== "0") {
-    const data = (g as unknown as { DATA?: { roads?: Array<{ p?: number[][]; n?: string } | number[][]> } }).DATA;
+    const data = g.DATA as import("./minimap").MapData | undefined;
     const roads = (data?.roads || []).map((r) => {
-      const pts = (Array.isArray(r) ? r : r.p || []) as number[][];
-      return { name: (!Array.isArray(r) && r.n) || "", points: pts.map((q) => [q[0], q[1]] as [number, number]) };
+      const pts = (Array.isArray(r) ? r : (r as { p?: number[][] }).p || []) as number[][];
+      return { name: (!Array.isArray(r) && (r as { n?: string }).n) || "", points: pts.map((q) => [q[0], q[1]] as [number, number]) };
     }).filter((r) => r.points.length > 1);
-    nav = new Navigator(roads);
+    nav = new Navigator(roads, data, g);
     if (minimap) {
       const nv = nav;
       const canvas = document.getElementById("minimap") as HTMLCanvasElement | null;
