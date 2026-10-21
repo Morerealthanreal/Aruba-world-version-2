@@ -1,0 +1,22 @@
+{
+  "place": "bucuti",
+  "area": "eagle-beach",
+  "photos": [
+    {
+      "file": "entrance.webp",
+      "source_url": "https://www.bucuti.com/gallery",
+      "image_url": "https://symphony.cdn.tambourine.com/bucuti-tara-beach-resort/media/2-bucutiandtara-gallery-68d44e7f7e77f.webp",
+      "license": "Bucuti & Tara gallery photo, reference only, not pasted onto geometry",
+      "credit": "Bucuti & Tara Beach Resort",
+      "shows": "dark wavy arrival wall, white BUCUTI & TARA letters and rule, beige tower, brown hip roof, stone column, black glass canopy, hedge, lawn and an agave"
+    },
+    {
+      "file": "aerial.webp",
+      "source_url": "https://www.bucuti.com/gallery",
+      "image_url": "https://symphony.cdn.tambourine.com/bucuti-tara-beach-resort/media/1-bucutiandtara-gallery-68d44e7d39695.webp",
+      "license": "Bucuti & Tara gallery photo, reference only, not pasted onto geometry",
+      "credit": "Bucuti & Tara Beach Resort",
+      "shows": "white ocean wing, rectangular pool and red hip pavilion behind the arrival wall"
+    }
+  ]
+}
