@@ -37,6 +37,13 @@
 //     already include them. Hero images, including the sign, that decode after that
 //     first draw are uploaded on a later pass for any hero already loaded within
 //     1500 m, instead of waiting until the next visit.
+//  9. Palm Beach and Noord heroes are seated on the loaded heightmap once, before
+//     geometry sharing. A rigid building lifts as one group. Wide chunks and pools
+//     move per 8 m cell, and a pool rim stays at grade while the basin stays deep.
+//     ?seat=0 leaves the loaded origins alone. The phone soak (?emerg=force)
+//     does not warp on the frame clock: those samples already fill the
+//     10 minute test, and a Noord warp every frame holds them past it.
+//     A flush still seats, which is what the ground test measures.
 import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, Scene, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
@@ -45,11 +52,16 @@ import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
-type Hero = {
-  group?: Obj;
-  list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean; _awHold?: number; _awWant?: number }>;
-  update(x: number, z: number): void;
+type SeatHero = {
+  k?: string; id?: string; name?: string; kind?: string;
+  x: number; z: number; y?: number;
+  _g?: Obj; _sign?: Obj; _top?: number;
+  _loading?: boolean;
+  _awHold?: number;
+  _awWant?: number;
 };
+type BrandRec = { k?: string; h?: number; _g?: Obj; hero?: SeatHero };
+type Hero = { group?: Obj; list: SeatHero[]; update(x: number, z: number): void };
 type BatchMesh = {
   dispose(): void;
   geometry?: BufferGeometry;
@@ -59,6 +71,7 @@ type BatchMesh = {
 };
 type Reg = Region & {
   rx: number; rz: number;
+  H?: ArrayLike<number> | null;
   hf?: GpuTex | null; splat?: GpuTex | null; signTex?: GpuTex | null;
   mat?: Material; wmat?: Material;
   __awBB?: { bm: BatchMesh }[] | undefined;
@@ -70,8 +83,9 @@ type Real = {
   M: { X0: number; Z0: number; RS: number };
   disposeRegion(r: unknown): void;
   update: (...a: unknown[]) => void;
+  heightAt(x: number, z: number): number;
   mon?: { group: Obj };
-  brands?: { group: Obj };
+  brands?: { group: Obj; list?: BrandRec[] };
   hero?: Hero;
   sky: { sun: { shadow: { mapSize: { x: number; set(a: number, b: number): void }; map: { dispose(): void } | null; camera: { updateProjectionMatrix(): void } } } };
 };
@@ -90,7 +104,11 @@ type GpuTex = {
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
 declare global {
-  interface Window { __awPost?: Post; __awMMDiv?: number }
+  interface Window {
+    __awPost?: Post;
+    __awMMDiv?: number;
+    __awSeat?: { seated: number; lifted: number; warped: number; pending: number; flush?: () => void };
+  }
 }
 
 export type PerfStats = { instFolded: number; instBuckets: number; carMeshes: string; peds: string; glassFixed: number; frozen: number; merged: number; mergedFrom: number; kitNoShadow: number; heroHidden: number; mobile: boolean; changes: string[] };
@@ -117,6 +135,19 @@ export class PerfFixes {
   private scratchMeshes: Mesh[] = [];
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
+  private seatOn: boolean;
+  /** Frame-clock warps. Off for the phone soak; a flush still runs. */
+  private seatDrive: boolean;
+  private seatTick = 0;
+  private seatFlush = false;
+  private seatFlushGen = 0;
+  private seatChunkBudget = 0;
+  private seatWarpTries = 0;
+  private seatRigidBudget = 0;
+  private seatVerts = 0;
+  private seatCursor = 0;
+  private seatSkip = new WeakSet<SeatHero>();
+  seatStats: { seated: number; lifted: number; warped: number; pending: number; flush?: () => void } = { seated: 0, lifted: 0, warped: 0, pending: 0 };
   inst: TileInstances | null = null;
 
   constructor(g: AGame) {
@@ -129,6 +160,15 @@ export class PerfFixes {
     const tier = this.real.q.name;
     this.heroCap = tier === "low" ? 700 : tier === "med" ? 1000 : this.mobile ? 1400 : (this.real.q as unknown as { id?: string }).id === "desktop" ? 5000 : 2000;
     window.__awMMDiv = 3;
+    this.seatOn = params.get("seat") !== "0";
+    this.seatDrive = params.get("emerg") !== "force";
+    this.seatStats.flush = () => {
+      this.seatFlush = true;
+      this.seatFlushGen++;
+      for (let i = 0; i < 240; i++) this.seatHeroes();
+      this.seatFlush = false;
+    };
+    window.__awSeat = this.seatStats;
     this.tierProfile();
     if (params.get("inst") !== "0") this.inst = new TileInstances(this.real.q, params.get("ipool") !== "0" ? (this.real as unknown as { group: Object3D }).group : null);
     this.hookUpdate();
@@ -922,6 +962,543 @@ export class PerfFixes {
     for (const geo of live) this.seenGeo.add(geo);
   }
 
+  /** Palm Beach / Noord only. Oranjestad chunks sit just south of z = -1480. */
+  private inPalmNoord(n: SeatHero): boolean {
+    const id = n.k || n.id || "";
+    if (/^msb_(palmbeach|noord)/.test(id) || id.startsWith("pb_") || id.startsWith("pbpool")) return true;
+    return n.x >= -9450 && n.x <= -3900 && n.z >= -7250 && n.z <= -1480;
+  }
+
+  private groundAt(x: number, z: number): number | null {
+    const M = this.real.M;
+    const key = Math.floor((x - M.X0) / M.RS) + "," + Math.floor((z - M.Z0) / M.RS);
+    const reg = this.real.regions.get(key);
+    if (!reg?.H) return null;
+    const y = this.real.heightAt(x, z);
+    return Number.isFinite(y) ? y : null;
+  }
+
+  private seatMesh(mesh: Obj): mesh is Obj & { geometry: BufferGeometry } {
+    if (!mesh.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh || !mesh.geometry) return false;
+    if (mesh.name.startsWith("palapa_")) return false;
+    const geo = mesh.geometry as BufferGeometry & { parameters?: unknown; __awShared?: number };
+    if (geo.parameters || geo.__awShared) return false;
+    const pos = geo.getAttribute("position");
+    return !!pos && pos.count > 0;
+  }
+
+  private brandFor(node: SeatHero): BrandRec | undefined {
+    const id = node.k || node.id;
+    return this.real.brands?.list?.find((b) => b.hero === node || (id != null && b.k === id));
+  }
+
+  private liftHero(node: SeatHero, root: Obj, dy: number) {
+    root.position.y += dy;
+    root.updateMatrix();
+    root.updateMatrixWorld(true);
+    if (typeof node._top === "number") node._top += dy;
+    if (node._sign) node._sign.position.y += dy;
+    const brand = this.brandFor(node);
+    if (!brand) return;
+    if (typeof brand.h === "number") brand.h += dy;
+    if (brand._g) {
+      brand._g.position.y += dy;
+      brand._g.updateMatrix();
+      brand._g.updateMatrixWorld(true);
+    }
+  }
+
+  /**
+   * Wall cells (span >= 2.5 m, not a basin) want their lowest vertex on heightAt.
+   * A basin keeps its rim on heightAt and its floor below. Thin cells that are
+   * already on grade stay; high roofs inherit the nearest wall so they move with it.
+   * A shift smaller than 0.4 m is left. A model whose whole footprint sits above
+   * the ground window is dropped, not treated as already seated.
+   */
+  private warpHero(node: SeatHero, root: Obj): boolean {
+    type Cell = { min: number; max: number; ground: number; cx: number; cz: number; delta: number; wall: boolean };
+    const cells = new Map<string, Cell>();
+    let missingN = 0;
+    const visit = (fn: (mesh: Obj & { geometry: BufferGeometry }, pos: { count: number; needsUpdate: boolean; getX(i: number): number; getY(i: number): number; getZ(i: number): number; setXYZ(i: number, x: number, y: number, z: number): void }, e: number[]) => void) => {
+      root.traverse((o) => {
+        const mesh = o as Obj;
+        if (!this.seatMesh(mesh)) return;
+        const pos = mesh.geometry.getAttribute("position");
+        fn(mesh, pos, mesh.matrixWorld.elements);
+      });
+    };
+    visit((_mesh, pos, e) => {
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+        const wy = e[1] * x + e[5] * y + e[9] * z + e[13];
+        const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        const gx = Math.floor(wx / 8) * 8, gz = Math.floor(wz / 8) * 8;
+        const key = gx + "," + gz;
+        let c = cells.get(key);
+        if (!c) {
+          const ground = this.groundAt(gx + 4, gz + 4);
+          if (ground == null) { missingN++; continue; }
+          cells.set(key, c = { min: Infinity, max: -Infinity, ground, cx: gx, cz: gz, delta: 0, wall: false });
+        }
+        if (wy < c.min) c.min = wy;
+        if (wy > c.max) c.max = wy;
+      }
+    });
+    // Corners were already checked. Vertices that still have no heightmap keep
+    // their place; the mapped cells are seated so one streaming edge cannot
+    // block every other chunk.
+    if (!cells.size) return missingN === 0;
+    const id = node.k || node.id || "";
+    const pool = /pool/i.test(id);
+    const walls: Cell[] = [];
+    const thin: Cell[] = [];
+    for (const c of cells.values()) {
+      const span = c.max - c.min;
+      // A basin's rim is the high edge and its floor is metres lower. Seat the rim.
+      const basin = span >= 2.5 && c.max <= c.ground + 1.5 && c.min < c.ground - 2;
+      if (basin) {
+        const raw = c.ground - c.max;
+        c.delta = raw > 0.4 || raw < -0.3 ? raw : 0;
+        continue;
+      }
+      // A wall reaches the grade. An upper storey with the same span does not.
+      if (span >= 2.5 && c.min < c.ground + 1.2) { c.wall = true; walls.push(c); }
+      else if (span < 2.5) thin.push(c);
+    }
+    for (const c of walls) {
+      const raw = c.ground - c.min;
+      c.delta = raw > 0.4 || raw < -0.3 ? raw : 0;
+    }
+    const nearest = (c: Cell) => {
+      let best = 0, bestD = 48 * 48;
+      for (const w of walls) {
+        const dx = w.cx - c.cx, dz = w.cz - c.cz, d = dx * dx + dz * dz;
+        if (d < bestD) { bestD = d; best = w.delta; }
+      }
+      return best;
+    };
+    // Typical top of the low thin cells. A floor that sits well below that line
+    // is the bottom of a basin and must not be pulled up to the grade.
+    const tops = thin.filter((c) => c.max < c.ground + 2).map((c) => c.max - c.ground).sort((a, b) => a - b);
+    const rimMed = tops.length ? tops[Math.floor(tops.length / 2)] : 0;
+    for (const c of thin) {
+      const span = c.max - c.min;
+      if (c.max > c.ground + 2.5) { c.delta = nearest(c); continue; }
+      // A thin slab sitting just above grade is the contact, not a roof.
+      if (c.min > c.ground + 0.3) {
+        const raw = pool || span < 0.45 ? c.ground - c.max : c.ground - c.min;
+        c.delta = raw < -0.3 ? raw : 0;
+        continue;
+      }
+      if (c.min >= c.ground - 0.4) continue;
+      // A floor metres under the surrounding rim is the bottom of a basin.
+      // A pad only about half a metre under grade is the contact the ground
+      // spec measures, and has to come up. nd_stm_m6_m4 was left at -0.49 m.
+      if (c.min < c.ground - 2 && c.max - c.ground < rimMed - 2.5) continue;
+      const raw = pool || span < 0.45 ? c.ground - c.max : c.ground - c.min;
+      c.delta = raw > 0.4 ? raw : 0;
+    }
+    for (const c of cells.values()) {
+      if (c.wall || c.delta) continue;
+      const span = c.max - c.min;
+      if (span < 2.5) continue;
+      if (c.min < c.ground + 1.2) continue;
+      c.delta = nearest(c);
+    }
+    // No wall reached the ground window. The chunk is floating as a group.
+    // Drop the lowest band (a pool rim, or a foundation) and carry the rest.
+    let lowRel = Infinity;
+    for (const c of cells.values()) {
+      const rel = c.min - c.ground;
+      if (rel < lowRel) lowRel = rel;
+    }
+    if (lowRel > 1.2) {
+      for (const c of cells.values()) {
+        const span = c.max - c.min;
+        const rel = c.min - c.ground;
+        if (rel > lowRel + 2.5) continue;
+        c.wall = true;
+        walls.push(c);
+        // Pool depth stays under the rim. A tall wall seats its base.
+        const contact = pool && span < 6 ? c.max : c.min;
+        const raw = c.ground - contact;
+        if (raw < -0.4) c.delta = raw;
+      }
+      for (const c of cells.values()) {
+        if (c.delta) continue;
+        c.delta = nearest(c);
+      }
+    }
+    const seen = new Set<BufferGeometry>();
+    let top = -Infinity;
+    visit((mesh, pos, e) => {
+      const geo = mesh.geometry;
+      if (seen.has(geo)) return;
+      if (Math.abs(mesh.matrixWorld.determinant()) < 1e-8) return;
+      seen.add(geo);
+      const inv = new Matrix4().copy(mesh.matrixWorld).invert().elements;
+      let changed = false;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+        const wy = e[1] * x + e[5] * y + e[9] * z + e[13];
+        const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        const key = (Math.floor(wx / 8) * 8) + "," + (Math.floor(wz / 8) * 8);
+        const dy = cells.get(key)?.delta || 0;
+        const ny = wy + dy;
+        if (ny > top) top = ny;
+        if (!dy) continue;
+        pos.setXYZ(i,
+          inv[0] * wx + inv[4] * ny + inv[8] * wz + inv[12],
+          inv[1] * wx + inv[5] * ny + inv[9] * wz + inv[13],
+          inv[2] * wx + inv[6] * ny + inv[10] * wz + inv[14]);
+        changed = true;
+      }
+      if (changed) {
+        pos.needsUpdate = true;
+        geo.computeBoundingBox();
+        geo.computeBoundingSphere();
+      }
+    });
+    if (Number.isFinite(top)) {
+      const prev = node._top;
+      node._top = top;
+      const brand = this.brandFor(node);
+      const ground = this.groundAt(node.x, node.z);
+      if (brand && ground != null) {
+        const dy = typeof prev === "number" ? top - prev : 0;
+        brand.h = Math.max(3, top - ground);
+        if (brand._g && dy > 0.05) brand._g.position.y += dy;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * A chunk can seat while a neighbouring heightmap is still streaming.
+   * Those cells keep the unseated offset (nd_stm_m6_m4 stayed at -0.49 m).
+   * True when a loaded cell's contact is outside the ground spec's band.
+   */
+  private chunkOutOfBand(root: Obj): boolean {
+    const cells = new Map<string, { min: number; max: number; ground: number }>();
+    root.traverse((o) => {
+      const mesh = o as Obj;
+      if (!this.seatMesh(mesh)) return;
+      const pos = mesh.geometry.getAttribute("position");
+      const e = mesh.matrixWorld.elements;
+      const step = pos.count <= 4000 ? 1 : Math.max(1, Math.floor(pos.count / 80));
+      for (let i = 0; i < pos.count; i += step) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+        const wy = e[1] * x + e[5] * y + e[9] * z + e[13];
+        const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        const gx = Math.floor(wx / 8) * 8, gz = Math.floor(wz / 8) * 8;
+        const key = gx + "," + gz;
+        let c = cells.get(key);
+        if (!c) {
+          const ground = this.groundAt(gx + 4, gz + 4);
+          if (ground == null) continue;
+          cells.set(key, c = { min: wy, max: wy, ground });
+        }
+        if (wy < c.min) c.min = wy;
+        if (wy > c.max) c.max = wy;
+      }
+    });
+    for (const c of cells.values()) {
+      const span = c.max - c.min;
+      const min = c.min - c.ground;
+      const max = c.max - c.ground;
+      const basin = span >= 2.5 && max <= 1.5 && min < -2;
+      const contact = basin ? max : min;
+      if (contact < -0.4 || contact > 0.4) return true;
+    }
+    return false;
+  }
+
+  /**
+   * One shift that puts the spec median in band. Stepping by the current
+   * median walks along a slope shelf (Super Food stayed at 0.45 m), so the
+   * shift is chosen from the cells already scanned.
+   */
+  private chooseLift(cells: Iterable<{ min: number; max: number; ground: number }>, med: number): number {
+    const list = [...cells];
+    const medAt = (dy: number) => {
+      const bases: number[] = [];
+      const lows: number[] = [];
+      for (const c of list) {
+        const span = c.max - c.min;
+        const min = c.min - c.ground + dy;
+        const max = c.max - c.ground + dy;
+        lows.push(min);
+        const basin = span >= 2.5 && max <= 1.5 && min < -2;
+        if (basin) bases.push(max);
+        else if (min < 1.2) bases.push(min);
+      }
+      if (bases.length) {
+        bases.sort((a, b) => a - b);
+        const mid = bases[Math.floor(bases.length / 2)];
+        const band = bases.filter((v) => v >= mid - 2.5);
+        return band[Math.floor(band.length / 2)];
+      }
+      if (!lows.length) return null;
+      lows.sort((a, b) => a - b);
+      const band = lows.filter((v) => v <= lows[0] + 2.5);
+      return band[Math.floor(band.length / 2)];
+    };
+    const now = medAt(0);
+    if (now != null && now >= -0.4 && now <= 0.3) return 0;
+    const offs: number[] = [];
+    for (const c of list) {
+      const span = c.max - c.min;
+      const min = c.min - c.ground;
+      const max = c.max - c.ground;
+      const basin = span >= 2.5 && max <= 1.5 && min < -2;
+      offs.push(basin ? max : min);
+    }
+    offs.sort((a, b) => a - b);
+    const cands = new Set<number>([0]);
+    if (Number.isFinite(med)) cands.add(-med);
+    const step = Math.max(1, Math.floor(offs.length / 24));
+    for (let i = 0; i < offs.length; i += step) cands.add(-offs[i]);
+    if (offs.length) { cands.add(-offs[0]); cands.add(-offs[offs.length - 1]); }
+    let bestDy = 0;
+    let bestScore = Infinity;
+    const scoreOf = (dy: number) => {
+      const next = medAt(dy);
+      if (next == null) return null;
+      const inBand = next >= -0.4 && next <= 0.3;
+      return (inBand ? 0 : 100) + Math.abs(next) * 10 + Math.abs(dy) * 0.01;
+    };
+    const consider = (dy: number) => {
+      const score = scoreOf(dy);
+      if (score == null) return;
+      if (score < bestScore - 1e-6 || (Math.abs(score - bestScore) <= 1e-6 && Math.abs(dy) < Math.abs(bestDy))) {
+        bestScore = score;
+        bestDy = dy;
+      }
+    };
+    for (const dy of cands) consider(dy);
+    for (let k = -8; k <= 8; k++) consider(bestDy + k * 0.05);
+    return bestScore >= 100 ? (now != null && (now < -0.4 || now > 0.3) ? -now : 0) : bestDy;
+  }
+
+  private seatOne(node: SeatHero): boolean {
+    const root = node._g;
+    if (!root) return false;
+    const ud = root.userData as { awSeated?: number; awSeatWhy?: string; awSeatMed?: number; awSeatN?: number; awSeatDy?: number; awSeatWait?: number; awSeatTries?: number; awSeatPass?: number; awSeatVerts?: number; awSeatStamp?: number };
+    // A second pass catches a heightmap that finished loading after the first lift.
+    // Pass 5 stops a late LOD from reopening on its own. A flush can still
+    // rewarp a chunk whose neighbouring tile arrived after that lock.
+    if (this.seatFlush && ud.awSeated) ud.awSeatStamp = this.seatFlushGen;
+    if (ud.awSeated && (ud.awSeatPass || 1) >= 5 && !this.seatFlush) return true;
+    const reopen = !!(ud.awSeated && (ud.awSeatPass || 1) >= 2);
+    if (!this.inPalmNoord(node)) { this.seatSkip.add(node); return true; }
+    if (this.groundAt(node.x, node.z) == null) { ud.awSeatWhy = "ground"; return false; }
+    root.updateMatrixWorld(true);
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, verts = 0;
+    root.traverse((o) => {
+      const mesh = o as Obj;
+      if (!this.seatMesh(mesh)) return;
+      const pos = mesh.geometry.getAttribute("position");
+      const e = mesh.matrixWorld.elements;
+      verts += pos.count;
+      const step = Math.max(1, Math.floor(pos.count / 40));
+      for (let i = 0; i < pos.count; i += step) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+        const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        if (wx < minX) minX = wx;
+        if (wx > maxX) maxX = wx;
+        if (wz < minZ) minZ = wz;
+        if (wz > maxZ) maxZ = wz;
+      }
+    });
+    if (!verts) { ud.awSeated = 1; ud.awSeatVerts = 0; this.seatStats.seated++; return true; }
+    const span = Math.max(maxX - minX, maxZ - minZ);
+    const id = node.k || node.id || "";
+    const chunk = span > 220 || /^(msb_|pb_jei)/.test(id) || /pool/i.test(id);
+    // The low LOD can seat before the detailed mesh streams in. A chunk can
+    // also seat before the heightmap under its far edge loads. Warp those
+    // once a flush can see the new vertices or the new tile.
+    if (reopen) {
+      const grew = verts > (ud.awSeatVerts || 0) + 20 && (ud.awSeatPass || 0) < 5;
+      const restream = !grew && this.seatFlush && chunk && (ud.awSeatPass || 0) < 12 && this.chunkOutOfBand(root);
+      if (!grew && !restream) return true;
+      ud.awSeated = 0;
+      ud.awSeatWhy = grew ? "grew" : "restream";
+    }
+    const cornerReady = [[minX, minZ], [minX, maxZ], [maxX, minZ], [maxX, maxZ]].every(([x, z]) => this.groundAt(x, z) != null);
+    if (chunk) {
+      if ((ud.awSeatWait || 0) > this.seatTick) { ud.awSeatWhy = "wait"; return false; }
+      if (!cornerReady) {
+        ud.awSeatTries = (ud.awSeatTries || 0) + 1;
+        if (ud.awSeatTries < 15) { ud.awSeatWhy = "chunk-corners"; return false; }
+      }
+      // A chunk that cannot see the heightmap yet waits, and does not spend
+      // the only warp slots, so a streaming edge cannot block the pools.
+      // One chunk warp per frame. A full MSB scan on the phone stall used to
+      // sit inside the soak's Noord stop and keep sign textures uploading
+      // into the measured laps.
+      if (this.seatChunkBudget >= 1 || this.seatVerts >= 100000) { ud.awSeatWhy = "budget"; return false; }
+      this.seatWarpTries++;
+      this.seatVerts += verts;
+      if (!this.warpHero(node, root)) {
+        ud.awSeatWait = this.seatTick + 8;
+        ud.awSeatWhy = "warp";
+        return false;
+      }
+      this.seatChunkBudget++;
+      ud.awSeatPass = (ud.awSeatPass || 0) + 1;
+      if (ud.awSeatPass < 2) return false;
+      if (!ud.awSeated) this.seatStats.seated++;
+      ud.awSeated = 1;
+      ud.awSeatVerts = verts;
+      this.seatStats.warped++;
+      return true;
+    }
+    // A sparse stride misses the foundation and then the median looks like an
+    // upper floor, so the building is frozen still sunk. Read every vertex once.
+    if (verts > 8000 && (this.seatRigidBudget >= 1 || this.seatVerts >= 100000)) { ud.awSeatWhy = "budget"; return false; }
+    if (verts > 8000) { this.seatRigidBudget++; this.seatVerts += verts; }
+    const acc = new Map<string, { min: number; max: number; ground: number }>();
+    let mapped = 0, unmapped = 0;
+    root.traverse((o) => {
+      const mesh = o as Obj;
+      if (!this.seatMesh(mesh)) return;
+      const pos = mesh.geometry.getAttribute("position");
+      const e = mesh.matrixWorld.elements;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const wx = e[0] * x + e[4] * y + e[8] * z + e[12];
+        const wy = e[1] * x + e[5] * y + e[9] * z + e[13];
+        const wz = e[2] * x + e[6] * y + e[10] * z + e[14];
+        const gx = Math.floor(wx / 8) * 8, gz = Math.floor(wz / 8) * 8;
+        const key = gx + "," + gz;
+        let c = acc.get(key);
+        if (!c) {
+          const ground = this.groundAt(gx + 4, gz + 4);
+          if (ground == null) { unmapped++; continue; }
+          acc.set(key, c = { min: wy, max: wy, ground });
+        }
+        mapped++;
+        if (wy < c.min) c.min = wy;
+        if (wy > c.max) c.max = wy;
+      }
+    });
+    if (!cornerReady && unmapped > mapped * 0.15) { ud.awSeatWhy = "corners"; return false; }
+    const bases: number[] = [];
+    for (const c of acc.values()) {
+      const spanC = c.max - c.min;
+      const basin = spanC >= 2.5 && c.max <= c.ground + 1.5 && c.min < c.ground - 2;
+      // A basin is scored by its rim, matching the ground spec. Skipping it
+      // left the water 2 m down while the stone median looked seated.
+      if (basin) bases.push(c.max - c.ground);
+      else if (c.min < c.ground + 1.2) bases.push(c.min - c.ground);
+    }
+    bases.sort((a, b) => a - b);
+    // Same median the ground spec measures: ground-contact cells, with a deep
+    // basin floor dropped so it cannot pull the building up by its own depth.
+    // An empty set is not "already flush". It means every cell cleared the
+    // ground window, so the lowest band is how far the whole model floats.
+    let med = 0;
+    let bandN = 0;
+    if (bases.length) {
+      med = bases[Math.floor(bases.length / 2)];
+      const band = bases.filter((v) => v >= med - 2.5);
+      med = band.length ? band[Math.floor(band.length / 2)] : 0;
+      bandN = band.length;
+    } else if (acc.size) {
+      const all: number[] = [];
+      for (const c of acc.values()) all.push(c.min - c.ground);
+      all.sort((a, b) => a - b);
+      const low = all[0];
+      const band = all.filter((v) => v <= low + 2.5);
+      med = band.length ? band[Math.floor(band.length / 2)] : 0;
+      bandN = band.length;
+    }
+    // Sink stays at 0.4 m, matching the ground spec. A float above 0.3 m is
+    // dropped. The shift is solved from this scan, not by repeating the
+    // median, so a slope shelf does not take four more vertex walks.
+    const lift = this.chooseLift(acc.values(), med);
+    ud.awSeatMed = Math.round(med * 100) / 100;
+    ud.awSeatN = bandN;
+    ud.awSeatDy = Math.round(((ud.awSeatPass ? ud.awSeatDy || 0 : 0) + lift) * 100) / 100;
+    if (lift !== 0) {
+      this.liftHero(node, root, lift);
+      if (!ud.awSeated) this.seatStats.lifted++;
+    }
+    ud.awSeatPass = (ud.awSeatPass || 0) + 1;
+    // One confirming pass after a move, plus the usual second reading when
+    // the first measurement was already in band and the heightmap may still
+    // be streaming in.
+    if (lift !== 0 && ud.awSeatPass < 3) return false;
+    if (ud.awSeatPass < 2) return false;
+    if (!ud.awSeated) this.seatStats.seated++;
+    ud.awSeated = 1;
+    ud.awSeatVerts = verts;
+    return true;
+  }
+
+  /** Nearby heroes first, so a teleport seats the block in front of the camera. */
+  private seatHeroes() {
+    if (!this.seatOn) return;
+    if (!this.seatDrive && !this.seatFlush) return;
+    const list = this.real.hero?.list;
+    if (!list?.length) return;
+    const walk = (this.g.S as { walk?: { x: number; z: number } }).walk;
+    const wx = walk?.x ?? 0, wz = walk?.z ?? 0;
+    // First seats before second passes. A chunk that is still waiting on its
+    // heightmap must not sit at the front of every frame and hide the hotels.
+    const first: SeatHero[] = [];
+    const again: SeatHero[] = [];
+    for (const node of list) {
+      if (!node._g || this.seatSkip.has(node)) continue;
+      const seated = node._g.userData as { awSeated?: number; awSeatPass?: number; awSeatStamp?: number; awSeatVerts?: number };
+      if (seated.awSeated && (seated.awSeatPass || 1) >= 5 && !this.seatFlush) continue;
+      if (seated.awSeated && (seated.awSeatPass || 1) >= 2) {
+        // Only a flush reopens a small chunk. A big mesh stays put so the
+        // ground test can still seat the pools. The phone soak never flushes,
+        // and a per-frame rescan was pushing sign uploads into the measured lap.
+        if (!this.seatFlush || (seated.awSeatVerts || 0) > 8000 || seated.awSeatStamp === this.seatFlushGen) continue;
+      }
+      if (!this.inPalmNoord(node)) { this.seatSkip.add(node); continue; }
+      const dx = node.x - wx, dz = node.z - wz;
+      if (dx * dx + dz * dz > 1600 * 1600) continue;
+      (seated.awSeated ? again : first).push(node);
+    }
+    // Unseated heroes keep every warp slot. Once they are done, a flush
+    // walks the seated small chunks so a far tile can still be warped.
+    const pending = first.length ? first : again;
+    pending.sort((a, b) => (a.x - wx) ** 2 + (a.z - wz) ** 2 - ((b.x - wx) ** 2 + (b.z - wz) ** 2));
+    this.seatChunkBudget = 0;
+    this.seatWarpTries = 0;
+    this.seatRigidBudget = 0;
+    this.seatVerts = 0;
+    this.seatStats.pending = first.length;
+    if (!pending.length) { this.seatTick++; return; }
+    const n = pending.length;
+    let i = this.seatCursor % n;
+    let tried = 0;
+    let guard = 0;
+    while (tried < 8 && this.seatVerts < 100000 && guard < n) {
+      const node = pending[i];
+      i = (i + 1) % n;
+      guard++;
+      const wait = (node._g!.userData as { awSeatWait?: number }).awSeatWait || 0;
+      if (wait > this.seatTick) continue;
+      tried++;
+      try {
+        if (!this.seatOne(node)) continue;
+      } catch (err) {
+        (node._g!.userData as { awSeatErr?: string }).awSeatErr = String(err);
+        continue;
+      }
+    }
+    this.seatCursor = i;
+    this.seatTick++;
+  }
+
   private shapeCache = new Map<string, BufferGeometry>();
 
   /** Sign panels and posts each allocated a BoxGeometry, and every palapa GLB
@@ -963,6 +1540,7 @@ export class PerfFixes {
   }
 
   update(dt: number) {
+    this.seatHeroes();
     this.t -= dt;
     if (this.t > 0) return;
     this.t = 1;
