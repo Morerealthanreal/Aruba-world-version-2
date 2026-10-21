@@ -57,6 +57,7 @@ import { NorthInland } from "./northInland";
 import { Interiors } from "./interiors";
 import { RoofLand } from "./roofLand";
 import { Stability } from "./stability";
+import { CarPhysics } from "./carPhysics";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -161,6 +162,7 @@ async function main() {
   const interiors = params.get("interiors") !== "0" ? new Interiors(g) : null;
   const roofland = params.get("roofland") !== "0" ? new RoofLand(g) : null;
   const stability = params.get("stability") !== "0" ? new Stability(g) : null;
+  const carphys = params.get("carphysics") !== "0" ? new CarPhysics(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } if (!ul.querySelector(".aw-loco")) { const li3 = document.createElement("li"); li3.className = "aw-loco"; li3.innerHTML = 'On-foot walk and run: <a href="https://quaternius.com/packs/universalanimationlibrary.html" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> (CC0)'; ul.appendChild(li3); } if (!ul.querySelector(".aw-tds")) { const li4 = document.createElement("li"); li4.className = "aw-tds"; li4.innerHTML = 'Tierra del Sol gate: <a href="https://commons.wikimedia.org/wiki/File:GCV_Aruba_way_to_arribe_to_the_villas_-_panoramio.jpg" target="_blank" rel="noopener">Kallistoaua</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>'; ul.appendChild(li4); } if (!ul.querySelector(".aw-nin")) { const liN = document.createElement("li"); liN.className = "aw-nin"; liN.innerHTML = 'Casibari wall, kunuku fences, Hooiberg from the north: <a href="https://commons.wikimedia.org/wiki/File:Casibari_-_1.jpg" target="_blank" rel="noopener">DanielleJWiki</a>, <a href="https://commons.wikimedia.org/wiki/File:Traditional_Yatu_Cactus_Ritterocereus_Griseus_Fences_Santa_Cruz_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://commons.wikimedia.org/wiki/File:Cunucu_Traditional_Countryside_Small_Plantation_House_with_Traditional_Yatu_Cactus_Ritterocereus_Griseus_Fences_Santa_Cruz_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://commons.wikimedia.org/wiki/File:Hooiberg_Haystack_Mountain_View_from_Hudishibana_Hill_California_Lighthouse_Northwestern_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; <a href="https://commons.wikimedia.org/wiki/File:Aruba_kunuku.jpg" target="_blank" rel="noopener">We El</a> (public domain)'; ul.appendChild(liN); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
@@ -177,7 +179,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, roofland, stability, version: "0.19.0" };
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, roofland, stability, carphys, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -210,6 +212,7 @@ async function main() {
     if (interiors) interiors.update();
     if (roofland) roofland.update();
     if (stability) stability.update();
+    if (carphys) carphys.update(Math.min(dt, 0.1));
     if (golf) golf.frame();
     if (sn) sn.update();
     if (snfair) snfair.update();
