@@ -1,0 +1,14 @@
+{
+  "place": "moomba",
+  "area": "palm-eagle-beach",
+  "photos": [
+    {
+      "file": "dining.jpg",
+      "source_url": "https://www.moombabeach.com/",
+      "image_url": "https://www.moombabeach.com/storage/app/uploads/public/691/b68/fc5/691b68fc5a2f1925222527.png",
+      "license": "Moomba Beach / moombabeach.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Moomba Beach gallery",
+      "shows": "thatch palapas, wooden tables, palms on the sand"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+ "place": "playalinda",
+ "area": "palm-eagle-beach",
+ "note": "playalinda.com gallery photos. Reference only. Not pasted into the game. Signs in the model are drawn.",
+ "photos": [
+  {
+   "file": "street.jpg",
+   "source": "https://images.prismic.io/playa-linda/0952b47a-99ee-4324-a372-112bde001ae7_40-JET08633.jpg",
+   "shows": "street face: peach wings, orange roofs, arched porte-cochere, Mini Market and Castaways"
+  },
+  {
+   "file": "drone.jpg",
+   "source": "https://images.prismic.io/playa-linda/65887637-7e49-43cd-9ad4-b9b9658785db_23-DJI_0942.jpg",
+   "shows": "orange roofs, pool, palapas, beach"
+  },
+  {
+   "file": "pool.jpg",
+   "source": "https://images.prismic.io/playa-linda/4f69fab0-2b24-42de-bad5-251d8ddd19c9_PL-1_resized.jpg",
+   "shows": "pool and palapas"
+  }
+ ]
+}
