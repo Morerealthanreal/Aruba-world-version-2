@@ -14,7 +14,8 @@ type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
 type Brand = { x: number; z: number; bg: string; fg: string; cat: string; k: string; sign: string };
 type Pts = Array<[number, number]>;
 type Road = { c: number; p: Pts };
-type MapData = { land: Array<{ outer: Pts }>; parks: Pts[]; roads: Road[]; runways: Pts[] };
+export type MapPOI = { n: string; k: string; p: [number, number] };
+export type MapData = { land: Array<{ outer: Pts }>; shallow?: Pts[]; parks: Pts[]; roads: Road[]; runways: Pts[]; pois?: MapPOI[] };
 type MiniWindow = Window & {
   __awMiniMap?: (x: number, z: number, h: number, r: number, tex: MapTex, b: Bounds, brands: Brand[], data: MapData) => void;
   requestIdleCallback?: (cb: (d: { timeRemaining(): number }) => void, o?: { timeout: number }) => number;
@@ -24,7 +25,7 @@ type Player = { mode: string; car: { x: number; z: number; s?: number }; walk: {
 const CELL = 500;
 const TILE = 1024;
 const WORLD = 1024;
-const SEA = "#1d5683", LAND = "#47524c", PARK = "#4c6444", RUNWAY = "#262c31", CASING = "#1b2126";
+const SEA = "#1d5683", SHALLOW = "#257a9e", LAND = "#47524c", PARK = "#4c6444", RUNWAY = "#262c31", CASING = "#1b2126";
 const ROAD_COL = ["#aeb5b8", "#c3c8ca", "#eef0f0", "#ffd34d", "#ffd34d"];
 /** Road widths per OSM class in minimap CSS px (exaggerated like GV: a 6 m street would be sub-pixel at true scale). */
 const ROAD_W = [1.1, 1.4, 2.1, 2.7, 3.2];
@@ -105,6 +106,9 @@ export class MiniMap {
     const poly = (pts: Pts) => pts.forEach(([x, z], i) => (i ? c.lineTo(X(x), Z(z)) : c.moveTo(X(x), Z(z))));
     this.idle(() => {
       c.fillStyle = SEA; c.fillRect(0, 0, WORLD, WORLD);
+      if (data.shallow) {
+        c.fillStyle = SHALLOW; c.beginPath(); for (const s of data.shallow) { poly(s); c.closePath(); } c.fill();
+      }
       c.fillStyle = LAND; c.beginPath(); for (const l of data.land) { poly(l.outer); c.closePath(); } c.fill();
       c.fillStyle = PARK; c.beginPath(); for (const p of data.parks) { poly(p); c.closePath(); } c.fill();
       c.lineCap = c.lineJoin = "round";
@@ -167,6 +171,11 @@ export class MiniMap {
     const X = (x: number) => (x - cx) * ppm + TILE / 2, Z = (z: number) => (z - cz) * ppm + TILE / 2;
     const poly = (pts: Pts) => pts.forEach(([x, z], i) => (i ? c.lineTo(X(x), Z(z)) : c.moveTo(X(x), Z(z))));
     c.fillStyle = SEA; c.fillRect(0, 0, TILE, TILE);
+    if (data.shallow) {
+      c.fillStyle = SHALLOW; c.beginPath();
+      for (const s of data.shallow) { poly(s); c.closePath(); }
+      c.fill();
+    }
     c.fillStyle = LAND; c.beginPath();
     for (const l of data.land) { poly(l.outer); c.closePath(); }
     c.fill();
@@ -223,6 +232,46 @@ export class MiniMap {
       ctx.drawImage(src, (x - b.minX) * a - o / 2, (z - b.minZ) * a - o / 2, o, o, -W / 2, -W / 2, W, W);
     }
     this.pois(ctx, x, z, h, ppmCanvas, pxPerCss, W, brands, range <= 2000);
+    const nav = (window as unknown as { __aw?: { nav?: { destination?: { x: number; z: number; name?: string } | null } } }).__aw?.nav;
+    if (nav && nav.destination) {
+      const dest = nav.destination;
+      const dx = (dest.x - x) * ppmCanvas, dy = (dest.z - z) * ppmCanvas;
+      const inView = dx * dx + dy * dy <= (W / 2 - 8 * pxPerCss) ** 2;
+      if (inView) {
+        ctx.save();
+        ctx.translate(dx, dy);
+        ctx.fillStyle = "#ff4757";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.8 * pxPerCss;
+        ctx.beginPath();
+        ctx.arc(0, -6 * pxPerCss, 4.5 * pxPerCss, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-3.5 * pxPerCss, -3 * pxPerCss);
+        ctx.lineTo(0, 3 * pxPerCss);
+        ctx.lineTo(3.5 * pxPerCss, -3 * pxPerCss);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        const rimAngle = Math.atan2(dy, dx);
+        const rimR = W / 2 - 12 * pxPerCss;
+        const rx = Math.cos(rimAngle) * rimR, ry = Math.sin(rimAngle) * rimR;
+        ctx.save();
+        ctx.translate(rx, ry);
+        ctx.rotate(rimAngle + Math.PI / 2);
+        ctx.fillStyle = "#ff4757";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5 * pxPerCss;
+        ctx.beginPath();
+        ctx.moveTo(0, -7 * pxPerCss);
+        ctx.lineTo(5 * pxPerCss, 5 * pxPerCss);
+        ctx.lineTo(0, 2 * pxPerCss);
+        ctx.lineTo(-5 * pxPerCss, 5 * pxPerCss);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    }
     ctx.restore();
     this.chrome(ctx, W, h, pxPerCss);
   }
@@ -240,6 +289,39 @@ export class MiniMap {
       }
       // landmarks people navigate by (malls, hotels, fuel) win over the nearest boutique
       if (LABEL_CATS.has(p.cat) && p.sign) pick.push({ b: p, d: p.cat === "store" ? d : d * 0.3, x: px, y: py });
+    }
+    if (this.data && this.data.pois) {
+      for (const p of this.data.pois) {
+        const px = (p.p[0] - x) * ppm, py = (p.p[1] - z) * ppm, d = px * px + py * py;
+        if (d > R2) continue;
+        const isBeach = p.k === "beach" || p.n.toLowerCase().includes("beach");
+        const isTown = p.k === "town";
+        const isLandmark = p.k === "attraction" || p.k === "lighthouse" || p.k === "viewpoint" || p.k === "peak";
+        if (dots) {
+          if (isBeach) {
+            ctx.fillStyle = "#ffd34d"; // warm golden beach sand
+            ctx.beginPath(); ctx.arc(px, py, 2.8 * u, 0, 6.2832); ctx.fill(); ctx.stroke();
+          } else if (isTown) {
+            ctx.fillStyle = "#48dbfb"; // town
+            ctx.beginPath(); ctx.arc(px, py, 3.2 * u, 0, 6.2832); ctx.fill(); ctx.stroke();
+          } else if (isLandmark) {
+            ctx.fillStyle = "#ff9f43"; // landmark
+            ctx.beginPath(); ctx.arc(px, py, 2.6 * u, 0, 6.2832); ctx.fill(); ctx.stroke();
+          }
+        }
+        if (isBeach || isTown || isLandmark) {
+          const fakeBrand: Brand = {
+            x: p.p[0],
+            z: p.p[1],
+            bg: isBeach ? "#ffd34d" : isTown ? "#48dbfb" : "#ff9f43",
+            fg: "#ffffff",
+            cat: p.k,
+            k: "poi_" + p.n,
+            sign: p.n
+          };
+          pick.push({ b: fakeBrand, d: isTown ? d * 0.1 : isBeach ? d * 0.2 : d * 0.4, x: px, y: py });
+        }
+      }
     }
     pick.sort((a, b) => a.d - b.d);
     const placed = this.placed; placed.length = 0;
