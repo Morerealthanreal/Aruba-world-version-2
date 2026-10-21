@@ -110,7 +110,6 @@ export class PerfFixes {
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
-  private primeIdle = 0;
   private pendingPrime: BufferGeometry[] = [];
   private scratchScene: Scene | null = null;
   private scratchMat: MeshBasicMaterial | null = null;
@@ -834,35 +833,6 @@ export class PerfFixes {
     this.priming = false;
   }
 
-  private primeUnseenGeometries() {
-    if (this.primeIdle > 0) { this.primeIdle--; return; }
-    let budget = 48;
-    const draw = (mesh: Obj | null | undefined) => {
-      if (budget <= 0 || !mesh?.geometry) return;
-      if (this.primedGeo.has(mesh.geometry)) return;
-      this.rememberGeometry(mesh.geometry);
-      budget--;
-    };
-    const walk = (root: Obj | null | undefined) => {
-      if (!root || budget <= 0) return;
-      const stack: Obj[] = [root];
-      while (stack.length && budget > 0) {
-        const o = stack.pop()!;
-        draw(o);
-        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
-      }
-    };
-    for (const r of this.real.regions.values()) {
-      if (budget <= 0) break;
-      if (r.state === "loading" || r.state === "failed") continue;
-      walk(r.group);
-      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
-    }
-    if (budget > 0) walk(this.real.hero?.group);
-    if (budget === 48) this.primeIdle = 2;
-    this.flushRemembered();
-  }
-
   /** Runs right after A's per-frame world update, before A renders. */
   private hookUpdate() {
     const A = this.real;
@@ -874,7 +844,6 @@ export class PerfFixes {
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
-        this.primeUnseenGeometries();
         this.noteSwaps();
         this.releaseOrphans();
       }
