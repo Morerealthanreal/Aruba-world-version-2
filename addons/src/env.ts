@@ -27,6 +27,7 @@ export type AGame = {
   camera: PerspectiveCamera;
   S: GameState;
   car: Object3D | null;
+  nearestRoad?: (x: number, z: number) => { x: number; z: number; h: number; y?: number };
   real: {
     q: { name: "low" | "med" | "high"; dpr: number; shadow: number };
     sky: ASky;
