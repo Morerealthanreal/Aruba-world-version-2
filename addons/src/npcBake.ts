@@ -1,6 +1,7 @@
 // CC0 Quaternius bodies, recolored in code to modern Aruba beach clothes.
 // Fully opaque: shirts, shorts, cover-ups, sundress colors. No photo textures.
 // Torso shirts carry a darker collar, a hem, sleeve cuffs, and one band in the shorts color.
+// Full leg shells become shorts: a waistband, a hem, and skin on the calf.
 import {
   AnimationClip, BufferGeometry, Color, Float32BufferAttribute,
   Mesh, SkinnedMesh, type Object3D,
@@ -160,6 +161,40 @@ function paintTop(geo: BufferGeometry, clothHex: number, skinHex: number, accent
   if (tank) geo.computeVertexNormals();
 }
 
+// Quaternius casual legs are one shell from ankle to hip. Cutting it would
+// open a hole, so the calf stays in the mesh and is painted skin. The cloth
+// ends mid-thigh with a darker hem, and the hip gets a waistband.
+function paintBottom(geo: BufferGeometry, clothHex: number, skinHex: number, female: boolean) {
+  const cloth = new Color(clothHex);
+  const skin = new Color(skinHex);
+  const waistTone = cloth.clone().multiplyScalar(0.55);
+  const hemTone = cloth.clone().multiplyScalar(0.62);
+  geo.computeBoundingBox();
+  const box = geo.boundingBox!;
+  // Women sit a little higher on this rig. Both hems land on a thigh ring.
+  const hemY = female ? 0.78 : 0.70;
+  const reachesCalf = box.min.y < hemY - 0.12;
+  const waistY = box.max.y - 0.05;
+  const pos = geo.getAttribute("position");
+  const data = new Float32Array(pos.count * 3);
+  const kinds = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    const bare = reachesCalf && y < hemY;
+    // The next thigh ring sits a little above the cut. Include it or the
+    // hem lands in a gap and the cuff disappears.
+    const hem = !bare && reachesCalf && y < hemY + 0.10;
+    const waist = !bare && !hem && y > waistY;
+    const tone = bare ? skin : hem ? hemTone : waist ? waistTone : cloth;
+    data[i * 3] = tone.r;
+    data[i * 3 + 1] = tone.g;
+    data[i * 3 + 2] = tone.b;
+    kinds[i] = bare ? 1 : 2;
+  }
+  geo.setAttribute("color", new Float32BufferAttribute(data, 3));
+  geo.setAttribute("awKind", new Float32BufferAttribute(kinds, 1));
+}
+
 function clothColor(outfit: BeachOutfit, name: string, min: number, max: number): number | null {
   if (name === "Skin_Darker") return new Color(outfit.skin).multiplyScalar(0.86).getHex();
   if (name === "Skin") return outfit.skin;
@@ -194,6 +229,7 @@ export function bakePerson(gl: GLTF, outfit: BeachOutfit): BakedPerson {
     if (hex == null) return;
     const geo = src.clone();
     if (hex === outfit.top) paintTop(geo, hex, outfit.skin, outfit.bottom, outfit.tank === true);
+    else if (hex === outfit.bottom) paintBottom(geo, hex, outfit.skin, outfit.file.includes("/w-"));
     else paint(geo, hex, surfaceKind(name));
     if (!geo.getAttribute("skinIndex") || !geo.getAttribute("skinWeight") || !geo.getIndex()) return;
     for (const key of Object.keys(geo.attributes)) {
