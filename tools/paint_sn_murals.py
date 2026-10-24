@@ -16,6 +16,13 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
+
+_TOOLS = Path(__file__).resolve().parent
+import sys
+
+if str(_TOOLS) not in sys.path:
+    sys.path.insert(0, str(_TOOLS))
+from mural_pack import pack_atlas as pack
 OUT_IMG = ROOT / "game" / "textures" / "sn_mural_atlas.jpg"
 OUT_JSON = ROOT / "game" / "data" / "sn_murals.json"
 PAINT_SRC = ROOT / "tools" / "sn_paintings"
@@ -878,39 +885,6 @@ PAINT = {
     "nothing_to_declare": paint_declare,
 }
 
-
-def pack(images):
-    """Shelf-pack tallest first so the two large tiles share rows with offcuts."""
-    pad = 2
-    max_w = 2048
-    order = sorted(range(len(images)), key=lambda i: -images[i].size[1])
-    rows = []
-    for i in order:
-        w, h = images[i].size
-        placed = False
-        for row in rows:
-            if row["x"] + w <= max_w:
-                row["items"].append((i, row["x"]))
-                row["x"] += w + pad
-                row["h"] = max(row["h"], h)
-                placed = True
-                break
-        if not placed:
-            rows.append({"x": w + pad, "h": h, "items": [(i, 0)]})
-    boxes = [None] * len(images)
-    y = 0
-    for row in rows:
-        for i, x in row["items"]:
-            w, h = images[i].size
-            boxes[i] = (x, y, w, h)
-        y += row["h"] + pad
-    atlas_h = max(4, y - pad)
-    # round up to multiple of 4
-    atlas_h = (atlas_h + 3) & ~3
-    atlas = Image.new("RGB", (max_w, atlas_h), (20, 20, 20))
-    for im, (px, py, w, h) in zip(images, boxes):
-        atlas.paste(im, (px, py))
-    return atlas, boxes
 
 
 def place_unwrap(spec):
