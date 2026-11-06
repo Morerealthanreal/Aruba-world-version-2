@@ -1,0 +1,39 @@
+{
+ "label": "before",
+ "port": "8822",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "drone",
+   "calls": 1168,
+   "tris": 1420826,
+   "ms": 12.1
+  },
+  {
+   "shot": "entrance",
+   "calls": 299,
+   "tris": 1283957,
+   "ms": 4
+  },
+  {
+   "shot": "aerial",
+   "calls": 535,
+   "tris": 1609080,
+   "ms": 5.5
+  }
+ ],
+ "fps": {
+  "fps": 0.85,
+  "p95ms": 10166.3,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "barcelo",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}

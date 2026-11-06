@@ -2,3 +2,6 @@ node_modules/
 *.log
 deploy/
 tests/artifacts/
+# Built from refs/places/_registry and addons/src/outfits. Do not edit.
+game/data/hero/manifest.json
+addons/src/outfits/index.ts

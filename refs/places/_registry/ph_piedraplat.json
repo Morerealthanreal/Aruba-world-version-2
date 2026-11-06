@@ -1,0 +1,42 @@
+{
+ "_ord": 5,
+ "id": "ph_piedraplat",
+ "name": "Pizza Hut (Piedra Plat)",
+ "status": "v1-unit (plaza storefront, brand colours)",
+ "x": -2680.49,
+ "z": -629.61,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/ph_piedraplat.glb",
+ "lod": {
+  "hi": "ph_piedraplat_lod0",
+  "lo": "ph_piedraplat_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "ph_piedraplat_lod0": 84,
+  "ph_piedraplat_lod1": 24
+ },
+ "hide_footprint": null,
+ "new_place": true,
+ "sign": {
+  "text": "PIZZA HUT",
+  "bg": "#c8102e",
+  "fg": "#ffffff",
+  "edge_index": null
+ },
+ "kind": "unit",
+ "unit_edge": [
+  [
+   -2676.0464053217506,
+   -628.8744008869585
+  ],
+  [
+   -2684.92395063624,
+   -630.3539917727066
+  ]
+ ],
+ "approx_location": false,
+ "geo_source": "OSM POI 'Pizza Hut, 44L, Piedra Plat' via Nominatim; pizzahutaruba.com",
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

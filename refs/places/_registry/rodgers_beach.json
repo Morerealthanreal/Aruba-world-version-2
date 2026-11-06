@@ -1,0 +1,31 @@
+{
+ "_ord": 1321,
+ "id": "rodgers_beach",
+ "k": "rodgers_beach",
+ "name": "Rodgers Beach",
+ "status": "v5-accuracy",
+ "x": 9423.6,
+ "z": 11521.0,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/rodgers_beach.glb",
+ "lod": {
+  "hi": "rodgers_beach_lod0",
+  "lo": "rodgers_beach_lod1",
+  "switch_m": 320
+ },
+ "tris": {
+  "rodgers_beach_lod0": 352,
+  "rodgers_beach_lod1": 168
+ },
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Commons Rodgers Beach: thatch palapas on the sand and small fishing boats in the shallows, on the land side of the lagoon immediately west of Baby Beach. The refinery is the separate skyline hero.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "beach"
+}

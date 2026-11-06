@@ -1,0 +1,48 @@
+{
+ "_ord": 1363,
+ "id": "sav_sacredheart",
+ "k": "sav_sacredheart",
+ "name": "Sagrado Curason (Savaneta)",
+ "status": "accuracy-b2",
+ "x": 2920.18,
+ "z": 8000.28,
+ "y": 8.91,
+ "rotation": 0,
+ "glb": "models/hero/sav_sacredheart.glb",
+ "lod": {
+  "hi": "sav_sacredheart_lod0",
+  "lo": "sav_sacredheart_lod1",
+  "switch_m": 340
+ },
+ "tris": {
+  "sav_sacredheart_lod0": 468,
+  "sav_sacredheart_lod1": 28
+ },
+ "textures": 0,
+ "hide_footprint": [
+  [
+   2906.0,
+   7990.4
+  ],
+  [
+   2903.6,
+   8005.2
+  ],
+  [
+   2934.3,
+   8010.2
+  ],
+  [
+   2936.8,
+   7995.4
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM footprint / centreline",
+ "ref_sources": "Ground photos Commons 'Church of the Holy Heart (Aruba)' 2017: peach walls, maroon stripes and window hoods, red roof, square tower, white cross. OSM way 376320397.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "landmark"
+}

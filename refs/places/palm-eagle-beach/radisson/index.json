@@ -1,18 +1,50 @@
 {
- "place": "radisson",
- "area": "palm-eagle-beach",
- "photos": [
-  {
-   "file": "radisson_0.jpg",
-   "source_url": "https://www.mapillary.com/app/?pKey=1517198308834030",
-   "license": "CC BY-SA 4.0 (Mapillary)",
-   "credit": "Mapillary / amaiman",
-   "lat": 12.575584,
-   "lon": -70.041672,
-   "heading": 281.2,
-   "date": "2024-04-03",
-   "shows": "street-level view toward radisson (~40 m away)",
-   "original_path": "/workspace/landmarks/mly/radisson_0.jpg"
-  }
- ]
+  "place": "radisson",
+  "area": "palm-eagle-beach",
+  "photos": [
+    {
+      "file": "exterior.jpg",
+      "source_url": "https://www.bluaruba.com/gallery/",
+      "image_url": "https://673caedbf669c0f3a9b1-e31754af187fe4c9f2fa92418b724919.ssl.cf1.rackcdn.com/responsive/Native/750px/u/exterior/Resort-Exterior.jpg",
+      "license": "Radisson Blu Aruba / bluaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Radisson Blu Aruba gallery, Resort Exterior",
+      "shows": "white balcony tower, blue glass, Radisson roof sign, curved pool, palms"
+    },
+    {
+      "file": "entrance.jpg",
+      "source_url": "https://www.bluaruba.com/gallery/",
+      "image_url": "https://673caedbf669c0f3a9b1-e31754af187fe4c9f2fa92418b724919.ssl.cf1.rackcdn.com/responsive/Native/750px/u/exterior/Resort-Entrance.jpg",
+      "license": "Radisson Blu Aruba / bluaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Radisson Blu Aruba gallery, Resort Entrance",
+      "shows": "three-storey canopy, roof planters, red umbrellas, glass-sphere fountain"
+    },
+    {
+      "file": "pool.jpg",
+      "source_url": "https://www.bluaruba.com/gallery/",
+      "image_url": "https://673caedbf669c0f3a9b1-e31754af187fe4c9f2fa92418b724919.ssl.cf1.rackcdn.com/responsive/Native/750px/u/exterior/Resort-Exterior--Pool.jpg",
+      "license": "Radisson Blu Aruba / bluaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Radisson Blu Aruba gallery, pool",
+      "shows": "curved pool in front of the white balcony tower"
+    },
+    {
+      "file": "night.jpg",
+      "source_url": "https://www.bluaruba.com/gallery/",
+      "image_url": "https://673caedbf669c0f3a9b1-e31754af187fe4c9f2fa92418b724919.ssl.cf1.rackcdn.com/responsive/Native/750px/u/exterior/Radisson-Blu-Aruba-at-Night.jpg",
+      "license": "Radisson Blu Aruba / bluaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Radisson Blu Aruba gallery, night",
+      "shows": "tower at night with the lit Radisson sign and a blue pool"
+    },
+    {
+      "file": "radisson_0.jpg",
+      "source_url": "https://www.mapillary.com/app/?pKey=1517198308834030",
+      "license": "CC BY-SA 4.0 (Mapillary)",
+      "credit": "Mapillary / amaiman",
+      "lat": 12.575584,
+      "lon": -70.041672,
+      "heading": 281.2,
+      "date": "2024-04-03",
+      "shows": "street-level view toward radisson (~40 m away), trees in front of a white wall",
+      "original_path": "/workspace/landmarks/mly/radisson_0.jpg"
+    }
+  ]
 }

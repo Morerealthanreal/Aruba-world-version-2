@@ -40,9 +40,16 @@ jobs:
           BEFORE="${{ github.event.before }}"
           if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then REF=$BEFORE; else REF=HEAD~1; fi
           echo "comparing against $REF"
-          if git show $REF:game/data/hero/manifest.json > /tmp/prev.json 2>/dev/null; then
+          if python3 tools/manifest_at.py "$REF" /tmp/prev.json; then
             python3 tools/check_manifest.py /tmp/prev.json deploy/data/hero/manifest.json
-          else echo "no previous manifest; skipping"; fi
+          else
+            rc=$?
+            if [ "$rc" -eq 2 ]; then
+              echo "no previous manifest; skipping"
+            else
+              exit "$rc"
+            fi
+          fi
       - name: Manifest check (built vs currently live; blocking for production)
         continue-on-error: ${{ env.DOMAIN != 'aruba-world-justin.surge.sh' }}
         run: |

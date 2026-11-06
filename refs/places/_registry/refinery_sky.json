@@ -1,0 +1,31 @@
+{
+ "_ord": 1319,
+ "id": "refinery_sky",
+ "k": "refinery_sky",
+ "name": "San Nicolas refinery",
+ "status": "v5-accuracy",
+ "x": 8000.0,
+ "z": 10600.0,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/refinery_sky.glb",
+ "lod": {
+  "hi": "refinery_sky_lod0",
+  "lo": "refinery_sky_lod1",
+  "switch_m": 1600
+ },
+ "tris": {
+  "refinery_sky_lod0": 820,
+  "refinery_sky_lod1": 96
+ },
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "OSM man_made=chimney nodes east of San Nicolas (about 12.424 to 12.428 N, 69.902 to 69.896 W) and nearby storage tanks. Skyline of a tall stack, process columns and white tanks, the view from Rodgers Beach in Commons 'Raffinaderij gezien vanaf Rodgers Beach'. Simplified, not a photo.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "landmark"
+}

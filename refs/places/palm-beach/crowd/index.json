@@ -1,0 +1,18 @@
+{
+  "place": "palm-beach-crowd",
+  "area": "palm-beach",
+  "photos": [
+    {
+      "file": "palm-beach.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Palm_Beach_Aruba.jpg",
+      "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Palm_Beach_Aruba.jpg",
+      "license": "CC BY 4.0",
+      "credit": "Kwihi, Wikimedia Commons",
+      "lat": 12.568032,
+      "lon": -70.048522,
+      "heading": "south along Palm Beach, turquoise water to the west, hotels and palms to the east",
+      "date": "2025-11-12",
+      "shows": "white sand, calm turquoise water, high-rise hotels, palms, loungers, and people on the beach"
+    }
+  ]
+}

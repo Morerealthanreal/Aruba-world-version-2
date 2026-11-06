@@ -1,0 +1,31 @@
+{
+ "_ord": 1303,
+ "id": "apt_tealroof",
+ "k": "apt_tealroof",
+ "name": "",
+ "status": "v5-accuracy",
+ "x": -4180,
+ "z": 1900,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/apt_tealroof.glb",
+ "lod": {
+  "hi": "apt_tealroof_lod0",
+  "lo": "apt_tealroof_lod1",
+  "switch_m": 800
+ },
+ "tris": {
+  "apt_tealroof_lod0": 48,
+  "apt_tealroof_lod1": 48
+ },
+ "textures": 0,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": false,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Airside roof cap on the existing airport_fx shell. Wikimedia 'Roman Tokman Aruba Airport': turquoise standing-seam roof on the apron side. Same origin as airport_fx so it sits on that model.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "park"
+}

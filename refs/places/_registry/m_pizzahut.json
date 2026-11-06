@@ -1,0 +1,66 @@
+{
+ "_ord": 4,
+ "id": "m_pizzahut",
+ "name": "Pizza Hut",
+ "status": "v1-photo-matched",
+ "x": -8960.45,
+ "z": -2719.95,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/m_pizzahut.glb",
+ "lod": {
+  "hi": "m_pizzahut_lod0",
+  "lo": "m_pizzahut_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "m_pizzahut_lod0": 2380,
+  "m_pizzahut_lod1": 136
+ },
+ "hide_footprint": [
+  [
+   -8980.9,
+   -2734.3
+  ],
+  [
+   -8980.9,
+   -2718.4
+  ],
+  [
+   -8970.1,
+   -2718.4
+  ],
+  [
+   -8970,
+   -2704.2
+  ],
+  [
+   -8939.1,
+   -2704.3
+  ],
+  [
+   -8939.2,
+   -2722.8
+  ],
+  [
+   -8951.7,
+   -2722.8
+  ],
+  [
+   -8951.7,
+   -2734.4
+  ]
+ ],
+ "new_place": false,
+ "sign": {
+  "text": "PIZZA HUT",
+  "bg": "#c8102e",
+  "fg": "#ffffff",
+  "edge_index": 0
+ },
+ "kind": "replace",
+ "unit_edge": null,
+ "approx_location": false,
+ "geo_source": null,
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

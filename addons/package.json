@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --format=esm --minify --target=es2020 --outfile=../game/addons/aw-addons.js --legal-comments=none",
-    "typecheck": "tsc -p .",
+    "build": "node scripts/gen-outfits.mjs && esbuild src/index.ts --bundle --format=esm --minify --target=es2020 --outfile=../game/addons/aw-addons.js --legal-comments=none",
+    "typecheck": "node scripts/gen-outfits.mjs && tsc -p .",
     "cars": "node cars/build.mjs",
     "dev": "npm run build -- --watch",
     "model:moto": "node -e \"console.error('game/models/moto.glb is the CC-BY Sports Bike mesh. The procedural generator is retired.'); process.exit(1)\""

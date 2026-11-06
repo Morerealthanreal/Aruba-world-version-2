@@ -1,0 +1,40 @@
+{
+  "place": "hilton",
+  "area": "palm-beach",
+  "photos": [
+    {
+      "file": "porte-cochere.jpg",
+      "source_url": "https://hiltonaruba.com/gallery/",
+      "image_url": "https://hiltonaruba.com/wp-content/uploads/2025/10/20161214_hilton_1097-1024x683.jpg",
+      "license": "Hilton Aruba Caribbean Resort & Casino / hiltonaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Hilton Aruba gallery, 20161214_hilton_1097",
+      "lat": 12.5675,
+      "lon": -70.0469,
+      "heading": "west, from the arrival drive toward the street tower",
+      "date": "2016-12-14",
+      "shows": "pale beige slab, white Hilton wordmark, narrow window slit on the south side of that face, purple pyramid porte-cochere, palms"
+    },
+    {
+      "file": "balcony.jpg",
+      "source_url": "https://hiltonaruba.com/gallery/",
+      "license": "Hilton Aruba Caribbean Resort & Casino / hiltonaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Hilton Aruba gallery, ocean balcony",
+      "lat": 12.5675,
+      "lon": -70.0472,
+      "heading": "west, from a guest balcony toward the ocean",
+      "date": null,
+      "shows": "grey wall, white slab, deep blue vertical balcony rails, ocean"
+    },
+    {
+      "file": "lagoon.jpg",
+      "source_url": "https://hiltonaruba.com/gallery/",
+      "license": "Hilton Aruba Caribbean Resort & Casino / hiltonaruba.com - all rights reserved, reference only, not pasted onto geometry",
+      "credit": "Hilton Aruba gallery, lagoon restaurant",
+      "lat": 12.5674,
+      "lon": -70.0473,
+      "heading": "along the olive pavilion over the lagoon, white wing behind",
+      "date": null,
+      "shows": "olive roof, yellow chairs, globe lights, wood deck over green water, white balcony wing"
+    }
+  ]
+}

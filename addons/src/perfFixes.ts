@@ -19,9 +19,15 @@
 //     On MED: pixel ratio 1.5 -> 1.35 (B's MED).
 //  6. Hero models: hidden beyond a tier distance (A shows them to 2 km on every tier).
 //  7. Minimap 2D canvas redrawn every 3rd frame instead of every frame.
-//  8. Region unload frees textures nothing else still references. Every map on a live
-//     region is uploaded before a sample can miss it, so the loader's dispose drops the
-//     GPU count instead of leaving a slot the next visit fills. Building batches release
+//  8. Region unload frees textures nothing else still references. The first height,
+//     splat, and sign image stay. A reload's terrain and water materials are still new
+//     (reusing the material kept the previous visit's geometries on the GPU), and they
+//     are built around that first image instead of a second upload. Water's height
+//     uniform is closed over inside onBeforeCompile, so the kept image has to be the
+//     one passed into the factory; wrapping onBeforeCompile to swap it later compiled
+//     a fresh program per visit and the geometry count climbed. Every other map on a
+//     live region is uploaded before a sample can miss it, so the loader's dispose drops
+//     the GPU count instead of leaving a slot the next visit fills. Building batches release
 //     their geometry and internal textures on the same unload, and a chunk or road mesh
 //     that swaps geometry disposes the previous one. That geometry check is every fourth
 //     frame; running it every frame left the forced-GC heap with almost no room.
@@ -31,7 +37,7 @@
 //     already include them. Hero images, including the sign, that decode after that
 //     first draw are uploaded on a later pass for any hero already loaded within
 //     1500 m, instead of waiting until the next visit.
-import { BufferGeometry, Matrix4, Mesh, type Material, type Object3D } from "three";
+import { BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, Scene, type Material, type Object3D } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AGame } from "./env";
 import { TileInstances } from "./tileInst";
@@ -39,7 +45,11 @@ import { params } from "./env";
 
 type Obj = Object3D & { isMesh?: boolean; isInstancedMesh?: boolean; isSkinnedMesh?: boolean; geometry?: BufferGeometry; material?: Material | Material[] };
 type Region = { group?: Obj; state: string };
-type Hero = { group?: Obj; list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj }>; update(x: number, z: number): void };
+type Hero = {
+  group?: Obj;
+  list: Array<{ x: number; z: number; _g?: Obj; _sign?: Obj; _loading?: boolean; _awHold?: number; _awWant?: number }>;
+  update(x: number, z: number): void;
+};
 type BatchMesh = {
   dispose(): void;
   geometry?: BufferGeometry;
@@ -70,8 +80,12 @@ type GpuTex = {
   isTexture?: boolean;
   isDataArrayTexture?: boolean;
   dispose(): void;
+  clone?: () => GpuTex;
+  mipmaps?: unknown[];
   __awGone?: number;
-  image?: { complete?: boolean; width?: number } | null;
+  /** First copy for this region. Later visits reuse it instead of uploading another. */
+  __awKeep?: number;
+  image?: { complete?: boolean; width?: number; height?: number } | null;
 };
 const MAP_KEYS = ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap", "bumpMap", "lightMap", "envMap", "specularMap"];
 
@@ -96,7 +110,11 @@ export class PerfFixes {
   private swapped = new Set<BufferGeometry>();
   private watchTick = 0;
   private primedGeo = new WeakSet<BufferGeometry>();
-  private primeIdle = 0;
+  private pendingPrime: BufferGeometry[] = [];
+  private scratchScene: Scene | null = null;
+  private scratchMat: MeshBasicMaterial | null = null;
+  private scratchEmpty = new BufferGeometry();
+  private scratchMeshes: Mesh[] = [];
   private mapCursor = 0;
   private heroMapped = new WeakSet<Obj>();
   inst: TileInstances | null = null;
@@ -116,6 +134,7 @@ export class PerfFixes {
     this.hookUpdate();
     this.hookHero();
     this.hookDispose();
+    this.hookMaterialFactories();
     this.fixGlass();
   }
 
@@ -303,6 +322,34 @@ export class PerfFixes {
     const orig = h.update.bind(h);
     const cap = this.heroCap;
     h.update = (x: number, z: number) => {
+      // The base loader fetches every GLB inside 1500 m. Low hides heroes
+      // outside this cap, and those hidden signs were still uploading on the
+      // measured lap. Eight fetches at a time never caught up (texture growth
+      // 12, scene geometries 101). Remember every hero that comes inside the
+      // cap, and keep forty-eight of the closest fetches going after the
+      // camera leaves so warmup can finish them.
+      if (this.real.q.name === "low") {
+        const queued: Array<{ n: (typeof h.list)[number]; d: number }> = [];
+        for (const n of h.list) {
+          if (n._g) continue;
+          const d = Math.hypot(n.x - x, n.z - z);
+          if (d <= cap) n._awWant = 1;
+          const live = !!n._loading && !n._awHold;
+          if (!n._awWant || d > 1500) {
+            if (!live) { n._loading = true; n._awHold = 1; }
+            continue;
+          }
+          queued.push({ n, d });
+        }
+        queued.sort((a, b) => a.d - b.d);
+        let room = 48;
+        for (const item of queued) if (item.n._loading && !item.n._awHold) room--;
+        for (const item of queued) {
+          if (item.n._loading && !item.n._awHold) continue;
+          if (room > 0) { item.n._loading = false; item.n._awHold = 0; room--; }
+          else { item.n._loading = true; item.n._awHold = 1; }
+        }
+      }
       orig(x, z);
       let hidden = 0;
       for (const n of h.list) {
@@ -321,6 +368,9 @@ export class PerfFixes {
     const orig = A.disposeRegion.bind(A);
     A.disposeRegion = (r: unknown) => {
       const rec = r as Reg;
+      // The kept height, splat, and sign stay on the GPU. Detach them so the
+      // loader's dispose does not free that slot for the next visit to fill.
+      this.detachKept(rec);
       // Upload before the loader disposes. A texture that never reached the GPU does
       // not lower info.memory.textures, and the copy created on the next visit raises it.
       this.uploadNow(rec.hf);
@@ -334,7 +384,7 @@ export class PerfFixes {
       const live = this.referencedTextures();
       let n = 0;
       for (const t of owned) {
-        if (live.has(t) || t.isDataArrayTexture) continue;
+        if (live.has(t) || t.isDataArrayTexture || t.__awKeep) continue;
         if (!t.__awGone) t.__awGone = 1;
         t.dispose();
         n++;
@@ -343,6 +393,122 @@ export class PerfFixes {
       this.freedTex += n;
       this.reapGeometries(geos);
     };
+  }
+
+  /** First height, splat, and sign image for a region. Later visits build new
+   *  materials around these, then dispose the duplicates before they upload. */
+  private keptRegion = new Map<string, { hf: GpuTex | null; splat: GpuTex | null; sign: GpuTex | null }>();
+
+  /** Terrain and water close over the textures passed into their factories.
+   *  Swap in the kept image before that closure is built. Materials stay per
+   *  visit, which is what releases their geometries on unload. */
+  private hookMaterialFactories() {
+    const real = this.real as unknown as {
+      terrain?: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } };
+      water?: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } };
+    };
+    const wrap = (
+      fac: { material?: ((...args: unknown[]) => Material) & { __awReuse?: number } } | undefined,
+      kind: "terrain" | "water",
+    ) => {
+      if (!fac?.material || fac.material.__awReuse) return;
+      const orig = fac.material.bind(fac);
+      const wrapped = (...args: unknown[]) => {
+        if (kind === "terrain") {
+          args[0] = this.reuseBuilt(args[0], "splat");
+          args[1] = this.reuseBuilt(args[1], "hf");
+        } else {
+          args[0] = this.reuseBuilt(args[0], "hf");
+        }
+        return orig(...args);
+      };
+      wrapped.__awReuse = 1;
+      fac.material = wrapped;
+    };
+    wrap(real.terrain, "terrain");
+    wrap(real.water, "water");
+  }
+
+  /** The region record already holds the fresh image when the factory runs. */
+  private reuseBuilt(tex: unknown, field: "hf" | "splat") {
+    const fresh = tex as GpuTex | null | undefined;
+    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return tex;
+    let rec: Reg | null = null;
+    for (const region of this.real.regions.values()) if (region[field] === fresh) { rec = region; break; }
+    if (!rec) return tex;
+    const slot = this.slotFor(rec);
+    const kept = slot[field];
+    if (!kept) { fresh.__awKeep = 1; slot[field] = fresh; return fresh; }
+    if (kept === fresh) return fresh;
+    if ((kept.image?.width ?? 0) !== fresh.image?.width || (kept.image?.height ?? 0) !== fresh.image?.height) return fresh;
+    rec[field] = kept;
+    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+    return kept;
+  }
+
+  private slotFor(rec: Reg) {
+    const key = rec.rx + "," + rec.rz;
+    let slot = this.keptRegion.get(key);
+    if (!slot) {
+      slot = { hf: null, splat: null, sign: null };
+      this.keptRegion.set(key, slot);
+    }
+    return slot;
+  }
+
+  /** Images created before the factory hook (the boot ring) are the copies to keep.
+   *  Signs are ordinary maps, built with the region mesh, so they can be retargeted
+   *  after the fact. Height and splat are not: their materials already closed over them. */
+  private reuseRegionTextures() {
+    for (const rec of this.real.regions.values()) {
+      if (rec.state === "loading" || rec.state === "failed") continue;
+      const slot = this.slotFor(rec);
+      this.adopt(slot, "hf", rec.hf);
+      this.adopt(slot, "splat", rec.splat);
+      this.reuseSign(rec, slot);
+    }
+  }
+
+  private adopt(slot: { hf: GpuTex | null; splat: GpuTex | null }, field: "hf" | "splat", tex: GpuTex | null | undefined) {
+    if (slot[field] || !tex?.isTexture || (tex.image?.width ?? 0) <= 0) return;
+    tex.__awKeep = 1;
+    slot[field] = tex;
+  }
+
+  private reuseSign(rec: Reg, slot: { sign: GpuTex | null }) {
+    const fresh = rec.signTex;
+    if (!fresh?.isTexture || (fresh.image?.width ?? 0) <= 0) return;
+    if (!slot.sign) { fresh.__awKeep = 1; slot.sign = fresh; return; }
+    const kept = slot.sign;
+    if (fresh === kept) return;
+    if ((kept.image?.width ?? 0) !== fresh.image?.width || (kept.image?.height ?? 0) !== fresh.image?.height) return;
+    rec.group?.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.name !== "signs" || !mesh.material || Array.isArray(mesh.material)) return;
+      const mat = mesh.material as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
+      if (mat.map === fresh) mat.map = kept;
+      if (mat.emissiveMap === fresh) mat.emissiveMap = kept;
+    });
+    rec.signTex = kept;
+    if (!fresh.__awGone) { fresh.__awGone = 1; fresh.dispose(); }
+  }
+
+  /** Drop the loader's handles so disposeRegion does not free the kept images. */
+  private detachKept(rec: Reg) {
+    const slot = this.keptRegion.get(rec.rx + "," + rec.rz);
+    if (!slot) return;
+    if (rec.hf && rec.hf === slot.hf) rec.hf = null;
+    if (rec.splat && rec.splat === slot.splat) rec.splat = null;
+    if (rec.signTex && rec.signTex === slot.sign) rec.signTex = null;
+    const sign = slot.sign;
+    if (!sign) return;
+    rec.group?.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.name !== "signs" || !mesh.material || Array.isArray(mesh.material)) return;
+      const mat = mesh.material as Material & { map?: GpuTex | null; emissiveMap?: GpuTex | null };
+      if (mat.map === sign) mat.map = null;
+      if (mat.emissiveMap === sign) mat.emissiveMap = null;
+    });
   }
 
   private gpu() {
@@ -411,7 +577,15 @@ export class PerfFixes {
   private uploadPendingMaps(x: number, z: number) {
     const list = this.real.hero?.list;
     if (!list || !list.length) return;
-    let budget = 8;
+    // Noord has a few hundred loaded heroes. Eight maps a frame was still
+    // uploading signs on the measured lap after Surf Club joined that set
+    // (texture growth 5.5, limit 4). Surf Club adds no images; it is inside
+    // the 1500 m load, so the phone was still flushing other heroes' signs.
+    // Low draws less, so it can finish that set during warmup. Other tiers
+    // stay at 8. Releasing inactive overview LODs slowed the phone enough
+    // that 24 maps a frame still left a few signs for the measured lap
+    // (texture growth 5, limit 4).
+    let budget = this.real.q.name === "low" ? 48 : 8;
     const n = list.length;
     let i = this.mapCursor % n;
     const start = i;
@@ -421,8 +595,10 @@ export class PerfFixes {
       if (budget <= 0) break;
       if (!hero._g && !hero._sign) continue;
       if (Math.hypot(hero.x - x, hero.z - z) > 1500) continue;
-      if (hero._g) budget = this.uploadObjectMaps(hero._g, budget);
-      if (hero._sign && budget > 0) budget = this.uploadObjectMaps(hero._sign, budget);
+      // Signs first. A hero with several maps was using the whole frame budget
+      // and leaving the sign for the measured lap.
+      if (hero._sign) budget = this.uploadObjectMaps(hero._sign, budget);
+      if (hero._g && budget > 0) budget = this.uploadObjectMaps(hero._g, budget);
     } while (i !== start);
     this.mapCursor = i;
   }
@@ -475,13 +651,36 @@ export class PerfFixes {
       extra.roadMesh?.traverse((o) => consider(o as Obj));
       for (const b of r.__awBB || []) consider(b.bm as unknown as Obj);
     }
+    // Hero and brand meshes are built, drawn, then sometimes detached. A clone that
+    // left the scene still counts on the GPU until dispose. Inactive overview LOD
+    // buffers stay on userData.lods; releaseOrphans frees the GPU copy.
+    const watched: (Obj | null | undefined)[] = [
+      this.real.hero?.group as Obj | undefined,
+      this.real.brands?.group as Obj | undefined,
+    ];
+    for (const root of watched) root?.traverse((o) => consider(o as Obj));
+    const blocks = (this.real as unknown as { ovBlocks?: Obj[] }).ovBlocks;
+    if (blocks) for (const block of blocks) consider(block);
     for (const geo of this.liveRegionGeo) if (!now.has(geo)) this.swapped.add(geo);
     this.liveRegionGeo = now;
-    if (!this.swapped.size) return;
     const live = new Set<BufferGeometry>();
-    this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    if (this.swapped.size || this.shapeCache.size) {
+      this.g.scene.traverse((o) => { const g = (o as Obj).geometry; if (g) live.add(g); });
+    }
+    const dropping: BufferGeometry[] = [];
+    for (const geo of this.swapped) if (!live.has(geo)) dropping.push(geo);
+    for (const [, geo] of this.shapeCache) if (!live.has(geo)) dropping.push(geo);
+    for (const geo of dropping) this.rememberGeometry(geo);
+    this.flushRemembered();
     for (const geo of this.swapped) if (!live.has(geo)) geo.dispose();
     this.swapped.clear();
+    // A shared box can leave the scene between watches. The sign teardown leaves
+    // it alone so a sibling mesh can keep drawing it; once nothing in the scene
+    // references it, the cache is the only owner and the GPU slot has to go.
+    for (const [key, geo] of this.shapeCache) if (!live.has(geo)) {
+      geo.dispose();
+      this.shapeCache.delete(key);
+    }
   }
 
   /** Maps on a live region are uploaded before the soak samples, so a later dispose
@@ -584,56 +783,54 @@ export class PerfFixes {
     if (n) this.stats.changes.push("dropped " + n + " far regions");
   }
 
-  /** A mesh the camera never drew is absent from renderer.info until a later drive.
-   *  Draw a handful once so the GPU count settles during warmup. Hidden parents are
-   *  irrelevant: renderBufferDirect does not consult them. */
-  private primeUnseenGeometries() {
-    if (this.primeIdle > 0) { this.primeIdle--; return; }
-    const renderer = this.g.renderer as unknown as {
-      renderBufferDirect?: (camera: unknown, scene: unknown, geometry: BufferGeometry, material: Material, object: Obj, group: unknown) => void;
-    };
-    if (!renderer.renderBufferDirect) return;
-    const cam = this.g.camera;
-    let budget = 16;
-    const draw = (mesh: Obj | null | undefined) => {
-      if (budget <= 0 || !mesh?.geometry || !mesh.material) return;
-      if (this.primedGeo.has(mesh.geometry)) return;
-      const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      if (!mat) return;
-      const inst = mesh as Obj & { isInstancedMesh?: boolean; count?: number };
-      const savedCount = inst.isInstancedMesh && (inst.count ?? 0) > 1 ? inst.count : undefined;
-      if (savedCount !== undefined) inst.count = 1;
-      try {
-        renderer.renderBufferDirect!(cam, null, mesh.geometry, mat, mesh, null);
-        this.primedGeo.add(mesh.geometry);
-        const rec = mat as unknown as Record<string, GpuTex | null | undefined>;
-        for (const key of MAP_KEYS) this.uploadNow(rec[key]);
-        budget--;
-      } catch {
-        // A mesh that cannot draw here would otherwise sit at the front of the walk
-        // and spend the budget forever. The normal frame can still upload it.
-        this.primedGeo.add(mesh.geometry);
-      } finally {
-        if (savedCount !== undefined) inst.count = savedCount;
-      }
-    };
-    const walk = (root: Obj | null | undefined) => {
-      if (!root || budget <= 0) return;
-      const stack: Obj[] = [root];
-      while (stack.length && budget > 0) {
-        const o = stack.pop()!;
-        draw(o);
-        for (let i = 0; i < o.children.length; i++) stack.push(o.children[i] as Obj);
-      }
-    };
-    for (const r of this.real.regions.values()) {
-      if (budget <= 0) break;
-      if (r.state === "loading" || r.state === "failed") continue;
-      walk(r.group);
-      for (const b of r.__awBB || []) draw(b.bm as unknown as Obj);
+  /**
+   * A geometry dispose only frees a renderer.info.memory.geometries slot after
+   * the renderer has seen that geometry. renderBufferDirect outside a frame
+   * never does, so an unseen chunk disposed on unload left the slot behind and
+   * the copy built on the next visit raised the count (146 against a live
+   * scene growth of 70). One scratch render registers the batch, draws nothing,
+   * and then dispose can free the slot.
+   */
+  private rememberGeometry(geo: BufferGeometry | null | undefined) {
+    if (!geo || this.primedGeo.has(geo)) return;
+    this.primedGeo.add(geo);
+    this.pendingPrime.push(geo);
+  }
+
+  private priming = false;
+  private flushRemembered() {
+    const list = this.pendingPrime;
+    if (!list.length || this.priming) return;
+    this.pendingPrime = [];
+    this.priming = true;
+    if (!this.scratchScene || !this.scratchMat) {
+      this.scratchScene = new Scene();
+      this.scratchMat = new MeshBasicMaterial({ visible: false });
     }
-    if (budget > 0) walk(this.real.hero?.group);
-    if (budget === 16) this.primeIdle = 2;
+    const scene = this.scratchScene;
+    const mat = this.scratchMat;
+    while (this.scratchMeshes.length < list.length) {
+      const mesh = new Mesh(this.scratchEmpty, mat);
+      mesh.frustumCulled = false;
+      mesh.matrixAutoUpdate = false;
+      this.scratchMeshes.push(mesh);
+    }
+    for (let i = 0; i < list.length; i++) {
+      const mesh = this.scratchMeshes[i];
+      mesh.geometry = list[i];
+      scene.add(mesh);
+    }
+    try {
+      this.g.renderer.render(scene, this.g.camera);
+    } catch {
+      // One bad mesh must not wedge the queue. The real frame can still upload it.
+    }
+    for (let i = 0; i < list.length; i++) {
+      const mesh = this.scratchMeshes[i];
+      scene.remove(mesh);
+      mesh.geometry = this.scratchEmpty;
+    }
+    this.priming = false;
   }
 
   /** Runs right after A's per-frame world update, before A renders. */
@@ -643,11 +840,12 @@ export class PerfFixes {
     A.update = (...a: unknown[]) => {
       orig(...a);
       if (this.trimPending) this.trim(a[0] as number, a[2] as number);
+      this.reuseRegionTextures();
       this.warmRegionTextures();
       this.uploadPendingMaps(a[0] as number, a[2] as number);
       if ((this.watchTick++ & 3) === 0) {
         this.noteSwaps();
-        this.primeUnseenGeometries();
+        this.releaseOrphans();
       }
       for (const r of A.regions.values()) if (r.group) this.freeze(r.group, this.regionChanged);
       if (this.inst) {
@@ -697,10 +895,78 @@ export class PerfFixes {
     this.stats.peds = n0 + " -> " + amb.peds.length + " (no shadows)";
   }
 
+  private seenGeo = new Set<BufferGeometry>();
+
+  /** Geometries that left the scene still count on the GPU until dispose.
+   *  The shared sign/palapa cache stays. Overview blocks keep every LOD buffer
+   *  on userData.lods; only the one assigned to the mesh is on screen. Holding
+   *  the others in the GPU count made a later drive's first use of a far LOD
+   *  stick after the camera had already switched back. */
+  private releaseOrphans() {
+    const live = new Set<BufferGeometry>();
+    const keep = new Set<BufferGeometry>();
+    this.g.scene.traverse((object) => {
+      const mesh = object as Obj;
+      if (mesh.geometry) live.add(mesh.geometry);
+    });
+    for (const geo of this.shapeCache.values()) keep.add(geo);
+    const dropping: BufferGeometry[] = [];
+    for (const geo of this.seenGeo) {
+      if (live.has(geo) || keep.has(geo)) continue;
+      dropping.push(geo);
+      this.seenGeo.delete(geo);
+    }
+    for (const geo of dropping) this.rememberGeometry(geo);
+    this.flushRemembered();
+    for (const geo of dropping) geo.dispose();
+    for (const geo of live) this.seenGeo.add(geo);
+  }
+
+  private shapeCache = new Map<string, BufferGeometry>();
+
+  /** Sign panels and posts each allocated a BoxGeometry, and every palapa GLB
+   *  uploaded its own copy of the same mesh. Keep one buffer and dispose the
+   *  clones. __awShared tells the landmark teardown not to free a buffer that
+   *  another mesh still draws. noteSwaps drops the cached buffer once the last
+   *  mesh is gone, and the landmark canvas stays on the brand record so a
+   *  rebuilt sign does not upload a second texture. */
+  private shareGeometries() {
+    const cache = this.shapeCache;
+    const adopt = (mesh: Obj) => {
+      const geo = mesh.geometry;
+      if (!geo || mesh.isInstancedMesh || mesh.isSkinnedMesh) return;
+      const typed = geo as BufferGeometry & { parameters?: Record<string, unknown>; __awShared?: number };
+      let key: string | null = null;
+      if (typed.parameters) {
+        try { key = geo.type + JSON.stringify(typed.parameters); } catch { key = null; }
+      } else if (mesh.name.startsWith("palapa_")) {
+        const pos = geo.getAttribute("position");
+        const arr = pos?.array as ArrayLike<number> | undefined;
+        if (pos && arr && arr.length >= 6) {
+          const n = arr.length;
+          key = `palapa:${pos.count}:${geo.index?.count || 0}:${arr[0].toFixed(3)}:${arr[1].toFixed(3)}:${arr[2].toFixed(3)}:${arr[n - 3].toFixed(3)}:${arr[n - 1].toFixed(3)}`;
+        }
+      }
+      if (!key) return;
+      const prev = cache.get(key);
+      if (!prev) {
+        cache.set(key, geo);
+        typed.__awShared = 1;
+        return;
+      }
+      if (prev === geo) return;
+      mesh.geometry = prev;
+      geo.dispose();
+    };
+    const roots = [this.real.brands?.group, this.real.hero?.group];
+    for (const root of roots) root?.traverse((o) => { const mesh = o as Obj; if (mesh.isMesh) adopt(mesh); });
+  }
+
   update(dt: number) {
     this.t -= dt;
     if (this.t > 0) return;
     this.t = 1;
+    this.shareGeometries();
     this.fixGlass();
     this.fixCar();
     this.fixPeds();

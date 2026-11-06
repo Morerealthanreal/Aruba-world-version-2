@@ -1,0 +1,42 @@
+{
+ "_ord": 2,
+ "id": "dom_rococo",
+ "name": "Domino's (Rococo Plaza, Tanki Leendert)",
+ "status": "v1-unit",
+ "x": -4726.09,
+ "z": -2018.53,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/dom_rococo.glb",
+ "lod": {
+  "hi": "dom_rococo_lod0",
+  "lo": "dom_rococo_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "dom_rococo_lod0": 84,
+  "dom_rococo_lod1": 24
+ },
+ "hide_footprint": null,
+ "new_place": true,
+ "sign": {
+  "text": "DOMINO'S",
+  "bg": "#006491",
+  "fg": "#ffffff",
+  "edge_index": null
+ },
+ "kind": "unit",
+ "unit_edge": [
+  [
+   -4726.2311450001025,
+   -2014.034504996815
+  ],
+  [
+   -4725.940973354004,
+   -2023.0298260258721
+  ]
+ ],
+ "approx_location": false,
+ "geo_source": "Nominatim 'Rococo Plaza'; dominosnearme.net (Tanki Leendert 158-G)",
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

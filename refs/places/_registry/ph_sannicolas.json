@@ -1,0 +1,50 @@
+{
+ "_ord": 6,
+ "id": "ph_sannicolas",
+ "name": "Pizza Hut (San Nicolas)",
+ "status": "v1-standalone (Sasaki photo style)",
+ "x": 6225.27,
+ "z": 9228.22,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/ph_sannicolas.glb",
+ "lod": {
+  "hi": "ph_sannicolas_lod0",
+  "lo": "ph_sannicolas_lod1",
+  "switch_m": 120
+ },
+ "tris": {
+  "ph_sannicolas_lod0": 1164,
+  "ph_sannicolas_lod1": 72
+ },
+ "hide_footprint": [
+  [
+   6219.6,
+   9234.9
+  ],
+  [
+   6229,
+   9236.1
+  ],
+  [
+   6231,
+   9221.6
+  ],
+  [
+   6221.5,
+   9220.3
+  ]
+ ],
+ "new_place": true,
+ "sign": {
+  "text": "PIZZA HUT",
+  "bg": "#c8102e",
+  "fg": "#ffffff",
+  "edge_index": 3
+ },
+ "kind": "standalone",
+ "unit_edge": null,
+ "approx_location": false,
+ "geo_source": "OSM POI 'Pizza Hut, Bernhardstraat' via Nominatim; pizzahutaruba.com (Bernhardstraat 1)",
+ "frame": "glb origin = footprint centroid (local frame); glTF +X = local x, +Z = local z, Y up"
+}

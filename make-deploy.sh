@@ -2,6 +2,7 @@
 # Builds the add-ons and writes a static, deploy-ready copy of the merged game to ./deploy
 set -e
 cd "$(dirname "$0")"
+python3 tools/build_hero_manifest.py
 (cd addons && npm run build >/dev/null)
 rm -rf deploy && mkdir deploy
 (cd game && tar -cf - .) | tar -xf - -C deploy

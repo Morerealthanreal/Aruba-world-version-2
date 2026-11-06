@@ -87,6 +87,73 @@ if 'for(let t of[...this.regions.values()])' in s:
         "for(let t of this.regions.values()){",
         "regionsSpread")
 
+# A hero that replaces a landmark used to detach the sign mesh and leave its geometry
+# registered on the GPU. dispose() drops it. Shared boxes are marked __awShared and
+# released later; the landmark canvas stays on the brand record.
+if "o.geometry&&o.geometry.dispose()" not in s and "__awShared&&o.geometry.dispose()" not in s:
+    rep(
+        "r.hero=t,r._g&&(e.group.remove(r._g),r._g=null)",
+        "r.hero=t,r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)",
+        "heroSignInit")
+    rep(
+        "a._g&&=(i.group.remove(a._g),null)",
+        "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)",
+        "heroSignUpdate")
+
+# Geometry-only dispose left the landmark canvas uploaded. The brand list then
+# built a replacement sign at the hero's height, so the measured lap counted
+# the old texture and the new one. Release the canvas once. Shared post, base,
+# and canopy materials are skipped. __awGone stops a second face of the same
+# board from disposing that texture again.
+SIGN_TEX = (
+    "o.material&&[].concat(o.material).forEach(t=>{"
+    "if(t===POST||t===BASE||t===GAS)return;let x=t.map;"
+    "if(x&&x.dispose&&!x.__awGone){x.__awGone=1;t.emissiveMap===x&&(t.emissiveMap=null);x.dispose();x.image=null;t.map=null}})"
+)
+def sign_tex(shared):
+    return SIGN_TEX.replace("POST", shared[0]).replace("BASE", shared[1]).replace("GAS", shared[2])
+# Drop the sign mesh's own geometry. Leave _tex alone: nulling it makes the next
+# build allocate a second canvas, and disposing the first one often does not
+# decrement renderer.info (the upload refcount is still held, or the texture was
+# never uploaded so dispose is a no-op). The landmark keeps one canvas.
+# __awShared geometries stay; the perf fix releases them once nothing draws them.
+OLD_UPDATE = "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),null)"
+NEW_UPDATE = "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{o.geometry&&!o.geometry.__awShared&&o.geometry.dispose()}),null)"
+OLD_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&o.geometry.dispose()}),r._g=null)"
+NEW_INIT = "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{o.geometry&&!o.geometry.__awShared&&o.geometry.dispose()}),r._g=null)"
+CANVAS_UPDATE = (
+    "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{(o.geometry&&!o.geometry.__awShared&&o.geometry.dispose(),"
+    + sign_tex(("i.post", "i.base", "i.gasW"))
+    + ")}),a._tex=null,null)"
+)
+CANVAS_INIT = (
+    "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{(o.geometry&&!o.geometry.__awShared&&o.geometry.dispose(),"
+    + sign_tex(("e.post", "e.base", "e.gasW"))
+    + ")}),r._tex=null,r._g=null)"
+)
+CANVAS_UPDATE_PLAIN = (
+    "a._g&&=(i.group.remove(a._g),a._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
+    + sign_tex(("i.post", "i.base", "i.gasW"))
+    + ")}),a._tex=null,null)"
+)
+CANVAS_INIT_PLAIN = (
+    "r._g&&(e.group.remove(r._g),r._g.traverse(o=>{(o.geometry&&o.geometry.dispose(),"
+    + sign_tex(("e.post", "e.base", "e.gasW"))
+    + ")}),r._tex=null,r._g=null)"
+)
+if CANVAS_UPDATE in s:
+    rep(CANVAS_UPDATE, NEW_UPDATE, "heroSignReuseUpdate")
+elif CANVAS_UPDATE_PLAIN in s:
+    rep(CANVAS_UPDATE_PLAIN, NEW_UPDATE, "heroSignReuseUpdatePlain")
+elif OLD_UPDATE in s:
+    rep(OLD_UPDATE, NEW_UPDATE, "heroSignTexUpdate")
+if CANVAS_INIT in s:
+    rep(CANVAS_INIT, NEW_INIT, "heroSignReuseInit")
+elif CANVAS_INIT_PLAIN in s:
+    rep(CANVAS_INIT_PLAIN, NEW_INIT, "heroSignReuseInitPlain")
+elif OLD_INIT in s:
+    rep(OLD_INIT, NEW_INIT, "heroSignTexInit")
+
 if 'x.__awGone' not in s:
     rep(
         "disposeRegion(e){e.group&&(this.group.remove(e.group),e.group.traverse(e=>{e.geometry&&e.geometry.dispose()}));for(let t of e.chunks||[])t.mesh&&t.mesh.geometry.dispose();e.hf?.dispose(),e.splat?.dispose(),e.mat?.dispose(),e.wmat?.dispose(),",

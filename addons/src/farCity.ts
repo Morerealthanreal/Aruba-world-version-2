@@ -164,18 +164,22 @@ export class FarCity {
       if (this.mask[i]) return;
       this.mask[i] = 255; m++;
     };
-    // A built region has real buildings. A region whose height tile is already
-    // loaded does too, a moment later: the impostor roofs were baked on the
-    // coarse overview and float as brown blades over that terrain (Ayo).
+    // Mask only regions that have finished building real 3D buildings. Unbuilt regions
+    // retain their HLOD massing blocks so towns never vanish or pop in late.
     for (const r of regs.values()) {
-      const height = (r as { H?: unknown }).H;
-      if (r.state !== "built" && !height) continue;
-      mark(r.rx, r.rz);
+      if (r.state === "built") {
+        mark(r.rx, r.rz);
+      }
     }
     const M = (this.g.real as unknown as { M: { X0: number; Z0: number; RS: number } }).M;
     const pos = (this.g.camera as unknown as { position: { x: number; z: number } }).position;
     const crx = Math.floor((pos.x - M.X0) / M.RS), crz = Math.floor((pos.z - M.Z0) / M.RS);
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) mark(crx + dx, crz + dz);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const nr = regs.get((crx + dx) + "," + (crz + dz));
+        if (nr && nr.state === "built") mark(crx + dx, crz + dz);
+      }
+    }
     this.stats.masked = m;
     const b = this.batch;
     if (b) { let c = 0; for (let i = 0; i < b.n; i++) { const r = b.reg[i], rx = Math.floor(r / 32), rz = r - rx * 32; if (!this.mask[(rz * 32 + rx) * 4]) b.vis[c++] = i; } b.nVis = c; return; }

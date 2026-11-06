@@ -1,0 +1,64 @@
+{
+ "_ord": 1317,
+ "id": "snmain_west",
+ "k": "snmain_west",
+ "name": "",
+ "status": "v5-accuracy",
+ "x": 6829.39,
+ "z": 9628.32,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/snmain_west.glb",
+ "lod": {
+  "hi": "snmain_west_lod0",
+  "lo": "snmain_west_lod1",
+  "switch_m": 180
+ },
+ "tris": {
+  "snmain_west_lod0": 140,
+  "snmain_west_lod1": 90
+ },
+ "textures": 0,
+ "hide_footprint": [
+  [
+   6809.3,
+   9641.2
+  ],
+  [
+   6812.4,
+   9629.2
+  ],
+  [
+   6816.6,
+   9614.8
+  ],
+  [
+   6838.0,
+   9602.0
+  ],
+  [
+   6846.3,
+   9604.6
+  ],
+  [
+   6844.7,
+   9624.2
+  ],
+  [
+   6836.1,
+   9652.0
+  ],
+  [
+   6822.6,
+   9647.9
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": false,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "San Nicolas Main Street is B. van der Veen Zeppenfeldstraat. One-storey shopfronts with pastel walls and coloured awnings on the lots beside Charlie's that are not in the sn_murals hide list. Charlie's Bar itself is unchanged.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "store"
+}

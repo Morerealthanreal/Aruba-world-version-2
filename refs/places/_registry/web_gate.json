@@ -1,0 +1,31 @@
+{
+ "_ord": 1322,
+ "id": "web_gate",
+ "k": "web_gate",
+ "name": "WEB Balashi desalination",
+ "status": "v5-accuracy",
+ "x": -849.64,
+ "z": 5075.17,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/web_gate.glb",
+ "lod": {
+  "hi": "web_gate_lod0",
+  "lo": "web_gate_lod1",
+  "switch_m": 400
+ },
+ "tris": {
+  "web_gate_lod0": 50,
+  "web_gate_lod1": 36
+ },
+ "textures": 1,
+ "hide_footprint": null,
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "WEB Aruba Balashi plant (Balashi 76). The existing web_balashi_tanks hero is the tank farm and was not replaced. This is the roadside gate: white posts, blue beam, W.E.B. BALASHI sign, on the Balashi W.E.B. road.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "landmark"
+}

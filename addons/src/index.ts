@@ -32,6 +32,7 @@ import { Kids } from "./kids";
 import { SplitJobs } from "./splitJobs";
 import { HiPerf } from "./hiPerf";
 import { HiLook } from "./hiLook";
+import { attachBlockDedupe } from "./blockDedupe";
 import { Emergency } from "./emergency";
 import { Crash } from "./crash";
 import { GvMoto } from "./gvMoto";
@@ -51,8 +52,12 @@ import { Radio } from "./radio";
 import { Sea } from "./sea";
 import { mountHud } from "./hud";
 import { MiniMap } from "./minimap";
+import { Navigator } from "./nav/navigator";
 import { NorthInland } from "./northInland";
 import { Interiors } from "./interiors";
+import { RoofLand } from "./roofLand";
+import { Stability } from "./stability";
+import { CarPhysics } from "./carPhysics";
 import { uNight } from "./uniforms";
 import { uTime } from "./uniforms";
 
@@ -77,10 +82,13 @@ async function main() {
   const split = params.get("split") !== "0" ? new SplitJobs((perf ? perf.mobile : touch) ? 3 : 4) : null;
   const hip = params.get("hiperf") !== "0" ? new HiPerf(g) : null;
   const hil = params.get("hilook") === "1" ? new HiLook(g) : null;
+  const blockDedupe = attachBlockDedupe(g); // task 3: stop re-adding footprints to the collision hash on region reload
   const useLife = params.get("life") !== "0";
   const peds = useLife && params.get("peds") !== "0" ? new PedestrianCrowds(g) : null;
   if (params.get("loco") !== "0") attachPlayerLocomotion(g); // r287: player mocap walk/run (from PR #13, player only)
-  const kids = !peds && params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
+  // Families stay on with the beach crowd. Kids follows the ambient pedestrians
+  // (about 40% walk with children). ?kids=0 turns that off on its own.
+  const kids = params.get("kids") !== "0" ? new Kids(g, perf ? perf.mobile : touch) : null;
   const graph = params.get("debug") === "1" ? new FrameGraph(g) : null;
   const clock = new Clock();
   const useDN = params.get("daynight") !== "0";
@@ -113,8 +121,48 @@ async function main() {
   const snsacrecent = params.get("snsacrecent") === "1" ? new SnSacRecentMurals(g) : null;
   const camc = params.get("camcycle") !== "0" ? new CamCycle() : null;
   const minimap = params.get("minimap") !== "0" ? new MiniMap(g) : null;
+  // Route from a minimap tap. On by default; ?nav=0 disables it. Nothing is built when disabled.
+  let nav: Navigator | null = null;
+  if (params.get("nav") !== "0") {
+    const data = (g as unknown as { DATA?: { roads?: Array<{ p?: number[][]; n?: string } | number[][]> } }).DATA;
+    const roads = (data?.roads || []).map((r) => {
+      const pts = (Array.isArray(r) ? r : r.p || []) as number[][];
+      return { name: (!Array.isArray(r) && r.n) || "", points: pts.map((q) => [q[0], q[1]] as [number, number]) };
+    }).filter((r) => r.points.length > 1);
+    nav = new Navigator(roads);
+    if (minimap) {
+      const nv = nav;
+      const canvas = document.getElementById("minimap") as HTMLCanvasElement | null;
+      const host = window as unknown as { __awMiniMap?: (x: number, z: number, h: number, ...rest: never[]) => void };
+      const prev = host.__awMiniMap;
+      // The current minimap has no overlay hook. Draw the route after its own pass, unless ?nav=0.
+      host.__awMiniMap = (x, z, h, ...rest) => {
+        prev?.(x, z, h, ...rest);
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const range = (minimap as unknown as { range?: number }).range;
+        const ppm = canvas.width / (range && range > 1 ? range : 480);
+        const css = canvas.parentElement?.clientWidth || 120;
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(h);
+        nv.drawRoute(ctx, x, z, ppm, canvas.width / css, h);
+        ctx.restore();
+      };
+      if (canvas) {
+        nv.bindMinimap(canvas, () => {
+          const range = (minimap as unknown as { range?: number }).range;
+          return canvas.width / (range && range > 1 ? range : 480);
+        });
+      }
+    }
+  }
   const nin = params.get("nin") !== "0" ? new NorthInland(g) : null;
   const interiors = params.get("interiors") !== "0" ? new Interiors(g) : null;
+  const roofland = params.get("roofland") !== "0" ? new RoofLand(g) : null;
+  const stability = params.get("stability") !== "0" ? new Stability(g) : null;
+  const carphys = params.get("carphysics") !== "0" ? new CarPhysics(g) : null;
   { // credits: street-level photo references used to match storefronts (CC BY-SA 4.0 requires attribution)
     const addCredit = () => { const ul = document.querySelector("#credits ul"); if (!ul) return false; if (!ul.querySelector(".aw-msb")) { const li2 = document.createElement("li"); li2.className = "aw-msb"; li2.innerHTML = 'Extra Noord building footprints: <a href="https://github.com/microsoft/GlobalMLBuildingFootprints" target="_blank" rel="noopener">Microsoft Global ML Building Footprints</a> (ODbL)'; ul.appendChild(li2); } if (!ul.querySelector(".aw-mly")) { const li = document.createElement("li"); li.className = "aw-mly"; li.innerHTML = 'Storefront/facade references: street-level photos from <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>'; ul.appendChild(li); } if (!ul.querySelector(".aw-loco")) { const li3 = document.createElement("li"); li3.className = "aw-loco"; li3.innerHTML = 'On-foot walk and run: <a href="https://quaternius.com/packs/universalanimationlibrary.html" target="_blank" rel="noopener">Quaternius Universal Animation Library</a> (CC0)'; ul.appendChild(li3); } if (!ul.querySelector(".aw-tds")) { const li4 = document.createElement("li"); li4.className = "aw-tds"; li4.innerHTML = 'Tierra del Sol gate: <a href="https://commons.wikimedia.org/wiki/File:GCV_Aruba_way_to_arribe_to_the_villas_-_panoramio.jpg" target="_blank" rel="noopener">Kallistoaua</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>'; ul.appendChild(li4); } if (!ul.querySelector(".aw-nin")) { const liN = document.createElement("li"); liN.className = "aw-nin"; liN.innerHTML = 'Casibari wall, kunuku fences, Hooiberg from the north: <a href="https://commons.wikimedia.org/wiki/File:Casibari_-_1.jpg" target="_blank" rel="noopener">DanielleJWiki</a>, <a href="https://commons.wikimedia.org/wiki/File:Traditional_Yatu_Cactus_Ritterocereus_Griseus_Fences_Santa_Cruz_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://commons.wikimedia.org/wiki/File:Cunucu_Traditional_Countryside_Small_Plantation_House_with_Traditional_Yatu_Cactus_Ritterocereus_Griseus_Fences_Santa_Cruz_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://commons.wikimedia.org/wiki/File:Hooiberg_Haystack_Mountain_View_from_Hudishibana_Hill_California_Lighthouse_Northwestern_Aruba.jpg" target="_blank" rel="noopener">EgorovaSvetlana</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; <a href="https://commons.wikimedia.org/wiki/File:Aruba_kunuku.jpg" target="_blank" rel="noopener">We El</a> (public domain)'; ul.appendChild(liN); } return true; };
     if (!addCredit()) { let n = 0; const t = setInterval(() => { if (addCredit() || ++n > 30) clearInterval(t); }, 1000); }
@@ -131,7 +179,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
-  window.__aw = { clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, bbatch, mwf, nin, interiors, version: "0.19.0" };
+  window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, roofland, stability, carphys, version: "0.19.0" };
 
   let last = performance.now();
   const loop = (now: number) => {
@@ -145,6 +193,14 @@ async function main() {
     if (traffic) traffic.update(dt);
     if (peds) peds.update(Math.min(dt, 0.1), uTime.value);
     if (audio) audio.update();
+    if (nav) {
+      const S = g.S as unknown as { mode: string; car: { x: number; z: number; h: number }; walk: { x: number; z: number } };
+      const w = (g as unknown as { walker?: { position: { x: number; z: number }; rotation: { y: number } } }).walker;
+      let x = w ? w.position.x : S.walk.x, z = w ? w.position.z : S.walk.z, h = w ? w.rotation.y : 0;
+      if (S.mode === "car" || S.mode === "moto") { x = S.car.x; z = S.car.z; h = S.car.h; }
+      else if (S.mode === "walk" || S.mode === "swim") { x = S.walk.x; z = S.walk.z; }
+      nav.update(performance.now(), x, z, h);
+    }
     if (radio) radio.update();
     if (emerg) emerg.update(Math.min(dt, 0.1));
     if (crash) crash.update(Math.min(dt, 0.1));
@@ -154,6 +210,9 @@ async function main() {
     if (wind) wind.update(Math.min(dt, 0.1));
     if (nin) nin.frame();
     if (interiors) interiors.update();
+    if (roofland) roofland.update();
+    if (stability) stability.update();
+    if (carphys) carphys.update(Math.min(dt, 0.1));
     if (golf) golf.frame();
     if (sn) sn.update();
     if (snfair) snfair.update();

@@ -36,7 +36,7 @@ export function loadMuralAtlas(path: string, renderer: WebGLRenderer): Promise<T
 /** Upload once and sync renderer state so mobile pre-upload does not count again. */
 export function bakeMuralAtlas(tex: THREE.Texture, renderer: WebGLRenderer): void {
   if (tex.userData.awBaked) return;
-  const r = renderer as WebGLRenderer & {
+  const r = renderer as unknown as {
     initTexture?: (t: THREE.Texture) => void;
     properties?: { get(t: THREE.Texture): { __version?: number } };
   };

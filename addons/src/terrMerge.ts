@@ -21,7 +21,10 @@ export class TerrMerge {
       if (!far) { if (st) { st.mesh.removeFromParent(); st.mesh.geometry.dispose(); R.__awTM = undefined; if (cs) for (const c of cs) if (c.mesh) c.mesh.visible = true; } continue; }
       let key = ""; for (const c of cs!) key += c.mesh!.geometry.id + ",";
       if ((!st || st.key !== key)) {
-        if (!doMerge || budget <= 0) { if (st) { for (const c of cs!) c.mesh!.visible = true; st.mesh.visible = false; } continue; }
+        if (!doMerge || budget <= 0) {
+          if (!st && cs) { for (const c of cs) if (c.mesh) c.mesh.visible = true; }
+          continue;
+        }
         budget--;
         const g = mergeGeometries(cs!.map((c) => c.mesh!.geometry as BufferGeometry));
         if (!g) continue;

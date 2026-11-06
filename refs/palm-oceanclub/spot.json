@@ -1,0 +1,39 @@
+{
+ "label": "ocean",
+ "port": "8823",
+ "q": "high",
+ "errors": [],
+ "bench": [
+  {
+   "shot": "pool",
+   "calls": 221,
+   "tris": 755006.6666666667,
+   "ms": 3.2
+  },
+  {
+   "shot": "beach",
+   "calls": 1152,
+   "tris": 1246657.6666666667,
+   "ms": 7.5
+  },
+  {
+   "shot": "aerial",
+   "calls": 270,
+   "tris": 815945.6666666666,
+   "ms": 6.9
+  }
+ ],
+ "fps": {
+  "fps": 0.74,
+  "p95ms": 11799.5,
+  "calls": 1,
+  "tris": 1
+ },
+ "hero": [
+  {
+   "id": "m_marriottoceanclub",
+   "loaded": true,
+   "hi": true
+  }
+ ]
+}

@@ -1,0 +1,80 @@
+{
+ "_ord": 1301,
+ "id": "filomena",
+ "k": "filomena",
+ "name": "Misa Santa Filomena (Paradera)",
+ "status": "v5-accuracy",
+ "x": -3699.33,
+ "z": -1804.18,
+ "y": 0,
+ "rotation": 0,
+ "glb": "models/hero/filomena.glb",
+ "lod": {
+  "hi": "filomena_lod0",
+  "lo": "filomena_lod1",
+  "switch_m": 320
+ },
+ "tris": {
+  "filomena_lod0": 726,
+  "filomena_lod1": 216
+ },
+ "textures": 1,
+ "hide_footprint": [
+  [
+   -3732.25,
+   -1812.93
+  ],
+  [
+   -3699.15,
+   -1812.24
+  ],
+  [
+   -3699.33,
+   -1816.65
+  ],
+  [
+   -3688.97,
+   -1816.47
+  ],
+  [
+   -3689.15,
+   -1810.31
+  ],
+  [
+   -3684.98,
+   -1810.21
+  ],
+  [
+   -3685.09,
+   -1797.17
+  ],
+  [
+   -3689.15,
+   -1797.17
+  ],
+  [
+   -3689.15,
+   -1791.57
+  ],
+  [
+   -3701.0,
+   -1792.03
+  ],
+  [
+   -3701.0,
+   -1796.25
+  ],
+  [
+   -3732.7,
+   -1797.17
+  ]
+ ],
+ "hide": [],
+ "sign": false,
+ "kind": "replace",
+ "new_place": true,
+ "geo_source": "OSM building footprint",
+ "ref_sources": "Wikimedia Commons 'Santa Filomena Catholic Parish' and 'St Filomena Church (Paradera)' (marigold walls, white trim and cross, dark-brown plinth, red-brown gable roof, red door, louvered belfry). OSM way 170899528. West gable faces the Paradera road.",
+ "frame": "glb origin = footprint centroid (world x,z); glTF +X = world x, +Z = world z, Y up",
+ "cat": "landmark"
+}

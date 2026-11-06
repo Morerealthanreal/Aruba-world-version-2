@@ -1,0 +1,17 @@
+The beach crowd uses six CC0 Quaternius characters (Universal Base Characters and
+the matching casual, hoodie, worker, and adventurer packs):
+
+  game/models/people/w-casual.glb
+  game/models/people/m-casual.glb
+  game/models/people/m-hoodie.glb
+  game/models/people/w-worker.glb
+  game/models/people/w-adventurer.glb
+  game/models/people/m-adventurer.glb
+
+Each file keeps that pack's mesh, skeleton, Idle, and Walk. Clothing colours are
+set in addons/src/npcBake.ts (linen, coral, khaki, teal, cream). They are not
+photographs. The hard hat on the worker pack is left out. Shoe meshes stay on the
+feet and are recolored sandal tan. The oil shader in addons/src/npcOil.ts only
+changes the light, and keeps the cloth colours clean. Women have long hair
+and a braid down the back, plus a necklace. Men wear straw hats or caps.
+Sunglasses, a belt, and a small buckle are shared meshes. They add no textures.

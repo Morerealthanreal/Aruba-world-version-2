@@ -54,7 +54,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "python3 -m http.server 8777 --bind 127.0.0.1 --directory game",
+      "python3 tools/build_hero_manifest.py && python3 -m http.server 8777 --bind 127.0.0.1 --directory game",
     url: "http://127.0.0.1:8777/",
     reuseExistingServer: !process.env.CI,
     timeout: 30 * 1000,
