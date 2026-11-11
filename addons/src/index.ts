@@ -2,7 +2,7 @@
 // and an auto FPS guard, running on top of A's live build without editing its
 // minified bundle. Loaded by one <script type="module"> line in game/index.html.
 // Kill switch: ?addons=0 (pure A). Partial: ?daynight=0, ?fpsguard=0, ?fly=0 (A's flight model), ?turbo=0,
-// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap).
+// ?hud=0 (A's phone HUD layout), ?minimap=0 (A's minimap), ?gfxdiag=0 (settings graphics readout).
 import { whenGameReady, params } from "./env";
 import { Clock } from "./clock";
 import { DayNight } from "./daynight";
@@ -21,6 +21,7 @@ import { PedestrianCrowds } from "./pedestrians";
 import { attachPlayerLocomotion } from "./locomotion";
 import { WorldAudio } from "./audio";
 import { mountUI } from "./ui";
+import { mountGfxDiag } from "./gfxDiag";
 import { PerfFixes } from "./perfFixes";
 import { Look } from "./look";
 import { Flora } from "./flora";
@@ -179,6 +180,7 @@ async function main() {
   const pre = params.get("preload") !== "0" ? new Preload(g) : null;
   const mwf = params.get("mwfreeze") !== "0" ? new StaticFreeze(g) : null;
   const tickUI = mountUI(clock, guard);
+  if (params.get("gfxdiag") !== "0") mountGfxDiag(g, guard, perf ? perf.mobile : false);
   window.__aw = { blockDedupe, clock, dn, lights, lamps, traffic, peds, audio, guard, perf, look, flora, jobs, far, ctxg, kids, split, hip, hil, emerg, crash, gv, fly, turbo, wind, golf, resort, sn, snfair, snlater, snfamous, snsacrecent, bmerge, mperf, ovm, tmerge, sea, minimap, nav, bbatch, mwf, nin, interiors, roofland, stability, carphys, version: "0.19.0" };
 
   let last = performance.now();
