@@ -127,4 +127,10 @@ export class FpsGuard {
     const extra = this.level >= 6 ? " · post off" : this.level >= 5 ? " · lazy shadows" : "";
     return `${Math.round(this.fps)} fps · target ${this.target} · scale ${Math.round(s * 100)}%${extra}`;
   }
+
+  /** Read-only view of the guard. Used by the settings diagnostics panel while it is open. */
+  snapshot(): { enabled: boolean; target: number; level: number; maxLevel: number; scale: number; fps: number } {
+    const scale = (this.phone ? PHONE_SCALES : SCALES)[Math.min(this.level, SCALES.length - 1)];
+    return { enabled: this.enabled, target: this.target, level: this.level, maxLevel: this.maxLevel, scale, fps: this.fps };
+  }
 }
